@@ -4,4 +4,5 @@ __pycache__/
 
 # Build output — regenerated on every run, ~1 MB each
 dashboard.html
-dashboard-artifact.html
+# dashboard-artifact.html is committed on purpose - the Claude routine
+# publishes it, and delta compression makes each build cost ~0 KB.

@@ -1,0 +1,69 @@
+name: Build dashboard
+
+# Why this runs here and not in the Claude routine: the routine's sandbox sits
+# behind a policy-enforcing egress proxy that refuses CONNECT to
+# fantasy.premierleague.com (403), so the build cannot fetch a single byte of
+# its data there. GitHub's runners have open outbound network, so the build
+# happens here and the routine only has to publish what this commits.
+on:
+  schedule:
+    # 20 minutes before each Claude routine fire, so it always finds fresh HTML.
+    - cron: '40 6,14 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-dashboard
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Pillow is optional - it shrinks player photos from ~96 KB PNGs to
+      # ~14 KB JPEGs. Without it the build still works, just heavier.
+      - name: Install Pillow
+        run: python -m pip install --quiet --retries 5 --timeout 60 Pillow
+
+      # The badge, shirt and photo files never change, so keeping them across
+      # runs saves ~60 downloads from the Premier League CDN every build.
+      - name: Restore image cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/assets
+          key: fpl-assets-v1
+
+      - name: Build
+        id: build
+        run: |
+          python cli.py dashboard --artifact | tee build.log
+          echo "--- sources ---"
+          sed -n '/sources this run:/,$p' build.log
+
+      - name: Fail if a source dropped out
+        run: |
+          if grep -q '^  FAIL' build.log; then
+            echo "::warning::One or more data sources failed this run:"
+            grep '^  FAIL' build.log
+          fi
+
+      - name: Commit if the page changed
+        run: |
+          git config user.name  "fpl-insights bot"
+          git config user.email "actions@github.com"
+          git add -f dashboard-artifact.html
+          if git diff --cached --quiet; then
+            echo "no change to publish"
+          else
+            git commit -q -m "Rebuild dashboard $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push -q
+            echo "committed a fresh build"
+          fi
