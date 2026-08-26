@@ -1087,6 +1087,7 @@ def squad_table(reports, ctx, captain_id, vice_id, proj=None, market=None,
         )
         pred = ctx.is_predicted(el)
         pred_txt = "yes" if pred is True else ("no" if pred is False else "unknown")
+        sort_key = "" if pred_txt == "unknown" else pred_txt
         pred_cell = {
             "yes": '<span class="lu lu-in">Predicted XI</span>',
             "no": '<span class="lu lu-out">Not predicted</span>',
@@ -1109,7 +1110,7 @@ def squad_table(reports, ctx, captain_id, vice_id, proj=None, market=None,
             f"{meter(r.xgi90, maxx, f'{r.xgi90:.2f} xGI per 90')} "
             f"{r.xgi90:.2f}</td>"
             f"{dc_cell}"
-            f"<td data-v=\"{'' if pred_txt == 'unknown' else pred_txt}\">{pred_cell}</td>"
+            f'<td data-v="{sort_key}">{pred_cell}</td>'
             f"<td>{fx}</td></tr>"
         )
     return (
@@ -1401,13 +1402,14 @@ def ownership_carousel(own, by_name, ctx, my_name):
         caps = len(rec["captains"])
         note = f"{caps} captained him" if caps else "&nbsp;"
         aria = f"{el['web_name']} owned by {owners} of {n} managers"
+        own_flag = '<p class="oyou">You own him</p>' if mine else ""
         cards.append(
             f'<li class="ocard{" mine" if mine else ""}">'
             f"{donut(pct, aria, f'{owners}/{n}', f'{pct:.0f}%', tone)}"
             f'<p class="oname">{e(el["web_name"])}</p>'
             f'<p class="oteam">{e(ctx.team_name(el["team"]))} &middot; {el["total_points"]} pts</p>'
             f'<p class="onote">{note}</p>'
-            f'{"<p class=\"oyou\">You own him</p>" if mine else ""}'
+            f"{own_flag}"
             "</li>"
         )
     return (
@@ -1502,7 +1504,7 @@ def ep_card(eps, gw):
     return (
         '<details class="card collapsible" open>'
         '<summary class="card-head"><h2>Expected points</h2>'
-        f"<span class=\"sub\">Our model for gameweek {gw}, broken into its parts. "
+        f'<span class="sub">Our model for gameweek {gw}, broken into its parts. '
         "FPL's own projection tops out at 4.0 for every premium player, so this "
         "is built from Scout's fixture odds and each player's own rates."
         "</span></summary>"
