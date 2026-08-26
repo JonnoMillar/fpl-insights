@@ -1,0 +1,376 @@
+#!/usr/bin/env python3
+"""
+Fixture difficulty, and what the market makes of the coming round.
+
+The previous ticker asked you to choose between shading by clean sheet and
+shading by goals, which is not a choice anyone wants to make while reading a
+table - and it painted the good cells almost black, so a run of easy fixtures
+was a wall of dark squares. Both are gone.
+
+There is now one number per fixture. It combines the two things that decide
+whether a fixture is worth owning a player for, in one 0-to-10 rating where
+higher is better:
+
+    attack   the club's expected goals in that match, against a league norm
+    defence  the probability they keep a clean sheet
+
+Weighted 55/45 toward attack, because most of a squad scores its points at the
+other end. Where the betting market has priced a fixture its numbers are used;
+beyond that, Fantasy Football Scout's model fills in, and the cell says which.
+
+Colours are light throughout, with dark text - a rating is read from the
+number, and the fill is there to let a run of green or a run of red show up
+when you glance down a row.
+"""
+
+import html
+
+import ffs
+
+# Anchors for the two components. Roughly the 10th and 90th percentile of a
+# Premier League fixture, so most land inside and the extremes still separate.
+XG_LOW, XG_HIGH = 0.65, 2.35
+CS_LOW, CS_HIGH = 0.08, 0.55
+ATTACK_WEIGHT = 0.55
+
+# Five light steps. Deliberately pale: the number carries the value, the fill
+# only has to make a pattern visible down a column.
+# Five solid bands rather than a wash. Distinct blocks make a run of good or
+# bad fixtures obvious at a glance down a column, and the rating is printed in
+# every cell so the colour is never the only thing carrying the value. Red
+# through neutral to green is diverging with a genuine middle, which is what
+# "difficulty" is.
+# Rose through a warm neutral to teal. Deliberately not the red-amber-green
+# traffic light: those three are so overused they stop being read, and the
+# warm neutral in the middle sits far better against the purple the rest of
+# the page is built from. The rating is printed in every cell, so the colour
+# only has to make a run of good or bad fixtures visible down a column.
+SCALE = [
+    (2.0, "#a4133c", "#ffffff"),
+    (4.0, "#f4845f", "#40190e"),
+    (6.0, "#eae7ec", "#37003c"),
+    (8.0, "#7ac9a0", "#0d3b26"),
+    (10.1, "#17876a", "#ffffff"),
+]
+
+
+def rating_pill(opp, home, score):
+    """A fixture chip using the same rating and ramp as the ticker, so a
+    fixture looks the same wherever it appears."""
+    bg, fg = _tone(score)
+    label = opp.upper() if home else opp.lower()
+    return (
+        '<span class="rpill" style="background:{bg};color:{fg}" '
+        'title="{opp} {venue} - rating {score:.1f} of 10">'
+        "{label}<b>{score:.1f}</b></span>".format(
+            bg=bg, fg=fg, opp=e(opp), venue="at home" if home else "away",
+            score=score, label=e(label))
+    )
+
+
+def e(x):
+    return html.escape(str(x), quote=True)
+
+
+def _clamp01(v):
+    return max(0.0, min(1.0, v))
+
+
+def rating(xg, cs_pct):
+    """One 0-10 score for how good a fixture is to own a player from."""
+    attack = _clamp01((xg - XG_LOW) / (XG_HIGH - XG_LOW))
+    defence = _clamp01((cs_pct / 100.0 - CS_LOW) / (CS_HIGH - CS_LOW))
+    return 10.0 * (ATTACK_WEIGHT * attack + (1 - ATTACK_WEIGHT) * defence)
+
+
+def _tone(score):
+    for edge, bg, fg in SCALE:
+        if score < edge:
+            return bg, fg
+    return SCALE[-1][1], SCALE[-1][2]
+
+
+def _rows_for(club, proj, market, start_gw, weeks):
+    """Fixtures for one club, market first and model behind."""
+    out = []
+    mk = (market or {}).get(club)
+    for fx in ffs.ticker(proj, club, start_gw, weeks):
+        xg, cs, source = fx["xg"], fx["cs"], "model"
+        # The market only prices the imminent round, so it can only replace the
+        # first cell - and only when the opponent matches, guarding against a
+        # postponement putting the two sources out of step.
+        if mk and not out and mk.get("opp") == fx["opp"]:
+            xg, cs, source = mk["xg"], mk["cs"], "market"
+        out.append({
+            "gw": fx["gw"], "opp": fx["opp"], "home": fx["home"],
+            "xg": xg, "cs": cs, "source": source,
+            "score": rating(xg, cs),
+        })
+    return out
+
+
+def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
+    if not proj:
+        return ""
+    clubs, seen = [], set()
+    for r in reports:
+        if r.team not in seen:
+            seen.add(r.team)
+            clubs.append(r.team)
+
+    rows = []
+    for club in clubs:
+        cells = _rows_for(club, proj, market, start_gw, weeks)
+        if not cells:
+            continue
+        avg = sum(c["score"] for c in cells) / len(cells)
+        chips = []
+        for c in cells:
+            bg, fg = _tone(c["score"])
+            label = c["opp"].upper() if c["home"] else c["opp"].lower()
+            mark = '<i class="fx-mkt" title="Priced by the market"></i>' if c["source"] == "market" else ""
+            chips.append(
+                '<td class="fxc" style="background:{bg};color:{fg}" '
+                'title="GW{gw}, {venue} to {opp} - rating {score:.1f} of 10, '
+                '{xg:.2f} expected goals, {cs:.0f}% clean sheet ({src})">'
+                '<span class="fxc-opp">{label}{mark}</span>'
+                '<span class="fxc-score">{score:.1f}</span></td>'.format(
+                    bg=bg, fg=fg, gw=c["gw"],
+                    venue="home" if c["home"] else "away", opp=e(c["opp"]),
+                    score=c["score"], xg=c["xg"], cs=c["cs"], src=c["source"],
+                    label=e(label), mark=mark,
+                )
+            )
+        abg, afg = _tone(avg)
+        rows.append((
+            avg,
+            '<tr><td class="fxclub"><b>{club}</b></td>'
+            '<td class="num"><span class="fxavg" style="background:{abg};color:{afg}">'
+            "{avg:.1f}</span></td>{chips}</tr>".format(
+                club=e(club), abg=abg, afg=afg, avg=avg, chips="".join(chips)),
+        ))
+    if not rows:
+        return ""
+    rows.sort(key=lambda x: -x[0])
+    heads = "".join(
+        '<th scope="col" class="num">GW{}</th>'.format(g)
+        for g in range(start_gw, start_gw + weeks)
+    )
+    return (
+        '<section class="card"><div class="card-head"><h2>Fixture difficulty</h2>'
+        '<span class="sub">One rating out of ten per fixture, higher is better. '
+        "Expected goals and clean-sheet odds combined, weighted toward attack. "
+        'A dot means the market priced it.</span></div>'
+        '<div class="scroll"><table data-sortable class="fxtable">'
+        '<thead><tr><th scope="col" class="sortable">Club</th>'
+        '<th scope="col" class="num sortable">Avg</th>'
+        f"{heads}</tr></thead><tbody>"
+        f"{''.join(r[1] for r in rows)}</tbody></table></div></section>"
+    )
+
+
+def odds_insights(fixtures, reports, ctx, proj, next_gw):
+    """What the market means for this squad.
+
+    A grid of prices is the raw material, not the answer - reading it and
+    working out what it implies for your eleven is the job, so this does that
+    job instead of printing the prices. Every line names the players affected
+    and the number behind it."""
+    if not fixtures:
+        return ""
+    by_club = {}
+    for fx in fixtures:
+        by_club[fx["home"]] = (fx, True)
+        by_club[fx["away"]] = (fx, False)
+
+    def side(fx, home, key):
+        return fx[("home_" if home else "away_") + key]
+
+    rows = []
+    for r in reports:
+        entry = by_club.get(r.team)
+        if not entry:
+            continue
+        fx, home = entry
+        win = (fx.get("win") or {}).get("home" if home else "away", 0)
+        rows.append({
+            "r": r, "fx": fx, "home": home,
+            "xg": side(fx, home, "xg"), "cs": side(fx, home, "cs"),
+            "opp": fx["away"] if home else fx["home"],
+            "win": win, "total": fx["total"],
+        })
+    if not rows:
+        return ""
+
+    items = []
+
+    attackers = [x for x in rows if x["r"].pos in ("MID", "FWD")]
+    if attackers:
+        b = max(attackers, key=lambda x: x["xg"])
+        items.append({
+            "tone": "good", "icon": "spark", "label": "Best attacking fixture",
+            "value": "{:.2f}".format(b["xg"]), "unit": "goals priced",
+            "who": b["r"].name,
+            "detail": "{} v {} &middot; {:.0f}% to win".format(
+                b["r"].team, b["opp"], b["win"]),
+        })
+
+    backs = [x for x in rows if x["r"].pos in ("GKP", "DEF")]
+    if backs:
+        b = max(backs, key=lambda x: x["cs"])
+        mates = [x["r"].name for x in backs if x["r"].team == b["r"].team]
+        items.append({
+            "tone": "good", "icon": "shield", "label": "Likeliest clean sheet",
+            "value": "{:.0f}%".format(b["cs"]), "unit": (
+                "quoted" if b["fx"].get("cs_source") == "quoted" else "derived"),
+            "who": ", ".join(sorted(mates)[:3]),
+            "detail": "{} v {}".format(b["r"].team, b["opp"]),
+        })
+        w = min(backs, key=lambda x: x["cs"])
+        if w["cs"] < 20:
+            items.append({
+                "tone": "bad", "icon": "shield", "label": "Least likely clean sheet",
+                "value": "{:.0f}%".format(w["cs"]), "unit": "clean sheet",
+                "who": w["r"].name,
+                "detail": "{} v {}".format(w["r"].team, w["opp"]),
+            })
+
+    busiest = max(rows, key=lambda x: x["total"])
+    involved = sorted({x["r"].name for x in rows if x["fx"] is busiest["fx"]})
+    items.append({
+        "tone": "info", "icon": "ball", "label": "Busiest fixture",
+        "value": "{:.2f}".format(busiest["total"]), "unit": "goals expected",
+        "who": ", ".join(involved[:3]),
+        "detail": "{} v {}".format(busiest["fx"]["home"], busiest["fx"]["away"]),
+    })
+
+    gaps = []
+    for x in rows:
+        model = proj.get((x["r"].team, next_gw))
+        if model:
+            gaps.append((abs(x["cs"] - float(model.get("cs") or 0)), x, model))
+    if gaps:
+        mag, x, model = max(gaps, key=lambda g: g[0])
+        if mag >= 6:
+            items.append({
+                "tone": "info", "icon": "key", "label": "Market v model",
+                "value": "{:+.0f}".format(x["cs"] - float(model.get("cs") or 0)),
+                "unit": "points apart on CS",
+                "who": x["r"].team,
+                "detail": "market {:.0f}% &middot; model {:.0f}%".format(
+                    x["cs"], float(model.get("cs") or 0)),
+            })
+
+    if not items:
+        return ""
+    cards = "".join(
+        '<li class="oi oi-{tone}">'
+        '<svg viewBox="0 0 24 24" class="oi-icon" aria-hidden="true">{icon}</svg>'
+        '<p class="oi-label">{label}</p>'
+        '<p class="oi-value">{value}<small>{unit}</small></p>'
+        '<p class="oi-who">{who}</p>'
+        '<p class="oi-detail">{detail}</p></li>'.format(
+            tone=it["tone"], icon=ICON_PATHS.get(it["icon"], ""),
+            label=e(it["label"]), value=e(it["value"]), unit=e(it["unit"]),
+            who=e(it["who"]), detail=it["detail"])
+        for it in items
+    )
+    return (
+        '<section class="card"><div class="card-head"><h2>What the odds mean for you</h2>'
+        '<span class="sub">Pinnacle, margin removed, applied to your '
+        "squad.</span></div>"
+        f'<div class="card-body"><ul class="oilist">{cards}</ul></div></section>'
+    )
+
+
+ICON_PATHS = {
+    "spark": '<path d="M4 17l5-6 4 3 6-8" fill="none" stroke="currentColor" '
+             'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>',
+    "shield": '<path d="M12 3 20 6v6c0 4-3.4 7.4-8 9-4.6-1.6-8-5-8-9V6Z" fill="none" '
+              'stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',
+    "ball": '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" '
+            'stroke-width="1.7"/><path d="M12 7.2l3.6 2.6-1.4 4.2H9.8L8.4 9.8Z" '
+            'fill="none" stroke="currentColor" stroke-width="1.5" '
+            'stroke-linejoin="round"/>',
+    "run": '<circle cx="14" cy="5" r="2" fill="currentColor"/>'
+           '<path d="M13 9l-4 3 2 4-3 4M13 9l4 2 2 4" fill="none" '
+           'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" '
+           'stroke-linejoin="round"/>',
+    "key": '<path d="M4 12h9M13 8l4 4-4 4" fill="none" stroke="currentColor" '
+           'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
+           '<circle cx="19" cy="12" r="2" fill="currentColor"/>',
+}
+
+
+def _bar(parts):
+    """A single stacked probability bar, used for win / draw / loss."""
+    segs = "".join(
+        '<span class="mb-seg" style="width:{:.1f}%;background:{}" title="{} {:.0f}%">'
+        "</span>".format(pct, colour, e(label), pct)
+        for label, pct, colour in parts if pct > 0.5
+    )
+    return '<span class="mbar">{}</span>'.format(segs)
+
+
+def market_card(market, ctx, reports, fixtures=None):
+    """The coming round, as the market sees it.
+
+    One card per fixture your players are involved in, rather than a table:
+    each fixture is a small story - who is favoured, how many goals, who is
+    likely to keep it out - and a row of numbers tells it badly."""
+    if not fixtures:
+        return ""
+    mine = {r.team for r in reports}
+    cards = []
+    for fx in fixtures:
+        if fx["home"] not in mine and fx["away"] not in mine:
+            continue
+        win = fx.get("win") or {}
+        bar = _bar([
+            ("Home win", win.get("home", 0), "#953bff"),
+            ("Draw", win.get("draw", 0), "#c3b2c4"),
+            ("Away win", win.get("away", 0), "#00b3d6"),
+        ]) if win else ""
+        btts = (
+            '<div class="mstat"><dt>Both score</dt><dd>{:.0f}%</dd></div>'.format(fx["btts"])
+            if fx.get("btts") else ""
+        )
+        quoted = fx.get("cs_source") == "quoted"
+        cards.append(
+            '<li class="mcard">'
+            '<div class="mteams"><span class="mt {hcls}">{home}</span>'
+            '<span class="mvs">v</span>'
+            '<span class="mt {acls}">{away}</span>'
+            '<span class="mtotal">{total:.2f}<small>goals</small></span></div>'
+            "{bar}"
+            '<div class="mkeys"><span>{hw:.0f}%</span><span>{dw:.0f}%</span>'
+            '<span>{aw:.0f}%</span></div>'
+            '<dl class="mstats">'
+            '<div class="mstat"><dt>{home} xG</dt><dd>{hxg:.2f}</dd></div>'
+            '<div class="mstat"><dt>{away} xG</dt><dd>{axg:.2f}</dd></div>'
+            '<div class="mstat"><dt>{home} CS</dt><dd>{hcs:.0f}%</dd></div>'
+            '<div class="mstat"><dt>{away} CS</dt><dd>{acs:.0f}%</dd></div>'
+            "{btts}</dl>"
+            '<p class="mfoot">{note}</p></li>'.format(
+                home=e(fx["home"]), away=e(fx["away"]),
+                hcls="mine" if fx["home"] in mine else "",
+                acls="mine" if fx["away"] in mine else "",
+                total=fx["total"], bar=bar,
+                hw=win.get("home", 0), dw=win.get("draw", 0), aw=win.get("away", 0),
+                hxg=fx["home_xg"], axg=fx["away_xg"],
+                hcs=fx["home_cs"], acs=fx["away_cs"], btts=btts,
+                note=("Clean sheets quoted directly by the market."
+                      if quoted else
+                      "Clean sheets derived from the goals line, not quoted."),
+            )
+        )
+    if not cards:
+        return ""
+    return (
+        '<section class="card"><div class="card-head"><h2>The coming round, priced</h2>'
+        '<span class="sub">Pinnacle, with the bookmaker margin removed. Only the '
+        "fixtures your players are in.</span></div>"
+        '<div class="card-body"><ul class="mlist">{}</ul></div></section>'.format(
+            "".join(cards)
+        )
+    )

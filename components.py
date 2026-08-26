@@ -1,0 +1,480 @@
+#!/usr/bin/env python3
+"""
+Chart-ish building blocks for the dashboard.
+
+Each of these exists because a table was the wrong shape for the question:
+
+* `ep_bars` - the four terms of expected points really are parts of one total,
+  which is the one situation a stacked bar is right for.
+* `gap_chart` - a dumbbell. Reading the distance between two dots beats
+  reading two numbers and subtracting them in your head.
+* `defcon_bars` - "how close to 10" is a bar with a line on it, not a decimal.
+* `sparkline` - shape of a run of gameweeks, at a glance.
+
+Kept apart from dashboard.py so the page assembly stays readable.
+"""
+
+import html
+
+
+def e(x):
+    return html.escape(str(x), quote=True)
+
+
+# Segment colours for expected points, validated for colour-vision
+# deficiency rather than chosen by eye: worst adjacent pair is dE 12.0 for
+# deuteranopia and 9.4 for tritanopia, both clear of the 8 target. The grey
+# for appearance points fails a chroma floor on purpose - turning up is the
+# unremarkable part of a score and should read that way. Cyan and amber sit
+# under 3:1 against white, so every segment also carries a tooltip, a legend
+# entry and a printed number in the player view.
+EP_PARTS = (
+    ("goals", "Goals", "#953bff"),
+    ("assists", "Assists", "#00b3d6"),
+    ("defence", "Clean sheet", "#00a35c"),
+    ("appearance", "Appearance", "#87668a"),
+    ("defcon", "DefCon", "#e07b00"),
+    ("bonus", "Bonus", "#d81b8c"),
+)
+
+
+def ep_bars(eps, collapsed=6):
+    """Expected points as one stacked bar per player.
+
+    Shows a handful by default and opens to the full squad, because fifteen
+    rows pushed everything below it off the screen for a list you mostly read
+    the top of. Opening animates each bar out from the left in turn - the
+    stagger is what makes it read as a ranking rather than a block appearing.
+    """
+    if not eps:
+        return ""
+    ordered = sorted(eps, key=lambda x: -x[1]["total"])
+    top = max(ep["total"] for _r, ep in eps) or 1.0
+    rows = []
+    for i, (r, ep) in enumerate(ordered):
+        segs = []
+        for key, label, colour in EP_PARTS:
+            value = ep.get(key, 0.0)
+            if value <= 0.01:
+                continue
+            segs.append(
+                '<span class="seg" style="width:{:.2f}%;background:{}" '
+                'title="{} {:.2f}"></span>'.format(
+                    value / top * 100, colour, e(label), value
+                )
+            )
+        fixture = "{} ({})".format(ep["opponent"], "H" if ep["home"] else "A")
+        rows.append(
+            '<li class="epr" style="--i:{i}">'
+            '<span class="epname">{name}<span class="epfx">{fx}</span></span>'
+            '<span class="epbar">{segs}</span>'
+            '<span class="eptot tnum">{total:.2f}</span></li>'.format(
+                i=i,
+                name=e(r.name), fx=e(fixture), segs="".join(segs),
+                total=ep["total"],
+            )
+        )
+    legend = "".join(
+        '<span class="epkey"><i style="background:{}"></i>{}</span>'.format(c, e(l))
+        for _k, l, c in EP_PARTS
+    )
+    # The bars are what is hidden, not the players. Collapsed you get the
+    # ranking and the totals; opening slides the bar column out and runs the
+    # reveal, which is the moment worth having an animation for.
+    toggle = (
+        '<button class="epmore" aria-expanded="false">'
+        '<svg viewBox="0 0 16 16" class="epchev" aria-hidden="true">'
+        '<path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" '
+        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        '<span class="epmore-txt">See<br>more</span></button>'
+    )
+    return (
+        '<section class="card epcard"><div class="card-head">'
+        '<h2>Expected points</h2>'
+        '<span class="sub">Next gameweek, split into what actually earns the '
+        "points. Clean-sheet odds and the goals line come from the betting "
+        "market where it has priced the fixture.</span></div>"
+        '<div class="card-body"><div class="epwrap">'
+        '<ul class="eplist">{rows}</ul>{toggle}</div>'
+        '<p class="eplegend">{legend}</p></div></section>'.format(
+            rows="".join(rows), legend=legend, toggle=toggle
+        )
+    )
+
+
+def gap_chart(rows, title, note, left_label, right_label):
+    """A dumbbell chart: two dots joined by a line, one row per player.
+
+    `rows` is [(name, actual, expected)]. The line between the dots is the
+    thing being measured, so it carries the colour: green where the player is
+    under-performing his chances (they are arriving, the finishing will come),
+    amber where he is over-performing them."""
+    if not rows:
+        return ""
+    top = max(max(a, b) for _n, a, b in rows) or 1.0
+    items = []
+    for name, actual, expected in rows:
+        x1, x2 = actual / top * 100, expected / top * 100
+        lo, hi = min(x1, x2), max(x1, x2)
+        colour = "var(--success)" if actual < expected else "#e07b00"
+        items.append(
+            '<li class="gap"><span class="gapname">{}</span>'
+            '<span class="gaptrack">'
+            '<span class="gapline" style="left:{:.1f}%;width:{:.1f}%;background:{}"></span>'
+            '<span class="gapdot d-a" style="left:{:.1f}%" title="{} {:g}"></span>'
+            '<span class="gapdot d-x" style="left:{:.1f}%" title="{} {:.2f}"></span>'
+            "</span>"
+            '<span class="gapnum tnum">{:g} v {:.2f}</span></li>'.format(
+                e(name), lo, hi - lo, colour,
+                x1, e(left_label), actual,
+                x2, e(right_label), expected,
+                actual, expected,
+            )
+        )
+    return (
+        '<div class="find gapcard"><h3>{}</h3><p class="note">{}</p>'
+        '<ul class="gaplist">{}</ul>'
+        '<p class="eplegend"><span class="epkey"><i class="k-a"></i>{}</span>'
+        '<span class="epkey"><i class="k-x"></i>{}</span></p></div>'.format(
+            e(title), e(note), "".join(items), e(left_label), e(right_label)
+        )
+    )
+
+
+def defcon_bars(rows):
+    """Progress toward the defensive-contribution threshold.
+
+    `rows` is [(name, rate_per_90, threshold, hits, appearances)]. The track
+    runs to 140% of the threshold so clearing it has somewhere to show."""
+    if not rows:
+        return ""
+    scale = 1.4
+    items = []
+    for name, rate, threshold, hits, apps in rows:
+        if not threshold:
+            continue
+        pct = min(100.0, rate / threshold * 100 / scale)
+        colour = "var(--success)" if rate >= threshold else "#e07b00"
+        items.append(
+            '<li class="dcr"><span class="dcname">{}</span>'
+            '<span class="dctrack">'
+            '<span class="dcfill" style="width:{:.1f}%;background:{}"></span>'
+            '<span class="dcmark" style="left:{:.1f}%" title="Threshold {}"></span>'
+            "</span>"
+            '<span class="dcnum tnum">{:.1f} / {}</span>'
+            '<span class="dchits">{} of {}</span></li>'.format(
+                e(name), pct, colour, 100 / scale, threshold, rate, threshold, hits, apps
+            )
+        )
+    if not items:
+        return ""
+    return (
+        '<div class="find gapcard"><h3>Defensive contribution</h3>'
+        '<p class="note">Two points a match at the threshold. The notch is the '
+        "threshold; the bar is the rate per 90.</p>"
+        '<ul class="dclist">{}</ul></div>'.format("".join(items))
+    )
+
+
+# Hand-drawn rather than fetched: an icon font or sprite sheet would be
+# another asset to embed, and these are three shapes.
+ICONS = {
+    "pens": (
+        '<svg viewBox="0 0 24 24" aria-hidden="true" class="spicon">'
+        '<path d="M3 4h18v10a9 9 0 0 1-18 0Z" fill="none" stroke="currentColor" '
+        'stroke-width="1.6" stroke-linejoin="round"/>'
+        '<circle cx="12" cy="9.5" r="1.5" fill="currentColor"/>'
+        '<path d="M12 14.5a4 4 0 0 0 0 0" fill="none"/>'
+        '<circle cx="12" cy="17" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/>'
+        "</svg>"
+    ),
+    "fk": (
+        '<svg viewBox="0 0 24 24" aria-hidden="true" class="spicon">'
+        '<circle cx="5.5" cy="18" r="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/>'
+        '<path d="M8 16C11 9 16 6 21 5" fill="none" stroke="currentColor" '
+        'stroke-width="1.6" stroke-linecap="round" stroke-dasharray="2.6 2.6"/>'
+        '<path d="M14 20v-5M17 20v-5M20 20v-5" stroke="currentColor" '
+        'stroke-width="1.6" stroke-linecap="round"/>'
+        "</svg>"
+    ),
+    "corners": (
+        '<svg viewBox="0 0 24 24" aria-hidden="true" class="spicon">'
+        '<path d="M5 21V4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'
+        '<path d="M5 4.5h9l-4 3.2 4 3.2H5Z" fill="currentColor" stroke="none"/>'
+        '<path d="M21 21a16 16 0 0 0-16-6" fill="none" stroke="currentColor" '
+        'stroke-width="1.6" stroke-linecap="round"/>'
+        "</svg>"
+    ),
+}
+
+
+def set_piece_card(groups):
+    """Set-piece duties, grouped by the duty rather than by the player.
+
+    The question is "who takes our penalties", not "what does this player
+    take", so the duty is the heading and the takers sit under it in the order
+    the club has them."""
+    blocks = []
+    for key, title, rows in groups:
+        if not rows:
+            continue
+        takers = "".join(
+            '<li{cls}><span class="sprank">{order}</span>'
+            '<span class="spname">{name}</span>'
+            '<span class="spteam">{team}</span></li>'.format(
+                cls=' class="first"' if order == 1 else "",
+                order=order, name=e(name), team=e(team))
+            for order, name, team in rows
+        )
+        blocks.append(
+            '<div class="spgroup"><h4>{}{}</h4><ol class="splist">{}</ol></div>'.format(
+                ICONS.get(key, ""), e(title), takers
+            )
+        )
+    if not blocks:
+        return ""
+    return (
+        '<div class="find gapcard"><h3>Set pieces</h3>'
+        '<p class="note">Who takes them, in the order the club lists them.</p>'
+        '<div class="spwrap">{}</div></div>'.format("".join(blocks))
+    )
+
+
+def _face(photo, shirt, name, club, price, tone_class):
+    """One side of a swap: portrait, club shirt tucked in the corner, name."""
+    if photo:
+        img = '<img class="tf-photo" src="{}" alt="" width="72" height="92">'.format(photo)
+    else:
+        img = '<div class="tf-photo tf-blank">{}</div>'.format(e(name[:1]))
+    kit = ('<img class="tf-kit" src="{}" alt="" width="26" height="26">'.format(shirt)
+           if shirt else "")
+    return (
+        '<div class="tf-face {tone}">'
+        '<div class="tf-frame">{img}{kit}</div>'
+        '<p class="tf-name">{name}</p>'
+        '<p class="tf-meta">{club} &middot; {price:.1f}m</p>'
+        "</div>"
+    ).format(tone=tone_class, img=img, kit=kit, name=e(name), club=e(club),
+             price=price)
+
+
+def transfer_cards(rows, note):
+    """Suggested swaps, drawn as transfers rather than listed as a table.
+
+    A transfer is two faces and a price, so it is drawn as two faces and a
+    price. The outgoing player is dimmed and the incoming one is not, the
+    money sits on the arrow between them, and the projected gain is the one
+    number given any size - everything else is there to justify it."""
+    if not rows:
+        return ""
+    top_gain = max(r["gain"] for r in rows) or 1.0
+    cards = []
+    for r in rows:
+        out_ep = r["out_score"]["total"]
+        in_ep = r["in_score"]["total"]
+        span = max(out_ep, in_ep) or 1.0
+        # Shown as the effect on your bank, not the change in squad value:
+        # a cheaper replacement puts money back, so it reads +0.5m.
+        bank_delta = -r["spend"]
+        money = "free" if abs(bank_delta) < 0.05 else "{:+.1f}m".format(bank_delta)
+        money_class = "tf-free" if abs(bank_delta) < 0.05 else (
+            "tf-save" if bank_delta > 0 else "tf-cost")
+        elite = ""
+        if r.get("elite"):
+            elite = ('<span class="tf-elite">{:.0f}% of the top 100 own him</span>'
+                     .format(r["elite"]["elite"]))
+        fixture = "{} ({})".format(
+            r["in_score"]["opponent"], "H" if r["in_score"]["home"] else "A")
+        cards.append((
+            '<li class="tf-card" style="--gain:{gainpct:.0f}%">'
+            '<div class="tf-swap">{out}'
+            '<div class="tf-mid">'
+            '<span class="tf-arrow" aria-hidden="true">'
+            '<svg viewBox="0 0 40 16"><path d="M0 8h32M26 2l7 6-7 6" fill="none" '
+            'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+            'stroke-linejoin="round"/></svg></span>'
+            '<span class="tf-money {mclass}">{money}</span></div>'
+            "{inp}</div>"
+            '<div class="tf-numbers">'
+            '<div class="tf-ep"><span>{oep:.2f}</span>'
+            '<span class="tf-track"><i style="width:{opct:.0f}%"></i></span></div>'
+            '<div class="tf-gain">+{gain:.2f}<small>projected points</small></div>'
+            '<div class="tf-ep tf-ep-in"><span>{iep:.2f}</span>'
+            '<span class="tf-track"><i style="width:{ipct:.0f}%"></i></span></div>'
+            "</div>"
+            '<p class="tf-foot">{fixture} next &middot; {elite}</p>'
+            "</li>"
+        ).format(
+            gainpct=r["gain"] / top_gain * 100,
+            out=_face(r["out_photo"], r["out_shirt"], r["out"].name,
+                      r["out"].team, r["out"].price, "tf-out"),
+            inp=_face(r["in_photo"], r["in_shirt"], r["in"]["web_name"],
+                      r["in_club"], r["price"], "tf-in"),
+            mclass=money_class, money=money,
+            oep=out_ep, opct=out_ep / span * 100,
+            iep=in_ep, ipct=in_ep / span * 100,
+            gain=r["gain"], fixture=e(fixture),
+            elite=elite or "same position, within budget",
+        ))
+    return (
+        '<section class="card"><div class="card-head"><h2>Suggested transfers</h2>'
+        '<span class="sub">{}</span></div>'
+        '<div class="card-body"><ul class="tflist">{}</ul></div></section>'.format(
+            e(note), "".join(cards)
+        )
+    )
+
+
+def _mini_face(photo, shirt, name, tone_class):
+    if photo:
+        img = '<img class="pr-photo" src="{}" alt="" width="44" height="56">'.format(photo)
+    else:
+        img = '<div class="pr-photo pr-blank">{}</div>'.format(e(name[:1]))
+    kit = ('<img class="pr-kit" src="{}" alt="" width="18" height="18">'.format(shirt)
+           if shirt else "")
+    return ('<span class="pr-face {tone}"><span class="pr-frame">{img}{kit}</span>'
+            '<span class="pr-name">{name}</span></span>').format(
+        tone=tone_class, img=img, kit=kit, name=e(name))
+
+
+def pairing_cards(pairings, note):
+    """Two-transfer moves, drawn as two swaps under one verdict.
+
+    The combined gain is the headline; the figure after a four-point hit sits
+    beside it, because whether a pair is worth doing usually turns on whether
+    you are paying for the second transfer."""
+    if not pairings:
+        return ""
+    cards = []
+    for p in pairings:
+        legs = "".join(
+            '<li class="pr-leg">{out}'
+            '<span class="pr-arrow" aria-hidden="true">'
+            '<svg viewBox="0 0 28 12"><path d="M0 6h21M16 1.5l5 4.5-5 4.5" '
+            'fill="none" stroke="currentColor" stroke-width="1.8" '
+            'stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
+            '{inp}<span class="pr-gain">+{gain:.2f}</span></li>'.format(
+                out=_mini_face(leg["out_photo"], leg["out_shirt"],
+                               leg["out"].name, "pr-out"),
+                inp=_mini_face(leg["in_photo"], leg["in_shirt"],
+                               leg["in"]["web_name"], "pr-in"),
+                gain=leg["gain"],
+            )
+            for leg in p["legs"]
+        )
+        worth = p["after_hit"] > 0
+        verdict = (
+            '<span class="pr-yes">Still ahead after a &minus;4 hit</span>'
+            if worth else
+            '<span class="pr-no">Only worth it on two free transfers</span>'
+        )
+        bank = p["bank_after"]
+        cards.append(
+            '<li class="pr-card">'
+            '<div class="pr-head"><span class="pr-total">+{gain:.2f}'
+            '<small>combined</small></span>'
+            '<span class="pr-hit">{after:+.2f}<small>after &minus;4</small></span>'
+            '<span class="pr-bank">{bank:.1f}m<small>bank after</small></span></div>'
+            '<ul class="pr-legs">{legs}</ul>'
+            '<p class="pr-foot">{verdict}</p></li>'.format(
+                gain=p["gain"], after=p["after_hit"], bank=bank,
+                legs=legs, verdict=verdict,
+            )
+        )
+    return (
+        '<section class="card"><div class="card-head"><h2>Transfer pairings</h2>'
+        '<span class="sub">{}</span></div>'
+        '<div class="card-body"><ul class="prlist">{}</ul></div></section>'.format(
+            e(note), "".join(cards)
+        )
+    )
+
+
+STAT_ICONS = {
+    "ball": '<path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4.2 3.6 2.6-1.4 4.2H9.8'
+            'L8.4 9.8Z" fill="none" stroke="currentColor" stroke-width="1.5" '
+            'stroke-linejoin="round"/>',
+    "boot": '<path d="M3 15h9l4-3 5 2v4H3Z" fill="none" stroke="currentColor" '
+            'stroke-width="1.5" stroke-linejoin="round"/>'
+            '<path d="M6 15V8" stroke="currentColor" stroke-width="1.5" '
+            'stroke-linecap="round"/>',
+    "key": '<path d="M4 12h9M13 8l4 4-4 4" fill="none" stroke="currentColor" '
+           'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>'
+           '<circle cx="19" cy="12" r="2" fill="currentColor"/>',
+    "shield": '<path d="M12 3 20 6v6c0 4-3.4 7.4-8 9-4.6-1.6-8-5-8-9V6Z" fill="none" '
+              'stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>',
+    "spark": '<path d="M4 17l5-6 4 3 6-8" fill="none" stroke="currentColor" '
+             'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+    "run": '<circle cx="14" cy="5" r="2" fill="currentColor"/>'
+           '<path d="M13 9l-4 3 2 4-3 4M13 9l4 2 2 4" fill="none" '
+           'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" '
+           'stroke-linejoin="round"/>',
+}
+
+
+def stat_leaders(groups):
+    """Who leads the league on each measure, a few names deep.
+
+    Narrow columns rather than one wide table: these are six separate
+    questions, not six columns of one, and side by side they take a fraction
+    of the height a table of the same content would."""
+    cards = []
+    for g in groups:
+        if not g["rows"]:
+            continue
+        items = "".join(
+            '<li{cls}><span class="slrank">{i}</span>'
+            '<span class="slname">{name}</span>'
+            '<span class="slteam">{team}</span>'
+            '<span class="slval">{val}</span></li>'.format(
+                cls=' class="mine"' if mine else "",
+                i=i, name=e(name), team=e(team), val=e(val))
+            for i, (name, team, val, mine) in enumerate(g["rows"], 1)
+        )
+        cards.append(
+            '<li class="slcard" style="--accent:{tone}">'
+            '<h4><svg viewBox="0 0 24 24" class="slicon" aria-hidden="true">{icon}</svg>'
+            "{title}</h4>"
+            '<p class="slnote">{note}</p>'
+            '<ol class="sllist">{items}</ol></li>'.format(
+                tone=g["tone"], icon=STAT_ICONS.get(g["icon"], ""),
+                title=e(g["title"]), note=e(g["note"]), items=items,
+            )
+        )
+    if not cards:
+        return ""
+    return (
+        '<section class="card"><div class="card-head"><h2>League leaders</h2>'
+        '<span class="sub">Who is topping each measure so far. Your players are '
+        "marked.</span></div>"
+        '<div class="card-body"><ul class="slwrap">{}</ul></div></section>'.format(
+            "".join(cards)
+        )
+    )
+
+
+def sparkline(values, width=104, height=26, tone="var(--lilac)"):
+    """A bare line with the last point emphasised. No axes - it is a shape,
+    not a chart, and the number it belongs to is always printed beside it."""
+    if not values or len(values) < 2:
+        return ""
+    lo, hi = min(values), max(values)
+    span = (hi - lo) or 1
+    step = width / (len(values) - 1)
+    pts = [
+        (i * step, height - 2 - (v - lo) / span * (height - 6))
+        for i, v in enumerate(values)
+    ]
+    path = " ".join(
+        "{}{:.1f},{:.1f}".format("M" if i == 0 else "L", x, y)
+        for i, (x, y) in enumerate(pts)
+    )
+    lx, ly = pts[-1]
+    return (
+        '<svg class="spark" viewBox="0 0 {w} {h}" width="{w}" height="{h}" '
+        'aria-hidden="true"><path d="{p}" fill="none" stroke="{c}" '
+        'stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+        '<circle cx="{x:.1f}" cy="{y:.1f}" r="2.8" fill="{c}"/></svg>'.format(
+            w=width, h=height, p=path, c=tone, x=lx, y=ly
+        )
+    )
