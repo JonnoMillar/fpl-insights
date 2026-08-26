@@ -87,6 +87,42 @@ gameweek.
 `--squads` prints every manager's full XI and bench. `--limit N` caps how many
 managers get analysed.
 
+## How it stays current
+
+Two scheduled pieces, because neither can do the whole job alone.
+
+**GitHub Actions builds it** (`.github/workflows/build.yml`), at 06:40 and 14:40
+UTC. It runs the build, commits `dashboard-artifact.html` if the page changed,
+and warns in the run log if any data source dropped out.
+
+**A Claude routine publishes it**, at 07:00 and 15:00 UTC, twenty minutes later.
+It clones the repo, checks the committed page is recent, and republishes it to
+the artifact URL.
+
+The split is forced by a real constraint: the Claude sandbox sits behind a
+policy-enforcing egress proxy that refuses CONNECT to `fantasy.premierleague.com`
+with a 403, so it cannot fetch a single byte of the data. GitHub's runners have
+open outbound network. Conversely a GitHub runner cannot publish a Claude
+artifact. So one builds, the other publishes.
+
+Two things that look wrong but are not:
+
+* **The built HTML is committed.** A 1.1 MB page twice a day sounds expensive.
+  It is not - the embedded photos are byte-identical between builds, so git
+  deltas them away. Measured across two consecutive builds: zero growth.
+* **The routine reads the artifact before publishing.** Overwriting an artifact
+  is refused unless the live version has been viewed in that session, and every
+  scheduled run is a fresh session. The read is what satisfies that check.
+
+Timing is deliberate. Prices change around 01:30 UK, so the morning run catches
+them; predicted line-ups only sharpen through the day, so the afternoon run is
+the one that lands before a typical 18:30 deadline. Nothing is ever more than
+about eight hours stale, and the artifact URL is a static page - it is readable
+at any time regardless of when it was last rebuilt.
+
+Every run ends with a source-health block, so a broken scrape shows up as a
+`FAIL` line rather than a section quietly vanishing from the page.
+
 ## Sources beyond FPL
 
 Three things here do not come from FPL, because FPL does not have them.
