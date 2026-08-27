@@ -7,8 +7,15 @@ name: Build dashboard
 # happens here and the routine only has to publish what this commits.
 on:
   schedule:
-    # 20 minutes before each Claude routine fire, so it always finds fresh HTML.
-    - cron: '40 6,14 * * *'
+    # Every three hours, not twice a day. GitHub's scheduler is best-effort -
+    # their own docs warn that scheduled runs can be delayed or dropped under
+    # load, and the very first 06:40 fire here was skipped outright, leaving
+    # the routine to publish an eight-hour-old page while reporting it fresh.
+    # Eight chances a day means a dropped fire barely shows. The build exits
+    # without committing when the page has not changed, so the extra runs cost
+    # nothing downstream, and three-hourly stays polite to a free API that
+    # this hits ~110 times per build.
+    - cron: '0 */3 * * *'
   workflow_dispatch:
 
 permissions:

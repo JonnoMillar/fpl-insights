@@ -91,13 +91,20 @@ managers get analysed.
 
 Two scheduled pieces, because neither can do the whole job alone.
 
-**GitHub Actions builds it** (`.github/workflows/build.yml`), at 06:40 and 14:40
-UTC. It runs the build, commits `dashboard-artifact.html` if the page changed,
-and warns in the run log if any data source dropped out.
+**GitHub Actions builds it** (`.github/workflows/build.yml`), every three hours.
+It runs the build, commits `dashboard-artifact.html` if the page changed, and
+warns in the run log if any data source dropped out.
 
-**A Claude routine publishes it**, at 07:00 and 15:00 UTC, twenty minutes later.
-It clones the repo, checks the committed page is recent, and republishes it to
-the artifact URL.
+Three-hourly rather than twice a day because GitHub's scheduler is best-effort.
+The very first scheduled fire here was skipped outright - no run, no error, and
+the routine went on to publish an eight-hour-old page while calling it fresh.
+Eight chances a day makes a dropped fire a non-event. Runs where the page has
+not changed exit without committing, so the extra frequency costs nothing.
+
+**A Claude routine publishes it**, at 07:00 and 15:00 UTC. It clones the repo,
+works out how old the committed page is, and republishes it to the artifact
+URL. Anything five hours or older is published anyway but flagged as stale in
+the run summary, which is how a silently failing build becomes visible.
 
 The split is forced by a real constraint: the Claude sandbox sits behind a
 policy-enforcing egress proxy that refuses CONNECT to `fantasy.premierleague.com`
