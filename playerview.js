@@ -37,6 +37,18 @@
     return ['#ebe5eb', '#37003c'];
   }
 
+  // Same ramp, thresholds rescaled to a team's expected goals instead of
+  // clean-sheet odds - a goalkeeper's points hinge on keeping the ball out,
+  // but a midfielder's or forward's hinge on their side scoring, so shading
+  // every position by clean-sheet odds told attackers the wrong story.
+  function xgTone(xg) {
+    if (xg >= 1.9) { return ['#1e0021', '#fff']; }
+    if (xg >= 1.6) { return ['#41054b', '#fff']; }
+    if (xg >= 1.3) { return ['#7d5980', '#fff']; }
+    if (xg >= 1.0) { return ['#af99b1', '#37003c']; }
+    return ['#ebe5eb', '#37003c'];
+  }
+
   function sparkline(values, tone) {
     if (!values || values.length < 2) { return ''; }
     var w = 120, h = 30, lo = Math.min.apply(null, values),
@@ -149,16 +161,23 @@
     }
 
     if (p.fixtures && p.fixtures.length) {
+      // Keepers and defenders score on clean sheets, so their fixtures are
+      // shaded by clean-sheet odds; everyone else scores on their side
+      // scoring, so theirs are shaded by the team's expected goals instead.
+      var byAttack = p.pos !== 'GKP' && p.pos !== 'DEF';
       h.push('<section class="pv-block"><h3>Next fixtures</h3><div class="pv-fx">' +
         p.fixtures.map(function (fx) {
-          var t = csTone(fx.cs);
+          var t = byAttack ? xgTone(fx.xg) : csTone(fx.cs);
           return '<span class="fxcell" style="background:' + t[0] + ';color:' +
             t[1] + '" title="GW' + fx.gw + ', ' + fx.xg +
-            ' expected goals"><b>' +
+            ' expected goals, ' + fx.cs + '% clean sheet"><b>' +
             esc(fx.home ? fx.opp.toUpperCase() : fx.opp.toLowerCase()) +
-            '</b><i>' + fx.cs + '%</i></span>';
+            '</b><i>' + (byAttack ? fx.xg.toFixed(2) : fx.cs + '%') +
+            '</i></span>';
         }).join('') + '</div>' +
-        '<p class="pv-note">Shaded by clean-sheet probability.</p></section>');
+        '<p class="pv-note">' + (byAttack
+          ? 'Shaded by the team’s expected goals.'
+          : 'Shaded by clean-sheet probability.') + '</p></section>');
     }
 
     if (p.log && p.log.length) {
