@@ -143,3 +143,79 @@ def _hill_climb(picks, by_pos, budget, other_club_counts=None):
     if not converged:
         print(f"[squadbuilder] hill-climb did not converge within {MAX_SWAPS} swaps")
     return picks
+
+
+def best_xi(pool, budget):
+    """The highest-value legal starting XI within budget - formation
+    chosen to maximize total XI value. The bench is filled cheaply first
+    (it never plays on a Free Hit), then whatever budget remains goes
+    entirely into the XI."""
+    by_pos = _by_position(pool)
+    best = None
+    for d, m, fw in FORMATIONS:
+        bench_quota = {"GKP": 1, "DEF": 5 - d, "MID": 5 - m, "FWD": 3 - fw}
+        bench = _cheapest_fill(by_pos, bench_quota)
+        if bench is None:
+            continue
+        bench_cost = sum(p["price"] for p in bench)
+        bench_ids = {p["id"] for p in bench}
+        bench_club_counts = {}
+        for p in bench:
+            bench_club_counts[p["club"]] = bench_club_counts.get(p["club"], 0) + 1
+
+        remaining_by_pos = {
+            pos: [p for p in players if p["id"] not in bench_ids]
+            for pos, players in by_pos.items()
+        }
+        xi_quotas = {"GKP": 1, "DEF": d, "MID": m, "FWD": fw}
+        xi_budget = budget - bench_cost
+        picks = _greedy_fill(remaining_by_pos, xi_quotas, xi_budget, bench_club_counts)
+        if picks is None:
+            continue
+        picks = _hill_climb(picks, remaining_by_pos, xi_budget, bench_club_counts)
+
+        value = sum(p["value"] for p in picks)
+        cost = sum(p["price"] for p in picks) + bench_cost
+        if best is None or value > best["value"]:
+            best = {"formation": (d, m, fw), "xi": picks, "bench": bench,
+                    "value": value, "cost": cost}
+    return best
+
+
+def best_squad(pool, budget, bench_reserve_frac=0.12):
+    """The highest-value legal 15 within budget: the XI hill-climbed for
+    value the same as best_xi, the bench filled by the same value-per-cost
+    rule from what's left rather than pure minimum price - a Wildcard
+    squad has to survive more than one week, so its bench should be able
+    to play if called on."""
+    by_pos = _by_position(pool)
+    best = None
+    for d, m, fw in FORMATIONS:
+        xi_quotas = {"GKP": 1, "DEF": d, "MID": m, "FWD": fw}
+        xi_budget = budget * (1 - bench_reserve_frac)
+        picks = _greedy_fill(by_pos, xi_quotas, xi_budget)
+        if picks is None:
+            continue
+        picks = _hill_climb(picks, by_pos, xi_budget)
+        xi_cost = sum(p["price"] for p in picks)
+
+        held_ids = {p["id"] for p in picks}
+        club_counts = {}
+        for p in picks:
+            club_counts[p["club"]] = club_counts.get(p["club"], 0) + 1
+        remaining_by_pos = {
+            pos: [p for p in players if p["id"] not in held_ids]
+            for pos, players in by_pos.items()
+        }
+        bench_quotas = {"GKP": 1, "DEF": 5 - d, "MID": 5 - m, "FWD": 3 - fw}
+        bench = _greedy_fill(remaining_by_pos, bench_quotas,
+                             budget - xi_cost, club_counts)
+        if bench is None:
+            continue
+
+        value = sum(p["value"] for p in picks)
+        cost = xi_cost + sum(p["price"] for p in bench)
+        if best is None or value > best["value"]:
+            best = {"formation": (d, m, fw), "xi": picks, "bench": bench,
+                    "value": value, "cost": cost}
+    return best
