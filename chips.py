@@ -89,3 +89,56 @@ def build_pool(ctx, proj, market, baselines, start_gw, weeks, exclude_ids=()):
             "price": el["now_cost"] / 10.0, "value": total,
         })
     return pool
+
+
+def points_team(ctx, xi_reports, proj, market, baselines, gw):
+    """The highest-scoring possible team this gameweek, against what the
+    manager's own current best XI actually projects to - single week
+    only, since this is also Free Hit's one-week evidence."""
+    exclude_ids = {r.element["id"] for r in xi_reports}
+    pool = build_pool(ctx, proj, market, baselines, gw, weeks=1,
+                      exclude_ids=exclude_ids)
+    # The manager's own XI is eligible for the "ideal" comparison too -
+    # a Free Hit that's just "keep what you have" is a valid answer.
+    own_pool = []
+    for r in xi_reports:
+        ep = analysis.expected_points(r, ctx, proj, gw, market=market,
+                                      baselines=baselines)
+        own_pool.append({
+            "id": r.element["id"], "pos": r.pos, "club": r.team,
+            "price": r.price, "value": ep["total"] if ep else 0.0,
+        })
+    full_pool = pool + own_pool
+
+    budget = sum(r.price for r in xi_reports)  # XI-only budget, bench excluded
+    ideal = squadbuilder.best_xi(full_pool, budget)
+    ours_value = sum(p["value"] for p in own_pool)
+    if ideal is None:
+        return {"ideal_value": ours_value, "ours_value": ours_value,
+                "gap": 0.0, "ideal_xi": own_pool}
+    return {
+        "ideal_value": ideal["value"], "ours_value": ours_value,
+        "gap": max(0.0, ideal["value"] - ours_value),
+        "ideal_xi": ideal["xi"],
+    }
+
+
+def free_hit(ctx, xi_reports, proj, market, baselines, next_gw):
+    """The gameweek in the current chip window where the manager's own XI
+    is furthest behind the best possible team - the Free Hit case."""
+    start, weeks = analysis.chip_window(next_gw)
+    gaps = {}
+    pt_by_gw = {}
+    for gw in range(start, start + weeks):
+        pt = points_team(ctx, xi_reports, proj, market, baselines, gw)
+        gaps[gw] = pt["gap"]
+        pt_by_gw[gw] = pt
+    if not gaps:
+        return None
+    best_gw = max(gaps, key=gaps.get)
+    others = [v for gw, v in gaps.items() if gw != best_gw]
+    return {
+        "gw": best_gw, "gap": gaps[best_gw],
+        "confidence": confidence(gaps[best_gw], others),
+        "points_team": pt_by_gw[best_gw],
+    }
