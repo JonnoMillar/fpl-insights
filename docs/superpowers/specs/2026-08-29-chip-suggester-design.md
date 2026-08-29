@@ -18,6 +18,19 @@ this is live and its output has been seen for a few gameweeks.
 
 ## Foundations
 
+### Two scorers, not one
+
+`analysis.expected_points` needs a full `PlayerReport`, which needs that
+player's per-match history - one API call each. Fine for the manager's own
+15, whose history is already fetched for the rest of the dashboard, but the
+optimizer scores the *entire* player pool (~600), and `transfers.py`
+already solved exactly this cost problem for its own candidate search:
+`candidate_score(el, ctx, proj, gw, market, baselines, priors)` scores any
+player from the bootstrap payload alone, no per-candidate request. The
+optimizer's pool is built with `candidate_score` (windowed the same way
+`expected_points` is, see below); the manager's own squad is scored with
+the richer `expected_points` it already pays for elsewhere.
+
 ### Windowed expected points
 
 `analysis.windowed_ep(r, ctx, proj, market, baselines, start_gw, weeks=8)` -
@@ -27,6 +40,10 @@ gameweeks, returning both the total and the per-gameweek breakdown (a list of
 from the same call. Weeks with no fixture or projection data (a blank
 gameweek) are skipped rather than scored as zero, matching how
 `expected_points` already returns `None` when it has nothing to go on.
+
+The same shape exists for the cheap scorer: `transfers.windowed_candidate_score`
+sums `candidate_score()` across a window instead, for building the
+optimizer's full-pool candidates without per-player requests.
 
 This is possible now specifically because of the market-staleness fix made
 earlier this session - before that, calling `expected_points` for a future
