@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import analysis
+import chips
 import fplapi
 import pulse
 import elite
@@ -69,6 +70,46 @@ def fdr_pill(opp, home, diff):
         f'title="{e(opp)} ({venue}), difficulty {diff} of 5">'
         f"{e(label)}<b>{diff}</b></span>"
     )
+
+
+# Same five-step purple ramp and the same split used in the player-detail
+# dialog's own fixture strip (playerview.js: csTone/xgTone) - a goalkeeper's
+# or defender's points hinge on keeping the ball out, a midfielder's or
+# forward's on their side scoring, so each is shaded by the stat that
+# actually decides it. Kept as one scale in two places rather than derived,
+# so a fixture reads the same color wherever a player appears on the page.
+CS_TONE = [(45, "#1e0021", "#fff"), (36, "#41054b", "#fff"),
+          (28, "#7d5980", "#fff"), (20, "#af99b1", "#37003c")]
+XG_TONE = [(1.9, "#1e0021", "#fff"), (1.6, "#41054b", "#fff"),
+          (1.3, "#7d5980", "#fff"), (1.0, "#af99b1", "#37003c")]
+TONE_FALLBACK = ("#ebe5eb", "#37003c")
+
+
+def _step_tone(value, steps):
+    for edge, bg, fg in steps:
+        if value >= edge:
+            return bg, fg
+    return TONE_FALLBACK
+
+
+def pos_fixture_pill(pos, opp, home, cs, xg):
+    by_attack = pos not in ("GKP", "DEF")
+    bg, fg = _step_tone(xg, XG_TONE) if by_attack else _step_tone(cs, CS_TONE)
+    label = opp.upper() if home else opp.lower()
+    value = f"{xg:.2f}" if by_attack else f"{cs:.0f}%"
+    venue = "home" if home else "away"
+    return (
+        f'<span class="fxpill" style="background:{bg};color:{fg}" '
+        f'title="{e(opp)} ({venue}), {xg:.2f} expected goals, '
+        f'{cs:.0f}% clean sheet">{e(label)}<b>{value}</b></span>'
+    )
+
+
+SPARK_ICON = (
+    '<svg viewBox="0 0 24 24" class="pk-spark" aria-hidden="true">'
+    '<path d="M4 17l5-6 4 3 6-8" fill="none" stroke="currentColor" '
+    'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+)
 
 
 def meter(value, vmax, label):
@@ -196,6 +237,22 @@ section{margin-bottom:20px}
 .tab:focus-visible{outline:3px solid var(--lilac); outline-offset:2px}
 .panel[hidden]{display:none}
 
+/* --- pick-team pitch toggle: a nested, quieter version of .tab/.tabs,
+   scoped inside one card rather than switching the whole page --- */
+.pkview{display:flex; gap:6px; padding:10px 16px; border-bottom:1px solid var(--outline-variant)}
+.pkbtn{
+  appearance:none; border:1px solid var(--outline); background:var(--surface);
+  color:var(--on-surface-variant); font:inherit; font-weight:600; font-size:12px;
+  padding:5px 12px; border-radius:9999px; cursor:pointer;
+}
+.pkbtn[aria-selected="true"]{background:var(--purple); color:#fff; border-color:var(--purple)}
+:root[data-theme="dark"] .pkbtn[aria-selected="true"]{background:var(--white); color:var(--purple); border-color:var(--white)}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .pkbtn[aria-selected="true"]{background:var(--white); color:var(--purple); border-color:var(--white)}
+}
+.pkbtn:focus-visible{outline:3px solid var(--lilac); outline-offset:2px}
+.pkpanel[hidden]{display:none}
+
 /* --- pitch --- */
 .pitch{
   background:
@@ -228,6 +285,26 @@ section{margin-bottom:20px}
   display:grid; place-items:center; box-shadow:0 1px 3px rgb(0 0 0 / 35%);
 }
 .pl.out .crest{opacity:.45}
+
+/* --- pick-team card: the .pl shirt card, widened for a fixture chip and a
+   one-line form read --- */
+.pk{width:108px}
+.pk-fx{padding:3px 4px 0; display:flex; justify-content:center}
+.fxpill{
+  display:inline-flex; align-items:center; gap:3px; border-radius:var(--radius-xs);
+  padding:2px 6px; font-size:10px; font-weight:700;
+}
+.fxpill b{font-weight:800; opacity:.85}
+.pk-form{
+  font-size:10px; line-height:1.3; text-align:center; padding:2px 5px 5px;
+  color:var(--on-surface-variant);
+}
+.pk-form.hot{color:var(--purple); font-weight:700}
+:root[data-theme="dark"] .pk-form.hot{color:var(--lilac)}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .pk-form.hot{color:var(--lilac)}
+}
+.pk-spark{width:11px; height:11px; vertical-align:-1px; margin-right:2px}
 .benchstrip{background:var(--surface-variant); padding:12px 10px}
 .benchstrip .lbl{
   font-size:11px; text-transform:uppercase; letter-spacing:0.06em;
@@ -464,7 +541,12 @@ table td.tick{border:2px solid var(--surface)}
 
 /* --- expected points: the bars slide out sideways --- */
 .epwrap{display:flex; gap:14px; align-items:stretch}
-.eplist{flex:1 1 auto; min-width:0}
+/* Collapsed, the list is only as wide as a name and a total need - it must
+   not flex-grow, or it stretches across the whole card and leaves every row
+   pushed to the left with dead space trailing it before the toggle. Open,
+   the bars need the room, so growth turns back on. */
+.eplist{flex:0 1 auto; min-width:0}
+.epcard.open .eplist{flex:1 1 auto}
 /* No length is transitioned here, deliberately. Chrome would not interpolate
    the grid track between 0fr and 1fr, and a max-width transition got stuck at
    its start value - in both cases the bars simply never appeared. So the
@@ -475,6 +557,23 @@ table td.tick{border:2px solid var(--surface)}
 .epcard .eptot{flex:0 0 52px; text-align:right}
 .epcard .epbar{flex:0 0 0px; min-width:0; overflow:hidden}
 .epcard.open .epbar{flex:1 1 auto}
+
+/* The space collapsing frees up, filled with the one thing worth surfacing
+   at a glance: who to captain. Gone once the bars themselves need the room. */
+.epcap{
+  flex:1 1 auto; display:flex; flex-direction:column; justify-content:center;
+  gap:1px; padding-left:14px; border-left:1px solid var(--outline-variant);
+  min-width:0;
+}
+.epcard.open .epcap{display:none}
+.epcap-k{font-size:10px; text-transform:uppercase; letter-spacing:.06em;
+  font-weight:700; color:var(--on-surface-variant)}
+.epcap-name{font-size:16px; font-weight:700}
+.epcap-fx{font-size:12px; color:var(--on-surface-variant)}
+.epcap-v{font-size:13px; margin-top:3px}
+.epcap-v b{font-size:18px}
+.epcap-arm{color:var(--on-surface-variant); font-size:12px; margin-left:2px}
+@media (max-width:560px){.epcap{display:none}}
 /* The reveal is driven from JavaScript rather than a keyframe. A delayed CSS
    animation with fill-mode both holds its opening frame, and that kept the
    bars pinned at scaleX(0); the Web Animations API with fill "none" cannot
@@ -525,6 +624,27 @@ table td.tick{border:2px solid var(--surface)}
   letter-spacing:.04em; color:var(--on-surface-variant)}
 .oi-who{margin:8px 0 0; font-size:13px; font-weight:700}
 .oi-detail{margin:1px 0 0; font-size:11px; color:var(--on-surface-variant)}
+
+/* --- chip planner --- */
+.cplist{list-style:none; margin:0; padding:0; display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px}
+.cp{
+  position:relative; padding:14px 14px 12px; border-radius:var(--radius-m);
+  background:var(--surface-variant); border-top:3px solid var(--lilac);
+}
+.cp.used{opacity:.55}
+.cp-label{margin:0; font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--on-surface-variant)}
+.cp-gw{margin:4px 0 0; font-size:22px; font-weight:700; font-variant-numeric:tabular-nums}
+.cp-reason{margin:4px 0 0; font-size:13px; color:var(--on-surface-variant)}
+.cp-conf{
+  display:inline-block; margin-top:8px; padding:2px 8px; border-radius:9999px;
+  font-size:11px; font-weight:700;
+}
+.cp-conf-strong{background:var(--success); color:#fff}
+.cp-conf-watch{background:var(--p40); color:var(--purple)}
+.cp-conf-flexible{background:var(--outline-variant); color:var(--on-surface-variant)}
+.cp-used-tag{font-size:11px; color:var(--on-surface-variant); margin-top:8px}
 
 /* If the count does not fill the last row, the final card stretches across
    what is left rather than sitting beside a hole. */
@@ -899,6 +1019,7 @@ details .scroll{padding:0 14px 14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
 @media (max-width:560px){
   .pl{width:76px}
+  .pk{width:92px}
   .hero h1{font-size:20px}
   body{font-size:14px}
 }
@@ -922,6 +1043,22 @@ JS = """
       // at empty background.
       var bar=t.parentNode;
       if(bar.getBoundingClientRect().top < 0) bar.scrollIntoView({block:'start'});
+    });
+  });
+
+  // Starting XI: overview vs pick-team pitch. Same swap as the tabs above,
+  // scoped to whichever card the clicked button lives in, since the page
+  // only has one of these but a second squad card could add one later.
+  document.querySelectorAll('.pkview').forEach(function(group){
+    var btns = group.querySelectorAll('.pkbtn');
+    var card = group.closest('.card');
+    btns.forEach(function(b){
+      b.addEventListener('click', function(){
+        btns.forEach(function(o){ o.setAttribute('aria-selected', String(o===b)); });
+        card.querySelectorAll('.pkpanel,[data-pkview]').forEach(function(p){
+          p.hidden = (p.dataset.view || p.dataset.pkview) !== b.dataset.view;
+        });
+      });
     });
   });
 
@@ -1041,6 +1178,84 @@ def pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id):
     out.append("</div>")
     cards = "".join(
         player_card(r, ctx, badges, shirts, captain_id, vice_id, r.minutes > 0) for r in bench
+    )
+    out.append(
+        f'<div class="benchstrip"><div class="lbl">Bench</div>'
+        f'<div class="row">{cards}</div></div>'
+    )
+    return "".join(out)
+
+
+def pick_card(r, ctx, badges, shirts, captain_id, vice_id, proj, market,
+              next_gw, played=True):
+    """One card for the 'Pick team' pitch: the same shirt card as the
+    overview, plus the two things worth knowing at a glance before a
+    deadline - the next fixture, and a read on recent form worth the one
+    line it costs."""
+    el = r.element
+    shirt = shirts.get((el["team"], r.pos == "GKP"))
+    uri = shirt or badges.get(el["team"])
+    crest = (
+        f'<img class="{"kit" if shirt else "crestimg"}" src="{uri}" alt="{e(r.team)}">'
+        if uri
+        else f'<span class="letters">{e(r.team)}</span>'
+    )
+    arm = ""
+    if el["id"] == captain_id:
+        arm = '<span class="arm" title="Captain">C</span>'
+    elif el["id"] == vice_id:
+        arm = '<span class="arm" title="Vice-captain" style="background:var(--p20)">V</span>'
+    flag, news = r.availability
+    title = f"{r.name} - {r.pos}, {r.team}, {r.price:.1f}m"
+    if flag:
+        title += f" - {flag}. {news}"
+
+    fx_rows = ticker._rows_for(r.team, proj, market, next_gw, 1)
+    fx_html = (
+        pos_fixture_pill(r.pos, fx_rows[0]["opp"], fx_rows[0]["home"],
+                         fx_rows[0]["cs"], fx_rows[0]["xg"])
+        if fx_rows else ""
+    )
+
+    form = r.recent_form()
+    snippet = ""
+    if form:
+        icon = SPARK_ICON if form["hot"] else ""
+        hot_cls = " hot" if form["hot"] else ""
+        snippet = f'<div class="pk-form{hot_cls}">{icon}{e(form["text"])}</div>'
+
+    cls = "pl pk" if played else "pl pk out"
+    return (
+        f'<div class="{cls}" title="{e(title)}" data-player="{el["id"]}" '
+        f'role="button" tabindex="0" aria-label="{e(title)}">{arm}'
+        f'<div class="crest">{crest}</div>'
+        f'<div class="nm">{e(r.name)}</div>'
+        f'<div class="pk-fx">{fx_html}</div>'
+        f"{snippet}</div>"
+    )
+
+
+def pick_team_pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id,
+                    proj, market, next_gw):
+    order = {"GKP": 1, "DEF": 2, "MID": 3, "FWD": 4}
+    rows = {1: [], 2: [], 3: [], 4: []}
+    for r in xi:
+        rows[order.get(r.pos, 4)].append(r)
+    out = ['<div class="pitch">']
+    for k in (1, 2, 3, 4):
+        if not rows[k]:
+            continue
+        cards = "".join(
+            pick_card(r, ctx, badges, shirts, captain_id, vice_id, proj,
+                     market, next_gw, r.minutes > 0)
+            for r in rows[k]
+        )
+        out.append(f'<div class="row">{cards}</div>')
+    out.append("</div>")
+    cards = "".join(
+        pick_card(r, ctx, badges, shirts, captain_id, vice_id, proj, market,
+                 next_gw, r.minutes > 0)
+        for r in bench
     )
     out.append(
         f'<div class="benchstrip"><div class="lbl">Bench</div>'
@@ -1834,6 +2049,88 @@ def player_payload(r, ctx, proj, ep, next_gw, photos):
     }
 
 
+CONFIDENCE_LABEL = {"strong": "Strong", "watch": "Worth watching",
+                    "flexible": "Timing flexible"}
+
+
+def _cp_card(label, used_gw, body_html):
+    if used_gw:
+        return (
+            f'<div class="cp used"><p class="cp-label">{e(label)}</p>'
+            f'<p class="cp-used-tag">Already used, GW{used_gw}</p></div>'
+        )
+    return f'<div class="cp"><p class="cp-label">{e(label)}</p>{body_html}</div>'
+
+
+def chip_planner_card(fh, tc, bb, wc, used):
+    """The four chip recommendations, one card each - target gameweek,
+    the number behind it, and a plain-language confidence read."""
+    if not (fh or tc or bb or wc):
+        return ""
+
+    def conf_pill(level):
+        return (f'<span class="cp-conf cp-conf-{level}">'
+               f'{e(CONFIDENCE_LABEL.get(level, level))}</span>')
+
+    cards = []
+
+    if fh:
+        pt = fh["points_team"]
+        body = (
+            f'<p class="cp-gw">GW{fh["gw"]}</p>'
+            f'<p class="cp-reason">Best possible XI projects {pt["ideal_value"]:.1f} pts '
+            f'against your {pt["ours_value"]:.1f} - a gap of {fh["gap"]:.1f}.</p>'
+            f'{conf_pill(fh["confidence"])}'
+        )
+        cards.append(_cp_card("Free Hit", used.get("freehit"), body))
+
+    if tc:
+        body = (
+            f'<p class="cp-gw">GW{tc["gw"]}</p>'
+            f'<p class="cp-reason">Captain {e(tc["player"].name)} for '
+            f'{tc["ep"]:.1f} pts ({tc["ep"] * 2:.1f} with the armband).</p>'
+            f'{conf_pill(tc["confidence"])}'
+        )
+        cards.append(_cp_card("Triple Captain", used.get("3xc"), body))
+
+    if bb:
+        body = (
+            f'<p class="cp-gw">GW{bb["gw"]}</p>'
+            f'<p class="cp-reason">Bench projects {bb["ep"]:.1f} pts that week'
+            f'{" - if your bench stays as it is." if not bb["transfers"] else "."}</p>'
+            f'{conf_pill(bb["confidence"])}'
+        )
+        if bb["transfers"]:
+            rows = [{**t, "out_photo": None, "in_photo": None,
+                    "out_shirt": None, "in_shirt": None}
+                   for t in bb["transfers"]]
+            body += components.transfer_cards(
+                rows, "Would improve that specific week.")
+        cards.append(_cp_card("Bench Boost", used.get("bboost"), body))
+
+    if wc:
+        start, weeks = wc["gw_window"]
+        body = (
+            f'<p class="cp-gw">GW{start}-{start + weeks - 1}</p>'
+            f'<p class="cp-reason">{wc["gap"]:.1f} pts of upside available '
+            f'over the window.</p>'
+            f'{conf_pill(wc["confidence"])}'
+        )
+        if wc["moves"]:
+            rows = [{**mv, "out_photo": None, "in_photo": None,
+                    "out_shirt": None, "in_shirt": None}
+                   for mv in wc["moves"]]
+            body += components.transfer_cards(rows, "Suggested rebuild, most expensive first.")
+        cards.append(_cp_card("Wildcard", used.get("wildcard"), body))
+
+    return (
+        '<section class="card"><div class="card-head"><h2>Chip planner</h2>'
+        '<span class="sub">Best gameweek for each chip in the current half, '
+        'scored from the same projections as the rest of the page.</span></div>'
+        f'<div class="card-body"><ul class="cplist">{"".join(cards)}</ul></div></section>'
+    )
+
+
 def player_dialog(payloads):
     """One dialog for every player, filled on demand from the JSON below it."""
     labels = {k: v[0] for k, v in pulse.STATS.items()}
@@ -2034,9 +2331,15 @@ def render(d, standalone=True):
   <div class="panel" id="p-squad" role="tabpanel">
     <section class="card">
       <div class="card-head"><h2>Starting XI</h2>
-        <span class="sub">Points and season xGI on each card. Faded crest = did not play. Green dot = predicted to start, red = not in the predicted eleven.</span>
+        <span class="sub" data-pkview="ov">Points and season xGI on each card. Faded crest = did not play. Green dot = predicted to start, red = not in the predicted eleven.</span>
+        <span class="sub" data-pkview="pk" hidden>Next fixture and a read on recent form on each card, shaded by clean-sheet odds for keepers and defenders and by expected goals for everyone else.</span>
       </div>
-      {d['pitch']}
+      <div class="pkview" role="tablist" aria-label="Pitch view">
+        <button class="pkbtn" role="tab" aria-selected="true" data-view="ov">Overview</button>
+        <button class="pkbtn" role="tab" aria-selected="false" data-view="pk">Pick team</button>
+      </div>
+      <div class="pkpanel" data-view="ov">{d['pitch']}</div>
+      <div class="pkpanel" data-view="pk" hidden>{d['pick_pitch']}</div>
     </section>
     {d['ep']}
     <details class="card collapsible">
@@ -2052,6 +2355,7 @@ def render(d, standalone=True):
   </div>
 
   <div class="panel" id="p-market" role="tabpanel" hidden>
+    {d['chip_planner']}
     {d['ticker']}
     {d['market']}
     {d['transfers']}
@@ -2245,6 +2549,32 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                 league_photos.setdefault(pid, fplapi.photo_data_uri(
                     ctx.players[pid]["photo"]))
 
+    # Same graceful-degradation shape ticker.fixture_ticker already uses
+    # for the same reason: if proj never arrived this build, there is
+    # nothing honest to recommend, so the whole card skips rather than
+    # showing a set of zeroed or misleading cards.
+    fh = tc = bb = wc = None
+    used = {}
+    if proj:
+        bank_m = (picks.get("entry_history", {}).get("bank") or 0) / 10.0
+        try:
+            total_sell, _per_player = analysis.squad_sell_value(
+                entry_id, ctx, xi + bench, ttl=ttl)
+        except fplapi.FplError as ex:
+            print(f"[chips] sell value unavailable, falling back to "
+                  f"current price: {ex}")
+            total_sell = sum(r.price for r in xi + bench)
+        fh = chips.free_hit(ctx, xi, proj, market, baselines, next_gw)
+        tc = chips.triple_captain(ctx, xi, proj, market, baselines, next_gw)
+        bb = chips.bench_boost(ctx, bench, proj, market, baselines, next_gw,
+                               bank=bank_m)
+        wc = chips.wildcard(ctx, xi + bench, proj, market, baselines, next_gw,
+                            budget=total_sell + bank_m)
+        try:
+            used = chips.used_chips_this_half(entry_id, next_gw, ttl=ttl)
+        except fplapi.FplError as ex:
+            print(f"[chips] chip history unavailable: {ex}")
+
     return {
         "ctx": ctx,
         "gw": gw,
@@ -2258,6 +2588,9 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "my_xgi": my_xgi,
         "xgi_note": xgi_note,
         "pitch": pitch(xi, bench, ctx, badges, shirts, cap, vice),
+        "pick_pitch": pick_team_pitch(xi, bench, ctx, badges, shirts, cap,
+                                      vice, proj, market, next_gw),
+        "chip_planner": chip_planner_card(fh, tc, bb, wc, used),
         "squad_table": squad_table(xi + bench, ctx, cap, vice,
                                    proj, market, next_gw),
         "opta": opta_table(xi + bench),
