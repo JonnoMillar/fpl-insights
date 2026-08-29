@@ -392,6 +392,43 @@ def squad_for(entry_id, event, ctx):
     return picks
 
 
+def squad_sell_value(entry_id, ctx, squad_reports, ttl=fplapi.DEFAULT_TTL):
+    """Real FPL sell value per player: purchase price plus half of any
+    rise since (rounded down), or the current price outright if it has
+    fallen - never a flat guess, since this bounds every chip-suggester
+    optimizer run below.
+
+    Purchase price comes from the manager's public transfer history (the
+    exact price paid, not an estimate), falling back to a player's own
+    price at gameweek 1 for anyone held since the start and never
+    transferred. Both are unauthenticated, public FPL endpoints.
+
+    Returns (total, per_player); per_player is {element_id: sell_price},
+    values in millions."""
+    transfers_history = fplapi.get_json(
+        f"{fplapi.BASE}/entry/{entry_id}/transfers/", ttl=ttl)
+    bought_at = {}
+    for t in transfers_history:
+        pid = t["element_in"]
+        prev = bought_at.get(pid)
+        if prev is None or t["event"] > prev[0]:
+            bought_at[pid] = (t["event"], t["element_in_cost"])
+
+    per_player = {}
+    for r in squad_reports:
+        pid = r.element["id"]
+        now = r.element["now_cost"]
+        if pid in bought_at:
+            buy = bought_at[pid][1]
+        else:
+            s = fplapi.element_summary(pid, ttl=ttl)
+            first = next((h for h in s.get("history", []) if h["round"] == 1), None)
+            buy = first["value"] if first else now
+        sell = buy + (now - buy) // 2 if now > buy else now
+        per_player[pid] = sell / 10.0
+    return sum(per_player.values()), per_player
+
+
 # --- mini-league ----------------------------------------------------------
 
 
