@@ -159,6 +159,21 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
     }
 
 
+def windowed_candidate_score(el, ctx, proj, market, baselines, priors,
+                             start_gw, weeks=8):
+    """A candidate's score summed across a run of gameweeks rather than
+    one - the pool-scoring half of the same idea as analysis.windowed_ep,
+    using the bootstrap-only scorer so it stays cheap across ~600
+    candidates. A blank gameweek is skipped rather than scored as zero."""
+    per_gw = []
+    for gw in range(start_gw, start_gw + weeks):
+        s = candidate_score(el, ctx, proj, gw, market, baselines, priors)
+        if s:
+            per_gw.append((gw, s))
+    total = sum(s["total"] for _gw, s in per_gw)
+    return total, per_gw
+
+
 def _eligible(el, ctx):
     """Fit to be suggested at all."""
     if el.get("status") in ("u", "n"):
