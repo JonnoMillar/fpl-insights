@@ -627,7 +627,8 @@ table td.tick{border:2px solid var(--surface)}
 
 /* --- chip planner --- */
 .cplist{list-style:none; margin:0; padding:0; display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px}
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;
+  align-items:start}
 .cp{
   position:relative; padding:14px 14px 12px; border-radius:var(--radius-m);
   background:var(--surface-variant); border-top:3px solid var(--lilac);
@@ -2100,12 +2101,6 @@ def chip_planner_card(fh, tc, bb, wc, used):
             f'{" - if your bench stays as it is." if not bb["transfers"] else "."}</p>'
             f'{conf_pill(bb["confidence"])}'
         )
-        if bb["transfers"]:
-            rows = [{**t, "out_photo": None, "in_photo": None,
-                    "out_shirt": None, "in_shirt": None}
-                   for t in bb["transfers"]]
-            body += components.transfer_cards(
-                rows, "Would improve that specific week.")
         cards.append(_cp_card("Bench Boost", used.get("bboost"), body))
 
     if wc:
@@ -2116,18 +2111,35 @@ def chip_planner_card(fh, tc, bb, wc, used):
             f'over the window.</p>'
             f'{conf_pill(wc["confidence"])}'
         )
-        if wc["moves"]:
-            rows = [{**mv, "out_photo": None, "in_photo": None,
-                    "out_shirt": None, "in_shirt": None}
-                   for mv in wc["moves"]]
-            body += components.transfer_cards(rows, "Suggested rebuild, most expensive first.")
         cards.append(_cp_card("Wildcard", used.get("wildcard"), body))
+
+    # The grid above is for the compact per-chip summary only.
+    # components.transfer_cards renders its own full-width "Suggested
+    # transfers"-shaped section (portrait, arrow, portrait) - it does not
+    # fit a ~250px grid column, so Bench Boost's and Wildcard's move lists
+    # render as their own full-width sections below the grid instead of
+    # nested inside it. Found by actually looking at the rendered page,
+    # not assumed safe from the code alone.
+    extra = []
+    if bb and bb["transfers"]:
+        rows = [{**t, "out_photo": None, "in_photo": None,
+                "out_shirt": None, "in_shirt": None}
+               for t in bb["transfers"]]
+        extra.append(components.transfer_cards(
+            rows, f"Bench Boost, GW{bb['gw']} - would improve that specific week."))
+    if wc and wc["moves"]:
+        rows = [{**mv, "out_photo": None, "in_photo": None,
+                "out_shirt": None, "in_shirt": None}
+               for mv in wc["moves"]]
+        extra.append(components.transfer_cards(
+            rows, "Wildcard - suggested rebuild, most expensive first."))
 
     return (
         '<section class="card"><div class="card-head"><h2>Chip planner</h2>'
         '<span class="sub">Best gameweek for each chip in the current half, '
         'scored from the same projections as the rest of the page.</span></div>'
         f'<div class="card-body"><ul class="cplist">{"".join(cards)}</ul></div></section>'
+        f'{"".join(extra)}'
     )
 
 

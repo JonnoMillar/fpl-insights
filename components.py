@@ -88,6 +88,23 @@ def ep_bars(eps, collapsed=6):
         'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
         '<span class="epmore-txt">See<br>more</span></button>'
     )
+    # Collapsed, the ranking only needs its own width - the rest of the card
+    # used to sit empty between it and the toggle. The single most useful
+    # thing to put there is the answer to the question this list exists to
+    # answer: who to captain. It hides again once the bars open, since the
+    # list itself claims that space then.
+    top_r, top_ep = ordered[0]
+    cap_fixture = "{} ({})".format(top_ep["opponent"], "H" if top_ep["home"] else "A")
+    captain = (
+        '<div class="epcap">'
+        '<span class="epcap-k">Captain pick</span>'
+        '<span class="epcap-name">{name}</span>'
+        '<span class="epcap-fx">{fx}</span>'
+        '<span class="epcap-v"><b class="tnum">{total:.1f}</b> pts'
+        '<span class="epcap-arm tnum"> &rarr; {double:.1f} as armband</span>'
+        "</span></div>"
+    ).format(name=e(top_r.name), fx=e(cap_fixture), total=top_ep["total"],
+             double=top_ep["total"] * 2)
     return (
         '<section class="card epcard"><div class="card-head">'
         '<h2>Expected points</h2>'
@@ -95,9 +112,9 @@ def ep_bars(eps, collapsed=6):
         "points. Clean-sheet odds and the goals line come from the betting "
         "market where it has priced the fixture.</span></div>"
         '<div class="card-body"><div class="epwrap">'
-        '<ul class="eplist">{rows}</ul>{toggle}</div>'
+        '<ul class="eplist">{rows}</ul>{captain}{toggle}</div>'
         '<p class="eplegend">{legend}</p></div></section>'.format(
-            rows="".join(rows), legend=legend, toggle=toggle
+            rows="".join(rows), captain=captain, legend=legend, toggle=toggle
         )
     )
 
@@ -298,7 +315,7 @@ def transfer_cards(rows, note):
             '<div class="tf-numbers">'
             '<div class="tf-ep"><span>{oep:.2f}</span>'
             '<span class="tf-track"><i style="width:{opct:.0f}%"></i></span></div>'
-            '<div class="tf-gain">+{gain:.2f}<small>projected points</small></div>'
+            '<div class="tf-gain">{gain:+.2f}<small>projected points</small></div>'
             '<div class="tf-ep tf-ep-in"><span>{iep:.2f}</span>'
             '<span class="tf-track"><i style="width:{ipct:.0f}%"></i></span></div>'
             "</div>"
