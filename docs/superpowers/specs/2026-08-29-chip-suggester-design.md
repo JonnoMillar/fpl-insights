@@ -102,11 +102,24 @@ fill followed by a hill-climbing swap pass:
 2. **Improve**: repeatedly scan for a single swap (one held player for one
    unheld player, same position, affordable within the freed budget, club
    limit respected) that increases the objective. Keep applying the best
-   available improving swap until none remains.
+   available improving swap until none remains, capped at 50 swaps - not a
+   performance concern (this runs unattended on the same 3-hourly build
+   everything else already does), but a correctness guard against a
+   hill-climb's real failure mode of two swaps flipping back and forth
+   forever. Hitting the cap should log a warning rather than fail silently,
+   since it would mean the answer wasn't fully converged.
 3. **Eligibility filter**, applied before either step: exclude injured /
    suspended / unavailable-flagged players, and anyone with
    `start_probability(ctx) < 0.15` - a technically-nailed-on-paper player
    who is not going to play is not worth a slot regardless of rate stats.
+
+   **Known limitation**: `start_probability` is a single "as of right now"
+   estimate, not a per-gameweek projection. Over an 8-week Wildcard window
+   this can wrongly exclude someone injured today but nailed-on and
+   dangerous by week 4 - exactly a plausible Wildcard target. There's no
+   clean fix without a genuinely bigger change (a per-gameweek availability
+   model), so this pass just says so in the UI copy rather than pretending
+   the window-wide filter is more accurate than it is.
 
 This is a strong approximation, not a provable optimum, and the UI copy
 says so plainly rather than implying a solved optimization.
@@ -163,8 +176,12 @@ rather than next week.
 
 Run the full-squad optimizer with the windowed-EP objective over the
 window. Diff the result against the current squad by position (removed
-vs. added), and present it in the same "sell X, buy Y" shape the existing
-transfer/pairing cards already render, rather than a new UI language.
+vs. added). Where more than one player swaps within the same position,
+pair outgoing and incoming by descending price (most expensive change
+first) - an arbitrary pairing would still be mathematically valid but
+would read as a random shuffle rather than a story. Present it in the
+same "sell X, buy Y" shape the existing transfer/pairing cards already
+render, rather than a new UI language.
 
 Score: the windowed-EP gap between the optimizer's ideal starting XI and
 the manager's own current best XI, over the same window. Larger gap, more
@@ -182,9 +199,14 @@ session.
 Each chip's recommended week is compared against the average of the *other*
 weeks in the window (same metric the chip is scored on):
 
-- Notably above average (proposed: ≥20%) → **strong**
+- Notably above average (starting guess: ≥20%) → **strong**
 - Modestly above (5-20%) → **worth watching**
 - Barely above (<5%) → **no clear best week yet - timing is flexible**
+
+These two cutoffs are a starting guess, not a validated calibration - there
+is no data yet on how these gaps are actually distributed across a real
+season. Revisit once the recommender has run for a few gameweeks and the
+real spread of gaps is visible, rather than treating 20%/5% as settled.
 
 This keeps the tool from manufacturing false precision when a chip
 genuinely has no standout week, which is a real and common state, not an
@@ -207,6 +229,22 @@ than being silently omitted.
 
 The points-team comparison lives as a small strip inside the Free Hit
 sub-card (its primary consumer) rather than as a fully separate section.
+
+## Error handling
+
+- If `proj` or `market` are unavailable for a build, the chip planner card
+  does not render - same pattern `ticker.fixture_ticker` already uses when
+  `proj` is empty, rather than showing a card full of blanks or crashing
+  the build.
+- If the optimizer cannot fill a legal squad under the available budget
+  (should be rare, but a squad far outside a normal value distribution is
+  possible), it returns `None` and the affected chip's sub-card says there
+  isn't enough to go on this week rather than guessing.
+- If the hill-climb hits its 50-swap cap without converging (see the
+  optimizer section), the run still returns its best-so-far answer, logged
+  as a warning in the build output the same way a failed data source
+  already is (`fplapi.note`) - a slightly-short-of-perfect squad is still
+  useful; a missing card is not.
 
 ## Files touched
 
@@ -231,6 +269,14 @@ sub-card (its primary consumer) rather than as a fully separate section.
   confirm the optimizer's chosen XI is legal (formation, budget, club
   limit) and its EP total is ≥ the manager's own current best XI (it should
   never recommend something worse than reality).
+- Club-limit sanity check: the 3-per-club rule is where a single-swap
+  hill-climb is most likely to get stuck (an early greedy pick can lock in
+  3 players from one club and block a better combination that only a
+  2-for-2 trade would reach). Run the optimizer once with that limit
+  relaxed and compare - if the gap between the two answers is large, the
+  constrained result is probably a weak local optimum, not a real
+  club-limit effect, and the fill/improve approach needs a second look
+  before shipping.
 - Full `cli.py dashboard` rebuild with no exceptions, then a Playwright
   screenshot pass of the new card at desktop and mobile widths, same
   verification pattern used for every UI change earlier in this session.
