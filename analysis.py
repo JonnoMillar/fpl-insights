@@ -425,6 +425,17 @@ THIN_SAMPLE_MINUTES = 270
 THIN_APPEARANCES = 4
 
 
+def chip_window(next_gw, cap=8):
+    """The gameweek range chip suggestions search: the rest of the current
+    half - GW1-19, or GW20-38 once that resets - capped, since a
+    projection further out than that is mostly noise. Returns
+    (start, weeks); the caller's own search range is
+    range(start, start + weeks)."""
+    end = 19 if next_gw <= 19 else 38
+    weeks = min(cap, max(0, end - next_gw + 1))
+    return next_gw, weeks
+
+
 def _finding(key, title, tone, items, note=""):
     return {"key": key, "title": title, "tone": tone, "items": items, "note": note}
 
