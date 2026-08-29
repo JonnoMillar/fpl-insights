@@ -166,3 +166,42 @@ def triple_captain(ctx, xi_reports, proj, market, baselines, next_gw):
         "player": best[0], "gw": best[1], "ep": best[2],
         "confidence": confidence(best[2], others),
     }
+
+
+def bench_boost(ctx, bench_reports, proj, market, baselines, next_gw, bank=0.0):
+    """The gameweek in the window where the manager's current bench
+    projects highest, plus any transfers that would meaningfully improve
+    that specific week - reusing transfers.suggest exactly as it already
+    works, just pointed at the bench and the target week instead of the
+    whole squad and next week."""
+    start, weeks = analysis.chip_window(next_gw)
+    totals = {}
+    for gw in range(start, start + weeks):
+        total = 0.0
+        any_scored = False
+        for r in bench_reports:
+            ep = analysis.expected_points(r, ctx, proj, gw, market=market,
+                                          baselines=baselines)
+            if ep:
+                total += ep["total"]
+                any_scored = True
+        if any_scored:
+            totals[gw] = total
+    if not totals:
+        return None
+    best_gw = max(totals, key=totals.get)
+    others = [v for gw, v in totals.items() if gw != best_gw]
+
+    # transfers.suggest computes its own positional_priors internally -
+    # nothing else needed here.
+    suggestions = transfers.suggest(
+        ctx, bench_reports, proj, best_gw, market, baselines,
+        bank=bank, per_slot=1, limit=3)
+    for t in suggestions:
+        t["in_club"] = ctx.team_name(t["in"]["team"])
+
+    return {
+        "gw": best_gw, "ep": totals[best_gw],
+        "confidence": confidence(totals[best_gw], others),
+        "transfers": suggestions,
+    }
