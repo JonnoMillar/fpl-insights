@@ -205,3 +205,82 @@ def bench_boost(ctx, bench_reports, proj, market, baselines, next_gw, bank=0.0):
         "confidence": confidence(totals[best_gw], others),
         "transfers": suggestions,
     }
+
+
+def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
+    """The best full-squad rebuild available right now, scored over the
+    chip window (a permanent change needs a run of fixtures, not one
+    week) and diffed against the current squad in sell/buy pairs, ranked
+    by price so the story reads most-expensive-change-first.
+
+    Known limitation, found live-testing this against a real squad: the
+    objective is flat expected points across 11 players, with no idea
+    that a real captain scores double. That blind spot systematically
+    undervalues an explosive, spiky-ceiling premium (a Haaland) against
+    steadier mid-price options, and can suggest selling exactly the
+    player worth keeping for the armband alone. Shipped with this noted
+    rather than fixed, since a captaincy-aware objective is a real change
+    to the algorithm, not a tweak - treat any "sell your premium" move
+    here with that in mind rather than as the final word."""
+    start, weeks = analysis.chip_window(next_gw)
+    exclude_ids = {r.element["id"] for r in all_reports}
+    pool = build_pool(ctx, proj, market, baselines, start, weeks,
+                      exclude_ids=exclude_ids)
+    own_pool = []
+    for r in all_reports:
+        total, _per_gw = analysis.windowed_ep(r, ctx, proj, market, baselines,
+                                              start, weeks)
+        own_pool.append({"id": r.element["id"], "pos": r.pos, "club": r.team,
+                         "price": r.price, "value": total})
+    full_pool = pool + own_pool
+
+    ideal = squadbuilder.best_squad(full_pool, budget)
+    if ideal is None:
+        return None
+    # Compare like for like: the manager's own best XI over the same
+    # window, formation-optimized the same way points_team finds one for
+    # a single week - budget is unconstrained here since these 15 are
+    # already owned, only which 11 of them to start is being decided.
+    own_reports_by_id = {r.element["id"]: r for r in all_reports}
+    current_best = squadbuilder.best_xi(own_pool, budget=1e9)
+    current_value = current_best["value"] if current_best else 0.0
+
+    gap = max(0.0, ideal["value"] - current_value)
+
+    ideal_ids = {p["id"] for p in ideal["xi"] + ideal["bench"]}
+    current_ids = {r.element["id"] for r in all_reports}
+    outgoing = [own_reports_by_id[pid] for pid in current_ids - ideal_ids]
+    incoming = [ctx.players[pid] for pid in ideal_ids - current_ids]
+    outgoing.sort(key=lambda r: -r.price)
+    incoming.sort(key=lambda el: -(el["now_cost"] / 10.0))
+
+    # Each move is built display-ready here, in the shape
+    # components.transfer_cards already expects (out_score/in_score need
+    # "total", "opponent", "home"; in_club is separate from in_score) -
+    # scored at the window's first gameweek, real numbers rather than
+    # placeholders, so the reused card shows an honest fixture and gain
+    # per move instead of a flat, meaningless bar.
+    priors = transfers.positional_priors(ctx)
+    moves = []
+    for out_r, in_el in zip(outgoing, incoming):
+        in_full = analysis.build_player(ctx, in_el["id"], ttl=fplapi.DEFAULT_TTL)
+        out_score = analysis.expected_points(
+            out_r, ctx, proj, start, market=market, baselines=baselines
+        ) or {"total": 0.0, "opponent": "-", "home": True}
+        in_score = transfers.candidate_score(
+            in_el, ctx, proj, start, market, baselines, priors
+        ) or {"total": 0.0, "opponent": "-", "home": True}
+        moves.append({
+            "out": out_r, "in": in_el, "in_club": ctx.team_name(in_el["team"]),
+            "out_score": out_score, "in_score": in_score,
+            "gain": in_score["total"] - out_score["total"],
+            "price": in_el["now_cost"] / 10.0,
+            "spend": in_el["now_cost"] / 10.0 - out_r.price,
+            "in_form": in_full.recent_form(),
+        })
+
+    return {
+        "gw_window": (start, weeks), "gap": gap,
+        "confidence": confidence(ideal["value"], [current_value]),
+        "moves": moves,
+    }
