@@ -694,15 +694,16 @@ def _hill_climb(picks, by_pos, budget, other_club_counts=None):
 cd "C:\Users\jonno\code\fpl-insights" && python - <<'EOF'
 import squadbuilder as sb
 
-# Two clubs, enough depth to exercise the club limit.
+# Five clubs - enough that a 15-player fill under the 3-per-club cap is
+# actually feasible (a first draft of this test used 2 clubs, which caps
+# out at 6 players total and made every fill below infeasible by
+# construction - caught live rather than left in the plan).
 pool = []
 pid = 0
-for club in ("A", "B"):
+for club in ("A", "B", "C", "D", "E"):
     for pos, n in (("GKP", 2), ("DEF", 5), ("MID", 5), ("FWD", 4)):
         for i in range(n):
             pid += 1
-            # deliberately make club A's players slightly better value so
-            # the club limit actually has to bind
             value = 5.0 + i * 0.3 + (0.5 if club == "A" else 0.0)
             price = 4.0 + i * 0.4
             pool.append({"id": pid, "pos": pos, "club": club,
@@ -710,7 +711,7 @@ for club in ("A", "B"):
 
 by_pos = sb._by_position(pool)
 assert set(by_pos.keys()) == {"GKP", "DEF", "MID", "FWD"}
-assert len(by_pos["DEF"]) == 10
+assert len(by_pos["DEF"]) == 25
 
 quotas = {"GKP": 2, "DEF": 5, "MID": 5, "FWD": 3}
 picks = sb._greedy_fill(by_pos, quotas, budget=200.0)
@@ -729,8 +730,13 @@ prices = [p["price"] for p in cheap]
 # cheapest fill should pick low-price options, not high-value ones
 assert sum(prices) < 20.0, prices
 
-# Infeasible quota should return None, not raise
-assert sb._greedy_fill(by_pos, {"GKP": 5}, budget=200.0) is None
+# Infeasible on pure inventory (only 10 GKPs exist across the whole pool)
+assert sb._greedy_fill(by_pos, {"GKP": 99}, budget=200.0) is None
+# Infeasible purely on the club cap: 2 clubs can supply at most 6 players
+# under a 3-per-club limit, so a 15-player quota cannot be met even though
+# each position individually has enough inventory.
+two_club_pos = sb._by_position([p for p in pool if p["club"] in ("A", "B")])
+assert sb._greedy_fill(two_club_pos, quotas, budget=200.0) is None
 
 improved = sb._hill_climb(picks, by_pos, budget=200.0)
 improved_value = sum(p["value"] for p in improved)
