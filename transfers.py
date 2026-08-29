@@ -100,9 +100,27 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
     share = minutes / 90.0
 
     baseline = (baselines or {}).get(el["team"], league_avg)
-    team_xg = mk["xg"] if mk else float(fixture.get("g") or league_avg)
+    # `market` only ever prices the imminent round - trusting it for a gw
+    # it doesn't actually describe would silently repeat that round's line
+    # for every later gameweek. Same guard analysis.expected_points uses.
+    mk_matches = bool(mk and fixture and mk.get("opp") == fixture.get("opp"))
+    if mk_matches:
+        team_xg = mk["xg"]
+    elif fixture:
+        team_xg = float(fixture.get("g") or league_avg)
+    elif mk:
+        team_xg = mk["xg"]
+    else:
+        team_xg = league_avg
     mult = max(0.5, min(2.0, team_xg / baseline)) if baseline else 1.0
-    cs_prob = (mk["cs"] / 100.0) if mk else float(fixture.get("cs") or 0) / 100.0
+    if mk_matches:
+        cs_prob = mk["cs"] / 100.0
+    elif fixture:
+        cs_prob = float(fixture.get("cs") or 0) / 100.0
+    elif mk:
+        cs_prob = mk["cs"] / 100.0
+    else:
+        cs_prob = 0.0
 
     prior = (priors or {}).get(pos, {"xg90": 0.1, "xa90": 0.1, "bonus90": 0.25,
                                      "dc90": 4.0, "bps90": 12.0})
@@ -135,8 +153,8 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
         "goals": goals, "assists": assists, "defence": defence,
         "appearance": appearance, "defcon": defcon, "bonus": bonus,
         "cs": cs_prob * 100,
-        "opponent": (mk["opp"] if mk else fixture.get("opp")),
-        "home": (mk["home"] if mk else (fixture.get("ven") or "H").upper() == "H"),
+        "opponent": fixture.get("opp") if fixture else mk["opp"],
+        "home": (fixture.get("ven") or "H").upper() == "H" if fixture else mk["home"],
         "priced": bool(mk),
     }
 
