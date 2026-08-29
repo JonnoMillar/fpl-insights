@@ -269,6 +269,40 @@ class PlayerReport:
                 out.append(f"{tag} #{order}")
         return out
 
+    def recent_form(self, window=5):
+        """A short, glanceable read on recent output for the pick-team card:
+        an attacking hot streak, a dry spell, the underlying rate behind a
+        mixed record, or - this early in a season - just last week's line.
+        A game with no minutes does not count as a "week"; a run is of games
+        actually played, not calendar gameweeks."""
+        games = sorted((x for x in self.history if x["minutes"] > 0),
+                       key=lambda x: x["round"])
+        recent = games[-window:]
+        n = len(recent)
+        if n == 0:
+            return None
+        if n == 1:
+            h = recent[0]
+            pts = h["total_points"]
+            if pts >= 6:
+                return {"text": f"{pts} pts last week", "hot": pts >= 10}
+            xgi = f(h["expected_goal_involvements"])
+            if xgi >= 0.3:
+                return {"text": f"{xgi:.2f} xGI last week", "hot": False}
+            return {"text": f"{pts} pt{'s' if pts != 1 else ''} last week",
+                   "hot": False}
+        returns = sum(1 for h in recent if h["goals_scored"] + h["assists"] > 0)
+        if returns >= 2 and returns / n >= 0.6:
+            return {"text": f"{returns} returns in last {n}", "hot": True}
+        if returns == 0:
+            return {"text": f"0 returns in last {n}", "hot": False}
+        if returns == 1 and n >= 3:
+            return {"text": f"1 return in last {n}", "hot": False}
+        xgi_sum = sum(f(h["expected_goal_involvements"]) for h in recent)
+        mins_sum = sum(h["minutes"] for h in recent)
+        rate = per90(xgi_sum, mins_sum)
+        return {"text": f"{rate:.2f} xGI/90 last {n}", "hot": False}
+
     def last_season(self):
         """Previous-season totals, the only history the API keeps beyond the
         current campaign. Useful as a baseline while this season is short."""
@@ -286,7 +320,53 @@ class PlayerReport:
             "defcon": p.get("defensive_contribution", 0),
             "bonus": p.get("bonus", 0),
             "points": p["total_points"],
+            "starts": p.get("starts", 0),
         }
+
+    def start_probability(self, ctx):
+        """A continuous read on whether this player takes the pitch, rather
+        than the three-bucket guess (start / bench / average) the rest of
+        this module used to make from `ctx.is_predicted`.
+
+        FFS's predicted lineup is the strongest signal once it exists, since
+        it is someone's actual judgement call, not a rate. Before it exists
+        for a gameweek, the season's own start rate stands in - a short
+        injury already falls out of that rate rather than counting against
+        it, because `appearances` only counts games with minutes. What it
+        cannot cover is a player with barely any *current*-season history at
+        all - a fresh signing, or a long injury spanning most of the season
+        so far - so that case blends in last season's rate instead, the same
+        way the xG/xA rates already do while this season is thin. FPL's own
+        fitness flag (`chance_of_playing_next_round`) then scales the result
+        down for a doubt regardless of which source set it."""
+        el = self.element
+        pred = ctx.is_predicted(el)
+        if pred is True:
+            base = 0.92
+        elif pred is False:
+            base = 0.10
+        elif self.appearances >= THIN_APPEARANCES:
+            base = self.start_rate
+        else:
+            ls = self.last_season()
+            if ls and ls["starts"] and ls["minutes"] >= 900:
+                # No per-match log survives from a past season, only season
+                # totals - minutes/90 stands in for games involved in, which
+                # is close enough for a fallback prior.
+                prior = min(1.0, ls["starts"] / max(1.0, ls["minutes"] / 90.0))
+            else:
+                # No reliable anchor either way - neutral, not a guess dressed
+                # up as one. A single appearance this season is not enough
+                # evidence on its own to trust fully, whichever way it points.
+                prior = 0.5
+            base = (
+                (self.appearances / THIN_APPEARANCES) * self.start_rate
+                + (1 - self.appearances / THIN_APPEARANCES) * prior
+                if self.appearances else prior
+            )
+        chance = el.get("chance_of_playing_next_round")
+        fitness = (chance / 100.0) if chance is not None else 1.0
+        return max(0.03, min(0.98, base * fitness))
 
 
 def build_player(ctx, player_id, ttl=fplapi.DEFAULT_TTL):
@@ -339,6 +419,10 @@ def league_ownership(squads):
 # Below this many minutes, per-90 rates are noise and are labelled as such.
 # Three full matches is the point where a rate stops being one good cameo.
 THIN_SAMPLE_MINUTES = 270
+
+# Below this many games actually played, a start rate is still mostly luck of
+# the draw - PlayerReport.start_probability blends toward last season below it.
+THIN_APPEARANCES = 4
 
 
 def _finding(key, title, tone, items, note=""):
@@ -700,33 +784,41 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
     if not fixture and not mk:
         return None
 
-    pred = ctx.is_predicted(el)
-    if pred is True:
-        minutes = 85.0
-    elif pred is False:
-        minutes = 20.0
-    elif r.appearances:
-        minutes = min(90.0, r.minutes / r.appearances)
-    else:
-        minutes = 60.0
+    # A continuous read on whether he plays, not three fixed guesses - a
+    # start earns close to what he plays when he does start; missing the XI
+    # still carries a chance of a late cameo rather than a hard zero.
+    start_prob = r.start_probability(ctx)
+    avg_start_minutes = min(90.0, r.minutes / r.starts) if r.starts else 75.0
+    minutes = start_prob * avg_start_minutes + (1 - start_prob) * 8.0
+    minutes = max(0.0, min(90.0, minutes))
     share = minutes / 90.0
 
     # --- fixture quality, market first ---
     baseline = (baselines or {}).get(el["team"], league_avg_xg)
-    if mk:
+    # `market` only ever prices the imminent round, so it is only trustworthy
+    # when the opponent it names matches the fixture actually being asked
+    # about here - otherwise a call for a later gameweek would silently reuse
+    # next week's market line for every week after it. Same guard ticker.py
+    # already applies for the same reason.
+    mk_matches = bool(mk and fixture and mk.get("opp") == fixture.get("opp"))
+    if mk_matches:
         team_xg, xg_source = mk["xg"], "market"
     elif fixture:
         team_xg, xg_source = float(fixture.get("g") or league_avg_xg), "model"
+    elif mk:
+        team_xg, xg_source = mk["xg"], "market"
     else:
         team_xg, xg_source = league_avg_xg, "average"
     # Bounded: one strange line should not triple a projection.
     fixture_mult = max(0.5, min(2.0, team_xg / baseline)) if baseline else 1.0
 
     # --- clean sheet, market first ---
-    if mk:
+    if mk_matches:
         cs_prob, cs_source = mk["cs"] / 100.0, "market"
     elif fixture:
         cs_prob, cs_source = float(fixture.get("cs") or 0) / 100.0, "model"
+    elif mk:
+        cs_prob, cs_source = mk["cs"] / 100.0, "market"
     else:
         cs_prob, cs_source = 0.0, "none"
 
@@ -772,9 +864,29 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
         "xg_source": xg_source,
         "baseline": baseline,
         "fixture_mult": fixture_mult,
-        "opponent": (mk["opp"] if mk else fixture.get("opp")),
-        "home": (mk["home"] if mk else (fixture.get("ven") or "H").upper() == "H"),
+        # The fixture itself - who and where - is always this gameweek's own
+        # truth, not something only the market can price, so it comes from
+        # `fixture` whenever one exists; `mk` only fills in on the rare
+        # fixture the model has no row for at all.
+        "opponent": fixture.get("opp") if fixture else mk["opp"],
+        "home": (fixture.get("ven") or "H").upper() == "H" if fixture else mk["home"],
     }
+
+
+def windowed_ep(r, ctx, proj, market, baselines, start_gw, weeks=8):
+    """A player's expected points summed across a run of gameweeks, not
+    just one - the building block every chip recommendation is scored
+    from. Returns (total, per_gw); per_gw is [(gw, ep_dict), ...] for
+    whichever gameweeks actually had a projection, since a blank gameweek
+    is skipped rather than scored as zero, matching expected_points
+    itself."""
+    per_gw = []
+    for gw in range(start_gw, start_gw + weeks):
+        ep = expected_points(r, ctx, proj, gw, market=market, baselines=baselines)
+        if ep:
+            per_gw.append((gw, ep))
+    total = sum(ep["total"] for _gw, ep in per_gw)
+    return total, per_gw
 
 
 # --- market ---------------------------------------------------------------
