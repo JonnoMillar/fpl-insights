@@ -142,3 +142,27 @@ def free_hit(ctx, xi_reports, proj, market, baselines, next_gw):
         "confidence": confidence(gaps[best_gw], others),
         "points_team": pt_by_gw[best_gw],
     }
+
+
+def triple_captain(ctx, xi_reports, proj, market, baselines, next_gw):
+    """The single (player, gameweek) pair with the highest projected
+    points among the manager's own predicted starters, across the current
+    chip window - captain him then for the biggest armband."""
+    start, weeks = analysis.chip_window(next_gw)
+    candidates = []  # (player_report, gw, ep_total)
+    for r in xi_reports:
+        if ctx.is_predicted(r.element) is False:
+            continue
+        for gw in range(start, start + weeks):
+            ep = analysis.expected_points(r, ctx, proj, gw, market=market,
+                                          baselines=baselines)
+            if ep:
+                candidates.append((r, gw, ep["total"]))
+    if not candidates:
+        return None
+    best = max(candidates, key=lambda c: c[2])
+    others = [c[2] for c in candidates if c is not best]
+    return {
+        "player": best[0], "gw": best[1], "ep": best[2],
+        "confidence": confidence(best[2], others),
+    }
