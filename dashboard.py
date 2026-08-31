@@ -2,30 +2,49 @@
 """
 Renders the squad and mini-league reports as a single self-contained HTML page.
 
-Styling is not a pastiche of Fantasy Premier League - the tokens are lifted
-from the live stylesheet at fantasy.premierleague.com (brand purple #37003c,
-the mono-p neutral ramp, the radius and spacing scales, and the five-step
-fixture-difficulty colours with their prescribed text colours). Both themes use
-FPL's own light and dark mappings rather than an invented inversion.
+Colour is FPL's own - the deep purple and the bright green the game is
+actually recognised by - because a tool read alongside the site it draws from
+should look related to it. What changed is how that colour is spent.
 
-Two deliberate departures:
+The page used to open on a 135-degree three-stop gradient, purple bleeding
+through lilac into green. That is the default hero of every generated
+dashboard, and it was the thing that made this one look generated. It is
+gone. Purple is now structure and ink, green is one accent used flat, and
+the character comes from type and layout instead of from a colour wash:
 
-* FPL sets type in PremierSans (PremierLeagueW01), a licensed Monotype face.
-  Embedding it would mean redistributing it, so the page uses Barlow - the
-  closest free analogue to that tight humanist grotesque - over FPL's own
-  declared fallback stack of Arial / Helvetica Neue.
-* Difficulty pills always carry a visible opponent and number. The bright green
-  (#01fc7a) and grey (#e7e7e7) steps sit at 1.35:1 and 1.2:1 against a white
-  surface, so colour alone would not be readable; the label is what carries it.
+* Type is Archivo across its width axis - expanded for headings, normal for
+  body, so the contrast comes from width rather than from a second family -
+  with IBM Plex Mono on every figure, tabular, so columns of stats align on
+  the digit the way a results service does.
+* One delta chip carries every number that has a good or bad reading, rather
+  than each card inventing its own arrow.
+* Findings read as a mono subject tag beside ordinary prose, not as a bold
+  black line with grey underneath it, which is the pattern that made every
+  card on the page look like every other card.
+
+Two constraints worth keeping in mind when editing:
+
+* Green is a fill, never type. #01fc7a is 1.35:1 on white, so anything that
+  lands on text uses --accent-ink / --good-ink instead.
+* Difficulty pills always carry a visible opponent and number. Several steps
+  on the ramp are too close in luminance to carry meaning by fill alone, so
+  the label does the work and the colour only makes a run visible down a
+  column.
+
+Light only. There is no dark theme and no toggle - the page is read in
+daylight before a deadline, and carrying a second full palette meant every
+new colour had to be drawn twice and kept in step.
 """
 
 import html
 import json
 import math
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
 import analysis
+import captaincy
 import chips
 import fplapi
 import pulse
@@ -37,9 +56,12 @@ import ticker
 import transfers
 from analysis import f
 
-# FPL's own fixture-difficulty scale, background and text, straight from their
-# stylesheet. Difficulty is ordinal and diverging - kind through neutral to
-# brutal - so the grey midpoint is correct rather than a gap in the palette.
+# FPL's own five-step difficulty scale, background and text, straight from
+# their stylesheet. Difficulty is ordinal and diverging - kind through neutral
+# to brutal - so the grey midpoint is correct rather than a gap in the
+# palette. Every pill also carries the opponent and the number, which is what
+# actually makes it readable: steps 2 and 3 sit at 1.35:1 and 1.2:1 against
+# white, so the fill alone was never carrying the meaning.
 FDR = {
     1: ("#375523", "#ffffff"),
     2: ("#01fc7a", "#37003c"),
@@ -49,10 +71,10 @@ FDR = {
 }
 
 TONE_COLOR = {
-    "good": "var(--success)",
-    "bad": "var(--error)",
-    "warn": "#ff9800",
-    "info": "var(--lilac)",
+    "good": "var(--good)",
+    "bad": "var(--bad)",
+    "warn": "var(--warn)",
+    "info": "var(--p60)",
     "neutral": "var(--p60)",
 }
 
@@ -62,7 +84,7 @@ def e(x):
 
 
 def fdr_pill(opp, home, diff):
-    bg, fg = FDR.get(diff, ("#e7e7e7", "#37003c"))
+    bg, fg = FDR.get(diff, ("#ebe5eb", "#37003c"))
     label = opp.upper() if home else opp.lower()
     venue = "home" if home else "away"
     return (
@@ -125,53 +147,118 @@ def meter(value, vmax, label):
 
 CSS = """
 :root{
-  /* Brand + neutral ramp, verbatim from FPL's stylesheet */
-  --purple:#37003c; --lilac:#953bff; --white:#ffffff;
+  /* "Floodlit". The ground is the cold blue-slate of a night stand, the one
+     accent is sodium-vapour amber - the colour of the lamps outside a ground
+     and on the old pylons. Good and bad run turf-to-clay rather than the
+     The two colours are FPL's own and deliberately so: the deep purple and
+     the bright green are the pairing the game is actually recognised by, and
+     no invented scheme signals "this is about FPL" the way they do.
+
+     What had to go was not the colours but how they were being spent. A
+     135-degree three-stop gradient across the hero, purple bleeding into
+     lilac into green, is the house style of every generated dashboard there
+     is - the tell was the gradient, not the hue. So: purple is structure and
+     ink, green is the one accent, both flat, and the page earns its
+     character from typography and layout instead of from a colour wash.
+
+     Green is a fill, never type - #01fc7a on white is 1.35:1 - so anything
+     that lands on text uses the darker cut. */
+  --white:#ffffff;
   --p2:#faf9fa; --p5:#f5f2f5; --p10:#ebe5eb; --p20:#d7ccd8; --p30:#c3b2c4;
   --p40:#af99b1; --p50:#9b809d; --p60:#87668a; --p70:#7d5980; --p80:#541e5d;
   --p90:#41054b; --p100:#37003c; --p110:#28002b; --p120:#1e0021;
-  --error:#e60023; --success:#34a853; --error-container:#fff2f4;
-  /* FPL's light theme mapping */
+  --ink:#37003c;
+
+  --accent:#01fc7a; --accent-ink:#046b39; --accent-wash:#e2fdf0;
+  --good:#01fc7a; --good-ink:#046b39; --good-wash:#e2fdf0;
+  --bad:#e60023; --bad-ink:#c0001d; --bad-wash:#fff2f4;
+  /* Amber is the third state, and it has to exist separately: "short of the
+     threshold" is not "bad", and with good and accent both being the same
+     green a two-state ramp would have drawn every defensive bar identically
+     whether the player cleared the line or not. */
+  --warn:#e07b00; --warn-ink:#9c5400; --warn-wash:#fff4e2;
+
+  --error:var(--bad); --success:var(--good); --error-container:var(--bad-wash);
   --surface:var(--white); --surface-variant:var(--p5);
-  --on-surface:var(--purple); --on-surface-variant:var(--p70);
+  --on-surface:var(--ink); --on-surface-variant:var(--p70);
   --outline:var(--p30); --outline-variant:var(--p10);
-  --ground:var(--p5); --bar:var(--purple); --on-bar:var(--white);
+  --ground:var(--p5); --bar:var(--ink); --on-bar:var(--white);
   --pitch-a:#0e7a3c; --pitch-b:#0a6733;
   --radius-xs:4px; --radius-s:8px; --radius-m:12px; --radius-l:16px;
   --shadow:0 1px 2px rgb(55 0 60 / 10%), 0 1px 8px rgb(55 0 60 / 6%);
 }
-/* FPL's dark theme mapping, not an inversion of the light one */
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --surface:var(--p110); --surface-variant:var(--p100);
-    --on-surface:var(--white); --on-surface-variant:var(--p40);
-    --outline:var(--p60); --outline-variant:var(--p80);
-    --ground:var(--p120); --bar:var(--p110); --on-bar:var(--white);
-    --pitch-a:#0b5c2e; --pitch-b:#084a25;
-    --error-container:#40121c;
-    --shadow:0 1px 2px rgb(0 0 0 / 40%), 0 1px 8px rgb(0 0 0 / 30%);
-  }
-}
-:root[data-theme="dark"]{
-  --surface:var(--p110); --surface-variant:var(--p100);
-  --on-surface:var(--white); --on-surface-variant:var(--p40);
-  --outline:var(--p60); --outline-variant:var(--p80);
-  --ground:var(--p120); --bar:var(--p110); --on-bar:var(--white);
-  --pitch-a:#0b5c2e; --pitch-b:#084a25;
-  --error-container:#40121c;
-  --shadow:0 1px 2px rgb(0 0 0 / 40%), 0 1px 8px rgb(0 0 0 / 30%);
-}
 
+/* One family for words, one for numbers. Archivo carries a width axis, so
+   headings can be genuinely expanded rather than merely bolder - the wide
+   caps read like the lettering on a perimeter board, and the contrast against
+   normal-width body text does the work a second typeface would otherwise do.
+   Every figure on the page is set in Plex Mono at tabular width, so columns
+   of stats line up on the digit the way a results service does. */
+:root{
+  --sans:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
 *{box-sizing:border-box}
 body{
   margin:0; background:var(--ground); color:var(--on-surface);
-  font-family:'Barlow',Arial,'Helvetica Neue',sans-serif;
+  font-family:var(--sans);
   font-size:15px; line-height:1.45;
   -webkit-font-smoothing:antialiased;
 }
-h1,h2,h3{margin:0; font-weight:700; text-wrap:balance; letter-spacing:-0.01em}
+h1,h2,h3{
+  margin:0; font-weight:700; text-wrap:balance;
+  font-stretch:118%; letter-spacing:-0.005em; line-height:1.15;
+}
+h2{font-size:17px; text-transform:uppercase; letter-spacing:0.04em}
 a{color:inherit}
 .tnum{font-variant-numeric:tabular-nums}
+/* Figures. `num` already marks every numeric cell in the tables. */
+.num,.tnum,.stat-v,.delta,.fxc-score,.fxavg,.oi-value,.pr-total,.pr-hit,
+.pr-bank,.cp-num,.hero-num{
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  letter-spacing:-0.02em;
+}
+
+/* --- the delta chip -------------------------------------------------------
+   One component for every number that has a good or bad reading - rank
+   movement, price change, a fixture swinging, points against the average.
+   A wedge for direction, a mono figure, and a wash behind it. It is the same
+   shape everywhere so the page only has to teach it once, and it is the
+   thing the design is meant to be remembered by, so nothing else on the page
+   gets to be this loud. */
+.delta{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:2px 7px 2px 5px; border-radius:var(--radius-xs);
+  font-size:12px; font-weight:600; line-height:1.3; white-space:nowrap;
+  background:var(--surface-variant); color:var(--on-surface-variant);
+}
+.delta::before{
+  content:""; width:0; height:0; flex:none;
+  border-left:4px solid transparent; border-right:4px solid transparent;
+}
+.delta-up{background:var(--good-wash); color:var(--good-ink)}
+.delta-up::before{border-bottom:5px solid currentColor}
+.delta-down{background:var(--bad-wash); color:var(--bad-ink)}
+.delta-down::before{border-top:5px solid currentColor}
+.delta-flat::before{
+  border:none; width:7px; height:2px; background:currentColor; border-radius:1px;
+}
+/* Amber is reserved for the one number that matters most in a card. */
+.delta-key{background:var(--accent-wash); color:var(--accent-ink)}
+.delta-key::before{display:none}
+
+/* A stat that clears a threshold. Same badge grammar as the set-piece order
+   pills, so "this is notable" already reads as a pill on this page. */
+.good-pill{
+  display:inline-flex; align-items:center; gap:4px; padding:1px 7px;
+  border-radius:9999px; font-family:var(--mono); font-size:12px;
+  font-weight:600; background:var(--good-wash); color:var(--good-ink);
+}
+.bad-pill{
+  display:inline-flex; align-items:center; gap:4px; padding:1px 7px;
+  border-radius:9999px; font-family:var(--mono); font-size:12px;
+  font-weight:600; background:var(--bad-wash); color:var(--bad-ink);
+}
 
 /* --- app chrome --- */
 .topbar{
@@ -208,19 +295,57 @@ section{margin-bottom:20px}
 .card-head .sub{font-size:13px;color:var(--on-surface-variant)}
 .card-body{padding:16px}
 
-/* --- hero --- */
+/* --- hero ---
+   Flat purple with a single green rule along the top, and the one tile the
+   week turns on picked out in the same green. What was here before was a
+   135-degree three-stop gradient - ink, then lilac, then accent, bleeding
+   across the whole panel. That gradient was the thing that made the page
+   look generated: it is the default move, it appears on every AI-built
+   dashboard, and it says nothing about football. Flat colour and one rule
+   say the same brand louder by not straining. */
 .hero{
-  background:linear-gradient(135deg,var(--purple) 0%, #4d0a55 60%, var(--lilac) 190%);
-  color:#fff; border-radius:var(--radius-m); padding:20px 18px; box-shadow:var(--shadow);
+  background:var(--ink); border-top:3px solid var(--accent);
+  color:var(--white); border-radius:var(--radius-m); padding:22px 18px;
+  box-shadow:var(--shadow); position:relative; overflow:hidden;
 }
-.hero h1{font-size:clamp(22px,4vw,32px)}
-.hero .mgr{color:rgb(255 255 255 / 72%); font-size:14px; margin-top:2px}
+.hero h1{font-size:clamp(23px,4vw,34px); font-stretch:125%; font-weight:700}
+.hero .mgr{color:rgb(255 255 255 / 66%); font-size:14px; margin-top:3px}
+/* The one sentence that says whether the week was good. Sits between the
+   name and the numbers because it is the thing you read first and the
+   tiles are the evidence for it. */
+.hero-line{
+  margin:14px 0 0; max-width:62ch; font-size:15px; line-height:1.5;
+  color:rgb(255 255 255 / 88%); border-left:2px solid var(--accent);
+  padding-left:11px;
+}
+.hero-line b{
+  font-family:var(--mono); font-weight:600; color:var(--white);
+  letter-spacing:-0.02em;
+}
+/* Chips inside a tile qualify the number, so they must not compete with it. */
+.tile .v{display:flex; align-items:baseline; gap:7px; flex-wrap:wrap}
+.tile .delta{
+  font-size:10px; padding:1px 5px 1px 4px; font-weight:600;
+  background:rgb(255 255 255 / 12%); color:rgb(255 255 255 / 82%);
+}
+.tile .delta-up{background:rgb(1 252 122 / 18%); color:#8affc4}
+.tile .delta-down{background:rgb(230 0 35 / 22%); color:#ff9aa8}
 
-.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:10px; margin-top:16px}
-.tile{background:rgb(255 255 255 / 12%); border-radius:var(--radius-s); padding:10px 12px}
-.tile .k{font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:rgb(255 255 255 / 70%)}
-.tile .v{font-size:26px; font-weight:700; line-height:1.1; margin-top:2px}
-.tile .n{font-size:12px; color:rgb(255 255 255 / 65%)}
+.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:10px; margin-top:18px}
+.tile{
+  background:rgb(255 255 255 / 7%); border-radius:var(--radius-s);
+  padding:10px 12px; border:1px solid rgb(255 255 255 / 9%);
+}
+.tile .k{font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:rgb(255 255 255 / 62%)}
+.tile .v{
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:25px; font-weight:600; line-height:1.1; margin-top:3px;
+  letter-spacing:-0.03em;
+}
+.tile .n{font-size:12px; color:rgb(255 255 255 / 58%)}
+/* The tile the week actually turns on gets the amber. Exactly one. */
+.tile.tile-key{background:rgb(255 176 0 / 13%); border-color:rgb(255 176 0 / 34%)}
+.tile.tile-key .v{color:var(--accent)}
 
 /* --- tabs --- */
 .tabs{display:flex; gap:4px; margin:16px 0 12px; flex-wrap:wrap}
@@ -229,12 +354,8 @@ section{margin-bottom:20px}
   color:var(--on-surface); font:inherit; font-weight:600; font-size:14px;
   padding:8px 16px; border-radius:9999px; cursor:pointer;
 }
-.tab[aria-selected="true"]{background:var(--purple); color:#fff; border-color:var(--purple)}
-:root[data-theme="dark"] .tab[aria-selected="true"]{background:var(--white); color:var(--purple); border-color:var(--white)}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .tab[aria-selected="true"]{background:var(--white); color:var(--purple); border-color:var(--white)}
-}
-.tab:focus-visible{outline:3px solid var(--lilac); outline-offset:2px}
+.tab[aria-selected="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
+.tab:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .panel[hidden]{display:none}
 
 /* --- pick-team pitch toggle: a nested, quieter version of .tab/.tabs,
@@ -245,12 +366,8 @@ section{margin-bottom:20px}
   color:var(--on-surface-variant); font:inherit; font-weight:600; font-size:12px;
   padding:5px 12px; border-radius:9999px; cursor:pointer;
 }
-.pkbtn[aria-selected="true"]{background:var(--purple); color:#fff; border-color:var(--purple)}
-:root[data-theme="dark"] .pkbtn[aria-selected="true"]{background:var(--white); color:var(--purple); border-color:var(--white)}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .pkbtn[aria-selected="true"]{background:var(--white); color:var(--purple); border-color:var(--white)}
-}
-.pkbtn:focus-visible{outline:3px solid var(--lilac); outline-offset:2px}
+.pkbtn[aria-selected="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
+.pkbtn:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .pkpanel[hidden]{display:none}
 
 /* --- pitch --- */
@@ -270,13 +387,41 @@ section{margin-bottom:20px}
 .pl .crest img{width:32px;height:32px;object-fit:contain}
 .pl .crest .letters{font-weight:700;font-size:13px;color:var(--on-surface-variant)}
 .pl .nm{
-  background:var(--purple); color:#fff; font-size:12px; font-weight:600;
+  background:var(--ink); color:#fff; font-size:12px; font-weight:600;
   padding:3px 4px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.pl .sc{display:flex; font-size:12px; text-align:center}
-.pl .sc div{flex:1; padding:3px 2px}
-.pl .sc .p{font-weight:700}
-.pl .sc .x{color:var(--on-surface-variant); border-left:1px solid var(--outline-variant)}
+.pl .sc{display:flex; text-align:center; align-items:baseline}
+.pl .sc div{
+  flex:1; min-width:0; padding:4px 1px;
+  transition:font-size .14s, flex-grow .14s, color .14s;
+}
+.pl .sc .g,.pl .sc .x{border-left:1px solid var(--outline-variant)}
+/* Exactly one of the three is forward at a time, and it is forward by a
+   long way: the point of a card this small is that one number should be
+   readable across the room and the other two only when you look for them.
+   The chosen cell also takes extra width, since 15px digits do not fit a
+   third of a 92px card. */
+.ovwrap .sc div{color:var(--p50); font-weight:500; font-size:10px}
+.ovwrap.emph-p .sc .p,
+.ovwrap.emph-g .sc .g,
+.ovwrap.emph-x .sc .x{
+  color:var(--on-surface); font-weight:700; font-size:15px; flex-grow:1.7;
+  letter-spacing:-0.04em;
+}
+@media (prefers-reduced-motion:reduce){.pl .sc div{transition:none}}
+
+/* Plain text, not pills: this sits in the same row as the view tabs and two
+   sets of pills side by side would have read as two sets of tabs. Selected
+   is simply the bold one. */
+.statsel{display:flex; align-items:center; gap:2px; margin-left:auto}
+.stbtn{
+  appearance:none; border:0; background:none; cursor:pointer;
+  color:var(--on-surface-variant); font:inherit; font-family:var(--mono);
+  font-size:11px; font-weight:500; padding:5px 6px; border-radius:var(--radius-xs);
+}
+.stbtn[aria-pressed="true"]{color:var(--on-surface); font-weight:700}
+.stbtn:hover{color:var(--on-surface)}
+.stbtn:focus-visible{outline:3px solid var(--accent); outline-offset:1px}
 .pl .arm{
   /* The card clips to its rounded corners, so the armband sits inside it
      rather than hanging off the edge where overflow:hidden would slice it. */
@@ -299,11 +444,7 @@ section{margin-bottom:20px}
   font-size:10px; line-height:1.3; text-align:center; padding:2px 5px 5px;
   color:var(--on-surface-variant);
 }
-.pk-form.hot{color:var(--purple); font-weight:700}
-:root[data-theme="dark"] .pk-form.hot{color:var(--lilac)}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .pk-form.hot{color:var(--lilac)}
-}
+.pk-form.hot{color:var(--ink); font-weight:700}
 .pk-spark{width:11px; height:11px; vertical-align:-1px; margin-right:2px}
 .benchstrip{background:var(--surface-variant); padding:12px 10px}
 .benchstrip .lbl{
@@ -319,8 +460,11 @@ details.card{border-bottom:none}
 details.collapsible > summary.card-head{cursor:pointer; list-style:none}
 details.collapsible > summary.card-head::-webkit-details-marker{display:none}
 details.collapsible > summary.card-head:hover{background:var(--surface-variant)}
-details.collapsible > summary.card-head:focus-visible{outline:3px solid var(--lilac); outline-offset:-3px}
+details.collapsible > summary.card-head:focus-visible{outline:3px solid var(--accent); outline-offset:-3px}
 details.collapsible:not([open]) > summary.card-head{border-bottom:none}
+/* Shut by default and quiet about it: reference material, not a headline. */
+.lastseason{margin-top:12px}
+.lastseason > summary.card-head h2{color:var(--on-surface-variant)}
 
 /* --- predicted line-ups (Fantasy Football Scout) --- */
 .pl .pip{
@@ -354,7 +498,7 @@ th.sortable[aria-sort="ascending"]::after{content:"\\2191"; opacity:1}
 th.sortable[aria-sort="descending"]::after{content:"\\2193"; opacity:1}
 tbody tr{border-bottom:1px solid var(--outline-variant)}
 tbody tr:hover{background:var(--surface-variant)}
-tbody tr.me{background:color-mix(in srgb, var(--lilac) 12%, transparent)}
+tbody tr.me{background:color-mix(in srgb, var(--accent) 12%, transparent)}
 td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .pos{
   display:inline-block; min-width:34px; text-align:center; font-size:11px; font-weight:700;
@@ -370,7 +514,7 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
   display:inline-block; width:56px; height:6px; border-radius:9999px;
   background:var(--outline-variant); vertical-align:middle; overflow:hidden;
 }
-.meter-fill{display:block; height:100%; background:var(--lilac); border-radius:9999px}
+.meter-fill{display:block; height:100%; background:var(--accent); border-radius:9999px}
 .flag{font-size:11px; font-weight:700; color:var(--error)}
 
 /* --- price watch --- */
@@ -386,28 +530,22 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .pw-foot{font-size:12px; color:var(--on-surface-variant); font-variant-numeric:tabular-nums}
 .tag{display:inline-block; margin-left:6px; padding:1px 7px; border-radius:9999px; font-size:11px; font-weight:700}
 .tag-now{background:var(--error); color:#fff}
-.tag-mine{background:var(--lilac); color:#fff}
+.tag-mine{background:var(--accent); color:#fff}
 .pw-alert{
-  background:var(--surface-variant); border-left:4px solid var(--lilac);
+  background:var(--surface-variant); border-left:4px solid var(--accent);
   border-radius:var(--radius-s); padding:10px 14px; margin-bottom:16px; font-size:14px;
 }
 
 /* --- scatter --- */
 :root{--mark-mkt:#87668a; --mark-mine:#953bff}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--mark-mkt:#87668a; --mark-mine:#b57bff}}
-:root[data-theme="dark"]{--mark-mkt:#87668a; --mark-mine:#b57bff}
 .chartfilter{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px}
 .chip{
   appearance:none; border:1px solid var(--outline); background:var(--surface);
   color:var(--on-surface); font:inherit; font-size:13px; font-weight:600;
   padding:5px 12px; border-radius:9999px; cursor:pointer;
 }
-.chip[aria-pressed="true"]{background:var(--purple); color:#fff; border-color:var(--purple)}
-:root[data-theme="dark"] .chip[aria-pressed="true"]{background:var(--white); color:var(--purple); border-color:var(--white)}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .chip[aria-pressed="true"]{background:var(--white); color:var(--purple); border-color:var(--white)}
-}
-.chip:focus-visible{outline:3px solid var(--lilac); outline-offset:2px}
+.chip[aria-pressed="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
+.chip:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .scatter{width:100%; min-width:560px; height:auto; display:block}
 .scatter .grid line{stroke:var(--outline-variant); stroke-width:1}
 .scatter .axlab text{fill:var(--on-surface-variant); font-size:11px; font-variant-numeric:tabular-nums}
@@ -428,7 +566,7 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
   fill:transparent; opacity:0; stroke:none;
 }
 .scatter .pt:focus{outline:none}
-.scatter .pt:focus-visible circle:first-child{stroke:var(--lilac); stroke-width:3}
+.scatter .pt:focus-visible circle:first-child{stroke:var(--accent); stroke-width:3}
 .scatter .selring{fill:none; stroke:var(--on-surface); stroke-width:2}
 .scatter .selname{
   fill:var(--on-surface); font-size:12px; font-weight:700;
@@ -444,6 +582,68 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .key.mkt{background:var(--mark-mkt)}
 .key.mine{background:var(--mark-mine)}
 
+/* --- captaincy radar ---
+   Three candidate colours, each a fill/stroke pair from the page's own
+   palette: full-strength purple, the bright green accent, and the amber
+   "third state" used for defensive thresholds - each fill uses the vivid
+   version for real hue separation, each stroke the darker text-safe
+   version so the outline stays legible on white. Capped at three
+   candidates deliberately: a fourth colour pulled from this palette
+   (the mid-purple step) sat too close to the ink purple to tell apart
+   at a glance, and three is what the shape needs to be usefully read. */
+:root{
+  --radar-c0-fill:var(--ink); --radar-c0-stroke:var(--ink);
+  --radar-c1-fill:var(--accent); --radar-c1-stroke:var(--accent-ink);
+  --radar-c2-fill:var(--warn); --radar-c2-stroke:var(--warn-ink);
+}
+.cap-layout{display:flex; align-items:flex-start; gap:20px; flex-wrap:wrap}
+.cap-side{flex:0 0 auto; display:flex; flex-direction:column; gap:12px; max-width:220px}
+.cap-chart{flex:1 1 280px; display:flex; justify-content:flex-end; margin:0}
+.radar{width:100%; min-width:300px; max-width:360px; height:auto; display:block}
+.radar-ring{fill:none; stroke:var(--outline-variant); stroke-width:1}
+.radar-axis-line{stroke:var(--outline-variant); stroke-width:1}
+.radar-label{fill:var(--on-surface-variant); font-size:11px; font-weight:600}
+.radar-fill{
+  fill-opacity:.22; stroke-width:2;
+  transition:fill-opacity .15s, opacity .15s, stroke-width .15s;
+}
+.radar-dot{
+  stroke:var(--surface); stroke-width:1.5; cursor:pointer;
+  transition:r .15s;
+}
+.radar-area{
+  transform-box:view-box; transform-origin:200px 175px;
+  transition:transform .18s ease, opacity .15s;
+}
+.radar-area.dim{opacity:.25}
+.radar-area.active{transform:scale(1.045)}
+.radar-area.active .radar-fill{fill-opacity:.34; stroke-width:3}
+.radar-area.active .radar-dot{r:5.5}
+.radar-c0 .radar-fill, .radar-c0 .radar-dot{fill:var(--radar-c0-fill); stroke:var(--radar-c0-stroke)}
+.radar-c1 .radar-fill, .radar-c1 .radar-dot{fill:var(--radar-c1-fill); stroke:var(--radar-c1-stroke)}
+.radar-c2 .radar-fill, .radar-c2 .radar-dot{fill:var(--radar-c2-fill); stroke:var(--radar-c2-stroke)}
+.radar-legend{
+  list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px;
+}
+.radar-leg{
+  display:flex; align-items:flex-start; gap:8px; font-size:13px; cursor:pointer;
+  transition:opacity .15s; border-radius:var(--radius-xs);
+}
+.radar-leg:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.radar-leg.dim{opacity:.4}
+.radar-leg.active .radar-leg-name{color:var(--ink)}
+.radar-swatch{width:10px; height:10px; border-radius:50%; flex:none; margin-top:4px}
+.radar-swatch.radar-c0{background:var(--radar-c0-fill)}
+.radar-swatch.radar-c1{background:var(--radar-c1-stroke)}
+.radar-swatch.radar-c2{background:var(--radar-c2-fill)}
+.radar-leg-text{display:flex; flex-direction:column; gap:1px}
+.radar-leg-name{font-weight:600}
+.radar-leg-sub{color:var(--on-surface-variant); font-variant-numeric:tabular-nums; font-size:12px}
+.radar-readout{
+  margin:0; font-size:13px; min-height:2.6em; color:var(--on-surface-variant);
+  font-variant-numeric:tabular-nums; border-top:1px solid var(--outline-variant); padding-top:8px;
+}
+
 /* --- ownership doughnuts + carousel --- */
 .carnav{margin-left:auto; display:flex; gap:6px}
 .arrow{
@@ -452,18 +652,18 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
   font-size:18px; line-height:1; cursor:pointer; font-family:inherit;
 }
 .arrow:hover{background:var(--surface-variant)}
-.arrow:focus-visible{outline:3px solid var(--lilac); outline-offset:2px}
+.arrow:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .carousel{
   list-style:none; margin:0; padding:4px; display:flex; gap:12px;
   overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth;
 }
-.carousel:focus-visible{outline:3px solid var(--lilac); outline-offset:2px; border-radius:var(--radius-s)}
+.carousel:focus-visible{outline:3px solid var(--accent); outline-offset:2px; border-radius:var(--radius-s)}
 .ocard{
   flex:0 0 148px; scroll-snap-align:start; text-align:center;
   background:var(--surface-variant); border-radius:var(--radius-m);
   padding:12px 8px; border:2px solid transparent;
 }
-.ocard.mine{border-color:var(--lilac); background:var(--surface)}
+.ocard.mine{border-color:var(--accent); background:var(--surface)}
 .donut{width:90px; height:90px; display:block; margin:0 auto}
 .dtrack{fill:none; stroke:var(--outline-variant); stroke-width:9}
 .dval{fill:none; stroke-width:9; stroke-linecap:round}
@@ -471,7 +671,7 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .dsub{fill:var(--on-surface-variant); font-size:11px}
 .oname{margin:8px 0 0; font-weight:700; font-size:14px}
 .oteam,.onote{margin:1px 0 0; font-size:11px; color:var(--on-surface-variant)}
-.oyou{margin:4px 0 0; font-size:11px; font-weight:700; color:var(--lilac)}
+.oyou{margin:4px 0 0; font-size:11px; font-weight:700; color:var(--accent)}
 .tnote{
   margin:18px 0 8px; font-size:13px; font-weight:600;
   color:var(--on-surface-variant);
@@ -495,7 +695,7 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
   font:inherit; font-size:13px; padding:5px 8px; border-radius:var(--radius-s);
   border:1px solid var(--outline); background:var(--surface); color:var(--on-surface);
 }
-.axpick select:focus-visible{outline:3px solid var(--lilac); outline-offset:2px}
+.axpick select:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .chartfilter .spacer{flex:1 1 12px}
 
 /* --- fixture ticker --- */
@@ -526,7 +726,32 @@ table td.tick{border:2px solid var(--surface)}
   margin:0 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.05em;
   color:var(--on-surface-variant); display:flex; align-items:center; gap:7px;
 }
-.spicon{width:17px; height:17px; flex:none; color:var(--lilac)}
+.spicon{width:17px; height:17px; flex:none; color:var(--accent)}
+/* --- price movement: risers against fallers ---
+   Same two-column grammar as the set-piece card, since the question has
+   the same shape - a short grouped list where the group is the point. */
+.pmwrap{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:14px; padding:0 14px 14px;
+}
+.pmgroup h4{
+  display:flex; align-items:center; gap:6px; margin:0 0 8px;
+  font-size:11px; text-transform:uppercase; letter-spacing:0.06em;
+}
+.pm-up h4{color:var(--good-ink)}
+.pm-down h4{color:var(--bad-ink)}
+.pmicon{width:15px; height:15px; flex:none}
+.pmlist{list-style:none; margin:0; padding:0; display:flex;
+  flex-direction:column; gap:8px}
+.pmname{display:block; font-size:13px; font-weight:600}
+.pmprice{
+  display:block; font-family:var(--mono); font-size:11px;
+  color:var(--on-surface-variant); letter-spacing:-0.02em;
+}
+.pmprice i{font-style:normal; padding:0 4px; opacity:.65}
+.pm-up .pmprice{color:var(--good-ink)}
+.pm-down .pmprice{color:var(--bad-ink)}
+
 .splist{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:5px}
 .splist li{display:flex; align-items:baseline; gap:8px; font-size:13px}
 .sprank{
@@ -534,10 +759,10 @@ table td.tick{border:2px solid var(--surface)}
   font-weight:700; display:grid; place-items:center;
   background:var(--surface-variant); color:var(--on-surface-variant);
 }
-.splist li.first .sprank{background:var(--lilac); color:#fff}
+.splist li.first .sprank{background:var(--accent); color:#fff}
 .spname{font-weight:600}
 .spteam{margin-left:auto; color:var(--on-surface-variant); font-size:11px}
-.mkt-cs,.mkt-xg{color:var(--lilac); font-weight:700}
+.mkt-cs,.mkt-xg{color:var(--accent); font-weight:700}
 
 /* --- expected points: the bars slide out sideways --- */
 .epwrap{display:flex; gap:14px; align-items:stretch}
@@ -590,7 +815,7 @@ table td.tick{border:2px solid var(--surface)}
   transition:background .2s ease, color .2s ease;
 }
 .epmore:hover{background:var(--outline-variant); color:var(--on-surface)}
-.epmore:focus-visible{outline:3px solid var(--lilac); outline-offset:2px}
+.epmore:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .epchev{width:15px; height:15px; transition:transform .3s ease}
 .epcard.open .epchev{transform:rotate(180deg)}
 
@@ -615,7 +840,7 @@ table td.tick{border:2px solid var(--surface)}
 .oi-icon{width:20px; height:20px; color:var(--oi-tone)}
 .oi-good{--oi-tone:var(--success)}
 .oi-bad{--oi-tone:var(--error)}
-.oi-info{--oi-tone:var(--lilac)}
+.oi-info{--oi-tone:var(--accent)}
 .oi-label{margin:6px 0 0; font-size:10px; font-weight:700; text-transform:uppercase;
   letter-spacing:.05em; color:var(--on-surface-variant)}
 .oi-value{margin:3px 0 0; font-size:27px; font-weight:700; line-height:1;
@@ -631,7 +856,7 @@ table td.tick{border:2px solid var(--surface)}
   align-items:start}
 .cp{
   position:relative; padding:14px 14px 12px; border-radius:var(--radius-m);
-  background:var(--surface-variant); border-top:3px solid var(--lilac);
+  background:var(--surface-variant); border-top:3px solid var(--accent);
 }
 .cp.used{opacity:.55}
 .cp-label{margin:0; font-size:11px; font-weight:700; text-transform:uppercase;
@@ -643,7 +868,7 @@ table td.tick{border:2px solid var(--surface)}
   font-size:11px; font-weight:700;
 }
 .cp-conf-strong{background:var(--success); color:#fff}
-.cp-conf-watch{background:var(--p40); color:var(--purple)}
+.cp-conf-watch{background:var(--p40); color:var(--ink)}
 .cp-conf-flexible{background:var(--outline-variant); color:var(--on-surface-variant)}
 .cp-used-tag{font-size:11px; color:var(--on-surface-variant); margin-top:8px}
 
@@ -684,7 +909,7 @@ table td.tick{border:2px solid var(--surface)}
 .mcard{background:var(--surface-variant); border-radius:var(--radius-m); padding:13px}
 .mteams{display:flex; align-items:baseline; gap:7px; margin-bottom:9px}
 .mt{font-weight:700; font-size:15px}
-.mt.mine{color:var(--lilac)}
+.mt.mine{color:var(--accent)}
 .mvs{font-size:11px; color:var(--on-surface-variant)}
 .mtotal{margin-left:auto; font-size:17px; font-weight:700;
   display:flex; flex-direction:column; align-items:flex-end; line-height:1}
@@ -744,7 +969,7 @@ table td.tick{border:2px solid var(--surface)}
 /* --- league template pitch + differentials --- */
 .tplpitch .pl{width:86px}
 .tplpitch .pl .sc .p{font-size:11px}
-.pl.tpl-mine{outline:2px solid var(--lilac); outline-offset:1px}
+.pl.tpl-mine{outline:2px solid var(--accent); outline-offset:1px}
 .dflist{list-style:none; margin:0; padding:0; display:grid;
   grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px}
 .df-card{display:flex; gap:14px; align-items:center;
@@ -813,7 +1038,7 @@ table td.tick{border:2px solid var(--surface)}
    biggest on offer - rank without another number to read. */
 .tf-card::before{
   content:""; position:absolute; top:0; left:0; height:3px; width:var(--gain);
-  background:linear-gradient(90deg,var(--lilac),#01fc7a);
+  background:linear-gradient(90deg,var(--accent),#01fc7a);
 }
 .tf-swap{display:flex; align-items:flex-start; gap:8px}
 .tf-face{flex:1 1 0; text-align:center; min-width:0}
@@ -856,7 +1081,7 @@ table td.tick{border:2px solid var(--surface)}
   background:var(--outline-variant); overflow:hidden}
 .tf-track i{display:block; height:100%; background:var(--p40); border-radius:9999px}
 .tf-ep-in .tf-track{transform:scaleX(-1)}
-.tf-ep-in .tf-track i{background:var(--lilac)}
+.tf-ep-in .tf-track i{background:var(--accent)}
 .tf-gain{
   font-size:19px; font-weight:700; color:var(--success); text-align:center;
   line-height:1.05; font-variant-numeric:tabular-nums;
@@ -865,13 +1090,7 @@ table td.tick{border:2px solid var(--surface)}
   text-transform:uppercase; letter-spacing:.04em; color:var(--on-surface-variant)}
 .tf-foot{margin:12px 0 0; font-size:11px; color:var(--on-surface-variant);
   text-align:center}
-.tf-elite{font-weight:600; color:var(--lilac)}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .tf-cost{background:#4a1120; color:#ff9db0}
-  :root:not([data-theme="light"]) .tf-save{background:#0d3d28; color:#6fe3ad}
-}
-:root[data-theme="dark"] .tf-cost{background:#4a1120; color:#ff9db0}
-:root[data-theme="dark"] .tf-save{background:#0d3d28; color:#6fe3ad}
+.tf-elite{font-weight:600; color:var(--accent)}
 
 /* --- expected points, stacked --- */
 .eplist{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px}
@@ -900,32 +1119,46 @@ table td.tick{border:2px solid var(--surface)}
 .eprows i{width:10px; height:10px; border-radius:3px; flex:none}
 .eprows b{margin-left:auto; font-variant-numeric:tabular-nums}
 
-/* --- dumbbell + threshold bars --- */
+/* --- dumbbell + threshold bars ---
+   The track is the thing worth looking at, so it gets the room: the name
+   column is tighter, the figures are mono and so need less width than the
+   proportional text they replaced, and everything left over goes to the bar.
+   Rows are taller too - these were drawn at 16px in a card that had hundreds
+   of pixels going spare. */
 .gapcard{padding-bottom:14px}
 .gaplist,.dclist{list-style:none; margin:0; padding:0 14px; display:flex;
-  flex-direction:column; gap:9px}
-.gap,.dcr{display:grid; align-items:center; gap:10px}
-.gap{grid-template-columns:96px 1fr 84px}
-.dcr{grid-template-columns:96px 1fr 62px 54px}
-.gapname,.dcname{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis}
-.gaptrack,.dctrack{position:relative; height:16px}
+  flex-direction:column; gap:11px}
+.gap,.dcr{display:grid; align-items:center; gap:9px}
+.gap{grid-template-columns:82px 1fr 74px}
+.dcr{grid-template-columns:78px 1fr 58px auto}
+.gapname,.dcname{font-size:13px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.gaptrack,.dctrack{position:relative; height:22px}
 .gaptrack::before,.dctrack::before{
-  content:""; position:absolute; left:0; right:0; top:7px; height:2px;
+  content:""; position:absolute; left:0; right:0; top:10px; height:2px;
   background:var(--outline-variant);
 }
-.gapline{position:absolute; top:6.5px; height:3px; border-radius:2px}
+.gapline{position:absolute; top:9px; height:4px; border-radius:2px}
 .gapdot{
-  position:absolute; top:4px; width:9px; height:9px; border-radius:50%;
-  margin-left:-4.5px; box-shadow:0 0 0 2px var(--surface);
+  position:absolute; top:5.5px; width:11px; height:11px; border-radius:50%;
+  margin-left:-5.5px; box-shadow:0 0 0 2px var(--surface);
 }
 .gapdot.d-a{background:var(--on-surface)}
 .gapdot.d-x{background:var(--surface); border:2px solid var(--on-surface-variant)}
-.gapnum,.dcnum{font-size:12px; text-align:right; color:var(--on-surface-variant)}
-.dchits{font-size:11px; color:var(--on-surface-variant); text-align:right}
-.dcfill{position:absolute; top:5px; height:6px; border-radius:9999px}
+.gapnum,.dcnum{
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:12px; text-align:right; color:var(--on-surface-variant);
+  white-space:nowrap; letter-spacing:-0.02em;
+}
+.dchits{
+  font-family:var(--mono); font-size:11px; color:var(--on-surface-variant);
+  text-align:right; white-space:nowrap;
+}
+.dcr .good-pill,.dcr .bad-pill{white-space:nowrap; justify-self:end}
+.good-pill,.bad-pill{white-space:nowrap}
+.dcfill{position:absolute; top:8px; height:7px; border-radius:9999px}
 .dcmark{
-  position:absolute; top:1px; width:2px; height:14px;
-  background:var(--on-surface); opacity:.55;
+  position:absolute; top:3px; width:2px; height:17px;
+  background:var(--on-surface); opacity:.5;
 }
 .spark{vertical-align:middle}
 
@@ -935,11 +1168,11 @@ table td.tick{border:2px solid var(--surface)}
   color:inherit; cursor:pointer; text-align:left; text-decoration:underline;
   text-decoration-color:var(--outline); text-underline-offset:3px;
 }
-.rowlink:hover{text-decoration-color:var(--lilac)}
-.rowlink:focus-visible{outline:3px solid var(--lilac); outline-offset:2px}
+.rowlink:hover{text-decoration-color:var(--accent)}
+.rowlink:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .pl[role="button"]{cursor:pointer}
 .pl[role="button"]:hover{transform:translateY(-2px)}
-.pl[role="button"]:focus-visible{outline:3px solid var(--lilac); outline-offset:2px}
+.pl[role="button"]:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .pl{transition:transform .12s ease}
 dialog.pv{
   width:min(720px,94vw); max-height:88vh; padding:0; border:0;
@@ -954,7 +1187,7 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
   font-size:20px; line-height:1; cursor:pointer; font-family:inherit;
 }
 .pv-close:hover{background:var(--outline-variant)}
-.pv-close:focus-visible{outline:3px solid var(--lilac); outline-offset:2px}
+.pv-close:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .pv-body{padding:20px 20px 24px; overflow-y:auto; max-height:88vh}
 .pv-head{display:flex; align-items:flex-start; gap:12px; padding-right:38px}
 .pv-head h2{font-size:22px}
@@ -992,16 +1225,43 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
 }
 @media (prefers-reduced-motion:reduce){.pl{transition:none}}
 
-/* --- findings --- */
-.finds{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px}
-.find{background:var(--surface); border-radius:var(--radius-m); box-shadow:var(--shadow); overflow:hidden}
-.find h3{
-  font-size:12px; text-transform:uppercase; letter-spacing:0.05em;
-  padding:10px 14px; border-left:4px solid var(--tone,var(--p60));
+/* --- findings ---
+   `align-items:start` is the whole fix for the dead space these cards used
+   to carry. A grid stretches its items to the tallest in the row by default,
+   so one long set-piece list gave every card beside it several hundred pixels
+   of nothing. Ragged bottoms are the correct trade: the cards are independent
+   readings, not a table, and nothing about them wants a shared baseline. */
+.finds{column-width:322px; column-gap:12px}
+.find{
+  background:var(--surface); border-radius:var(--radius-m);
+  box-shadow:var(--shadow); overflow:hidden;
+  break-inside:avoid; margin:0 0 12px;
 }
-.find .note{padding:0 14px 8px; font-size:13px; color:var(--on-surface-variant); margin-top:-4px}
-.find ul{margin:0; padding:0 14px 14px 30px; font-size:14px}
-.find li{margin-bottom:4px}
+.find h3{
+  font-size:12px; text-transform:uppercase; letter-spacing:0.06em;
+  font-stretch:112%; padding:11px 14px 9px;
+  border-top:3px solid var(--tone,var(--p60));
+}
+.find .note{padding:0 14px 10px; font-size:13px; color:var(--on-surface-variant); margin-top:-4px}
+.find ul{margin:0; padding:0 14px 14px; font-size:14px; list-style:none}
+
+/* A findings row, borrowing the set-piece card's grammar outright: subject
+   left in semibold, evidence pushed right and quieter, no rules between
+   rows. The tag pill that used to hold the subject - grey chip, coloured
+   left tip - is gone. Repeated down a card it turned a short list into
+   something that looked like far more information than it was, which is
+   the opposite of what a findings card is for. */
+.filist{list-style:none; margin:0; padding:0; display:flex;
+  flex-direction:column; gap:7px}
+.fi{display:flex; align-items:baseline; gap:12px; font-size:13px}
+.fi-sub{font-weight:600; flex:none}
+.fi-det{
+  margin-left:auto; text-align:right; color:var(--on-surface-variant);
+  font-size:12px; line-height:1.4;
+}
+/* A row with no subject is a plain sentence and should read as one. */
+.fi-det:only-child{margin-left:0; text-align:left}
+.fnum{font-family:var(--mono); font-weight:600; letter-spacing:-0.02em}
 
 /* --- match logs --- */
 details{border-bottom:1px solid var(--outline-variant)}
@@ -1012,7 +1272,7 @@ details summary{
 details summary::-webkit-details-marker{display:none}
 details summary::before{content:"\\25B8"; color:var(--on-surface-variant); transition:transform .15s}
 details[open] summary::before{transform:rotate(90deg)}
-details summary:focus-visible{outline:3px solid var(--lilac); outline-offset:-3px}
+details summary:focus-visible{outline:3px solid var(--accent); outline-offset:-3px}
 details summary .mini{margin-left:auto; font-weight:400; color:var(--on-surface-variant); font-size:13px}
 details .scroll{padding:0 14px 14px}
 
@@ -1028,6 +1288,7 @@ details .scroll{padding:0 14px 14px}
 
 SCATTER_JS = (Path(__file__).with_name("scatter.js")).read_text(encoding="utf-8")
 PLAYERVIEW_JS = (Path(__file__).with_name("playerview.js")).read_text(encoding="utf-8")
+CAPTAINCY_JS = (Path(__file__).with_name("captaincy.js")).read_text(encoding="utf-8")
 
 JS = """
 (function(){
@@ -1050,20 +1311,57 @@ JS = """
   // Starting XI: overview vs pick-team pitch. Same swap as the tabs above,
   // scoped to whichever card the clicked button lives in, since the page
   // only has one of these but a second squad card could add one later.
+  // "Gameweek" is not a third pitch - it is the overview pitch with the
+  // first figure swapped. Rendering another eleven shirt cards to change
+  // one number per card would have put the same images on the page a third
+  // time, and this page is already better than a megabyte.
   document.querySelectorAll('.pkview').forEach(function(group){
     var btns = group.querySelectorAll('.pkbtn');
     var card = group.closest('.card');
+    function points(view){
+      var key = view === 'gw' ? 'ptsNow' : 'ptsSeason';
+      card.querySelectorAll('.pkpanel[data-view="ov"] .pl').forEach(function(pl){
+        var cell = pl.querySelector('.sc .p');
+        if (cell && pl.dataset[key] !== undefined) { cell.textContent = pl.dataset[key]; }
+      });
+    }
     btns.forEach(function(b){
       b.addEventListener('click', function(){
+        var view = b.dataset.view;
         btns.forEach(function(o){ o.setAttribute('aria-selected', String(o===b)); });
-        card.querySelectorAll('.pkpanel,[data-pkview]').forEach(function(p){
-          p.hidden = (p.dataset.view || p.dataset.pkview) !== b.dataset.view;
+        // Overview and Gameweek share one panel, so the panel to show is the
+        // view itself for 'pk' and the overview panel for either other.
+        var panel = view === 'pk' ? 'pk' : 'ov';
+        card.querySelectorAll('.pkpanel').forEach(function(p){
+          p.hidden = p.dataset.view !== panel;
         });
+        card.querySelectorAll('[data-pkview]').forEach(function(p){
+          p.hidden = p.dataset.pkview !== view;
+        });
+        // The figure selector only means anything on the two views that
+        // share the overview pitch.
+        var sel = group.querySelector('.statsel');
+        if (sel) { sel.hidden = view === 'pk'; }
+        points(view);
       });
     });
   });
 
-
+  // Click a figure to bring it forward on every card at once.
+  document.querySelectorAll('.statsel').forEach(function (group) {
+    var btns = group.querySelectorAll('.stbtn');
+    var wrap = group.closest('.card').querySelector('.ovwrap');
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        btns.forEach(function (o) {
+          o.setAttribute('aria-pressed', String(o === b));
+        });
+        if (!wrap) { return; }
+        wrap.classList.remove('emph-p', 'emph-g', 'emph-x');
+        wrap.classList.add('emph-' + b.dataset.stat);
+      });
+    });
+  });
 
   // Expected points: the bars slide out when opened.
   document.querySelectorAll('.epcard').forEach(function (card) {
@@ -1123,7 +1421,14 @@ JS = """
 
 # --- fragments ------------------------------------------------------------
 
-def player_card(r, ctx, badges, shirts, captain_id, vice_id, played=True):
+def gw_points(r, gw):
+    """A player's points in one gameweek. Summed rather than found, because
+    a double gameweek is two rows in the same history."""
+    return sum(h["total_points"] for h in r.history if h.get("round") == gw)
+
+
+def player_card(r, ctx, badges, shirts, captain_id, vice_id, played=True,
+                gw=None):
     el = r.element
     # FPL put a club shirt on their pitch, so this does too; the badge is the
     # fallback when a shirt image cannot be had.
@@ -1152,38 +1457,58 @@ def player_card(r, ctx, badges, shirts, captain_id, vice_id, played=True):
         pip = '<span class="pip pip-out" title="Not in the predicted eleven"></span>'
         title += " - NOT in the predicted eleven"
     cls = "pl" if played else "pl out"
+    # Season points beside season xGI, with no sense of how many matches
+    # either came from, flattered anyone who had simply played more. Points
+    # per game is the fair comparison and costs one more cell; the raw
+    # totals stay, since per-game alone hides who has actually been
+    # available. The two gameweek figures ride along as data attributes so
+    # the selector can swap them in without re-rendering the pitch.
+    ppg = f(el.get("points_per_game"))
+    now = gw_points(r, gw) if gw else 0
+    prev = gw_points(r, gw - 1) if gw and gw > 1 else 0
     return (
         f'<div class="{cls}" title="{e(title)}" data-player="{el["id"]}" '
+        f'data-pts-season="{r.points}" data-pts-now="{now}" '
+        f'data-pts-prev="{prev}" data-apps="{r.appearances}" '
         f'role="button" tabindex="0" aria-label="{e(title)}">{arm}{pip}'
         f'<div class="crest">{crest}</div>'
         f'<div class="nm">{e(r.name)}</div>'
-        f'<div class="sc tnum"><div class="p">{r.points}</div>'
-        f'<div class="x">{r.xgi:.2f}</div></div></div>'
+        f'<div class="sc tnum"><div class="p" title="Points">{r.points}</div>'
+        f'<div class="g" title="Points per game across {r.appearances} '
+        f'appearances">{ppg:.1f}</div>'
+        f'<div class="x" title="Season xGI">{r.xgi:.2f}</div></div></div>'
     )
 
 
-def pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id):
+def pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id, gw=None):
     order = {"GKP": 1, "DEF": 2, "MID": 3, "FWD": 4}
     rows = {1: [], 2: [], 3: [], 4: []}
     for r in xi:
         rows[order.get(r.pos, 4)].append(r)
-    out = ['<div class="pitch">']
+    # The stat selector itself lives up in the view-tab row, so this only
+    # supplies the wrapper its classes are toggled on.
+    out = ['<div class="ovwrap emph-p">']
+    out.append('<div class="pitch">')
     for k in (1, 2, 3, 4):
         if not rows[k]:
             continue
         cards = "".join(
-            player_card(r, ctx, badges, shirts, captain_id, vice_id, r.minutes > 0)
+            player_card(r, ctx, badges, shirts, captain_id, vice_id,
+                        r.minutes > 0, gw=gw)
             for r in rows[k]
         )
         out.append(f'<div class="row">{cards}</div>')
     out.append("</div>")
     cards = "".join(
-        player_card(r, ctx, badges, shirts, captain_id, vice_id, r.minutes > 0) for r in bench
+        player_card(r, ctx, badges, shirts, captain_id, vice_id, r.minutes > 0,
+                    gw=gw)
+        for r in bench
     )
     out.append(
         f'<div class="benchstrip"><div class="lbl">Bench</div>'
         f'<div class="row">{cards}</div></div>'
     )
+    out.append("</div>")   # .ovwrap
     return "".join(out)
 
 
@@ -1369,8 +1694,10 @@ def price_row(r):
     at the next recalculation. Direction is carried by an explicit arrow and
     the sign, not by the bar colour alone."""
     rising = r["pct"] > 0
-    arrow = "&#9650;" if rising else "&#9660;"
-    tone = "var(--success)" if rising else "var(--error)"
+    # The delta chip carries the direction, so the arrow glyph that used to
+    # sit here is gone: one component says "this moved, this way, by this
+    # much" everywhere on the page rather than each card inventing its own.
+    tone = "var(--good)" if rising else "var(--bad)"
     width = min(100.0, abs(r["pct"]))
     tags = []
     if r["imminent"]:
@@ -1384,7 +1711,8 @@ def price_row(r):
         f'<span class="pw-name">{e(r["name"])}'
         f'<span class="pw-meta">{e(r["pos"])} &middot; {e(r["team"])} &middot; '
         f'{r["price"]:.1f}m</span></span>'
-        f'<span class="pw-pct tnum" style="color:{tone}">{arrow} {abs(r["pct"]):.0f}%</span>'
+        f'<span class="delta {"delta-up" if rising else "delta-down"}">'
+        f'{abs(r["pct"]):.0f}%</span>'
         f"</span>"
         f'<span class="pw-bar"><span class="pw-fill" '
         f'style="width:{width:.1f}%;background:{tone}"></span></span>'
@@ -1496,7 +1824,7 @@ def scatter(points):
     )
 
 
-def donut(pct, label, center, sub, tone="var(--lilac)"):
+def donut(pct, label, center, sub, tone="var(--accent)"):
     """A single part-of-whole figure.
 
     Doughnuts are poor at comparing magnitudes, which is why nothing else in
@@ -1537,7 +1865,7 @@ def ownership_carousel(own, by_name, ctx, my_name):
         owners = len(rec["owners"])
         pct = 100.0 * owners / n
         mine = my_name in rec["owners"]
-        tone = "var(--lilac)" if mine else "var(--p60)"
+        tone = "var(--accent)" if mine else "var(--p60)"
         caps = len(rec["captains"])
         note = f"{caps} captained him" if caps else "&nbsp;"
         aria = f"{el['web_name']} owned by {owners} of {n} managers"
@@ -1668,7 +1996,7 @@ def findings_section(finds, reports, ctx):
     contribution is a distance to a threshold, and both read better as marks
     than as prose. The rest stay as lists, because a set-piece order or an
     injury note is text and dressing it up as a chart would be decoration."""
-    drawn = {"cold", "hot", "defcon", "bcm", "setpieces", "sample"}
+    drawn = {"cold", "hot", "defcon", "bcm", "setpieces", "sample", "price"}
 
     gaps = [
         (r.name, r.goals, r.xg)
@@ -1715,11 +2043,119 @@ def findings_section(finds, reports, ctx):
     sp = components.set_piece_card(groups)
     if sp:
         cards.append(sp)
+
+    # Old price to new, rather than the size of the change: what you would
+    # have paid is the number you actually want.
+    moves = []
+    for r in reports:
+        change = r.element.get("cost_change_start", 0)
+        if abs(change) >= 1:
+            moves.append((r.name, r.price - change / 10.0, r.price))
+    moves.sort(key=lambda m: -(m[2] - m[1]))
+    pm = components.price_move_card(moves)
+    if pm:
+        cards.append(pm)
+    tail = []
     for fnd in finds:
         if fnd["key"] in drawn:
             continue
+        if fnd["key"] in COLLAPSED:
+            tail.append(collapsed_finding(fnd))
+            continue
         cards.append(finding_card(fnd))
-    return f'<div class="finds">{"".join(cards)}</div>'
+    return (f'<div class="finds">{"".join(cards)}</div>'
+            f'{"".join(tail)}')
+
+
+# Findings that stay shut. Worth keeping, not worth a column of the page.
+COLLAPSED = {"baseline"}
+
+
+def compact_rank(n):
+    """Ranks run to eight figures, and no headline needs all of them."""
+    n = abs(int(n))
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}m".replace(".0m", "m")
+    if n >= 1_000:
+        return f"{n / 1_000:.0f}k"
+    return f"{n:,}"
+
+
+def week_verdict(ctx, gw, squad_ids, captain_id, points, average, pending):
+    """One line on where the week actually stands.
+
+    The tiles say what happened; none of them says whether it was good, and
+    a score is meaningless without the average beside it. This is the
+    sentence a manager would say out loud - the gap to the average, then the
+    single biggest reason for it.
+
+    Whether the round is still running changes the question entirely. With
+    players left it is "what needs to happen"; once they have all played it
+    is "what happened", and the most useful answer to that is nearly always
+    a heavily-owned player who hauled and who you did not have."""
+    ev = next((x for x in ctx.events if x["id"] == gw), None)
+    if not ev or not points:
+        return ""
+
+    if pending:
+        n = len(pending)
+        who = ", ".join(pending[:3]) + ("&hellip;" if n > 3 else "")
+        if average and points < average:
+            need = average - points
+            return (f"<b>{n}</b> still to play &mdash; {who}. "
+                    f"You need <b>{need}</b> more to reach this week's "
+                    f"<b>{average}</b> average.")
+        return (f"<b>{n}</b> still to play &mdash; {who}. "
+                f"You are already past the <b>{average}</b> average."
+                if average else f"<b>{n}</b> still to play &mdash; {who}.")
+
+    if not average:
+        return ""
+    gap = points - average
+    frame = (f"<b>{points}</b> against a <b>{average}</b> average, "
+             f"{'up' if gap >= 0 else 'down'} <b>{abs(gap)}</b>.")
+
+    # The week's biggest miss: the top scorer, if enough managers owned him
+    # that not owning him is a real decision rather than bad luck.
+    top = (ev.get("top_element_info") or {})
+    tid, tpts = top.get("id"), top.get("points")
+    if tid and tid not in squad_ids and tpts:
+        el = ctx.players.get(tid)
+        owned = f(el.get("selected_by_percent")) if el else 0
+        if el and owned >= 15:
+            # The same miss means different things either side of the
+            # average: below it, it is the explanation; above it, it is
+            # what the week could still have been.
+            tail = ("and not owning him is most of that gap"
+                    if gap < 0 else
+                    "and you got there without him")
+            return (f"{frame} {e(el['web_name'])} scored <b>{tpts}</b> for the "
+                    f"<b>{owned:.0f}%</b> who own him, {tail}.")
+
+    # Failing that, the armband is the next biggest single swing.
+    cap = ctx.players.get(captain_id)
+    if cap:
+        cpts = cap.get("event_points") or 0
+        most = ctx.players.get(ev.get("most_captained"))
+        if most and most["id"] != captain_id and (most.get("event_points") or 0) > cpts:
+            return (f"{frame} {e(cap['web_name'])} returned <b>{cpts}</b> as "
+                    f"captain against {e(most['web_name'])}'s "
+                    f"<b>{most['event_points']}</b> for the crowd.")
+        return (f"{frame} {e(cap['web_name'])} brought "
+                f"<b>{cpts * 2}</b> back as captain.")
+    return frame
+
+_NUM_RE = re.compile(r"\d+(?:\.\d+)?")
+
+
+def _figures(text):
+    """Set the numbers inside a sentence in the mono face.
+
+    Only digits are touched, so there is nothing here that can mangle the
+    words around them. It is what makes a findings list scannable: the eye
+    goes to the figures without every line having to shout in bold."""
+    return _NUM_RE.sub(lambda m: f'<span class="fnum">{m.group()}</span>',
+                       e(text))
 
 
 def finding_card(fnd):
@@ -1727,17 +2163,51 @@ def finding_card(fnd):
     items = []
     for raw in fnd["items"]:
         lead, sep, detail = raw.partition(" - ")
+        # Subject as a mono tag, evidence as ordinary prose beside it. The
+        # pattern this replaced set the subject in heavy bold on its own line
+        # with the evidence in grey underneath, which is the house style of
+        # every dashboard template there is - and it made the evidence, the
+        # part actually worth reading, the quietest thing on the card.
         if sep and len(lead) < 40:
             items.append(
-                f'<li><span class="lead">{e(lead)}</span>'
-                f'<span class="det">{e(detail)}</span></li>'
+                f'<li class="fi"><span class="fi-sub">{e(lead)}</span>'
+                f'<span class="fi-det">{_figures(detail)}</span></li>'
             )
         else:
-            items.append(f'<li><span class="det">{e(raw)}</span></li>')
+            items.append(f'<li class="fi"><span class="fi-det">'
+                         f'{_figures(raw)}</span></li>')
     note = f'<p class="note">{e(fnd["note"])}</p>' if fnd["note"] else ""
     return (
         f'<div class="find" style="--tone:{tone}">'
-        f"<h3>{e(fnd['title'])}</h3>{note}<ul>{''.join(items)}</ul></div>"
+        f"<h3>{e(fnd['title'])}</h3>{note}"
+        f"<ul class=\"filist\">{''.join(items)}</ul></div>"
+    )
+
+
+def collapsed_finding(fnd):
+    """A finding that is worth keeping but not worth showing.
+
+    Last season's numbers are the case: fifteen full-sentence paragraphs of
+    context nobody reads before a deadline, taking a whole column of the
+    page to say something that only matters when you go looking for it. It
+    lives at the bottom, shut, and opens when asked."""
+    items = []
+    for raw in fnd["items"]:
+        lead, sep, detail = raw.partition(" - ")
+        if sep and len(lead) < 40:
+            items.append(f'<li class="fi"><span class="fi-sub">{e(lead)}</span>'
+                         f'<span class="fi-det">{_figures(detail)}</span></li>')
+        else:
+            items.append(f'<li class="fi"><span class="fi-det">'
+                         f'{_figures(raw)}</span></li>')
+    note = f'<p class="note">{e(fnd["note"])}</p>' if fnd["note"] else ""
+    return (
+        '<details class="card collapsible lastseason">'
+        f'<summary class="card-head"><h2>{e(fnd["title"])}</h2>'
+        f'<span class="sub">{len(fnd["items"])} players &middot; '
+        "open for the full-season comparison</span></summary>"
+        f'<div class="card-body">{note}'
+        f"<ul class=\"filist\">{''.join(items)}</ul></div></details>"
     )
 
 
@@ -2066,6 +2536,44 @@ def chip_planner_card(fh, tc, bb, wc, used):
     )
 
 
+def captaincy_card(cm):
+    """The Captaincy Decision Matrix - a radar chart overlaying this
+    gameweek's top expected-points XI candidates across form, fixture
+    strength, goal threat, start certainty, and home/away edge, so the
+    shapes can be compared directly. See captaincy.py for what each axis
+    actually measures and where the numbers come from."""
+    if not cm:
+        return ""
+    top = next(c for c in cm["candidates"] if c["is_top_area"])
+    legend = "".join(
+        f'<li class="radar-leg" data-i="{i}" tabindex="0">'
+        f'<span class="radar-swatch radar-c{i}"></span>'
+        f'<span class="radar-leg-text"><span class="radar-leg-name">{e(c["player"])}</span>'
+        f'<span class="radar-leg-sub">vs {e(c["opponent"])} '
+        f'({"H" if c["home"] else "A"}) &middot; {c["ep_total"]:.1f} pts proj</span></span>'
+        "</li>"
+        for i, c in enumerate(cm["candidates"])
+    )
+    data = {
+        "metrics": [{"key": k, "label": lbl, "unit": u} for k, lbl, u in cm["metrics"]],
+        "candidates": cm["candidates"],
+    }
+    return (
+        '<section class="card"><div class="card-head"><h2>Captaincy decision matrix</h2>'
+        f'<span class="sub">This gameweek\'s top armband candidates from your XI, '
+        f'overlaid across five axes. The largest shaded shape - '
+        f'<b>{e(top["player"])}</b> this week - is the safest or '
+        f'highest-ceiling pick.</span></div>'
+        '<div class="card-body cap-layout">'
+        f'<div class="cap-side"><ul class="radar-legend">{legend}</ul>'
+        '<p class="radar-readout" aria-live="polite">Hover a shape or a dot for its value.</p></div>'
+        '<div class="cap-chart scroll"><svg class="radar" viewBox="0 0 400 360" '
+        'role="img" aria-label="Captaincy decision matrix radar chart"></svg></div>'
+        f'<script type="application/json" class="captaincy-data">{json.dumps(data)}</script>'
+        "</div></section>"
+    )
+
+
 def player_dialog(payloads):
     """One dialog for every player, filled on demand from the JSON below it."""
     labels = {k: v[0] for k, v in pulse.STATS.items()}
@@ -2223,25 +2731,52 @@ def render(d, standalone=True):
     # projected to score, and who is not going to play.
     projected = d.get("projected_xi")
     attention = d.get("attention") or []
+
+    # A score with no average beside it, and a rank with no direction, are
+    # both half a fact. Both go in as delta chips - the same component the
+    # rest of the page uses - deliberately smaller than the figure they
+    # qualify, so the tile still reads as one number at a glance.
+    # The average belongs beside the score as a number, not as a difference
+    # from it - "89 against a 79 average" is a comparison anyone makes
+    # instantly, where "10 v avg" made them do the arithmetic backwards to
+    # find out what the average even was.
+    avg = d.get("gw_average")
+    gw_note = f"GW{d['gw']} &middot; {avg} average" if avg else f"GW{d['gw']}"
+
+    move = d.get("rank_move")
+    rank_chip = ""
+    if move:
+        # Positive means the rank number fell, which is a climb.
+        rank_chip = (f'<span class="delta delta-{"up" if move > 0 else "down"}">'
+                     f'{compact_rank(move)}</span>')
+    lg_move = d.get("league_move")
+    lg_chip = ""
+    if lg_move:
+        lg_chip = (f'<span class="delta delta-{"up" if lg_move > 0 else "down"}">'
+                   f'{abs(lg_move)}</span>')
+
     tiles = [
-        ("Gameweek", eh.get("points", "-"), f"GW{d['gw']}"),
+        ("Gameweek", eh.get("points", "-"), gw_note, ""),
         ("Total", eh.get("total_points", "-"),
-         f"{d['overall_rank']:,} overall" if d.get("overall_rank") else "points"),
+         f"{d['overall_rank']:,} overall" if d.get("overall_rank") else "points",
+         rank_chip),
         ("League", f"{d['my_rank']}/{d['league_size']}" if d["my_rank"] else "-",
-         e(d["league_name"])),
+         e(d["league_name"]), lg_chip),
         ("Projected", f"{projected:.1f}" if projected else "-",
-         f"your XI, GW{d['next_gw']}"),
+         f"your XI, GW{d['next_gw']}", ""),
         ("Needs a look", len(attention),
          ", ".join(attention[:2]) + ("&hellip;" if len(attention) > 2 else "")
-         if attention else "nobody flagged"),
+         if attention else "nobody flagged", ""),
         ("In the bank", f"{eh.get('bank', 0) / 10:.1f}m",
-         f"squad {eh.get('value', 0) / 10:.1f}m"),
+         f"squad {eh.get('value', 0) / 10:.1f}m", ""),
     ]
     tile_html = "".join(
         f'<div class="tile"><div class="k">{e(k)}</div>'
-        f'<div class="v tnum">{e(v)}</div><div class="n">{n}</div></div>'
-        for k, v, n in tiles
+        f'<div class="v tnum">{e(v)}{chip}</div><div class="n">{n}</div></div>'
+        for k, v, n, chip in tiles
     )
+    verdict = d.get("verdict") or ""
+    verdict_html = f'<p class="hero-line">{verdict}</p>' if verdict else ""
 
     body = f"""
 <header class="topbar"><div class="topbar-in">
@@ -2254,6 +2789,7 @@ def render(d, standalone=True):
   <section class="hero">
     <h1>{e(title)}</h1>
     <div class="mgr">{e(d['manager'])} &middot; {e(d['league_name'])}</div>
+    {verdict_html}
     <div class="tiles">{tile_html}</div>
   </section>
 
@@ -2266,12 +2802,19 @@ def render(d, standalone=True):
   <div class="panel" id="p-squad" role="tabpanel">
     <section class="card">
       <div class="card-head"><h2>Starting XI</h2>
-        <span class="sub" data-pkview="ov">Points and season xGI on each card. Faded crest = did not play. Green dot = predicted to start, red = not in the predicted eleven.</span>
+        <span class="sub" data-pkview="ov">Season points, points per game and season xGI on each card - click one to bring it forward. Faded crest = did not play. Green dot = predicted to start, red = not in the predicted eleven.</span>
+        <span class="sub" data-pkview="gw" hidden>This gameweek's points on each card, with points per game and season xGI beside them. Faded crest = did not play.</span>
         <span class="sub" data-pkview="pk" hidden>Next fixture and a read on recent form on each card, shaded by clean-sheet odds for keepers and defenders and by expected goals for everyone else.</span>
       </div>
       <div class="pkview" role="tablist" aria-label="Pitch view">
         <button class="pkbtn" role="tab" aria-selected="true" data-view="ov">Overview</button>
         <button class="pkbtn" role="tab" aria-selected="false" data-view="pk">Pick team</button>
+        <button class="pkbtn" role="tab" aria-selected="false" data-view="gw">Gameweek {d['gw']}</button>
+        <div class="statsel" role="group" aria-label="Bring a figure forward">
+          <button class="stbtn" data-stat="p" aria-pressed="true">points</button>
+          <button class="stbtn" data-stat="g" aria-pressed="false">per game</button>
+          <button class="stbtn" data-stat="x" aria-pressed="false">xGI</button>
+        </div>
       </div>
       <div class="pkpanel" data-view="ov">{d['pitch']}</div>
       <div class="pkpanel" data-view="pk" hidden>{d['pick_pitch']}</div>
@@ -2291,6 +2834,7 @@ def render(d, standalone=True):
 
   <div class="panel" id="p-market" role="tabpanel" hidden>
     {d['chip_planner']}
+    {d['captaincy']}
     {d['ticker']}
     {d['market']}
     {d['transfers']}
@@ -2328,14 +2872,21 @@ def render(d, standalone=True):
   expected goals are Opta's, as used by FPL &middot; {e(d['generated'])}</p>
 </div>
 """
+    # Archivo is requested across its width axis as well as its weight axis -
+    # the expanded headings are the point, and asking only for weights would
+    # silently render them at normal width.
     fonts = (
         '<link rel="preconnect" href="https://fonts.googleapis.com">'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
         '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
-        'family=Barlow:wght@400;500;600;700&display=swap">'
+        "family=Archivo:wdth,wght@62..125,400..700&"
+        "family=IBM+Plex+Mono:wght@400;500;600&display=swap\">"
     )
     head = f"<title>{e(title)}</title>{fonts}<style>{CSS}</style>"
-    page = f"{head}{body}<script>{JS}</script><script>{SCATTER_JS}</script><script>{PLAYERVIEW_JS}</script>"
+    page = (
+        f"{head}{body}<script>{JS}</script><script>{SCATTER_JS}</script>"
+        f"<script>{PLAYERVIEW_JS}</script><script>{CAPTAINCY_JS}</script>"
+    )
     if not standalone:
         return page
     return (
@@ -2343,7 +2894,8 @@ def render(d, standalone=True):
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         f"{head}</head><body>{body}<script>{JS}</script>"
         f"<script>{SCATTER_JS}</script>"
-        f"<script>{PLAYERVIEW_JS}</script></body></html>"
+        f"<script>{PLAYERVIEW_JS}</script>"
+        f"<script>{CAPTAINCY_JS}</script></body></html>"
     )
 
 
@@ -2426,6 +2978,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                                       market=market, baselines=baselines)
         if ep:
             eps.append((r, ep))
+    eps_by_id = {r.element["id"]: ep for r, ep in eps}
+    cap_matrix = captaincy.matrix(ctx, xi, eps_by_id)
 
     elite_res = None
     if elite_depth:
@@ -2435,7 +2989,38 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         except fplapi.FplError as ex:
             print(f"[elite] skipped: {ex}")
 
+    # --- the week's verdict ------------------------------------------------
+    ev_now = next((x for x in ctx.events if x["id"] == gw), None)
+    gw_average = (ev_now or {}).get("average_entry_score") or None
+    rank_move = None
+    try:
+        hist = fplapi.entry_history(entry_id, ttl=ttl).get("current", [])
+        by_ev = {h["event"]: h for h in hist}
+        now_r = (by_ev.get(gw) or {}).get("overall_rank")
+        prev_r = (by_ev.get(gw - 1) or {}).get("overall_rank")
+        if now_r and prev_r:
+            rank_move = prev_r - now_r   # positive is a climb
+    except fplapi.FplError as ex:
+        print(f"[hero] rank movement unavailable: {ex}")
+
+    # Anyone in the XI whose club has not played this gameweek yet. Drives
+    # whether the verdict looks forward or back.
+    pending = []
+    for r in xi:
+        fx = [x for x in ctx.fixtures
+              if x.get("event") == gw and r.element["team"] in (x["team_h"], x["team_a"])]
+        if fx and not ctx._is_played(fx[0]):
+            pending.append(r.name)
+    verdict = week_verdict(
+        ctx, gw, set(xi_ids + bench_ids), cap,
+        picks.get("entry_history", {}).get("points"), gw_average, pending,
+    )
+
     bank = (picks.get("entry_history", {}).get("bank") or 0) / 10.0
+    free_ts = analysis.free_transfers(entry_id, next_gw, ttl=ttl)
+    pair_hit = analysis.transfer_cost(2, free_ts)
+    print(f"[transfers] {free_ts if free_ts is not None else '?'} free, "
+          f"a pair costs {pair_hit}")
     swaps = transfers.suggest(
         ctx, xi + bench, proj, next_gw, market, baselines,
         bank=bank, limit=6, elite=elite_res,
@@ -2451,7 +3036,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
 
     pairings = transfers.pair_suggestions(
         ctx, xi + bench, proj, next_gw, market, baselines,
-        bank=bank, limit=4, elite=elite_res,
+        bank=bank, limit=4, elite=elite_res, hit_cost=pair_hit,
     )
     for pr in pairings:
         for leg in pr["legs"]:
@@ -2520,12 +3105,20 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "league_name": league_name,
         "league_size": len(rows),
         "my_rank": my_row["rank"] if my_row else None,
+        # Standings carry last week's position, so the mini-league gets the
+        # same movement arrow the overall rank has. Positive is a climb, to
+        # match rank_move - both are "places gained", not "rank delta".
+        "league_move": (
+            (my_row["last_rank"] - my_row["rank"])
+            if my_row and my_row.get("last_rank") else None
+        ),
         "my_xgi": my_xgi,
         "xgi_note": xgi_note,
-        "pitch": pitch(xi, bench, ctx, badges, shirts, cap, vice),
+        "pitch": pitch(xi, bench, ctx, badges, shirts, cap, vice, gw=gw),
         "pick_pitch": pick_team_pitch(xi, bench, ctx, badges, shirts, cap,
                                       vice, proj, market, next_gw),
         "chip_planner": chip_planner_card(fh, tc, bb, wc, used),
+        "captaincy": captaincy_card(cap_matrix),
         "squad_table": squad_table(xi + bench, ctx, cap, vice,
                                    proj, market, next_gw),
         "ticker": ticker.fixture_ticker(xi + bench, ctx, proj, next_gw,
@@ -2535,7 +3128,12 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             pairings,
             "Two out, two in - moves a single transfer cannot reach, because "
             "one sale funds the other and two sales from a club free a slot. "
-            "Same shape, within budget, three per club respected."),
+            "Same shape, within budget, three per club respected. "
+            + (f"You have {free_ts} free transfer{'s' if free_ts != 1 else ''}, "
+               f"so this pair costs {pair_hit}."
+               if free_ts is not None else
+               "Free-transfer count unavailable, so a pair is priced at 4."),
+            hit=pair_hit),
         "leaders": components.stat_leaders(leader_groups(ctx, squad_ids)),
         "transfers": components.transfer_cards(
             swaps,
@@ -2564,6 +3162,9 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "chips": chips_table(histories) if histories else "",
         "next_gw": next_gw,
         "overall_rank": meta.get("summary_overall_rank"),
+        "gw_average": gw_average,
+        "rank_move": rank_move,
+        "verdict": verdict,
         "projected_xi": sum(
             ep["total"] for r, ep in eps
             if r.element["id"] in set(xi_ids)

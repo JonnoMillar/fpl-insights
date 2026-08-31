@@ -133,7 +133,7 @@ def gap_chart(rows, title, note, left_label, right_label):
     for name, actual, expected in rows:
         x1, x2 = actual / top * 100, expected / top * 100
         lo, hi = min(x1, x2), max(x1, x2)
-        colour = "var(--success)" if actual < expected else "#e07b00"
+        colour = "var(--success)" if actual < expected else "var(--warn)"
         items.append(
             '<li class="gap"><span class="gapname">{}</span>'
             '<span class="gaptrack">'
@@ -171,7 +171,12 @@ def defcon_bars(rows):
         if not threshold:
             continue
         pct = min(100.0, rate / threshold * 100 / scale)
-        colour = "var(--success)" if rate >= threshold else "#e07b00"
+        over = rate >= threshold
+        colour = "var(--good)" if over else "var(--warn)"
+        # Hit rate is the part that decides whether the rate is real, so it
+        # gets the highlight when it is perfect: clearing the threshold in
+        # every appearance is the strongest thing this card can say.
+        hit_cls = "good-pill" if apps and hits == apps else "dchits"
         items.append(
             '<li class="dcr"><span class="dcname">{}</span>'
             '<span class="dctrack">'
@@ -179,8 +184,9 @@ def defcon_bars(rows):
             '<span class="dcmark" style="left:{:.1f}%" title="Threshold {}"></span>'
             "</span>"
             '<span class="dcnum tnum">{:.1f} / {}</span>'
-            '<span class="dchits">{} of {}</span></li>'.format(
-                e(name), pct, colour, 100 / scale, threshold, rate, threshold, hits, apps
+            '<span class="{}">{} of {}</span></li>'.format(
+                e(name), pct, colour, 100 / scale, threshold, rate, threshold,
+                hit_cls, hits, apps,
             )
         )
     if not items:
@@ -254,6 +260,65 @@ def set_piece_card(groups):
         '<div class="find gapcard"><h3>Set pieces</h3>'
         '<p class="note">Who takes them, in the order the club lists them.</p>'
         '<div class="spwrap">{}</div></div>'.format("".join(blocks))
+    )
+
+
+TREND = {
+    "up": (
+        '<svg viewBox="0 0 24 24" class="pmicon" aria-hidden="true">'
+        '<path d="M3 17.5l5.5-5.5 3.5 3.5L21 6.5" fill="none" '
+        'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+        'stroke-linejoin="round"/>'
+        '<path d="M15 6.5h6v6" fill="none" stroke="currentColor" '
+        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    ),
+    "down": (
+        '<svg viewBox="0 0 24 24" class="pmicon" aria-hidden="true">'
+        '<path d="M3 6.5l5.5 5.5 3.5-3.5L21 17.5" fill="none" '
+        'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+        'stroke-linejoin="round"/>'
+        '<path d="M15 17.5h6v-6" fill="none" stroke="currentColor" '
+        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    ),
+}
+
+
+def price_move_card(moves):
+    """Price changes since the season started, risers against fallers.
+
+    `moves` is [(name, old_price, new_price)]. Written as a split rather than
+    one list because the two directions mean opposite things - a rise you
+    missed costs you money, a fall in your own squad costs you money - and a
+    single column mixing them made you read every line to find out which
+    kind each one was. The prices are shown as the move itself, old to new,
+    since "risen 0.1m, now 5.6m" asked you to do the subtraction to find out
+    what you would have paid."""
+    ups = [m for m in moves if m[2] > m[1]]
+    downs = [m for m in moves if m[2] < m[1]]
+    if not ups and not downs:
+        return ""
+
+    def block(rows, key, title):
+        if not rows:
+            return ""
+        items = "".join(
+            '<li><span class="pmname">{name}</span>'
+            '<span class="pmprice">{old:.1f}<i>&rarr;</i>{new:.1f}</span></li>'
+            .format(name=e(n), old=o, new=w)
+            for n, o, w in rows
+        )
+        return (
+            '<div class="pmgroup pm-{key}"><h4>{icon}{title}</h4>'
+            '<ul class="pmlist">{items}</ul></div>'.format(
+                key=key, icon=TREND[key], title=e(title), items=items)
+        )
+
+    return (
+        '<div class="find gapcard"><h3>Price movement</h3>'
+        '<p class="note">Since the season started.</p>'
+        '<div class="pmwrap">{}{}</div></div>'.format(
+            block(ups, "up", "Rise"), block(downs, "down", "Fall")
+        )
     )
 
 
@@ -354,14 +419,18 @@ def _mini_face(photo, shirt, name, tone_class):
         tone=tone_class, img=img, kit=kit, name=e(name))
 
 
-def pairing_cards(pairings, note):
+def pairing_cards(pairings, note, hit=4):
     """Two-transfer moves, drawn as two swaps under one verdict.
 
-    The combined gain is the headline; the figure after a four-point hit sits
-    beside it, because whether a pair is worth doing usually turns on whether
-    you are paying for the second transfer."""
+    The combined gain is the headline; the figure after the hit sits beside
+    it, because whether a pair is worth doing usually turns on whether you
+    are paying for the second transfer. `hit` is the real cost of making two
+    transfers given the free ones actually banked - it used to be hardcoded
+    at four, which told a manager sitting on two free transfers that a pair
+    would cost him points it would not."""
     if not pairings:
         return ""
+    free = hit == 0
     cards = []
     for p in pairings:
         legs = "".join(
@@ -379,22 +448,26 @@ def pairing_cards(pairings, note):
             )
             for leg in p["legs"]
         )
-        worth = p["after_hit"] > 0
-        verdict = (
-            '<span class="pr-yes">Still ahead after a &minus;4 hit</span>'
-            if worth else
-            '<span class="pr-no">Only worth it on two free transfers</span>'
-        )
+        after = p["gain"] - hit
+        if free:
+            verdict = '<span class="pr-yes">Both transfers are free</span>'
+        elif after > 0:
+            verdict = ('<span class="pr-yes">Still ahead after '
+                       "&minus;{} </span>".format(hit))
+        else:
+            verdict = ('<span class="pr-no">Not worth &minus;{}</span>'
+                       .format(hit))
         bank = p["bank_after"]
         cards.append(
             '<li class="pr-card">'
             '<div class="pr-head"><span class="pr-total">+{gain:.2f}'
             '<small>combined</small></span>'
-            '<span class="pr-hit">{after:+.2f}<small>after &minus;4</small></span>'
+            '<span class="pr-hit">{after:+.2f}<small>{hitlabel}</small></span>'
             '<span class="pr-bank">{bank:.1f}m<small>bank after</small></span></div>'
             '<ul class="pr-legs">{legs}</ul>'
             '<p class="pr-foot">{verdict}</p></li>'.format(
-                gain=p["gain"], after=p["after_hit"], bank=bank,
+                gain=p["gain"], after=after, bank=bank,
+                hitlabel="no hit to pay" if free else f"after &minus;{hit}",
                 legs=legs, verdict=verdict,
             )
         )
@@ -470,7 +543,7 @@ def stat_leaders(groups):
     )
 
 
-def sparkline(values, width=104, height=26, tone="var(--lilac)"):
+def sparkline(values, width=104, height=26, tone="var(--accent)"):
     """A bare line with the last point emphasised. No axes - it is a shape,
     not a chart, and the number it belongs to is always printed beside it."""
     if not values or len(values) < 2:
