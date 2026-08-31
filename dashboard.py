@@ -1335,44 +1335,6 @@ def squad_table(reports, ctx, captain_id, vice_id, proj=None, market=None,
     )
 
 
-def match_logs(reports, ctx):
-    out = []
-    for r in reports:
-        rows = sorted(r.history, key=lambda x: x["round"])
-        if not rows:
-            continue
-        trs = []
-        for h in reversed(rows):
-            trs.append(
-                "<tr>"
-                f"<td>GW{h['round']}</td>"
-                f"<td>{e(ctx.team_name(h['opponent_team']))} "
-                f"{'(H)' if h['was_home'] else '(A)'}</td>"
-                f'<td class="num">{h["minutes"]}</td>'
-                f'<td class="num">{h["goals_scored"]}</td>'
-                f'<td class="num">{h["assists"]}</td>'
-                f'<td class="num">{f(h["expected_goals"]):.2f}</td>'
-                f'<td class="num">{f(h["expected_assists"]):.2f}</td>'
-                f'<td class="num">{f(h["expected_goal_involvements"]):.2f}</td>'
-                f'<td class="num">{h.get("defensive_contribution", 0)}</td>'
-                f'<td class="num">{h["bps"]}</td>'
-                f'<td class="num"><b>{h["total_points"]}</b></td>'
-                "</tr>"
-            )
-        out.append(
-            f"<details><summary>{e(r.name)}"
-            f'<span class="mini">{r.minutes} min &middot; {r.xgi:.2f} xGI '
-            f"&middot; {r.points} pts</span></summary>"
-            '<div class="scroll"><table><thead><tr>'
-            "<th>GW</th><th>Opponent</th>"
-            '<th class="num">Min</th><th class="num">G</th><th class="num">A</th>'
-            '<th class="num">xG</th><th class="num">xA</th><th class="num">xGI</th>'
-            '<th class="num">DefCon</th><th class="num">BPS</th><th class="num">Pts</th>'
-            f"</tr></thead><tbody>{''.join(trs)}</tbody></table></div></details>"
-        )
-    return "".join(out)
-
-
 def findings_cards(finds):
     cards = []
     for fnd in finds:
@@ -1531,45 +1493,6 @@ def scatter(points):
         '<span class="key mine"></span>Your squad</p>'
         f'<script type="application/json" class="scatter-data">{json.dumps(data)}</script>'
         "</div></section>"
-    )
-
-
-def opta_table(reports):
-    """The Opta stats the Premier League publishes and FPL does not.
-
-    Kept as its own card rather than more columns on the squad table: these
-    measure a different thing (what a player actually did on the ball) and
-    come from a different source, and mixing them in would imply FPL supplies
-    them."""
-    rows = [r for r in reports if r.element.get("_pulse")]
-    if not rows:
-        return ""
-    keys = [k for k in pulse.STATS if any(r.element["_pulse"].get(k) for r in rows)]
-    if not keys:
-        return ""
-    head = '<th scope="col">Player</th><th scope="col">Club</th>' + "".join(
-        f'<th scope="col" class="num sortable" title="{e(pulse.STATS[k][1])}">'
-        f"{e(pulse.STATS[k][0])}</th>"
-        for k in keys
-    )
-    body = []
-    for r in sorted(rows, key=lambda r: -(r.element["_pulse"].get("touches") or 0)):
-        ps = r.element["_pulse"]
-        cells = "".join(
-            f'<td class="num" data-v="{ps.get(k) or 0:g}">'
-            f'{("%g" % ps[k]) if ps.get(k) else "-"}</td>'
-            for k in keys
-        )
-        body.append(
-            f'<tr><td><b>{e(r.name)}</b></td><td>{e(r.team)}</td>{cells}</tr>'
-        )
-    return (
-        '<section class="card">'
-        '<div class="card-head"><h2>Beyond FPL</h2>'
-        "<span class=\"sub\">Opta stats from the Premier League's own API. None of "
-        "these appear anywhere in the FPL site or app.</span></div>"
-        '<div class="scroll"><table data-sortable><thead><tr>'
-        f"{head}</tr></thead><tbody>{''.join(body)}</tbody></table></div></section>"
     )
 
 
@@ -2605,7 +2528,6 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "chip_planner": chip_planner_card(fh, tc, bb, wc, used),
         "squad_table": squad_table(xi + bench, ctx, cap, vice,
                                    proj, market, next_gw),
-        "opta": opta_table(xi + bench),
         "ticker": ticker.fixture_ticker(xi + bench, ctx, proj, next_gw,
                                         weeks=6, market=market),
         "market": ticker.odds_insights(market_fixtures, xi, ctx, proj, next_gw),
@@ -2631,7 +2553,6 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "findings": findings_section(
             analysis.build_findings(list(reports.values()), ctx),
             list(reports.values()), ctx),
-        "logs": match_logs(xi + bench, ctx),
         "price_watch": price_watch_card(pw),
         "scatter": scatter(scatter_pts),
         "league_table": league_table(rows, squads, ctx, entry_id) if rows else "",
