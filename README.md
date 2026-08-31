@@ -117,10 +117,10 @@ It runs the build, commits `dashboard-artifact.html` if the page changed, and
 warns in the run log if any data source dropped out.
 
 Three-hourly rather than twice a day because GitHub's scheduler is best-effort.
-The very first scheduled fire here was skipped outright - no run, no error, and
-the routine went on to publish an eight-hour-old page while calling it fresh.
-Eight chances a day makes a dropped fire a non-event. Runs where the page has
-not changed exit without committing, so the extra frequency costs nothing.
+The very first scheduled fire here was skipped outright - no run, no error,
+just an eight-hour-old page quietly still live with nothing to flag it. Eight
+chances a day makes a dropped fire a non-event. Runs where the page has not
+changed exit without committing, so the extra frequency costs nothing.
 
 The build runs here rather than in a Claude session because Claude's sandbox
 sits behind a policy-enforcing egress proxy that refuses CONNECT to
@@ -136,6 +136,12 @@ point with no error, and nothing surfaced that until the live page was
 checked against the repo directly. Deploying straight off the git push
 removes that failure mode rather than just monitoring for it better - there
 is no second schedule left to silently stop.
+
+The trade-off: nothing here actively flags a stale page the way the old
+routine's run summary did. If the GitHub Action itself stops firing for an
+extended stretch, this page looks fine while quietly falling behind - the
+backstop is GitHub's own failure email on the workflow, not anything in this
+pipeline.
 
 One thing that looks wrong but is not: **the built HTML is committed.** A
 1.1 MB page eight times a day sounds expensive. It is not - the embedded
