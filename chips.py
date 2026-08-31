@@ -251,8 +251,33 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
     current_ids = {r.element["id"] for r in all_reports}
     outgoing = [own_reports_by_id[pid] for pid in current_ids - ideal_ids]
     incoming = [ctx.players[pid] for pid in ideal_ids - current_ids]
-    outgoing.sort(key=lambda r: -r.price)
-    incoming.sort(key=lambda el: -(el["now_cost"] / 10.0))
+
+    # Pair within position, never across it. Both squads are 2/5/5/3 by
+    # construction (squadbuilder fills exactly those quotas), so the two
+    # sides have equal counts in every position and the zip below is total.
+    # Sorting the two flat lists by price and zipping them - which is what
+    # this used to do - produced legal *squads* but nonsense *pairs*: the
+    # most expensive man leaving read as replaced by the most expensive man
+    # arriving, so a forward "became" a midfielder on screen whenever the
+    # price order happened to cross positions.
+    by_pos_out, by_pos_in = {}, {}
+    for r in outgoing:
+        by_pos_out.setdefault(r.pos, []).append(r)
+    for el in incoming:
+        by_pos_in.setdefault(ctx.pos(el), []).append(el)
+
+    pairs = []
+    for pos, outs in by_pos_out.items():
+        ins = by_pos_in.get(pos, [])
+        outs.sort(key=lambda r: -r.price)
+        ins.sort(key=lambda el: -(el["now_cost"] / 10.0))
+        if len(outs) != len(ins):
+            # Defensive: a pool too thin to fill a quota can leave these
+            # uneven. Pair what is pairable rather than dropping the lot.
+            print(f"[chips] wildcard {pos}: {len(outs)} out vs {len(ins)} in")
+        pairs.extend(zip(outs, ins))
+    # Most expensive change first, as before - now across matched pairs.
+    pairs.sort(key=lambda p: -p[0].price)
 
     # Each move is built display-ready here, in the shape
     # components.transfer_cards already expects (out_score/in_score need
@@ -262,7 +287,7 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
     # per move instead of a flat, meaningless bar.
     priors = transfers.positional_priors(ctx)
     moves = []
-    for out_r, in_el in zip(outgoing, incoming):
+    for out_r, in_el in pairs:
         in_full = analysis.build_player(ctx, in_el["id"], ttl=fplapi.DEFAULT_TTL)
         out_score = analysis.expected_points(
             out_r, ctx, proj, start, market=market, baselines=baselines

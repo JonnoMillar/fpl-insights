@@ -26,42 +26,145 @@ from analysis import f, per90
 
 SQUAD_LIMIT_PER_CLUB = 3
 
-# Minutes of prior belief mixed into every rate. At 90 minutes played a
-# player's own numbers carry about an eighth of the weight and the positional
-# average the rest, which is the correct humility one match into a season:
-# a defender who scored in gameweek one is not a 0.9-goals-per-90 defender.
-PRIOR_MINUTES = 600.0
+# Minutes of prior belief mixed into every rate, keeping a defender who
+# scored in gameweek one from reading as a 0.9-goals-per-90 defender.
+#
+# Was 600, which left a player's own numbers carrying under a quarter of the
+# weight two matches in. That much humility had a cost the original note did
+# not anticipate: with everyone flattened onto the same prior, nothing about
+# the players themselves could separate them and the fixture multiplier
+# became the only thing the ranking actually responded to. 400 still leans
+# on the prior, but a genuine hot streak can now outweigh a kind fixture,
+# and the price-aware prior below means the thing being shrunk toward is a
+# far better guess than it was.
+PRIOR_MINUTES = 400.0
+
+# Price is what stops a premium being judged against a bench-warmer. A 14.0m
+# forward and a 4.5m forward share a position and nothing else, so shrinking
+# both toward one "average forward" rate is the wrong prior for each: it
+# flatters the cheap player and buries the expensive one.
+#
+# Fitted as a line through price rather than cut into bands. Bands were tried
+# first and could not separate the top: FPL prices are dense at the bottom
+# and long-tailed at the top, so any quantile cut puts a 14.0m striker and a
+# 6.5m squad man in one bucket with one prior. A line has no such boundary
+# and extrapolates sensibly to the handful of players above every cut.
+#
+# Weighted by minutes, so regular starters set the slope and a cameo does
+# not. Floored well below any real rate so the fit can never hand out a
+# negative expectation at the cheap end.
+RATE_FLOOR = 0.01
+
+# How much of the attacking rate comes from expected goals rather than the
+# goals actually scored. xG is the better predictor and stays the majority
+# of the signal, but ignoring real returns entirely - which is what this
+# used to do - means a player who keeps scoring is never credited for it.
+XG_WEIGHT = 0.75
+
+# A player with no football behind him this season is not evidence of an
+# average starter; he is evidence of nothing. Below this many minutes his
+# expected involvement is tempered toward a squad player's, however
+# confidently a predicted-lineup feed names him. Roughly two full matches.
+EVIDENCE_MINUTES = 180.0
+
+
+def _acc_new():
+    return {"min": 0.0, "xg": 0.0, "xa": 0.0, "bonus": 0.0, "dc": 0.0,
+            "bps": 0.0}
+
+
+def _acc_add(a, el, ctx, mins):
+    a["min"] += mins
+    # Real returns sit alongside expected ones so the blend below has a
+    # like-for-like average to shrink toward.
+    a["xg"] += (XG_WEIGHT * f(el.get("expected_goals"))
+                + (1 - XG_WEIGHT) * el.get("goals_scored", 0))
+    a["xa"] += (XG_WEIGHT * f(el.get("expected_assists"))
+                + (1 - XG_WEIGHT) * el.get("assists", 0))
+    a["bonus"] += el.get("bonus", 0)
+    a["dc"] += el.get("defensive_contribution", 0)
+    a["bps"] += analysis.other_bps_per90(el, ctx, mins) * mins / 90.0
+
+
+def _rates(a):
+    m = a["min"] or 1.0
+    return {"xg90": per90(a["xg"], m), "xa90": per90(a["xa"], m),
+            "bonus90": per90(a["bonus"], m), "dc90": per90(a["dc"], m),
+            "bps90": per90(a["bps"], m), "minutes": a["min"]}
+
+
+RATE_KEYS = ("xg90", "xa90", "bonus90", "dc90", "bps90")
+
+
+def _fit_on_price(samples, key):
+    """Minutes-weighted least squares of one rate against price.
+
+    Returns (intercept, slope). Falls back to a flat line at the weighted
+    mean when the prices carry no spread - one club's worth of players all
+    priced identically would otherwise divide by zero."""
+    sw = sum(w for _p, _v, w in samples)
+    if sw <= 0:
+        return 0.0, 0.0
+    mx = sum(p * w for p, _v, w in samples) / sw
+    my = sum(v * w for _p, v, w in samples) / sw
+    var = sum(w * (p - mx) ** 2 for p, _v, w in samples)
+    if var <= 1e-9:
+        return my, 0.0
+    cov = sum(w * (p - mx) * (v - my) for p, v, w in samples)
+    slope = cov / var
+    return my - slope * mx, slope
 
 
 def positional_priors(ctx):
-    """Minutes-weighted mean rates per position, from the league itself.
+    """Expected rates per position as a function of price, from the league.
 
     Derived rather than hardcoded so it tracks whatever this season turns out
-    to be, and stable even now because it averages over a hundred-odd players
-    per position rather than one."""
-    acc = {}
+    to be, and stable even now because it fits over a hundred-odd players per
+    position rather than trusting one.
+
+    Returns {pos: {"fits": {rate: (intercept, slope)}, "overall": rates)}} -
+    `_prior_for` evaluates the fit; callers should not index this directly."""
+    played, by_pos = {}, {}
     for el in ctx.players.values():
         mins = el.get("minutes", 0)
         if mins <= 0:
             continue
         pos = ctx.pos(el)
-        a = acc.setdefault(pos, {"min": 0.0, "xg": 0.0, "xa": 0.0, "bonus": 0.0,
-                                 "dc": 0.0, "bps": 0.0})
-        a["min"] += mins
-        a["xg"] += f(el.get("expected_goals"))
-        a["xa"] += f(el.get("expected_assists"))
-        a["bonus"] += el.get("bonus", 0)
-        a["dc"] += el.get("defensive_contribution", 0)
-        a["bps"] += analysis.other_bps_per90(el, ctx, mins) * mins / 90.0
+        by_pos.setdefault(pos, []).append(el)
+        _acc_add(played.setdefault(pos, _acc_new()), el, ctx, mins)
+
     priors = {}
-    for pos, a in acc.items():
-        m = a["min"] or 1.0
-        priors[pos] = {
-            "xg90": per90(a["xg"], m), "xa90": per90(a["xa"], m),
-            "bonus90": per90(a["bonus"], m), "dc90": per90(a["dc"], m),
-            "bps90": per90(a["bps"], m),
-        }
+    for pos, els in by_pos.items():
+        overall = _rates(played[pos])
+        fits = {}
+        for key in RATE_KEYS:
+            samples = []
+            for el in els:
+                mins = el.get("minutes", 0)
+                one = _acc_new()
+                _acc_add(one, el, ctx, mins)
+                samples.append((el["now_cost"] / 10.0, _rates(one)[key], mins))
+            fits[key] = _fit_on_price(samples, key)
+        priors[pos] = {"fits": fits, "overall": overall}
     return priors
+
+
+DEFAULT_PRIOR = {"xg90": 0.1, "xa90": 0.1, "bonus90": 0.25, "dc90": 4.0,
+                 "bps90": 12.0}
+
+
+def _prior_for(el, pos, priors):
+    """The rates this player should be shrunk toward - his position at his
+    price, not his position at any price."""
+    p = (priors or {}).get(pos)
+    if not p:
+        return DEFAULT_PRIOR
+    price = el["now_cost"] / 10.0
+    out = {}
+    for key in RATE_KEYS:
+        a, b = p["fits"][key]
+        out[key] = max(RATE_FLOOR, a + b * price)
+    return out
 
 
 def _shrink(rate, minutes, prior):
@@ -97,6 +200,17 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
         minutes = min(90.0, minutes_played / max(1, starts))
     else:
         minutes = 30.0
+
+    # A predicted-lineup feed naming a man who has not kicked a ball this
+    # season is a weaker claim than the same feed naming a regular, but the
+    # branch above treats them identically - which is how a zero-minute
+    # player came to be scored as a nailed-on 85-minute starter carrying
+    # league-average rates, and outranked a fit player mid-hot-streak.
+    # Temper toward a squad player's involvement until there is some
+    # football to back the billing up.
+    if minutes_played < EVIDENCE_MINUTES:
+        evidence = minutes_played / EVIDENCE_MINUTES
+        minutes = minutes * evidence + 45.0 * (1 - evidence)
     share = minutes / 90.0
 
     baseline = (baselines or {}).get(el["team"], league_avg)
@@ -112,7 +226,12 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
         team_xg = mk["xg"]
     else:
         team_xg = league_avg
-    mult = max(0.5, min(2.0, team_xg / baseline)) if baseline else 1.0
+    # Clamped tighter than the 0.5-2.0 this used to allow. That range let one
+    # kind fixture move a player's score fourfold end to end, which swamped
+    # every difference in the players themselves - a bench forward at home to
+    # the worst side in the league outscored a proven starter away at a good
+    # one. A fixture should tilt a decision, not decide it.
+    mult = max(0.7, min(1.45, team_xg / baseline)) if baseline else 1.0
     if mk_matches:
         cs_prob = mk["cs"] / 100.0
     elif fixture:
@@ -122,12 +241,15 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
     else:
         cs_prob = 0.0
 
-    prior = (priors or {}).get(pos, {"xg90": 0.1, "xa90": 0.1, "bonus90": 0.25,
-                                     "dc90": 4.0, "bps90": 12.0})
-    xg90 = _shrink(per90(f(el.get("expected_goals")), minutes_played),
-                   minutes_played, prior["xg90"])
-    xa90 = _shrink(per90(f(el.get("expected_assists")), minutes_played),
-                   minutes_played, prior["xa90"])
+    prior = _prior_for(el, pos, priors)
+    # Expected goals carry most of the weight, real ones the rest - a player
+    # who keeps converting is telling you something xG alone will not.
+    eff_xg = (XG_WEIGHT * f(el.get("expected_goals"))
+              + (1 - XG_WEIGHT) * el.get("goals_scored", 0))
+    eff_xa = (XG_WEIGHT * f(el.get("expected_assists"))
+              + (1 - XG_WEIGHT) * el.get("assists", 0))
+    xg90 = _shrink(per90(eff_xg, minutes_played), minutes_played, prior["xg90"])
+    xa90 = _shrink(per90(eff_xa, minutes_played), minutes_played, prior["xa90"])
     other_bps90 = _shrink(analysis.other_bps_per90(el, ctx, minutes_played),
                           minutes_played, prior["bps90"])
 

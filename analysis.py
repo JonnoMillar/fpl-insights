@@ -116,6 +116,16 @@ class Ctx:
             or fx.get("started")
         )
 
+    @classmethod
+    def _is_played(cls, fx):
+        """A fixture whose minutes are already in the players' season totals.
+
+        The complement of `_is_upcoming`, and the correct thing to divide a
+        club's season xG by. Anything counting matches must use this rather
+        than `finished` on its own, or it divides two matches of xG by one
+        match and reports a club as twice the attack it is."""
+        return not cls._is_upcoming(fx)
+
     def next_fixtures(self, team_id, count=5, from_event=None):
         """Upcoming (opponent, is_home, difficulty, event) for a team."""
         start = from_event or self.current_event()
@@ -303,6 +313,28 @@ class PlayerReport:
         rate = per90(xgi_sum, mins_sum)
         return {"text": f"{rate:.2f} xGI/90 last {n}", "hot": False}
 
+    def last_n_points(self, n=4):
+        """Total points across the last n matches actually played. None
+        before any minutes this season, so callers can fall back rather
+        than show a misleading zero."""
+        games = sorted((x for x in self.history if x["minutes"] > 0),
+                       key=lambda x: x["round"])
+        recent = games[-n:]
+        return sum(x["total_points"] for x in recent) if recent else None
+
+    def home_away_points(self, min_games=2):
+        """(home_ppg, away_ppg) from matches played this season - either
+        side is None below min_games, since a single match is noise, not
+        a venue split (same reasoning as THIN_SAMPLE_MINUTES elsewhere)."""
+        home = [x["total_points"] for x in self.history
+                if x["minutes"] > 0 and x["was_home"]]
+        away = [x["total_points"] for x in self.history
+                if x["minutes"] > 0 and not x["was_home"]]
+        return (
+            sum(home) / len(home) if len(home) >= min_games else None,
+            sum(away) / len(away) if len(away) >= min_games else None,
+        )
+
     def last_season(self):
         """Previous-season totals, the only history the API keeps beyond the
         current campaign. Useful as a baseline while this season is short."""
@@ -471,6 +503,47 @@ def chip_window(next_gw, cap=8):
     end = 19 if next_gw <= 19 else 38
     weeks = min(cap, max(0, end - next_gw + 1))
     return next_gw, weeks
+
+
+FREE_TRANSFER_CAP = 5
+
+
+def free_transfers(entry_id, next_gw, ttl=fplapi.DEFAULT_TTL):
+    """How many free transfers are banked going into `next_gw`.
+
+    FPL does not publish this without a login, so it is replayed from the
+    per-gameweek transfer counts in the public history: one free transfer is
+    granted each gameweek from GW2, unused ones roll over, and the bank is
+    capped at five. Nothing accrues for GW1, where transfers are unlimited
+    before the deadline anyway.
+
+    Returns None rather than a guess when the history cannot be read, so
+    callers can fall back to assuming a hit rather than quietly asserting a
+    free transfer that may not exist.
+
+    One thing it cannot see: transfers already made for `next_gw` itself.
+    Those only reach the public history once that deadline passes, so
+    immediately after making a move this still reports the pre-move figure."""
+    try:
+        history = fplapi.entry_history(entry_id, ttl=ttl)
+    except fplapi.FplError:
+        return None
+    used = {ev["event"]: ev.get("event_transfers", 0)
+            for ev in history.get("current", [])}
+    banked = 1  # granted for GW2, the first week a transfer can be saved
+    for gw in range(2, next_gw):
+        if gw not in used:
+            continue
+        banked = min(FREE_TRANSFER_CAP, banked - used[gw] + 1)
+        banked = max(0, banked)
+    return min(FREE_TRANSFER_CAP, banked)
+
+
+def transfer_cost(count, free, per_hit=4):
+    """Points cost of making `count` transfers holding `free` free ones."""
+    if free is None:
+        free = 1
+    return max(0, count - free) * per_hit
 
 
 def _finding(key, title, tone, items, note=""):
@@ -785,7 +858,13 @@ def team_attack_baselines(ctx, league_avg=1.45):
     for el in ctx.players.values():
         totals[el["team"]] = totals.get(el["team"], 0.0) + f(el.get("expected_goals"))
     for fx in ctx.fixtures:
-        if fx.get("finished"):
+        # `finished` alone undercounts: FPL holds it False until bonus is
+        # confirmed, so a round played yesterday does not register and every
+        # club's season xG gets divided by too few matches. That inflated
+        # every baseline, and since the baseline is the denominator of the
+        # fixture multiplier, it quietly flattened the multiplier for the
+        # whole league.
+        if ctx._is_played(fx):
             for side in ("team_h", "team_a"):
                 played[fx[side]] = played.get(fx[side], 0) + 1
     out = {}

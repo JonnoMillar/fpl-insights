@@ -182,17 +182,52 @@ def best_xi(pool, budget):
     return best
 
 
+def _floor_cost(by_pos, quotas):
+    """The cheapest a set of quotas can possibly be filled for, ignoring the
+    club cap. A lower bound, which is all a budget reserve needs."""
+    total = 0.0
+    for pos, need in quotas.items():
+        prices = sorted(p["price"] for p in by_pos.get(pos, []))
+        if len(prices) < need:
+            return None
+        total += sum(prices[:need])
+    return total
+
+
+# Headroom on top of the bench's floor price, so the XI cannot spend the
+# squad down to the point where the only affordable bench is the four
+# cheapest men in the game and the club cap then makes even that illegal.
+BENCH_CUSHION = 1.5
+
+
 def best_squad(pool, budget, bench_reserve_frac=0.12):
     """The highest-value legal 15 within budget: the XI hill-climbed for
     value the same as best_xi, the bench filled by the same value-per-cost
     rule from what's left rather than pure minimum price - a Wildcard
     squad has to survive more than one week, so its bench should be able
-    to play if called on."""
+    to play if called on.
+
+    The reserve held back for that bench is the greater of a flat fraction
+    and what a legal bench actually costs. The fraction alone was not safe:
+    at a 99.9m budget it held back 12.0m while the four cheapest bench slots
+    could not be filled for less than 17.5m, so every formation failed its
+    bench fill and the whole recommendation returned None - silently, since
+    the caller renders nothing rather than an error. Whether that happened
+    depended on how much of the XI budget the hill-climb chose to spend,
+    which is to say on the pool's values, which is to say it broke without
+    anything about this function changing."""
     by_pos = _by_position(pool)
     best = None
     for d, m, fw in FORMATIONS:
         xi_quotas = {"GKP": 1, "DEF": d, "MID": m, "FWD": fw}
-        xi_budget = budget * (1 - bench_reserve_frac)
+        bench_quotas = {"GKP": 1, "DEF": 5 - d, "MID": 5 - m, "FWD": 3 - fw}
+        floor = _floor_cost(by_pos, bench_quotas)
+        if floor is None:
+            continue
+        reserve = max(budget * bench_reserve_frac, floor + BENCH_CUSHION)
+        xi_budget = budget - reserve
+        if xi_budget <= 0:
+            continue
         picks = _greedy_fill(by_pos, xi_quotas, xi_budget)
         if picks is None:
             continue
@@ -207,7 +242,6 @@ def best_squad(pool, budget, bench_reserve_frac=0.12):
             pos: [p for p in players if p["id"] not in held_ids]
             for pos, players in by_pos.items()
         }
-        bench_quotas = {"GKP": 1, "DEF": 5 - d, "MID": 5 - m, "FWD": 3 - fw}
         bench = _greedy_fill(remaining_by_pos, bench_quotas,
                              budget - xi_cost, club_counts)
         if bench is None:
