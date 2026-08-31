@@ -20,10 +20,14 @@ and opens it. Everything is baked in — club badges as data URIs, no network
 calls once written — so it works offline and can be mailed, hosted or opened
 from disk. Re-run it whenever you want current numbers.
 
-Three tabs: **Squad** (pitch view, sortable detail table with fixture-difficulty
-tickers, findings cards), **Mini-league** (standings with each rival's XI xGI,
-captain and chip, plus template/differential analysis), and **Match logs**
-(per-fixture xG and xA per player, collapsible).
+Three tabs: **Squad** (pitch view - Overview by default, with a Pick Team
+toggle for next-fixture and form context instead - sortable detail table,
+and findings cards; click any player for their full match-by-match log and
+Opta stats), **Planning** (the chip planner's Free Hit / Triple Captain /
+Bench Boost / Wildcard recommendations, fixture ticker, price-change and
+transfer-suggestion cards, and elite-manager ownership), and **Mini-league**
+(standings with each rival's XI xGI, captain and chip, plus
+template/differential analysis).
 
 Styling is taken from FPL's live stylesheet rather than approximated: brand
 purple `#37003c`, the purple-biased `mono-p` neutral ramp, their radius and
@@ -39,6 +43,22 @@ green and grey steps sit at 1.35:1 and 1.2:1 against a white surface, so colour
 alone would not be readable.
 
 `--artifact` also writes a body-only copy for publishing to a hosted page.
+
+## Access
+
+The live dashboard: **https://fpl-insights-jm.vercel.app** - a public URL
+(not indexed or linked anywhere), deployed from this repo without exposing
+the source or `config.json`, since the repo itself stays private. Open it on
+your phone and "Add to Home Screen" for an app-like icon - it's a static
+page, so that's the whole install.
+
+It rebuilds automatically (see [How it stays current](#how-it-stays-current)
+below), so this URL is never more than a few hours behind live FPL data with
+nothing to trigger manually.
+
+`python cli.py dashboard --open` is the alternative: a local build using your
+own machine's network access, for current-minute data rather than the last
+scheduled build.
 
 ## Setup
 
@@ -89,7 +109,8 @@ managers get analysed.
 
 ## How it stays current
 
-Two scheduled pieces, because neither can do the whole job alone.
+One scheduled piece, one automatic reaction to it - deliberately reduced
+from two scheduled pieces (below).
 
 **GitHub Actions builds it** (`.github/workflows/build.yml`), every three hours.
 It runs the build, commits `dashboard-artifact.html` if the page changed, and
@@ -101,31 +122,30 @@ the routine went on to publish an eight-hour-old page while calling it fresh.
 Eight chances a day makes a dropped fire a non-event. Runs where the page has
 not changed exit without committing, so the extra frequency costs nothing.
 
-**A Claude routine publishes it**, at 07:00 and 15:00 UTC. It clones the repo,
-works out how old the committed page is, and republishes it to the artifact
-URL. Anything five hours or older is published anyway but flagged as stale in
-the run summary, which is how a silently failing build becomes visible.
+The build runs here rather than in a Claude session because Claude's sandbox
+sits behind a policy-enforcing egress proxy that refuses CONNECT to
+`fantasy.premierleague.com` with a 403 - it cannot fetch a single byte of this
+project's data. GitHub's runners have open outbound network.
 
-The split is forced by a real constraint: the Claude sandbox sits behind a
-policy-enforcing egress proxy that refuses CONNECT to `fantasy.premierleague.com`
-with a 403, so it cannot fetch a single byte of the data. GitHub's runners have
-open outbound network. Conversely a GitHub runner cannot publish a Claude
-artifact. So one builds, the other publishes.
+**Vercel deploys it automatically.** The Vercel project is linked directly to
+this repo, so every commit to `main` - i.e. every build above that actually
+changed the page - triggers a fresh deploy with no extra step. This used to
+be a second scheduled piece: a Claude routine that cloned the repo twice a
+day and republished a hosted artifact. It quietly stopped running at some
+point with no error, and nothing surfaced that until the live page was
+checked against the repo directly. Deploying straight off the git push
+removes that failure mode rather than just monitoring for it better - there
+is no second schedule left to silently stop.
 
-Two things that look wrong but are not:
+One thing that looks wrong but is not: **the built HTML is committed.** A
+1.1 MB page eight times a day sounds expensive. It is not - the embedded
+photos are byte-identical between builds, so git deltas them away. Measured
+across two consecutive builds: zero growth.
 
-* **The built HTML is committed.** A 1.1 MB page twice a day sounds expensive.
-  It is not - the embedded photos are byte-identical between builds, so git
-  deltas them away. Measured across two consecutive builds: zero growth.
-* **The routine reads the artifact before publishing.** Overwriting an artifact
-  is refused unless the live version has been viewed in that session, and every
-  scheduled run is a fresh session. The read is what satisfies that check.
-
-Timing is deliberate. Prices change around 01:30 UK, so the morning run catches
-them; predicted line-ups only sharpen through the day, so the afternoon run is
-the one that lands before a typical 18:30 deadline. Nothing is ever more than
-about eight hours stale, and the artifact URL is a static page - it is readable
-at any time regardless of when it was last rebuilt.
+Timing is deliberate. Prices change around 01:30 UK, so the early builds catch
+them; predicted line-ups only sharpen through the day, so later builds are the
+ones that land before a typical 18:30 deadline. Nothing is ever more than
+about three hours stale.
 
 Every run ends with a source-health block, so a broken scrape shows up as a
 `FAIL` line rather than a section quietly vanishing from the page.
