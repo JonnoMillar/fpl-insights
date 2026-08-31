@@ -156,14 +156,21 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
         '<th scope="col" class="num">GW{}</th>'.format(g)
         for g in range(start_gw, start_gw + weeks)
     )
+    # Deliberately not called "difficulty". The number here runs the opposite
+    # way to FPL's own 1-to-5 FDR - ten is a great fixture, not a brutal one -
+    # and heading a higher-is-better column "difficulty" invites exactly the
+    # misreading it got: a club on 7.0 looks like the hard one when it is the
+    # club with the kindest run on the page.
     return (
-        '<section class="card"><div class="card-head"><h2>Fixture difficulty</h2>'
-        '<span class="sub">One rating out of ten per fixture, higher is better. '
-        "Expected goals and clean-sheet odds combined, weighted toward attack. "
-        'A dot means the market priced it.</span></div>'
+        '<section class="card"><div class="card-head"><h2>Fixture outlook</h2>'
+        '<span class="sub">How good each fixture is to own a player for, '
+        "rated out of ten - <b>higher is better</b>, the opposite way round to "
+        "FPL's 1-5 difficulty. Expected goals and clean-sheet odds combined, "
+        'weighted toward attack. A dot means the market priced it.</span></div>'
         '<div class="scroll"><table data-sortable class="fxtable">'
         '<thead><tr><th scope="col" class="sortable">Club</th>'
-        '<th scope="col" class="num sortable">Avg</th>'
+        '<th scope="col" class="num sortable" title="Mean rating over the '
+        'fixtures shown - higher is better">Rating</th>'
         f"{heads}</tr></thead><tbody>"
         f"{''.join(r[1] for r in rows)}</tbody></table></div></section>"
     )
@@ -178,10 +185,35 @@ def odds_insights(fixtures, reports, ctx, proj, next_gw):
     and the number behind it."""
     if not fixtures:
         return ""
+    # Pinnacle price several rounds at once - three were live the day this
+    # guard was added - and this used to let each club's *last* listed
+    # fixture win, which is the furthest one away. That silently reported
+    # next-next-gameweek odds under this gameweek's heading: Chelsea's line
+    # came from a fixture nine days out.
+    #
+    # Taking the soonest instead is nearly right but not right: while a round
+    # is still finishing, a club's soonest match is last week's, so a heading
+    # naming this gameweek would carry a row from the previous one. Pin each
+    # club to the fixture FPL itself lists for `next_gw` and accept the
+    # priced match only when the opponent agrees.
+    want = {}
+    for fx in ctx.fixtures:
+        if fx.get("event") != next_gw:
+            continue
+        h, a = ctx.team_name(fx["team_h"]), ctx.team_name(fx["team_a"])
+        want[h] = (a, True)
+        want[a] = (h, False)
+
     by_club = {}
-    for fx in fixtures:
-        by_club[fx["home"]] = (fx, True)
-        by_club[fx["away"]] = (fx, False)
+    for fx in sorted(fixtures, key=lambda f: f.get("kickoff") or ""):
+        for club, opp, home in ((fx["home"], fx["away"], True),
+                                (fx["away"], fx["home"], False)):
+            if club in by_club:
+                continue
+            expect = want.get(club)
+            if expect and (expect[0] != opp or expect[1] != home):
+                continue  # a different round's fixture for this club
+            by_club[club] = (fx, home)
 
     def side(fx, home, key):
         return fx[("home_" if home else "away_") + key]
@@ -276,9 +308,10 @@ def odds_insights(fixtures, reports, ctx, proj, next_gw):
         for it in items
     )
     return (
-        '<section class="card"><div class="card-head"><h2>What the odds mean for you</h2>'
-        '<span class="sub">Pinnacle, margin removed, applied to your '
-        "squad.</span></div>"
+        '<section class="card"><div class="card-head">'
+        f"<h2>What the odds mean for gameweek {next_gw}</h2>"
+        '<span class="sub">Pinnacle, margin removed, applied to your squad. '
+        "Each club's next match only.</span></div>"
         f'<div class="card-body"><ul class="oilist">{cards}</ul></div></section>'
     )
 
