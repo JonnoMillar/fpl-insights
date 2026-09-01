@@ -136,24 +136,75 @@ def points_team(ctx, xi_reports, proj, market, baselines, gw):
     }
 
 
+def _club_capped_xi(gks, defs, mids, fwds, d, m, fw,
+                    club_cap=transfers.SQUAD_LIMIT_PER_CLUB):
+    """The highest-value eleven for one fixed formation, subject to the
+    real 3-per-club squad rule - not just formation rules.
+
+    Each position list arrives pre-sorted by descending value. Picking the
+    top N per position independently (as a no-club-cap version can) can
+    put nine players from one club on the same page, which is not a squad
+    anyone can actually own. This instead walks all four position pointers
+    together and, at each step, takes whichever remaining candidate has the
+    single highest value across every position that still has a quota to
+    fill - skipping (not permanently discarding) anyone whose club has
+    already hit the cap. Because ties always resolve to the highest value
+    first, a club that is "maxing out" is, by construction, represented by
+    its own best 3 - never an arbitrary 3.
+
+    A pure greedy rather than a proven-optimal solver: the position quota
+    and the club cap are two separate constraints, and jointly optimizing
+    both exactly is a harder problem than either alone. Good enough for a
+    "what if points were all that mattered" card, not offered as a proof
+    of the single best possible eleven."""
+    quotas = {"GKP": 1, "DEF": d, "MID": m, "FWD": fw}
+    pools = {"GKP": gks, "DEF": defs, "MID": mids, "FWD": fwds}
+    ptrs = {pos: 0 for pos in quotas}
+    club_counts = {}
+    picks = []
+    needed = sum(quotas.values())
+    while len(picks) < needed:
+        best_pos, best_p = None, None
+        for pos, need in quotas.items():
+            if need <= 0:
+                continue
+            pool = pools[pos]
+            ptr = ptrs[pos]
+            while ptr < len(pool) and club_counts.get(pool[ptr]["club"], 0) >= club_cap:
+                ptr += 1
+            ptrs[pos] = ptr
+            if ptr >= len(pool):
+                continue
+            if best_p is None or pool[ptr]["value"] > best_p["value"]:
+                best_pos, best_p = pos, pool[ptr]
+        if best_pos is None:
+            return None
+        picks.append(best_p)
+        quotas[best_pos] -= 1
+        ptrs[best_pos] += 1
+        club_counts[best_p["club"]] = club_counts.get(best_p["club"], 0) + 1
+    return picks
+
+
 def literal_best_xi(ctx, xi_reports, proj, market, baselines, gw):
     """The highest-scoring valid eleven in the whole game, one week only -
-    formation rules only, no budget and no club cap.
+    formation rules AND the real 3-per-club squad limit, but no budget
+    (nobody's actual price point).
 
     This is a different question from points_team's "ideal", which is
     deliberately budget-capped at the manager's own XI value because it
     feeds the Free Hit gap - a chip you would actually play, so the
     comparison has to be a squad you could actually afford. The dashboard's
-    "Highest predicted points XI" card is a different, unconstrained
-    question ("what if points were all that mattered"), and reusing the
-    budget-capped number there quietly answered the wrong question: a
+    "Highest predicted points XI" card is a different, unconstrained-on-
+    price question ("what if points were all that mattered"), and reusing
+    the budget-capped number there quietly answered the wrong question: a
     manager with a modest squad value saw a "best XI" that wasn't the best
     XI in the game at all, just the best one at his own price point.
 
-    With no budget or club constraint, the optimal team for a fixed
-    formation is simply the top N scorers at each position - so trying
-    every legal formation (~40 of them) and keeping the best total is
-    exact, not approximate."""
+    The club cap still applies even here, though - it is a squad-legality
+    rule, not a budget one, and dropping it produced elevens with most of
+    one club's attack on the page at once, which nobody can actually field.
+    See _club_capped_xi for how a fixed formation is filled under it."""
     pool = build_pool(ctx, proj, market, baselines, gw, weeks=1)
     by_pos = {}
     for p in pool:
@@ -171,7 +222,9 @@ def literal_best_xi(ctx, xi_reports, proj, market, baselines, gw):
                     continue
                 if len(gks) < 1 or len(defs) < d or len(mids) < m or len(fwds) < fw:
                     continue
-                picks = gks[:1] + defs[:d] + mids[:m] + fwds[:fw]
+                picks = _club_capped_xi(gks, defs, mids, fwds, d, m, fw)
+                if picks is None:
+                    continue
                 total = sum(p["value"] for p in picks)
                 if best is None or total > best["value"]:
                     best = {"value": total, "xi": picks}
@@ -334,7 +387,14 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
     player worth keeping for the armband alone. Shipped with this noted
     rather than fixed, since a captaincy-aware objective is a real change
     to the algorithm, not a tweak - treat any "sell your premium" move
-    here with that in mind rather than as the final word."""
+    here with that in mind rather than as the final word.
+
+    Owned players also get a retention margin added to their value for the
+    search only (see below), so a candidate has to beat an incumbent by a
+    real amount, not just any amount, to displace him. Without it, the
+    "rebuild" routinely swapped nearly the whole fifteen - almost none of
+    it a move worth an actual transfer hit, just whichever side of a
+    fractional-point tie happened to win at every single position."""
     start, weeks = analysis.chip_window(next_gw)
     exclude_ids = {r.element["id"] for r in all_reports}
     priors = transfers.positional_priors(ctx)
@@ -351,14 +411,59 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
                          "price": r.price, "value": total})
     full_pool = pool + own_pool
 
-    ideal = squadbuilder.best_squad(full_pool, budget)
+    # squadbuilder optimizes on value alone, with no notion of who is
+    # already owned - so any candidate who edges out an incumbent by even
+    # a fraction of a point displaces him, and a real squad of fifteen
+    # rarely has zero such fractional edges lying around. That produced a
+    # "rebuild" that swapped nearly the whole fifteen most weeks, most of
+    # it churn no manager would actually pay a hit for, rather than the
+    # handful of genuine upgrades the card is supposed to surface. A
+    # retention margin - the same per-week bar the Sell column already
+    # holds a transfer to - is added to owned players for this search only,
+    # so a candidate has to beat the incumbent by a real amount, not just
+    # any amount, to take his place. The margin is stripped back out again
+    # below before anything is reported, so xP, the gap and every move's
+    # gain are still the true numbers, not the boosted ones used to choose.
+    retention_margin = (transfers.SELL_MARGIN / transfers.TRANSFER_HORIZON_WEEKS
+                        * weeks)
+    own_ids = {p["id"] for p in own_pool}
+    search_pool = [dict(p) for p in full_pool]
+    for p in search_pool:
+        if p["id"] in own_ids:
+            p["value"] += retention_margin
+
+    # The single highest-value owned player gets a further, larger premium
+    # for the same reason the docstring's captaincy blind spot names him
+    # specifically: whoever owns the squad's best player almost certainly
+    # captains him, so he is actually earning double his own total most
+    # weeks, not the flat total this whole objective scores everyone on.
+    # Without any allowance for that, a genuine premium (Haaland, on the
+    # squad this was built against) got sold for a stack of cheaper
+    # upgrades elsewhere that only looked net-positive because the model
+    # never credited him with the extra copy of his own points he already
+    # earns. Half his own windowed value again, added only for this
+    # search, is not a fitted number - just enough that beating him
+    # outright takes a real case, not a fractional one.
+    CAPTAIN_PREMIUM_FRAC = 0.5
+    if own_pool:
+        likely_captain = max(own_pool, key=lambda p: p["value"])
+        premium = CAPTAIN_PREMIUM_FRAC * likely_captain["value"]
+        for p in search_pool:
+            if p["id"] == likely_captain["id"]:
+                p["value"] += premium
+
+    ideal = squadbuilder.best_squad(search_pool, budget)
     if ideal is None:
         return None
+    true_by_id = {p["id"]: p for p in full_pool}
+    ideal["xi"] = [true_by_id[p["id"]] for p in ideal["xi"]]
+    ideal["bench"] = [true_by_id[p["id"]] for p in ideal["bench"]]
+    ideal["value"] = sum(p["value"] for p in ideal["xi"])
+
     # Compare like for like: the manager's own best XI over the same
     # window, formation-optimized the same way points_team finds one for
     # a single week - budget is unconstrained here since these 15 are
     # already owned, only which 11 of them to start is being decided.
-    own_reports_by_id = {r.element["id"]: r for r in all_reports}
     current_best = squadbuilder.best_xi(own_pool, budget=1e9)
     current_value = current_best["value"] if current_best else 0.0
 
@@ -370,66 +475,16 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
 
     ideal_ids = {p["id"] for p in ideal["xi"] + ideal["bench"]}
     current_ids = {r.element["id"] for r in all_reports}
-    outgoing = [own_reports_by_id[pid] for pid in current_ids - ideal_ids]
-    incoming = [ctx.players[pid] for pid in ideal_ids - current_ids]
-
-    # Pair within position, never across it. Both squads are 2/5/5/3 by
-    # construction (squadbuilder fills exactly those quotas), so the two
-    # sides have equal counts in every position and the zip below is total.
-    # Sorting the two flat lists by price and zipping them - which is what
-    # this used to do - produced legal *squads* but nonsense *pairs*: the
-    # most expensive man leaving read as replaced by the most expensive man
-    # arriving, so a forward "became" a midfielder on screen whenever the
-    # price order happened to cross positions.
-    by_pos_out, by_pos_in = {}, {}
-    for r in outgoing:
-        by_pos_out.setdefault(r.pos, []).append(r)
-    for el in incoming:
-        by_pos_in.setdefault(ctx.pos(el), []).append(el)
-
-    pairs = []
-    for pos, outs in by_pos_out.items():
-        ins = by_pos_in.get(pos, [])
-        outs.sort(key=lambda r: -r.price)
-        ins.sort(key=lambda el: -(el["now_cost"] / 10.0))
-        if len(outs) != len(ins):
-            # Defensive: a pool too thin to fill a quota can leave these
-            # uneven. Pair what is pairable rather than dropping the lot.
-            print(f"[chips] wildcard {pos}: {len(outs)} out vs {len(ins)} in")
-        pairs.extend(zip(outs, ins))
-    # Most expensive change first, as before - now across matched pairs.
-    pairs.sort(key=lambda p: -p[0].price)
-
-    # Each move is built display-ready here, in the shape
-    # components.transfer_cards already expects (out_score/in_score need
-    # "total", "opponent", "home"; in_club is separate from in_score) -
-    # scored at the window's first gameweek, real numbers rather than
-    # placeholders, so the reused card shows an honest fixture and gain
-    # per move instead of a flat, meaningless bar.
-    moves = []
-    for out_r, in_el in pairs:
-        in_full = analysis.build_player(ctx, in_el["id"], ttl=fplapi.DEFAULT_TTL)
-        # Same scorer both sides here too - out_r has match history and
-        # in_el doesn't, so analysis.expected_points against
-        # transfers.candidate_score would flatter whichever man got the
-        # richer model on a card whose whole point is comparing the two.
-        out_score = transfers.case_score(
-            out_r.element, ctx, proj, start, market, baselines, priors
-        ) or {"total": 0.0, "opponent": "-", "home": True}
-        in_score = transfers.case_score(
-            in_el, ctx, proj, start, market, baselines, priors
-        ) or {"total": 0.0, "opponent": "-", "home": True}
-        moves.append({
-            "out": out_r, "in": in_el, "in_club": ctx.team_name(in_el["team"]),
-            "out_score": out_score, "in_score": in_score,
-            "gain": in_score["total"] - out_score["total"],
-            "price": in_el["now_cost"] / 10.0,
-            "spend": in_el["now_cost"] / 10.0 - out_r.price,
-            "in_form": in_full.recent_form(),
-        })
 
     return {
         "gw_window": (start, weeks), "gap": gap,
         "confidence": confidence(ideal["value"], [current_value]),
-        "moves": moves, "before": before, "after": after,
+        "before": before, "after": after,
+        # The proposed fifteen itself (pool-shaped: id/pos/club/price/value),
+        # for the dashboard's own mini-pitch view - "before" is just the
+        # manager's real squad, which the caller already has as full
+        # PlayerReports and has no need to get back from here.
+        "ideal_xi": ideal["xi"], "ideal_bench": ideal["bench"],
+        "incoming_ids": {p["id"] for p in ideal["xi"] + ideal["bench"]
+                         if p["id"] not in current_ids},
     }

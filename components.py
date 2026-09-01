@@ -479,15 +479,21 @@ def pairing_cards(pairings, note, hit=4):
             verdict = ('<span class="pr-no">Not worth &minus;{}</span>'
                        .format(hit))
         bank = p["bank_after"]
+        # A tag is only set on the one pairing built specifically to answer
+        # "how would I actually get the knee-jerk pick" - it needs calling
+        # out as a different kind of card, not just another top-gain pair,
+        # since it may not be the highest-gain pairing shown.
+        tag = (f'<p class="pr-tag">{e(p["tag"])}</p>' if p.get("tag") else "")
         cards.append(
             '<li class="pr-card">'
+            '{tag}'
             '<div class="pr-head"><span class="pr-total">+{gain:.2f}'
             '<small>combined</small></span>'
             '<span class="pr-hit">{after:+.2f}<small>{hitlabel}</small></span>'
             '<span class="pr-bank">{bank:.1f}m<small>bank after</small></span></div>'
             '<ul class="pr-legs">{legs}</ul>'
             '<p class="pr-foot">{verdict}</p></li>'.format(
-                gain=p["gain"], after=after, bank=bank,
+                tag=tag, gain=p["gain"], after=after, bank=bank,
                 hitlabel="no hit to pay" if free else f"after &minus;{hit}",
                 legs=legs, verdict=verdict,
             )
@@ -501,9 +507,6 @@ def pairing_cards(pairings, note, hit=4):
     )
 
 
-POS_ORDER = {"GKP": 0, "DEF": 1, "MID": 2, "FWD": 3}
-
-
 WC_STATS = (
     ("xp", "xP", "{:.1f}"),
     ("fixture", "Fixture rating", "{:.1f}"),
@@ -512,7 +515,7 @@ WC_STATS = (
 )
 
 
-def _wc_stats_block(before, after):
+def wc_stats_block(before, after):
     """Before/after across the four numbers a rebuild should actually move -
     not just "ten swaps happened" but whether the resulting XI is stronger
     on points, fixtures, underlying attacking numbers and recent form."""
@@ -537,69 +540,6 @@ def _wc_stats_block(before, after):
     return '<div class="wcstats">{}</div>'.format("".join(rows))
 
 
-def swap_table(rows, title, note, stats=None):
-    """A whole-squad rebuild as a table: out on the left, in on the right.
-
-    This used to reuse transfer_cards, which draws each swap as two large
-    portraits. That works for the three or four suggestions in "Suggested
-    transfers" and falls apart at a Wildcard's ten - and because none of
-    these rows carry a photo, every one of those portraits rendered as a
-    grey square containing the player's first initial, so the section read
-    as a wall of enormous letters. Ten moves is a list, not a gallery: one
-    row each, positions grouped, columns you can compare straight down.
-
-    `stats` is an optional (before, after) pair of XI aggregates (see
-    chips._xi_stats) rendered above the table - the rebuild's actual case,
-    not just the list of names it would take to get there."""
-    if not rows:
-        return ""
-    rows = sorted(rows, key=lambda r: (POS_ORDER.get(r["out"].pos, 9),
-                                       -r["out"].price))
-    body, seen_pos = [], None
-    for r in rows:
-        pos = r["out"].pos
-        if pos != seen_pos:
-            seen_pos = pos
-            body.append(
-                '<tr class="sw-group"><th colspan="5" scope="colgroup">'
-                '{}</th></tr>'.format(e(pos))
-            )
-        spend = r["spend"]
-        money = "free" if abs(spend) < 0.05 else "{:+.1f}m".format(-spend)
-        mcls = "sw-free" if abs(spend) < 0.05 else (
-            "sw-save" if spend < 0 else "sw-cost")
-        gain = r["gain"]
-        gcls = "sw-up" if gain > 0 else ("sw-down" if gain < 0 else "sw-flat")
-        body.append(
-            '<tr>'
-            '<td class="sw-out"><b>{out}</b><span>{oclub} &middot; {oprice:.1f}</span></td>'
-            '<td class="sw-arrow" aria-hidden="true">&rarr;</td>'
-            '<td class="sw-in"><b>{inn}</b>{duties}<span>{iclub} &middot; {iprice:.1f}</span></td>'
-            '<td class="num {mcls}">{money}</td>'
-            '<td class="num {gcls}">{gain:+.2f}</td>'
-            "</tr>".format(
-                out=e(r["out"].name), oclub=e(r["out"].team),
-                oprice=r["out"].price,
-                inn=e(r["in"]["web_name"]), iclub=e(r["in_club"]),
-                iprice=r["price"], duties=duty_badges(r["in"]),
-                mcls=mcls, money=money, gcls=gcls, gain=gain,
-            )
-        )
-    stats_html = _wc_stats_block(*stats) if stats else ""
-    if stats_html:
-        stats_html = f'<div class="card-body">{stats_html}</div>'
-    return (
-        '<details class="card collapsible swapcard"><summary class="card-head">'
-        '<h2>{title}{infobtn}</h2><span class="sub" hidden>{note}</span></summary>'
-        '{stats}'
-        '<div class="scroll"><table class="swaptbl"><thead><tr>'
-        '<th scope="col">Out</th><th scope="col"></th><th scope="col">In</th>'
-        '<th scope="col" class="num">Bank</th>'
-        '<th scope="col" class="num">Points</th></tr></thead>'
-        "<tbody>{body}</tbody></table></div></details>".format(
-            title=e(title), infobtn=info_btn(), note=e(note),
-            stats=stats_html, body="".join(body))
-    )
 
 
 STAT_ICONS = {

@@ -175,9 +175,19 @@
       var nm = selGroup.querySelector('.selname');
       ring.setAttribute('cx', g._cx);
       ring.setAttribute('cy', g._cy);
-      nm.setAttribute('x', g._cx);
-      nm.setAttribute('y', (g._cy - 16).toFixed(1));
-      nm.textContent = g._d.n;
+      // A dot that already carries a permanent label (owned, or one of the
+      // labelled outliers) would otherwise get the selection's own name
+      // drawn right on top of it - two copies of the same text, visibly
+      // overlapping. Only draw the selection name for a dot that has no
+      // label on the chart already.
+      var alreadyLabelled = g._d.mine || g.classList.contains('outlier');
+      if (alreadyLabelled) {
+        nm.textContent = '';
+      } else {
+        nm.setAttribute('x', g._cx);
+        nm.setAttribute('y', (g._cy - 16).toFixed(1));
+        nm.textContent = g._d.n;
+      }
       selGroup.removeAttribute('hidden');
       if (out) {
         out.innerHTML = '<b>' + g._d.n + '</b>' +

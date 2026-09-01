@@ -202,10 +202,10 @@ BENCH_CUSHION = 1.5
 
 def best_squad(pool, budget, bench_reserve_frac=0.12):
     """The highest-value legal 15 within budget: the XI hill-climbed for
-    value the same as best_xi, the bench filled by the same value-per-cost
-    rule from what's left rather than pure minimum price - a Wildcard
-    squad has to survive more than one week, so its bench should be able
-    to play if called on.
+    value the same as best_xi, the bench filled cheapest-first the same
+    way Free Hit's is - the standard Wildcard approach of putting as much
+    of the budget as possible into the XI and treating the bench as cheap
+    cover, not four more players worth optimizing for value.
 
     The reserve held back for that bench is the greater of a flat fraction
     and what a legal bench actually costs. The fraction alone was not safe:
@@ -242,9 +242,10 @@ def best_squad(pool, budget, bench_reserve_frac=0.12):
             pos: [p for p in players if p["id"] not in held_ids]
             for pos, players in by_pos.items()
         }
-        bench = _greedy_fill(remaining_by_pos, bench_quotas,
-                             budget - xi_cost, club_counts)
+        bench = _cheapest_fill(remaining_by_pos, bench_quotas, club_counts)
         if bench is None:
+            continue
+        if xi_cost + sum(p["price"] for p in bench) > budget + 1e-9:
             continue
 
         value = sum(p["value"] for p in picks)
