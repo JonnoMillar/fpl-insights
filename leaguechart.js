@@ -24,6 +24,21 @@
     return 'hsl(' + hue + ', 55%, 48%)';
   }
 
+  // Ticks land on whole numbers only, and always include both ends of the
+  // range - a fractional step (the old code just divided the range into a
+  // fixed number of slices) produced rounded labels that did not actually
+  // sit at the pixel row the label claimed, so gridlines skipped numbers
+  // and dots never lined up with the line beneath them.
+  function niceTicks(y0, y1, maxTicks) {
+    var lo = Math.floor(y0), hi = Math.ceil(y1);
+    if (hi <= lo) { return [lo]; }
+    var step = Math.max(1, Math.ceil((hi - lo) / maxTicks));
+    var ticks = [];
+    for (var v = lo; v < hi; v += step) { ticks.push(v); }
+    ticks.push(hi);
+    return ticks;
+  }
+
   document.querySelectorAll('.card').forEach(function (card) {
     var holder = card.querySelector('.lpchart-data');
     if (!holder) { return; }
@@ -65,14 +80,17 @@
       }
 
       var grid = node('g', { 'class': 'lpgrid' });
-      var yticks = yMode === 'position' ? Math.min(n, 6) : 5;
-      for (var i = 0; i <= yticks; i++) {
-        var yv = y0 + (y1 - y0) * i / yticks;
+      // A mini-league is rarely more than a dozen or so managers - small
+      // enough that every rank should get its own line, so a dot is never
+      // left floating between gridlines. Only thin the axis once there
+      // are genuinely too many ranks for that to stay readable.
+      var posTicks = n <= 15 ? n - 1 : 10;
+      var ticks = niceTicks(y0, y1, yMode === 'position' ? posTicks : 5);
+      ticks.forEach(function (yv) {
         var gy = sy(yv);
         grid.appendChild(node('line', { x1: ML, y1: gy, x2: W - MR, y2: gy }));
-        grid.appendChild(node('text', { x: ML - 8, y: gy + 4, 'text-anchor': 'end' },
-          yMode === 'position' ? Math.round(yv) : Math.round(yv)));
-      }
+        grid.appendChild(node('text', { x: ML - 8, y: gy + 4, 'text-anchor': 'end' }, yv));
+      });
       gws.forEach(function (gw) {
         grid.appendChild(node('text', { x: sx(gw), y: H - MB + 18, 'text-anchor': 'middle' },
           'GW' + gw));
@@ -89,6 +107,14 @@
         });
         if (pts.length < 2) { return; }
         var g = node('g', { 'class': 'lpline lpline-' + i + (s.mine ? ' lp-mine' : ''), 'data-i': i });
+        // A fat, invisible twin of the visible stroke - the real line is
+        // 1.6-3px wide, too thin a target to reliably hover, so pointer
+        // events are caught by this one instead and the drawn line stays
+        // its intended weight.
+        g.appendChild(node('polyline', {
+          points: pts.join(' '), fill: 'none', stroke: 'transparent',
+          'stroke-width': 14, 'class': 'lphit',
+        }));
         g.appendChild(node('polyline', {
           points: pts.join(' '), fill: 'none',
           stroke: colourFor(i, n, s.mine), 'stroke-width': s.mine ? 3 : 1.6,
@@ -96,13 +122,22 @@
         gws.forEach(function (gw, gi) {
           var v = s[yMode][gi];
           if (v === null || v === undefined) { return; }
+          var cx = sx(gw), cy = sy(v);
           var dot = node('circle', {
-            cx: sx(gw), cy: sy(v), r: s.mine ? 3.6 : 2.4,
+            cx: cx, cy: cy, r: s.mine ? 3.6 : 2.4,
             fill: colourFor(i, n, s.mine),
           });
           dot.appendChild(node('title', {}, s.name + ' - GW' + gw + ': ' +
             (yMode === 'position' ? ('#' + v) : (v + ' pts'))));
           g.appendChild(dot);
+          // Value labels: drawn for every point but only shown (via CSS,
+          // see .lpline.active .lpval) once this line is the one active -
+          // all of them at once would be unreadable noise on a full-season
+          // chart with a manager on every line.
+          g.appendChild(node('text', {
+            'class': 'lpval', x: cx, y: cy - (s.mine ? 8 : 6), 'text-anchor': 'middle',
+            fill: colourFor(i, n, s.mine),
+          }, v));
         });
         lines.appendChild(g);
       });
@@ -113,6 +148,7 @@
       card.querySelectorAll('.lpline').forEach(function (g) {
         var isActive = i === null || Number(g.getAttribute('data-i')) === i;
         g.classList.toggle('dim', !isActive);
+        g.classList.toggle('active', i !== null && isActive);
       });
       card.querySelectorAll('.lpleg').forEach(function (li) {
         var isActive = i === null || Number(li.getAttribute('data-i')) === i;
@@ -126,6 +162,21 @@
       li.addEventListener('mouseleave', function () { setActive(null); });
       li.addEventListener('focus', function () { setActive(i); });
       li.addEventListener('blur', function () { setActive(null); });
+    });
+
+    // Hovering the line itself (or any of its dots) fades the rest of the
+    // chart exactly the way hovering its name in the legend below does -
+    // one interaction, two ways to reach it.
+    svg.addEventListener('mouseover', function (ev) {
+      var g = ev.target.closest ? ev.target.closest('.lpline') : null;
+      if (g) { setActive(Number(g.getAttribute('data-i'))); }
+    });
+    svg.addEventListener('mouseout', function (ev) {
+      var g = ev.target.closest ? ev.target.closest('.lpline') : null;
+      if (!g) { return; }
+      var to = ev.relatedTarget;
+      if (to && g.contains(to)) { return; }
+      setActive(null);
     });
 
     card.querySelectorAll('.lpbtn').forEach(function (b) {

@@ -627,6 +627,12 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .lpgrid text{fill:var(--on-surface-variant); font-size:10px; font-variant-numeric:tabular-nums}
 .lpline{transition:opacity .15s}
 .lpline.dim{opacity:.15}
+.lphit{cursor:pointer}
+.lpval{
+  font-size:10px; font-weight:700; font-variant-numeric:tabular-nums;
+  opacity:0; transition:opacity .15s; pointer-events:none;
+}
+.lpline.active .lpval{opacity:1}
 .lplegend{
   list-style:none; margin:12px 0 0; padding:0; display:flex; flex-wrap:wrap;
   gap:8px 14px; font-size:12px;
@@ -1349,6 +1355,7 @@ table td.tick{border:2px solid var(--surface)}
   grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px}
 .df-card{display:flex; gap:14px; align-items:center;
   background:var(--surface-variant); border-radius:var(--radius-m); padding:12px}
+.df-frame{position:relative; flex:none}
 .df-photo{width:84px; height:106px; border-radius:var(--radius-s);
   object-fit:cover; background:var(--surface); flex:none}
 .df-blank{display:grid; place-items:center; font-size:34px; font-weight:700;
@@ -1493,7 +1500,7 @@ table td.tick{border:2px solid var(--surface)}
    set-piece card three sections away. */
 .duty-badges{display:inline-flex; gap:2px; vertical-align:middle}
 .duty-badges .spicon{width:11px; height:11px; color:var(--accent-ink)}
-.tf-frame .duty-badges,.pr-frame .duty-badges{
+.tf-frame .duty-badges,.pr-frame .duty-badges,.df-frame .duty-badges{
   position:absolute; top:-4px; left:-4px; background:var(--surface);
   border-radius:var(--radius-xs); padding:2px; box-shadow:0 1px 3px rgb(0 0 0 / 20%);
 }
@@ -3048,13 +3055,20 @@ def collapsed_finding(fnd):
 
 
 def template_xi(own, by_name, ctx):
-    """The most-owned legal eleven in the mini-league.
+    """The most-started legal eleven in the mini-league.
 
     Not simply the eleven most-owned players: that could be six defenders and
-    no keeper. Every legal shape is tried - one keeper, three to five
+    no keeper. It is also not raw squad ownership, which was the actual bug
+    here - a cheap enabler bought purely to free up budget and left on the
+    bench everywhere ends up "owned" by half the league without ever being
+    part of anyone's eleven. Ranking by how often a player is actually
+    started fixes that without a hand-picked price cutoff to call something
+    an "enabler". Every legal shape is tried - one keeper, three to five
     defenders, two to five midfielders, one to three forwards, eleven in all -
-    and the one with the most total ownership wins, which is what "the
-    template" actually means."""
+    and the one with the most total starts wins, which is what "the
+    template" actually means. Ties go to the pricier player: when two
+    players are started equally often, the more expensive one is the one
+    actually earning that XI slot rather than sitting in it as a value pick."""
     n = len(by_name)
     if not own or not n:
         return None
@@ -3063,9 +3077,9 @@ def template_xi(own, by_name, ctx):
         el = ctx.players.get(pid)
         if not el:
             continue
-        pools[ctx.pos(el)].append((len(rec["owners"]), el, rec))
+        pools[ctx.pos(el)].append((len(rec["starters"]), el, rec))
     for key in pools:
-        pools[key].sort(key=lambda x: (-x[0], -x[1]["total_points"]))
+        pools[key].sort(key=lambda x: (-x[0], -x[1]["now_cost"], -x[1]["total_points"]))
 
     best, best_total = None, -1
     for d in range(3, 6):
@@ -3102,12 +3116,12 @@ def template_pitch(tpl, ctx, shirts, my_name):
                 f'<img class="kit" src="{shirt}" alt="{e(ctx.team_name(el["team"]))}">'
                 if shirt else f'<span class="letters">{e(ctx.team_name(el["team"]))}</span>'
             )
-            mine = my_name in rec["owners"]
+            mine = my_name in rec["starters"]
             pct = 100.0 * count / n
             cards.append(
                 f'<div class="pl{" tpl-mine" if mine else ""}" '
                 f'data-player="{el["id"]}" role="button" tabindex="0" '
-                f'title="{e(el["web_name"])} - owned by {count} of {n}'
+                f'title="{e(el["web_name"])} - started by {count} of {n}'
                 f'{" including you" if mine else ", not by you"}">'
                 f'<div class="crest">{crest}</div>'
                 f'<div class="nm">{e(el["web_name"])}</div>'
@@ -3118,11 +3132,11 @@ def template_pitch(tpl, ctx, shirts, my_name):
             rows.append(f'<div class="row">{"".join(cards)}</div>')
     owned_by_you = sum(
         1 for group in tpl["picks"].values() for _c, _el, rec in group
-        if my_name in rec["owners"]
+        if my_name in rec["starters"]
     )
     return (
         f'<section class="card"><div class="card-head"><h2>League template{components.info_btn()}</h2>'
-        f'<span class="sub" hidden>The most-owned legal eleven across {n} managers, '
+        f'<span class="sub" hidden>The most-started legal eleven across {n} managers, '
         f'in a {tpl["shape"]}. You have {owned_by_you} of them &mdash; the rest '
         "is where your rank moves.</span></div>"
         f'<div class="pitch tplpitch">{"".join(rows)}</div></section>'
@@ -3155,6 +3169,7 @@ def differential_watchlist(own, ctx, proj, market, baselines, next_gw, squad_ids
             "club": ctx.team_name(el["team"]), "price": el["now_cost"] / 10.0,
             "ep": s["total"], "opponent": s["opponent"], "home": s["home"],
             "owned_pct": f(el.get("selected_by_percent")),
+            "duties": components.duty_badges(el),
         })
     rows.sort(key=lambda r: -r["ep"])
     return rows[:limit]
@@ -3175,7 +3190,7 @@ def differential_watchlist_card(rows, photos, weeks):
         )
         fixture = f'{"vs" if r["home"] else "at"} {e(r["opponent"])}'
         cards.append(
-            f'<li class="df-card">{face}'
+            f'<li class="df-card"><div class="df-frame">{face}{r["duties"]}</div>'
             f'<div class="df-body"><p class="df-name">{e(r["name"])}</p>'
             f'<p class="df-meta">{e(r["pos"])} &middot; '
             f'{e(r["club"])} &middot; {r["price"]:.1f}m</p>'
@@ -3979,6 +3994,12 @@ def league_table(rows, squads, ctx, me):
     maxx = max(
         [analysis.squad_underlying(p, ctx)["xgi"] for p in squads.values()] + [0.01]
     )
+    # This gameweek's high and low score, and each row's movement since last
+    # week - nuggets the raw numbers already carry but the table never
+    # pointed at. Skipped when everyone's level, which is common in GW1.
+    gw_scores = [r["event_total"] for r in rows]
+    best_gw, worst_gw = max(gw_scores), min(gw_scores)
+    show_gw_tags = best_gw != worst_gw
     body = []
     for r in rows:
         picks = squads.get(r["entry"])
@@ -3995,12 +4016,29 @@ def league_table(rows, squads, ctx, me):
             if cid and cid in ctx.players:
                 cap = ctx.players[cid]["web_name"]
         cls = ' class="me"' if me and r["entry"] == me else ""
+        move = (r["last_rank"] - r["rank"]) if r.get("last_rank") else None
+        if move is None:
+            move_html = ""
+        elif move > 0:
+            move_html = (f' <span class="delta delta-up" '
+                         f'title="Up {move} since last gameweek">{move}</span>')
+        elif move < 0:
+            move_html = (f' <span class="delta delta-down" '
+                         f'title="Down {abs(move)} since last gameweek">{abs(move)}</span>')
+        else:
+            move_html = (' <span class="delta delta-flat" '
+                         'title="Unchanged since last gameweek">-</span>')
+        gw_tag = ""
+        if show_gw_tags and r["event_total"] == best_gw:
+            gw_tag = ' <span class="good-pill" title="Highest score this gameweek">Top</span>'
+        elif show_gw_tags and r["event_total"] == worst_gw:
+            gw_tag = ' <span class="bad-pill" title="Lowest score this gameweek">Low</span>'
         body.append(
             f"<tr{cls}>"
-            f'<td class="num">{r["rank"]}</td>'
+            f'<td class="num" data-v="{r["rank"]}">{r["rank"]}{move_html}</td>'
             f'<td><b>{e(r["entry_name"])}</b></td>'
             f'<td>{e(r["player_name"])}</td>'
-            f'<td class="num">{r["event_total"]}</td>'
+            f'<td class="num" data-v="{r["event_total"]}">{r["event_total"]}{gw_tag}</td>'
             f'<td class="num"><b>{r["total"]}</b></td>'
             f"<td>{e(cap)}</td>"
             f"<td>{e(chip)}</td>"
@@ -4082,6 +4120,21 @@ def ownership_cards(own, by_name, ctx, my_name):
             for pid, who in sorted(caps.items(), key=lambda kv: -len(kv[1]))
         ]
         blocks.append(analysis._finding("c", "Captain picks", "info", items))
+
+    # Same "this gameweek's decisions" moment as captain picks above, the
+    # other place a decision this week actually cost points - who left the
+    # most on the bench, from the entry histories already fetched for the
+    # league table and chips table, so no extra requests.
+    bench = sorted(
+        ((name, p.get("entry_history", {}).get("points_on_bench", 0))
+         for name, p in by_name.items()),
+        key=lambda kv: -kv[1],
+    )
+    bench = [kv for kv in bench if kv[1] > 0][:5]
+    if bench:
+        items = [f"{name} - {pts} point{'s' if pts != 1 else ''} benched"
+                 for name, pts in bench]
+        blocks.append(analysis._finding("b", "Points left on the bench", "warn", items))
 
     return findings_cards(blocks)
 
