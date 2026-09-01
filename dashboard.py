@@ -3064,6 +3064,73 @@ def template_pitch(tpl, ctx, shirts, my_name):
     )
 
 
+def differential_watchlist(own, ctx, proj, market, baselines, next_gw, squad_ids,
+                           limit=6):
+    """Players performing well that nobody in this league owns - not you,
+    not any rival.
+
+    Scored with transfers.case_score, the same several-week, form-and-
+    underlying-numbers logic the Planning tab's transfer suggestions use -
+    "performing well" means the same thing here as everywhere else that
+    phrase appears on this page, not a separate reading of the numbers."""
+    if not own:
+        return []
+    priors = transfers.positional_priors(ctx)
+    owned_ids = set(own.keys()) | set(squad_ids)
+    rows = []
+    for el in ctx.players.values():
+        pid = el["id"]
+        if pid in owned_ids or not transfers._eligible(el, ctx):
+            continue
+        s = transfers.case_score(el, ctx, proj, next_gw, market, baselines, priors)
+        if not s or s["total"] <= 0:
+            continue
+        rows.append({
+            "id": pid, "name": el["web_name"], "pos": ctx.pos(el),
+            "club": ctx.team_name(el["team"]), "price": el["now_cost"] / 10.0,
+            "ep": s["total"], "opponent": s["opponent"], "home": s["home"],
+            "owned_pct": f(el.get("selected_by_percent")),
+        })
+    rows.sort(key=lambda r: -r["ep"])
+    return rows[:limit]
+
+
+def differential_watchlist_card(rows, photos, weeks):
+    """The Your differentials card, run the other direction and forward-
+    looking: not what you already hold that's rare, but what's rare and
+    still worth going and getting."""
+    if not rows:
+        return ""
+    cards = []
+    for r in rows:
+        el_photo = photos.get(r["id"])
+        face = (
+            f'<img class="df-photo" src="{el_photo}" alt="" width="84" height="106">'
+            if el_photo else f'<div class="df-photo df-blank">{e(r["name"][:1])}</div>'
+        )
+        fixture = f'{"vs" if r["home"] else "at"} {e(r["opponent"])}'
+        cards.append(
+            f'<li class="df-card">{face}'
+            f'<div class="df-body"><p class="df-name">{e(r["name"])}</p>'
+            f'<p class="df-meta">{e(r["pos"])} &middot; '
+            f'{e(r["club"])} &middot; {r["price"]:.1f}m</p>'
+            f'<dl class="df-stats">'
+            f'<div><dt>{weeks}-week</dt><dd>{r["ep"]:.1f}</dd></div>'
+            f'<div><dt>Next</dt><dd>{fixture}</dd></div>'
+            f'<div><dt>Owned</dt><dd>{r["owned_pct"]:.0f}%</dd></div>'
+            f"</dl></div></li>"
+        )
+    return (
+        '<section class="card"><div class="card-head">'
+        f'<h2>Differential watchlist{components.info_btn()}</h2>'
+        '<span class="sub" hidden>Nobody in this league owns these - scored the '
+        f'same way as every transfer suggestion on the Planning tab, over the '
+        f'next {weeks} gameweeks.</span></div>'
+        f'<div class="card-body"><ul class="dflist">{"".join(cards)}</ul></div>'
+        "</section>"
+    )
+
+
 def differential_card(own, by_name, ctx, my_name, photos):
     """Players only you own, given room and a face.
 
@@ -4094,6 +4161,7 @@ def render(d, standalone=True):
     {d['template']}
     {d['carousel']}
     {d['differentials']}
+    {d['watchlist']}
     {d['rivals']}
     <section>{d['ownership']}</section>
     <section class="card">
@@ -4367,6 +4435,14 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         league_photos.setdefault(row["id"], fplapi.photo_data_uri(
             ctx.players[row["id"]]["photo"]))
 
+    watchlist_rows = []
+    if own and proj:
+        watchlist_rows = differential_watchlist(
+            own, ctx, proj, market, baselines, next_gw, squad_ids)
+        for row in watchlist_rows:
+            league_photos.setdefault(row["id"], fplapi.photo_data_uri(
+                ctx.players[row["id"]]["photo"]))
+
     # Same graceful-degradation shape ticker.fixture_ticker already uses
     # for the same reason: if proj never arrived this build, there is
     # nothing honest to recommend, so the whole card skips rather than
@@ -4474,6 +4550,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "carousel": ownership_carousel(own, by_name, ctx, my_name) if own else "",
         "template": template_pitch(tpl, ctx, shirts, my_name),
         "differentials": differential_card(own, by_name, ctx, my_name, league_photos),
+        "watchlist": differential_watchlist_card(
+            watchlist_rows, league_photos, transfers.TRANSFER_HORIZON_WEEKS),
         "rivals": rivals_card(rivals_rows, rivals_window_rows,
                               max(0, len(by_name) - 1), league_photos,
                               weeks=RIVALS_WINDOW_WEEKS),
