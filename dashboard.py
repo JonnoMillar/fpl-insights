@@ -259,6 +259,11 @@ a{color:inherit}
   border-radius:9999px; font-family:var(--mono); font-size:12px;
   font-weight:600; background:var(--bad-wash); color:var(--bad-ink);
 }
+.warn-pill{
+  display:inline-flex; align-items:center; gap:4px; padding:1px 7px;
+  border-radius:9999px; font-family:var(--mono); font-size:12px;
+  font-weight:600; background:var(--warn-wash); color:var(--warn-ink);
+}
 
 /* --- app chrome --- */
 .topbar{
@@ -1023,14 +1028,20 @@ table td.tick{border:2px solid var(--surface)}
   letter-spacing:.06em; color:var(--on-surface-variant); min-width:7em;
   text-align:center;
 }
-.lc-donut-row{display:flex; justify-content:center; margin-bottom:10px}
+/* Boxed the same way the mini-league ownership doughnuts are - a surface
+   tint and real padding round the ring, rather than it floating loose
+   against the card background with only a margin to separate it. */
+.lc-donut-row{
+  display:flex; justify-content:center; margin-bottom:10px;
+  padding:14px 8px; border-radius:var(--radius-m); background:var(--surface-variant);
+}
 .lcpanel{
   padding-top:10px; border-top:1px solid var(--outline-variant);
 }
 .lc-clear{margin:0; font-size:12px; color:var(--on-surface-variant); text-align:center}
 .lc-block + .lc-block{margin-top:10px}
 .lc-block h4{
-  margin:0 0 5px; display:flex; align-items:center; gap:6px;
+  margin:0 0 5px; padding:0 14px; display:flex; align-items:center; gap:6px;
   font-size:11px; font-weight:700; text-transform:uppercase;
   letter-spacing:.05em;
 }
@@ -1248,8 +1259,11 @@ table td.tick{border:2px solid var(--surface)}
   font-weight:700; font-variant-numeric:tabular-nums;
 }
 .fxtable thead th{white-space:nowrap}
-/* A fixture rated above 9 is rare enough to earn its own look rather than
-   blend into the top step of the ordinary five-band scale. */
+/* The page's one "top reward" look - green through silver to blue - kept
+   for the rare figure that earns its own treatment rather than blending
+   into the top step of an ordinary scale. A fixture rated above 9 is the
+   current holder; reach for this class again elsewhere only when a stat
+   is genuinely that rare, not as decoration for an everyday good number. */
 .fx-premium{
   background:linear-gradient(135deg, #0c6e55 0%, #c9d3d9 52%, #1b5ce0 100%);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.5);
@@ -1432,6 +1446,10 @@ table td.tick{border:2px solid var(--surface)}
 .slname{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .slteam{font-size:10px; color:var(--on-surface-variant)}
 .slval{margin-left:auto; font-weight:700; font-variant-numeric:tabular-nums}
+/* A paired stat (big chances, chances) reads as one bold headline number
+   with the second figure along for context, not two numbers of equal
+   weight fighting for the eye. */
+.slval .pairsub{font-weight:400; color:var(--on-surface-variant); font-size:12px}
 .findnote{
   margin:0 0 12px; padding:9px 13px; font-size:13px;
   color:var(--on-surface-variant); background:var(--surface);
@@ -1526,7 +1544,7 @@ table td.tick{border:2px solid var(--surface)}
 .epbar .seg:last-child{box-shadow:none}
 .eptot{text-align:right; font-weight:700; font-size:15px}
 .eplegend{
-  display:flex; flex-wrap:wrap; gap:14px; margin:14px 0 0;
+  display:flex; flex-wrap:wrap; gap:14px; margin:14px 0 0; padding:0 14px;
   font-size:12px; color:var(--on-surface-variant);
 }
 .epkey{display:flex; align-items:center; gap:6px}
@@ -1573,8 +1591,8 @@ table td.tick{border:2px solid var(--surface)}
   font-family:var(--mono); font-size:11px; color:var(--on-surface-variant);
   text-align:right; white-space:nowrap;
 }
-.dcr .good-pill,.dcr .bad-pill{white-space:nowrap; justify-self:end}
-.good-pill,.bad-pill{white-space:nowrap}
+.dcr .good-pill,.dcr .bad-pill,.dcr .warn-pill{white-space:nowrap; justify-self:end}
+.good-pill,.bad-pill,.warn-pill{white-space:nowrap}
 .dcfill{position:absolute; top:8px; height:7px; border-radius:9999px}
 .dcmark{
   position:absolute; top:3px; width:2px; height:17px;
@@ -1706,6 +1724,12 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
   border-radius:9999px; background:var(--accent-wash); color:var(--accent-ink);
 }
 .arr-isdef .arr-total{color:var(--accent-ink)}
+/* Rows with no .arr-detail column (e.g. big chances/chances) have nothing
+   else to carry the flex auto-margin that pushes the total flush right. */
+.arr-nodetail .arr-total{margin-left:auto}
+/* A paired stat (big chances, chances) reads as one bold headline number
+   with the second figure along for context, not two of equal weight. */
+.arr-total .pairsub{font-weight:400; font-size:13px; color:var(--on-surface-variant)}
 
 /* --- match logs --- */
 details{border-bottom:1px solid var(--outline-variant)}
@@ -2586,7 +2610,12 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
         total = len(rows)
         starting = total - len(out) - len(unknown)
         pct = (starting / total * 100) if total else 0.0
-        tone = ("var(--good-ink)" if pct >= 90 else
+        # A clean sweep gets the same bright accent green as the set-piece
+        # card's "1" badge - the colour this page already uses to say "this
+        # one's the best of its kind" - rather than the duller ink tone that
+        # merely clearing 90% gets.
+        tone = ("var(--accent)" if starting == total and total else
+                "var(--good-ink)" if pct >= 90 else
                 "var(--warn-ink)" if pct >= 60 else "var(--bad-ink)")
         if not total:
             body = '<p class="lc-clear">Nobody in this group.</p>'
@@ -2606,7 +2635,7 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
             f'{" hidden" if i else ""}>'
             '<div class="lc-donut-row">'
             + donut(pct, f"{label} - {starting} of {total} predicted to start",
-                    f"{starting}/{total}", "predicted to start", tone)
+                    f"{starting}/{total}", "starting", tone)
             + f"</div>{body}</div>"
         )
 
@@ -2658,6 +2687,39 @@ def attacking_returns_card(reports):
         '<p class="note" hidden>Goals and assists combined, one number per player. '
         "A defender's return is marked - the same haul is worth more from the "
         "back than from the front.</p>"
+        f'<ul class="arrlist">{items}</ul></div>'
+    )
+
+
+def big_chances_card(reports):
+    """Big chances created, with the wider chances-created figure alongside.
+
+    A big chance is a clear opening - a subset of every chance created - so
+    the two numbers belong on one row, not two cards that happen to share a
+    subject. Ranked on the big-chance figure, since that is the rarer, more
+    valuable half."""
+    rows = []
+    for r in reports:
+        ps = r.element.get("_pulse") or {}
+        bcc = ps.get("big_chance_created")
+        if not bcc:
+            continue
+        rows.append((r.name, r.team, bcc, ps.get("total_att_assist") or 0))
+    if not rows:
+        return ""
+    rows.sort(key=lambda x: (-x[2], -x[3]))
+    items = "".join(
+        '<li class="arr arr-nodetail"><span class="arr-name">{name}</span>'
+        '<span class="arr-club">{club}</span>'
+        '<span class="arr-total num"><b>{bcc:g}</b>'
+        '<span class="pairsub">, {tac:g}</span></span></li>'.format(
+            name=e(name), club=e(club), bcc=bcc, tac=tac)
+        for name, club, bcc, tac in rows
+    )
+    return (
+        f'<div class="find gapcard"><h3>Big chances/chances{components.info_btn()}</h3>'
+        '<p class="note" hidden>Shown as big chances, chances - a big chance is a '
+        "clear opening, a chance is any pass leading to a shot.</p>"
         f'<ul class="arrlist">{items}</ul></div>'
     )
 
@@ -2766,6 +2828,9 @@ def findings_section(finds, reports, ctx, proj=None, market=None, next_gw=None,
     ar = attacking_returns_card(reports)
     if ar:
         cards.append(ar)
+    bc = big_chances_card(reports)
+    if bc:
+        cards.append(bc)
     fsw = fixture_swings_card(reports, ctx, proj, market, next_gw)
     if fsw:
         cards.append(fsw)
@@ -3363,8 +3428,7 @@ def leader_groups(ctx, squad_ids, depth=4, min_minutes=45):
     ]
     mine = set(squad_ids)
 
-    def build(title, note, icon, tone, key, fmt="{:.2f}", ascending=False,
-              opta=False, positions=None):
+    def _rank(key, fmt, ascending, opta, positions):
         rows = []
         for el in pool:
             if positions and ctx.pos(el) not in positions:
@@ -3377,12 +3441,41 @@ def leader_groups(ctx, squad_ids, depth=4, min_minutes=45):
                 continue
             rows.append((value, el))
         rows.sort(key=lambda x: (x[0] if ascending else -x[0]))
+        return [
+            (el["web_name"], ctx.team_name(el["team"]), fmt.format(v),
+             el["id"] in mine)
+            for v, el in rows[:depth]
+        ]
+
+    def build(title, note, icon, tone, key, fmt="{:.2f}", ascending=False,
+              opta=False, positions=None):
         return {
             "title": title, "note": note, "icon": icon, "tone": tone,
+            "rows": _rank(key, fmt, ascending, opta, positions),
+        }
+
+    def build_pair(title, note, icon, tone, primary_key, secondary_key):
+        # One player per row, ranked on the primary measure, with a second
+        # measure of the same family shown alongside rather than as a card
+        # of its own - "how many big chances" and "how many chances overall"
+        # are the same question asked at two thresholds, and a big chance is
+        # a subset of a chance, so the pair is one player's answer, not two
+        # separate leaderboards that happen to share a topic.
+        rows = []
+        for el in pool:
+            ps = el.get("_pulse") or {}
+            primary = ps.get(primary_key)
+            if not primary:
+                continue
+            rows.append((primary, ps.get(secondary_key) or 0, el))
+        rows.sort(key=lambda x: (-x[0], -x[1]))
+        return {
+            "title": title, "note": note, "icon": icon, "tone": tone,
+            "pair": True,
             "rows": [
-                (el["web_name"], ctx.team_name(el["team"]), fmt.format(v),
+                (el["web_name"], ctx.team_name(el["team"]), primary, secondary,
                  el["id"] in mine)
-                for v, el in rows[:depth]
+                for primary, secondary, el in rows[:depth]
             ],
         }
 
@@ -3393,16 +3486,20 @@ def leader_groups(ctx, squad_ids, depth=4, min_minutes=45):
               "expected_assists"),
         build("Goal involvement", "xG plus xA", "spark", "#e6007e",
               "expected_goal_involvements"),
-        build("Chances created", "Passes leading to a shot", "boot", "#e07b00",
-              "total_att_assist", fmt="{:.0f}", opta=True),
-        build("Big chances created", "Passes setting up a clear opening",
-              "run", "#00a35c", "big_chance_created", fmt="{:.0f}", opta=True),
+        build_pair(
+            "Big chances/chances",
+            "Shown as big chances, chances - a big chance is a clear "
+            "opening, a chance is any pass leading to a shot",
+            "run", "#00a35c", "big_chance_created", "total_att_assist",
+        ),
         # Was #7d5980, which is var(--p70) - the secondary-text token. A card
         # ruled and iconed in the same colour as its own small print looked
         # switched off next to the other five.
         build("Fewest goals expected against", "xGC, defenders and keepers",
               "shield", "#1b5ce0", "expected_goals_conceded", ascending=True,
               positions=("GKP", "DEF")),
+        build("Defensive contributions", "Tackles, recoveries and blocks banked this season",
+              "shield", "#e07b00", "defensive_contribution", fmt="{:.0f}"),
     ]
     return [g for g in groups if g["rows"]]
 

@@ -171,9 +171,18 @@ def defcon_bars(rows):
         over = rate >= threshold
         colour = "var(--good)" if over else "var(--warn)"
         # Hit rate is the part that decides whether the rate is real, so it
-        # gets the highlight when it is perfect: clearing the threshold in
-        # every appearance is the strongest thing this card can say.
-        hit_cls = "good-pill" if apps and hits == apps else "dchits"
+        # gets a three-way read rather than a binary one: a perfect record
+        # is the strongest thing this card can say, missing every game is
+        # the weakest, and a mixed record sits visibly between the two
+        # rather than reading the same as zero.
+        if not apps:
+            hit_cls = "dchits"
+        elif hits == apps:
+            hit_cls = "good-pill"
+        elif hits == 0:
+            hit_cls = "bad-pill"
+        else:
+            hit_cls = "warn-pill"
         items.append(
             '<li class="dcr"><span class="dcname">{}</span>'
             '<span class="dctrack">'
@@ -621,27 +630,42 @@ def stat_leaders(groups):
     Narrow columns rather than one wide table: these are six separate
     questions, not six columns of one, and side by side they take a fraction
     of the height a table of the same content would."""
-    cards = []
-    for g in groups:
-        if not g["rows"]:
-            continue
-        items = "".join(
+    def _items(rows, pair):
+        if pair:
+            return "".join(
+                '<li{cls}><span class="slrank">{i}</span>'
+                '<span class="slname">{name}</span>'
+                '<span class="slteam">{team}</span>'
+                '<span class="slval"><b>{p:g}</b>'
+                '<span class="pairsub">, {s:g}</span></span></li>'.format(
+                    cls=' class="mine"' if mine else "",
+                    i=i, name=e(name), team=e(team), p=p, s=s)
+                for i, (name, team, p, s, mine) in enumerate(rows, 1)
+            )
+        return "".join(
             '<li{cls}><span class="slrank">{i}</span>'
             '<span class="slname">{name}</span>'
             '<span class="slteam">{team}</span>'
             '<span class="slval">{val}</span></li>'.format(
                 cls=' class="mine"' if mine else "",
                 i=i, name=e(name), team=e(team), val=e(val))
-            for i, (name, team, val, mine) in enumerate(g["rows"], 1)
+            for i, (name, team, val, mine) in enumerate(rows, 1)
         )
+
+    cards = []
+    for g in groups:
+        if not g["rows"]:
+            continue
+        body = '<ol class="sllist">{}</ol>'.format(
+            _items(g["rows"], g.get("pair", False)))
         cards.append(
             '<li class="slcard" style="--accent:{tone}">'
             '<h4><svg viewBox="0 0 24 24" class="slicon" aria-hidden="true">{icon}</svg>'
             "{title}</h4>"
             '<p class="slnote">{note}</p>'
-            '<ol class="sllist">{items}</ol></li>'.format(
+            '{body}</li>'.format(
                 tone=g["tone"], icon=STAT_ICONS.get(g["icon"], ""),
-                title=e(g["title"]), note=e(g["note"]), items=items,
+                title=e(g["title"]), note=e(g["note"]), body=body,
             )
         )
     if not cards:
