@@ -874,6 +874,34 @@ table td.tick{border:2px solid var(--surface)}
 .cp-conf-flexible{background:var(--outline-variant); color:var(--on-surface-variant)}
 .cp-used-tag{font-size:11px; color:var(--on-surface-variant); margin-top:8px}
 
+/* --- predicted line-ups card -------------------------------------------
+   A count and an exception list. Fifteen rows saying "starting" is fifteen
+   rows of nothing. */
+.lc-count{
+  display:flex; align-items:center; gap:7px; margin:0 0 10px;
+  padding-bottom:10px; border-bottom:1px solid var(--outline-variant);
+}
+.lc-count .ic{width:19px; height:19px; color:var(--good-ink); flex:none}
+.lc-count b{font-size:21px; font-weight:700; line-height:1}
+.lc-count span{font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--on-surface-variant)}
+.lc-clear{margin:0; font-size:12px; color:var(--on-surface-variant)}
+.lc-block + .lc-block{margin-top:10px}
+.lc-block h4{
+  margin:0 0 5px; display:flex; align-items:center; gap:6px;
+  font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.lc-block h4 .ic{width:14px; height:14px; flex:none}
+.lc-out h4{color:var(--bad-ink)}
+.lc-unk h4{color:var(--warn-ink)}
+.lc-block ul{list-style:none; margin:0; padding:0; display:grid; gap:5px}
+.lc-block li{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
+.lc-name{font-size:13px; font-weight:600}
+.lc-club{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
+  color:var(--p50)}
+.lc-fx{margin-left:auto; display:flex; gap:3px}
+
 /* --- wildcard / bench boost rebuild table -------------------------------
    Column against column, the same grammar as Squad detail, because ten
    swaps is a list to be compared down the page and not a gallery. */
@@ -1125,10 +1153,17 @@ table td.tick{border:2px solid var(--surface)}
   background:var(--surface-variant); border-radius:var(--radius-m);
   padding:12px 12px 10px; border-top:3px solid var(--accent);
 }
+/* Ink, not the card's own tone. Six cards were each colouring their
+   heading with an arbitrary hue, and two of those hues - a muted purple
+   that is literally the secondary-text token, and a dark magenta - came
+   out reading as disabled text. The tone survives on the rule and the
+   icon, which is enough to tell six cards apart; legibility should not
+   depend on which measure a card happens to be about. */
 .slcard h4{
   margin:0; font-size:12px; text-transform:uppercase; letter-spacing:.04em;
-  display:flex; align-items:center; gap:7px; color:var(--accent);
+  display:flex; align-items:center; gap:7px; color:var(--on-surface);
 }
+.slicon{color:var(--accent)}
 .slicon{width:17px; height:17px; flex:none}
 .slnote{margin:2px 0 8px; font-size:11px; color:var(--on-surface-variant)}
 .sllist{list-style:none; margin:0; padding:0; display:flex;
@@ -1139,8 +1174,12 @@ table td.tick{border:2px solid var(--surface)}
   font-weight:700; display:grid; place-items:center;
   background:var(--outline-variant); color:var(--on-surface-variant);
 }
-.sllist li.mine .slrank{background:var(--accent); color:#fff}
-.sllist li.mine .slname{font-weight:700}
+/* Your own players are the one thing worth spotting across all six cards,
+   so they are marked the same green everywhere rather than in whatever
+   hue the card was assigned - which also retires white-on-#01fc7a. */
+.sllist li.mine .slrank{background:var(--good); color:var(--ink)}
+.sllist li.mine .slname{font-weight:700; color:var(--on-surface)}
+.sllist li.mine .slval{color:var(--good-ink)}
 .slname{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .slteam{font-size:10px; color:var(--on-surface-variant)}
 .slval{margin-left:auto; font-weight:700; font-variant-numeric:tabular-nums}
@@ -2113,7 +2152,75 @@ def ep_card(eps, gw):
     )
 
 
-def findings_section(finds, reports, ctx):
+def _next_three(r, ctx, proj, market, next_gw):
+    """Three fixture pills for one player, market-rated where the odds
+    priced the game and on FPL's own difficulty rating where they did not."""
+    pills = "".join(
+        ticker.rating_pill(row["opp"], row["home"], row["score"])
+        for row in ticker._rows_for(r.team, proj, market, next_gw, 3)
+    )
+    return pills or "".join(
+        fdr_pill(ctx.team_name(o), h, d)
+        for o, h, d, _ev in ctx.next_fixtures(r.element["team"], 3)
+    )
+
+
+def lineup_card(reports, ctx, proj, market, next_gw):
+    """Who is predicted to start, as a count and then an exception list.
+
+    Fifteen rows saying "predicted to start" is fifteen rows of nothing:
+    the information is entirely in the handful who are not, and in how many
+    that is. So the count leads with a tick, and only the men who need a
+    decision are named - each with the three fixtures that decide whether
+    he is worth keeping through it.
+
+    Unknown is kept separate from no. Fantasy Football Scout not having
+    published a side yet is a gap in the feed; being left out of a
+    published side is a fact about the player."""
+    if not ctx.lineups_known():
+        return ""
+    out, unknown = [], []
+    for r in reports:
+        pred = ctx.is_predicted(r.element)
+        if pred is False:
+            out.append(r)
+        elif pred is None:
+            unknown.append(r)
+    total = len(reports)
+    starting = total - len(out) - len(unknown)
+
+    def block(rows, cls, label):
+        if not rows:
+            return ""
+        items = "".join(
+            f'<li><span class="lc-name">{e(r.name)}</span>'
+            f'<span class="lc-club">{e(r.team)}</span>'
+            f'<span class="lc-fx">{_next_three(r, ctx, proj, market, next_gw)}'
+            f"</span></li>"
+            for r in rows
+        )
+        return (f'<div class="lc-block {cls}"><h4>{WARN_SVG}{e(label)}</h4>'
+                f"<ul>{items}</ul></div>")
+
+    if not out and not unknown:
+        body = ('<p class="lc-clear">Every one of them is named in a '
+                'published side. Nothing to decide here.</p>')
+    else:
+        body = (block(out, "lc-out", "Left out of the predicted eleven")
+                + block(unknown, "lc-unk", "No side published yet"))
+
+    return (
+        '<div class="find gapcard lccard"><h3>Predicted line-ups</h3>'
+        '<p class="note">Fantasy Football Scout\'s predicted elevens, with '
+        'the next three fixtures for anyone missing from one. They are '
+        're-tuned after each press conference, so they sharpen closer to '
+        'the deadline.</p>'
+        f'<p class="lc-count">{TICK_SVG}<b class="num">{starting}/{total}</b>'
+        f"<span>predicted to start</span></p>{body}</div>"
+    )
+
+
+def findings_section(finds, reports, ctx, proj=None, market=None, next_gw=None):
     """Findings, with the ones that have a shape drawn rather than listed.
 
     Three of these are genuinely numeric comparisons and were being written
@@ -2121,7 +2228,8 @@ def findings_section(finds, reports, ctx):
     contribution is a distance to a threshold, and both read better as marks
     than as prose. The rest stay as lists, because a set-piece order or an
     injury note is text and dressing it up as a chart would be decoration."""
-    drawn = {"cold", "hot", "defcon", "bcm", "setpieces", "sample", "price"}
+    drawn = {"cold", "hot", "defcon", "bcm", "setpieces", "sample", "price",
+             "lineups"}
 
     gaps = [
         (r.name, r.goals, r.xg)
@@ -2155,6 +2263,9 @@ def findings_section(finds, reports, ctx):
         groups.append((key, title, rows))
 
     cards = []
+    lu = lineup_card(reports, ctx, proj, market, next_gw)
+    if lu:
+        cards.append(lu)
     if gaps:
         cards.append(components.gap_chart(
             gaps,
@@ -2510,14 +2621,17 @@ def leader_groups(ctx, squad_ids, depth=4, min_minutes=45):
               "expected_goals"),
         build("Expected assists", "xA this season", "key", "#00b3d6",
               "expected_assists"),
-        build("Goal involvement", "xG plus xA", "spark", "#d81b8c",
+        build("Goal involvement", "xG plus xA", "spark", "#e6007e",
               "expected_goal_involvements"),
         build("Chances created", "Passes leading to a shot", "boot", "#e07b00",
               "total_att_assist", fmt="{:.0f}", opta=True),
         build("Big chances created", "Passes setting up a clear opening",
               "run", "#00a35c", "big_chance_created", fmt="{:.0f}", opta=True),
+        # Was #7d5980, which is var(--p70) - the secondary-text token. A card
+        # ruled and iconed in the same colour as its own small print looked
+        # switched off next to the other five.
         build("Fewest goals expected against", "xGC, defenders and keepers",
-              "shield", "#7d5980", "expected_goals_conceded", ascending=True,
+              "shield", "#1b5ce0", "expected_goals_conceded", ascending=True,
               positions=("GKP", "DEF")),
     ]
     return [g for g in groups if g["rows"]]
@@ -3477,7 +3591,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         ]),
         "findings": findings_section(
             analysis.build_findings(list(reports.values()), ctx),
-            list(reports.values()), ctx),
+            list(reports.values()), ctx, proj, market, next_gw),
         "price_watch": price_watch_card(pw),
         "scatter": scatter(scatter_pts),
         "league_table": league_table(rows, squads, ctx, entry_id) if rows else "",
