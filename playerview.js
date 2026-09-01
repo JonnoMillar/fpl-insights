@@ -70,12 +70,22 @@
 
   function render(p) {
     var h = [];
+    // The dashboard's own Price movement card only shows the last week now,
+    // so the season-long change has nowhere else to live - it earns a
+    // parenthetical here rather than a card of its own.
+    var seasonChange = '';
+    if (p.priceChange) {
+      seasonChange = ' <span class="pv-pricechange ' +
+        (p.priceChange > 0 ? 'up' : 'down') + '">(' +
+        (p.priceChange > 0 ? '+' : '') + p.priceChange.toFixed(1) +
+        'm this season)</span>';
+    }
     h.push('<header class="pv-head">' +
       (p.photo ? '<img class="pv-photo" src="' + p.photo + '" alt="" width="66" height="84">' : '') +
       '<div>' +
       '<h2>' + esc(p.name) + '</h2>' +
       '<p class="pv-sub">' + esc(p.pos) + ' &middot; ' + esc(p.team) +
-      ' &middot; ' + p.price.toFixed(1) + 'm &middot; ' + p.owned +
+      ' &middot; ' + p.price.toFixed(1) + 'm' + seasonChange + ' &middot; ' + p.owned +
       '% owned</p></div>');
     if (p.predicted === true) {
       h.push('<span class="lu lu-in">Predicted XI</span>');

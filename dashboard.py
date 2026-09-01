@@ -293,6 +293,19 @@ section{margin-bottom:20px}
 }
 .card-head h2{font-size:16px; text-transform:uppercase; letter-spacing:0.04em}
 .card-head .sub{font-size:13px;color:var(--on-surface-variant)}
+/* A card's explanation used to print in full, permanently, under every
+   title on the page - a sentence of small print nobody asked to read
+   before they'd even looked at the numbers. One click reveals it instead. */
+.infobtn{
+  align-self:center; flex:none; width:16px; height:16px; border-radius:50%;
+  border:1px solid var(--outline-variant); background:none; padding:0;
+  color:var(--on-surface-variant); font:italic 700 11px/14px Georgia,serif;
+  cursor:pointer;
+}
+.infobtn:hover,.infobtn[aria-expanded="true"]{
+  border-color:var(--accent); color:var(--accent);
+}
+h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
 .card-body{padding:16px}
 
 /* --- hero ---
@@ -961,6 +974,30 @@ table td.tick{border:2px solid var(--surface)}
   color:var(--p50)}
 .lc-fx{margin-left:auto; display:flex; gap:3px}
 
+/* --- fixture run summary ------------------------------------------------
+   Best/worst three, model and FDR side by side - two rankings because they
+   answer different questions, not one dressed up twice. */
+.frowrap{display:flex; flex-direction:column; gap:18px}
+.frogroup h4{margin:0; font-size:13px; font-weight:700}
+.fronote{margin:2px 0 10px; font-size:12px; color:var(--on-surface-variant)}
+.frocols{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+.frolist{list-style:none; margin:0; padding:0; display:grid; gap:6px}
+.fro-row{
+  display:flex; align-items:center; gap:8px; padding:6px 9px;
+  border-radius:var(--radius-s); background:var(--surface-variant);
+}
+.fro-row.fro-good{background:var(--good-wash)}
+.fro-row.fro-bad{background:var(--bad-wash)}
+.fro-club{font-size:13px; font-weight:600; flex:1}
+.fro-val{font-family:var(--mono); font-size:13px; font-weight:600}
+.fro-row.fro-good .fro-val{color:var(--good-ink)}
+.fro-row.fro-bad .fro-val{color:var(--bad-ink)}
+.fro-mine{
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.04em; color:var(--accent); white-space:nowrap;
+}
+@media (max-width:520px){.frocols{grid-template-columns:1fr}}
+
 /* --- wildcard / bench boost rebuild table -------------------------------
    Column against column, the same grammar as Squad detail, because ten
    swaps is a list to be compared down the page and not a gallery. */
@@ -982,6 +1019,23 @@ table td.tick{border:2px solid var(--surface)}
 .sw-flat,.sw-free{color:var(--on-surface-variant)}
 .sw-save{color:var(--good-ink)}
 .sw-cost{color:var(--bad-ink)}
+.wcstats{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+  gap:10px 16px; padding-bottom:14px; margin-bottom:2px;
+  border-bottom:1px solid var(--outline-variant);
+}
+.wcstat{display:flex; align-items:baseline; gap:6px; flex-wrap:wrap}
+.wcstat-k{
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--on-surface-variant); flex-basis:100%;
+}
+.wcstat-b{font-family:var(--mono); font-size:13px; color:var(--on-surface-variant)}
+.wcstat-arrow{color:var(--p40); font-size:12px}
+.wcstat-a{font-family:var(--mono); font-size:15px; font-weight:700}
+.wcstat-d{font-family:var(--mono); font-size:11px; margin-left:2px}
+.wcstat-d.wc-up{color:var(--good-ink)}
+.wcstat-d.wc-down{color:var(--bad-ink)}
+.wcstat-d.wc-flat{color:var(--on-surface-variant)}
 
 /* --- highest predicted points XI ----------------------------------------
    Positions down, not one ranked eleven: the question this answers is
@@ -1392,7 +1446,7 @@ table td.tick{border:2px solid var(--surface)}
 .gapline{position:absolute; top:9px; height:4px; border-radius:2px}
 .gapdot{
   position:absolute; top:5.5px; width:11px; height:11px; border-radius:50%;
-  margin-left:-5.5px; box-shadow:0 0 0 2px var(--surface);
+  box-shadow:0 0 0 2px var(--surface);
 }
 .gapdot.d-a{background:var(--on-surface)}
 .gapdot.d-x{background:var(--surface); border:2px solid var(--on-surface-variant)}
@@ -1444,6 +1498,9 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
 .pv-head{display:flex; align-items:flex-start; gap:12px; padding-right:38px}
 .pv-head h2{font-size:22px}
 .pv-sub{margin:2px 0 0; font-size:13px; color:var(--on-surface-variant)}
+.pv-pricechange{font-family:var(--mono); font-size:12px}
+.pv-pricechange.up{color:var(--good-ink)}
+.pv-pricechange.down{color:var(--bad)}
 .pv-alert{
   margin:12px 0 0; padding:9px 12px; border-radius:var(--radius-s);
   background:var(--error-container); color:var(--error); font-size:13px;
@@ -1544,6 +1601,25 @@ CAPTAINCY_JS = (Path(__file__).with_name("captaincy.js")).read_text(encoding="ut
 
 JS = """
 (function(){
+  // The "i" beside a title reveals that card's explanation. Delegated once
+  // rather than wired per-card, since the same markup shape (title, button,
+  // then the text it reveals as the next sibling in a .card-head or .find)
+  // repeats everywhere on the page.
+  document.addEventListener('click', function(ev){
+    var btn = ev.target.closest('.infobtn');
+    if (!btn) return;
+    var scope = btn.closest('.card-head, .find');
+    if (!scope) return;
+    var show = btn.getAttribute('aria-expanded') !== 'true';
+    scope.querySelectorAll(':scope > .sub, :scope > .note').forEach(function(t){
+      t.hidden = !show;
+    });
+    btn.setAttribute('aria-expanded', String(show));
+    // Some of these buttons live inside a <summary> - without this, opening
+    // the explanation also springs the whole collapsible card open.
+    if (btn.closest('summary')) { ev.preventDefault(); ev.stopPropagation(); }
+  });
+
   var tabs=document.querySelectorAll('.tab');
   tabs.forEach(function(t){
     t.addEventListener('click',function(){
@@ -2036,8 +2112,8 @@ def price_watch_card(pw):
     )
     return (
         '<section class="card">'
-        '<div class="card-head"><h2>Price watch</h2>'
-        '<span class="sub">A change fires at 100%. Prices update once a day, so this '
+        f'<div class="card-head"><h2>Price watch{components.info_btn()}</h2>'
+        '<span class="sub" hidden>A change fires at 100%. Prices update once a day, so this '
         "is only worth anything before it happens.</span></div>"
         f'<div class="card-body">{banner}'
         '<div class="pw-cols">'
@@ -2088,9 +2164,9 @@ def scatter(points):
     )
     return (
         '<section class="card">'
-        '<div class="card-head"><h2>Value scatter</h2>'
-        '<span class="sub">Pick any two measures. Click a dot to identify the '
-        "player. Your squad is labelled.</span></div>"
+        f'<div class="card-head"><h2>Value scatter{components.info_btn()}</h2>'
+        '<span class="sub" hidden>Pick any two measures. Hover or click a dot to see the '
+        "player. Your squad and the biggest outliers are always labelled.</span></div>"
         '<div class="card-body">'
         '<div class="chartfilter" role="group" aria-label="Chart controls">'
         '<label class="axpick">Y <select class="axis" data-axis="y">'
@@ -2170,8 +2246,8 @@ def ownership_carousel(own, by_name, ctx, my_name):
         )
     return (
         '<section class="card">'
-        '<div class="card-head"><h2>Who owns whom</h2>'
-        f'<span class="sub">Share of the {n} managers in this league holding each '
+        f'<div class="card-head"><h2>Who owns whom{components.info_btn()}</h2>'
+        f'<span class="sub" hidden>Share of the {n} managers in this league holding each '
         "player, most-owned first.</span>"
         '<span class="carnav">'
         '<button class="arrow" data-dir="-1" aria-label="Scroll left">&#8249;</button>'
@@ -2233,8 +2309,8 @@ def elite_card(res, ctx):
         ))
     return (
         '<section class="card">'
-        '<div class="card-head"><h2>What the best managers own</h2>'
-        f'<span class="sub">{e(res["label"])}, read from the global FPL league at '
+        f'<div class="card-head"><h2>What the best managers own{components.info_btn()}</h2>'
+        f'<span class="sub" hidden>{e(res["label"])}, read from the global FPL league at '
         f"gameweek {res['event']}.{caveat}</span></div>"
         f'<div class="card-body">{"".join(parts)}</div></section>'
     )
@@ -2314,14 +2390,15 @@ def lineup_card(reports, ctx, proj, market, next_gw):
     total = len(reports)
     starting = total - len(out) - len(unknown)
 
-    def block(rows, cls, label):
+    def block(rows, cls, label, fixtures=True):
         if not rows:
             return ""
         items = "".join(
             f'<li><span class="lc-name">{e(r.name)}</span>'
             f'<span class="lc-club">{e(r.team)}</span>'
-            f'<span class="lc-fx">{_next_three(r, ctx, proj, market, next_gw)}'
-            f"</span></li>"
+            + (f'<span class="lc-fx">{_next_three(r, ctx, proj, market, next_gw)}'
+               f"</span>" if fixtures else "")
+            + "</li>"
             for r in rows
         )
         return (f'<div class="lc-block {cls}"><h4>{WARN_SVG}{e(label)}</h4>'
@@ -2331,21 +2408,26 @@ def lineup_card(reports, ctx, proj, market, next_gw):
         body = ('<p class="lc-clear">Every one of them is named in a '
                 'published side. Nothing to decide here.</p>')
     else:
-        body = (block(out, "lc-out", "Left out of the predicted eleven")
+        # No fixtures for the "out" block: he is not playing this week
+        # regardless of who it is against, so a fixture rating there answers
+        # a question nobody is asking. "Unknown" still gets them, because
+        # there the question is live - a side has not been named yet.
+        body = (block(out, "lc-out", "Not predicted to start:", fixtures=False)
                 + block(unknown, "lc-unk", "No side published yet"))
 
     return (
-        '<div class="find gapcard lccard"><h3>Predicted line-ups</h3>'
-        '<p class="note">Fantasy Football Scout\'s predicted elevens, with '
-        'the next three fixtures for anyone missing from one. They are '
-        're-tuned after each press conference, so they sharpen closer to '
-        'the deadline.</p>'
+        f'<div class="find gapcard lccard"><h3>Predicted line-ups'
+        f'{components.info_btn()}</h3>'
+        f'<p class="note" hidden>Fantasy Football Scout\'s predicted elevens. '
+        f'They are re-tuned after each press conference, so they sharpen '
+        f'closer to the deadline.</p>'
         f'<p class="lc-count">{TICK_SVG}<b class="num">{starting}/{total}</b>'
         f"<span>predicted to start</span></p>{body}</div>"
     )
 
 
-def findings_section(finds, reports, ctx, proj=None, market=None, next_gw=None):
+def findings_section(finds, reports, ctx, proj=None, market=None, next_gw=None,
+                      weekly_price=None):
     """Findings, with the ones that have a shape drawn rather than listed.
 
     Three of these are genuinely numeric comparisons and were being written
@@ -2406,12 +2488,14 @@ def findings_section(finds, reports, ctx, proj=None, market=None, next_gw=None):
         cards.append(sp)
 
     # Old price to new, rather than the size of the change: what you would
-    # have paid is the number you actually want.
+    # have paid is the number you actually want. Scoped to the last week,
+    # not the season - see _update_price_history for why that needs our own
+    # snapshot rather than a field FPL's API already gives us.
     moves = []
     for r in reports:
-        change = r.element.get("cost_change_start", 0)
-        if abs(change) >= 1:
-            moves.append((r.name, r.price - change / 10.0, r.price))
+        delta = (weekly_price or {}).get(r.element["id"], 0.0)
+        if abs(delta) >= 0.1:
+            moves.append((r.name, r.price - delta, r.price))
     moves.sort(key=lambda m: -(m[2] - m[1]))
     pm = components.price_move_card(moves)
     if pm:
@@ -2566,10 +2650,11 @@ def finding_card(fnd):
         else:
             items.append(f'<li class="fi"><span class="fi-det">'
                          f'{_figures(raw)}</span></li>')
-    note = f'<p class="note">{e(fnd["note"])}</p>' if fnd["note"] else ""
+    note = f'<p class="note" hidden>{e(fnd["note"])}</p>' if fnd["note"] else ""
+    infobtn = components.info_btn() if fnd["note"] else ""
     return (
         f'<div class="find" style="--tone:{tone}">'
-        f"<h3>{e(fnd['title'])}</h3>{note}"
+        f"<h3>{e(fnd['title'])}{infobtn}</h3>{note}"
         f"<ul class=\"filist\">{''.join(items)}</ul></div>"
     )
 
@@ -2675,8 +2760,8 @@ def template_pitch(tpl, ctx, shirts, my_name):
         if my_name in rec["owners"]
     )
     return (
-        '<section class="card"><div class="card-head"><h2>League template</h2>'
-        f'<span class="sub">The most-owned legal eleven across {n} managers, '
+        f'<section class="card"><div class="card-head"><h2>League template{components.info_btn()}</h2>'
+        f'<span class="sub" hidden>The most-owned legal eleven across {n} managers, '
         f'in a {tpl["shape"]}. You have {owned_by_you} of them &mdash; the rest '
         "is where your rank moves.</span></div>"
         f'<div class="pitch tplpitch">{"".join(rows)}</div></section>'
@@ -2698,8 +2783,8 @@ def differential_card(own, by_name, ctx, my_name, photos):
     ]
     if not mine:
         return (
-            '<section class="card"><div class="card-head"><h2>Your differentials</h2>'
-            '<span class="sub">Players nobody else in the league owns.</span></div>'
+            f'<section class="card"><div class="card-head"><h2>Your differentials{components.info_btn()}</h2>'
+            '<span class="sub" hidden>Players nobody else in the league owns.</span></div>'
             '<div class="card-body"><p class="dfempty">Every player you own is '
             "owned by somebody else in this league. You are running the template "
             "&mdash; safe from falling behind, and with nothing that can pull you "
@@ -2726,8 +2811,8 @@ def differential_card(own, by_name, ctx, my_name, photos):
             f"</dl></div></li>"
         )
     return (
-        '<section class="card"><div class="card-head"><h2>Your differentials</h2>'
-        f'<span class="sub">Nobody else in this league owns '
+        f'<section class="card"><div class="card-head"><h2>Your differentials{components.info_btn()}</h2>'
+        f'<span class="sub" hidden>Nobody else in this league owns '
         f'{"them" if len(mine) > 1 else "him"}. Every point '
         f'{"they score" if len(mine) > 1 else "he scores"} is a point on the '
         "whole league.</span></div>"
@@ -2896,6 +2981,7 @@ def player_payload(r, ctx, proj, ep, next_gw, photos):
         "id": el["id"], "name": r.name, "team": r.team, "pos": r.pos,
         "photo": photos.get(el["id"]),
         "price": r.price, "owned": r.owned,
+        "priceChange": round(el.get("cost_change_start", 0) / 10.0, 1),
         "flag": flag or "", "news": news,
         "predicted": ctx.is_predicted(el),
         "minutes": r.minutes, "starts": r.starts, "apps": r.appearances,
@@ -2994,11 +3080,12 @@ def chip_planner_card(fh, tc, bb, wc, used):
             wc["moves"], "Wildcard rebuild",
             f"The full squad this would become, scored across GW"
             f"{wc['gw_window'][0]}-{wc['gw_window'][0] + wc['gw_window'][1] - 1}. "
-            "Selling price is taken as current price."))
+            "Selling price is taken as current price.",
+            stats=(wc.get("before"), wc.get("after"))))
 
     return (
-        '<section class="card"><div class="card-head"><h2>Chip planner</h2>'
-        '<span class="sub">Best gameweek for each chip in the current half, '
+        f'<section class="card"><div class="card-head"><h2>Chip planner{components.info_btn()}</h2>'
+        '<span class="sub" hidden>Best gameweek for each chip in the current half, '
         'scored from the same projections as the rest of the page.</span></div>'
         f'<div class="card-body"><ul class="cplist">{"".join(cards)}</ul></div></section>'
         f'{"".join(extra)}'
@@ -3030,9 +3117,9 @@ def best_xi_card(pt, ctx, squad_ids, next_gw):
     rather than pulled out into their own group, so the gap between the
     two teams is a count you can see rather than a number to be trusted.
 
-    The budget is the manager's own XI value, so this is not a fantasy of
-    an unlimited team - it is the best eleven reachable for the money
-    already committed."""
+    No budget, no club cap - the literal highest-scoring valid formation in
+    the game (see chips.literal_best_xi), not the best one affordable at
+    the manager's own squad value."""
     if not pt or not pt.get("ideal_xi"):
         return ""
     xi = pt["ideal_xi"]
@@ -3067,8 +3154,8 @@ def best_xi_card(pt, ctx, squad_ids, next_gw):
 
     gap = pt["gap"]
     if gap < 0.5:
-        read = ("Your eleven is already within half a point of the best one "
-                "available for the money. There is nothing to chase here.")
+        read = ("Your eleven is already within half a point of the best "
+                "possible one in the game. There is nothing to chase here.")
     else:
         read = (f"Your eleven projects {pt['ours_value']:.1f}. The gap is "
                 f"{gap:.1f} points, spread across the "
@@ -3077,11 +3164,10 @@ def best_xi_card(pt, ctx, squad_ids, next_gw):
 
     return (
         '<section class="card bxicard"><div class="card-head">'
-        f'<h2>Highest predicted points XI</h2>'
-        f'<span class="sub">The best eleven in the game for gameweek '
-        f'{next_gw} within your own XI\'s budget, formation optimised. '
-        f'Greedy fill then hill-climb, so it is a strong answer rather '
-        f'than a proven best one.</span></div>'
+        f'<h2>Highest predicted points XI{components.info_btn()}</h2>'
+        f'<span class="sub" hidden>The literal highest-scoring valid eleven in the '
+        f'game for gameweek {next_gw} - no budget, no club limit, formation '
+        f'rules only.</span></div>'
         '<div class="card-body">'
         '<div class="bxi-head">'
         f'<div class="bxi-big"><span class="num">{pt["ideal_value"]:.1f}</span>'
@@ -3185,8 +3271,8 @@ def verdict_board_card(vb, next_gw):
         )
     return (
         '<section class="card vbcard"><div class="card-head">'
-        '<h2>Buy, sell, keep, avoid</h2>'
-        f'<span class="sub">Four different questions, not one ranking split '
+        f'<h2>Buy, sell, keep, avoid{components.info_btn()}</h2>'
+        f'<span class="sub" hidden>Four different questions, not one ranking split '
         f'four ways. Everything is projected for gameweek {next_gw}, and the '
         f'figure beside each name is that projection.</span></div>'
         f'<div class="card-body vb-grid">{"".join(cols)}</div></section>'
@@ -3486,8 +3572,8 @@ def render(d, standalone=True):
       <div class="pkpanel" data-view="pk" hidden>{d['pick_pitch']}</div>
     </section>
     <details class="card collapsible">
-      <summary class="card-head"><h2>Squad detail</h2>
-        <span class="sub">Click a column heading to sort. Next 3 fixtures coloured by difficulty.</span>
+      <summary class="card-head"><h2>Squad detail{components.info_btn()}</h2>
+        <span class="sub" hidden>Click a column heading to sort. Next 3 fixtures coloured by difficulty.</span>
       </summary>
       {d['squad_table']}
     </details>
@@ -3507,6 +3593,7 @@ def render(d, standalone=True):
     {d['captaincy']}
     {d['chip_planner']}
     {d['ticker']}
+    {d['fixture_runs']}
     {d['leaders']}
     {d['price_watch']}
     {d['scatter']}
@@ -3515,8 +3602,8 @@ def render(d, standalone=True):
 
   <div class="panel" id="p-league" role="tabpanel" hidden>
     <section class="card">
-      <div class="card-head"><h2>{e(d['league_name'])}</h2>
-        <span class="sub">XI xGI is the season expected involvement of the eleven that started.
+      <div class="card-head"><h2>{e(d['league_name'])}{components.info_btn()}</h2>
+        <span class="sub" hidden>XI xGI is the season expected involvement of the eleven that started.
         A big score beside a small xGI came from somewhere that will not repeat.</span>
       </div>
       {d['league_table']}
@@ -3527,8 +3614,8 @@ def render(d, standalone=True):
     {d['rivals']}
     <section>{d['ownership']}</section>
     <section class="card">
-      <div class="card-head"><h2>Chips used</h2>
-        <span class="sub">Two of each per season - one before GW20, one after.</span>
+      <div class="card-head"><h2>Chips used{components.info_btn()}</h2>
+        <span class="sub" hidden>Two of each per season - one before GW20, one after.</span>
       </div>
       {d['chips']}
     </section>
@@ -3568,11 +3655,57 @@ def render(d, standalone=True):
     )
 
 
+PRICE_HISTORY_PATH = Path(__file__).with_name("price_history.json")
+PRICE_HISTORY_DAYS = 8
+
+
+def _update_price_history(ctx):
+    """Record today's prices and return each player's change over the window.
+
+    FPL's API only ever gives the change since the season started
+    (cost_change_start) or since today's single recalculation
+    (cost_change_event) - there is no "this week" field to read, so the
+    Price movement card needs its own memory of what prices were a few days
+    ago. One snapshot per calendar day, trimmed to the last
+    PRICE_HISTORY_DAYS and committed to the repo alongside the built
+    artifact (see build.yml), the same way the artifact itself persists
+    between runs. Until this has run daily for about a week, the oldest
+    snapshot for a newly-tracked player is today's, so the reported change
+    is 0 - a real gap, not a bug, that closes itself within a week of
+    shipping this.
+    """
+    today = datetime.now(timezone.utc).date().isoformat()
+    try:
+        hist = json.loads(PRICE_HISTORY_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        hist = {}
+    for pid, el in ctx.players.items():
+        key = str(pid)
+        entries = hist.get(key) or []
+        if entries and entries[-1][0] == today:
+            entries[-1][1] = el["now_cost"]
+        else:
+            entries.append([today, el["now_cost"]])
+        hist[key] = entries[-PRICE_HISTORY_DAYS:]
+    try:
+        PRICE_HISTORY_PATH.write_text(json.dumps(hist, separators=(",", ":")),
+                                       encoding="utf-8")
+    except OSError as ex:
+        print(f"[price history] could not save: {ex}")
+    weekly = {}
+    for pid, el in ctx.players.items():
+        entries = hist.get(str(pid)) or []
+        baseline = entries[0][1] if entries else el["now_cost"]
+        weekly[pid] = (el["now_cost"] - baseline) / 10.0
+    return weekly
+
+
 def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
           elite_depth=100, elite_sample=None):
     """Gather everything the page needs."""
     ctx = analysis.Ctx.load(ttl=ttl)
     gw = gw or ctx.last_event_with_picks()
+    weekly_price = _update_price_history(ctx)
 
     picks = analysis.squad_for(entry_id, gw, ctx)
     meta = fplapi.entry(entry_id, ttl=ttl)
@@ -3777,9 +3910,9 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     lg_scores = transfers.league_scores(ctx, proj, next_gw, market, baselines)
     kj = transfers.kneejerk(ctx, xi + bench, lg_scores, bank=bank)
     vb = transfers.verdict_board(ctx, xi + bench, lg_scores, bank=bank)
-    # free_hit searches the whole chip window; the card below wants the
-    # coming week specifically, which is rarely the week Free Hit picks.
-    next_ideal = (fh or {}).get("by_gw", {}).get(next_gw)
+    # A genuinely different question from Free Hit's budget-capped "ideal" -
+    # see chips.literal_best_xi for why reusing that number here was wrong.
+    next_ideal = chips.literal_best_xi(ctx, xi, proj, market, baselines, next_gw)
 
     return {
         "ctx": ctx,
@@ -3812,6 +3945,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                                    proj, market, next_gw),
         "ticker": ticker.fixture_ticker(xi + bench, ctx, proj, next_gw,
                                         weeks=6, market=market),
+        "fixture_runs": ticker.fixture_run_summary(xi + bench, ctx, proj,
+                                                    market, next_gw, weeks=6),
         "market": ticker.odds_insights(market_fixtures, xi, ctx, proj, next_gw),
         "pairings": components.pairing_cards(
             pairings,
@@ -3838,7 +3973,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         ]),
         "findings": findings_section(
             analysis.build_findings(list(reports.values()), ctx),
-            list(reports.values()), ctx, proj, market, next_gw),
+            list(reports.values()), ctx, proj, market, next_gw,
+            weekly_price=weekly_price),
         "price_watch": price_watch_card(pw),
         "scatter": scatter(scatter_pts),
         "league_table": league_table(rows, squads, ctx, entry_id) if rows else "",

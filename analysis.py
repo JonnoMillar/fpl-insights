@@ -697,7 +697,7 @@ def build_findings(reports, ctx):
                      f", {shots:g} shots" if shots else "")
             missed.append(f"{r.name} - {bcm:g} big {'chance' if bcm == 1 else 'chances'} missed{extra}")
         if bcc:
-            created.append(f"{r.name} - {bcc:g} big {'chance' if bcc == 1 else 'chances'} created")
+            created.append(f"{r.name} - {bcc:g} big {'chance' if bcc == 1 else 'chances'}")
     if missed:
         out.append(_finding("bcm", "Big chances missed", "good", missed,
                             note="Clear openings not taken. The chances are arriving."))

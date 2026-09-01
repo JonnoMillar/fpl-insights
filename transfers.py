@@ -296,6 +296,86 @@ def windowed_candidate_score(el, ctx, proj, market, baselines, priors,
     return total, per_gw
 
 
+# How many gameweeks a transfer decision is ranked across, rather than the
+# one directly ahead. A transfer is not undone next week, so scoring it on
+# a single week of fixture luck was answering a longer-lived question with
+# the shortest possible answer.
+TRANSFER_HORIZON_WEEKS = 5
+
+# These add a flat nudge on top of the windowed points total rather than
+# replacing it - the points model stays the dominant term, per-90 rates and
+# fixtures already run through it. Neither weight is a fitted or validated
+# calibration; there is no season of transfer outcomes yet to fit one
+# against, so both are kept deliberately small: enough that a genuine hot
+# streak or a strong underlying rate the model has shrunk hard can tip a
+# close call, never enough to override what the points total says outright.
+#
+# Flat, not scaled by the window length - form is already points-per-match,
+# so multiplying it by every week in an 8-week window (an early version of
+# this did) treats one hot recent match as if it were guaranteed to repeat
+# for two months, which turned a single big early-season haul into a
+# 40-point swing. A flat weight instead says "this recent form is worth
+# about half a match's evidence", however long the window being ranked is.
+FORM_CASE_WEIGHT = 0.5      # extra points/match of recent form, flat
+EXPECTED_CASE_WEIGHT = 3.0  # extra xGI (xGI minus xGC for def/gk), per 90
+
+# A meaningful gain in case_score, scaled to the horizon it's summed over -
+# the single-gameweek thresholds this replaced (0.15, 0.05) were tuned to a
+# one-week number and would pass almost everything once the total is
+# summed across TRANSFER_HORIZON_WEEKS weeks instead.
+MIN_CASE_GAIN = 0.15 * TRANSFER_HORIZON_WEEKS
+
+
+def player_case_factors(el, ctx):
+    """Two signals a transfer decision should weigh beyond one gameweek's
+    fixture-adjusted points, both already sitting in the bootstrap payload
+    so neither costs an extra request per candidate.
+
+    `form` is FPL's own recent-points-per-match average - a different
+    read from the season-long, price-shrunk rate candidate_score uses
+    internally, since a player heating up or cooling off shows here before
+    enough matches exist to move his season rate much. `expected` is xGI
+    alone for a midfielder or forward, and xGI net of xGC for a defender or
+    keeper, because the defensive half of the game matters as much as the
+    attacking half for those two positions and a shrunk points total can
+    still be sitting on a stale prior for a player just breaking out."""
+    pos = ctx.pos(el)
+    form = f(el.get("form"))
+    xgi90 = f(el.get("expected_goal_involvements_per_90"))
+    if pos in ("DEF", "GKP"):
+        expected = xgi90 - f(el.get("expected_goals_conceded_per_90"))
+    else:
+        expected = xgi90
+    return {"form": form, "expected": expected}
+
+
+def case_score(el, ctx, proj, gw, market, baselines, priors=None,
+               weeks=TRANSFER_HORIZON_WEEKS):
+    """A transfer candidate's score for one decision: points summed across
+    the next few gameweeks rather than one, nudged by recent form and each
+    player's own underlying numbers rather than fixture-adjusted points
+    alone.
+
+    Shaped exactly like candidate_score's return value - opponent, home and
+    cs still come from the coming fixture specifically, since "who do they
+    play next" stays useful context even though the total behind it now
+    looks further ahead. Every existing caller reading s["total"],
+    s["opponent"] or s["home"] keeps working unchanged; only what "total"
+    means gets richer, which is the same principle by which
+    windowed_candidate_score already extends candidate_score."""
+    priors = priors or positional_priors(ctx)
+    here = candidate_score(el, ctx, proj, gw, market, baselines, priors)
+    if not here:
+        return None
+    windowed_total, _ = windowed_candidate_score(
+        el, ctx, proj, market, baselines, priors, gw, weeks)
+    factors = player_case_factors(el, ctx)
+    case_total = (windowed_total
+                  + FORM_CASE_WEIGHT * factors["form"]
+                  + EXPECTED_CASE_WEIGHT * factors["expected"])
+    return {**here, "total": case_total, "next_gw_total": here["total"], **factors}
+
+
 def _eligible(el, ctx):
     """Fit to be suggested at all."""
     if el.get("status") in ("u", "n"):
@@ -318,25 +398,27 @@ def league_scores(ctx, proj, gw, market, baselines, priors=None):
     candidates, for the reason given there: a board that scored owned
     players with the richer history-backed model and everyone else with
     this one would be comparing two different yardsticks and calling the
-    difference a recommendation."""
+    difference a recommendation. Scored with case_score, not
+    candidate_score directly - a few weeks and each player's own numbers,
+    not one gameweek of fixture-adjusted points alone."""
     priors = priors or positional_priors(ctx)
     out = {}
     for el in ctx.players.values():
         if not _eligible(el, ctx):
             continue
-        s = candidate_score(el, ctx, proj, gw, market, baselines, priors)
+        s = case_score(el, ctx, proj, gw, market, baselines, priors)
         if s:
             out[el["id"]] = s
     return out
 
 
 # How much better a reachable replacement has to project before the man he
-# would replace is called a sell rather than a hold. Candidate scores sit
-# roughly in the 2-6 point range, so a fraction under a point is a real
-# difference without being a rounding artefact - and every suggestion on
-# this page is one gameweek of evidence, which does not deserve a hair
-# trigger.
-SELL_MARGIN = 0.6
+# would replace is called a sell rather than a hold. Scaled to
+# TRANSFER_HORIZON_WEEKS now that scores are case_score's windowed total
+# rather than one gameweek - 0.6 was a fraction under a point on a 2-6
+# point single-week score, and comparing it against a several-week sum
+# would call almost every gap a sell.
+SELL_MARGIN = 0.6 * TRANSFER_HORIZON_WEEKS
 
 # Net transfers in across a gameweek that mark a player as a bandwagon
 # rather than quiet accumulation. Against an active manager base in the
@@ -642,7 +724,7 @@ def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
     for el in ctx.players.values():
         if el["id"] in squad_ids or not _eligible(el, ctx):
             continue
-        s = candidate_score(el, ctx, proj, gw, market, baselines, priors)
+        s = case_score(el, ctx, proj, gw, market, baselines, priors)
         if s:
             scored[el["id"]] = s
 
@@ -655,7 +737,7 @@ def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
     # other sale, so genuinely reachable upgrades are not filtered out early.
     here, shortlists = {}, {}
     for r in squad_reports:
-        base = candidate_score(r.element, ctx, proj, gw, market, baselines, priors)
+        base = case_score(r.element, ctx, proj, gw, market, baselines, priors)
         if not base:
             continue
         here[r.element["id"]] = base
@@ -669,7 +751,7 @@ def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
             if price > ceiling:
                 continue
             gain = s["total"] - base["total"]
-            if gain <= 0.05:
+            if gain <= MIN_CASE_GAIN / 3:
                 continue
             options.append({"el": el, "score": s, "gain": gain, "price": price})
         options.sort(key=lambda o: -o["gain"])
@@ -752,10 +834,9 @@ def suggest(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
             per_slot=3, limit=6, elite=None):
     """Swaps worth a look: one out, one in, same position, affordable.
 
-    Ranked on the gain in projected points for the coming gameweek, which is
-    the shortest horizon there is - a longer view would need fixture runs
-    weighted by how likely you are to still own him, and that is a bigger
-    model than one gameweek of data deserves."""
+    Ranked on the gain in case_score, not one gameweek of raw projected
+    points - see case_score for what that adds (a few weeks' points and
+    each player's own form and underlying numbers) and why."""
     club_counts = {}
     squad_ids = set()
     for r in squad_reports:
@@ -769,7 +850,7 @@ def suggest(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
     for el in ctx.players.values():
         if el["id"] in squad_ids or not _eligible(el, ctx):
             continue
-        s = candidate_score(el, ctx, proj, gw, market, baselines, priors)
+        s = case_score(el, ctx, proj, gw, market, baselines, priors)
         if s:
             scored[el["id"]] = s
 
@@ -784,7 +865,7 @@ def suggest(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
         # analysis.py blends a player's own last season, which candidates
         # cannot have without a request each - comparing the two would flatter
         # whichever side got the better treatment.
-        here = candidate_score(r.element, ctx, proj, gw, market, baselines, priors)
+        here = case_score(r.element, ctx, proj, gw, market, baselines, priors)
         if not here:
             continue
         budget = r.price + bank
@@ -804,7 +885,7 @@ def suggest(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
             if count >= SQUAD_LIMIT_PER_CLUB:
                 continue
             gain = s["total"] - here["total"]
-            if gain <= 0.15:
+            if gain <= MIN_CASE_GAIN:
                 continue
             options.append({
                 "element": el, "score": s, "gain": gain,

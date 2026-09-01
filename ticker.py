@@ -25,6 +25,7 @@ when you glance down a row.
 
 import html
 
+import components
 import ffs
 
 # Anchors for the two components. Roughly the 10th and 90th percentile of a
@@ -162,8 +163,9 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
     # misreading it got: a club on 7.0 looks like the hard one when it is the
     # club with the kindest run on the page.
     return (
-        '<section class="card"><div class="card-head"><h2>Fixture outlook</h2>'
-        '<span class="sub">How good each fixture is to own a player for, '
+        '<section class="card"><div class="card-head">'
+        f'<h2>Fixture outlook{components.info_btn()}</h2>'
+        '<span class="sub" hidden>How good each fixture is to own a player for, '
         "rated out of ten - <b>higher is better</b>, the opposite way round to "
         "FPL's 1-5 difficulty. Expected goals and clean-sheet odds combined, "
         'weighted toward attack. A dot means the market priced it.</span></div>'
@@ -173,6 +175,78 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
         'fixtures shown - higher is better">Rating</th>'
         f"{heads}</tr></thead><tbody>"
         f"{''.join(r[1] for r in rows)}</tbody></table></div></section>"
+    )
+
+
+def fixture_run_summary(reports, ctx, proj, market, next_gw, weeks=6, n=3):
+    """The best and worst fixture runs in the whole league, not just yours.
+
+    Two rankings, not one, because they answer different questions. Our own
+    model bakes each club's attacking and defensive quality into the rating
+    above - which means a genuinely weak side always reads as having a bad
+    run, even against the division's softest opponents, because the model
+    correctly expects them to struggle regardless of who they're facing.
+    FPL's own 1-5 difficulty is scored from the opponent alone, so it can
+    and does disagree. Showing only the model's answer would quietly bake
+    in "bad teams have bad fixtures" as if it were a fact about the
+    schedule rather than a fact about the team."""
+    owned = {}
+    for r in reports:
+        owned[r.element["team"]] = owned.get(r.element["team"], 0) + 1
+
+    model_rows = []
+    for tid, t in ctx.teams.items():
+        cells = _rows_for(t["short_name"], proj, market, next_gw, weeks)
+        if cells:
+            avg = sum(c["score"] for c in cells) / len(cells)
+            model_rows.append((tid, t["short_name"], avg))
+
+    fdr_rows = []
+    for tid, t in ctx.teams.items():
+        score = ctx.fixture_score(tid, weeks)
+        if score is not None:
+            fdr_rows.append((tid, t["short_name"], score))
+
+    if not model_rows and not fdr_rows:
+        return ""
+
+    def rowline(tid, club, val, tone, fmt):
+        count = owned.get(tid, 0)
+        mine = f'<span class="fro-mine">{count} owned</span>' if count else ""
+        return (f'<li class="fro-row fro-{tone}"><span class="fro-club">'
+                f"{e(club)}</span><span class=\"fro-val\">{fmt(val)}</span>"
+                f"{mine}</li>")
+
+    def block(rows, title, note, kindest_first, fmt):
+        if not rows:
+            return ""
+        ranked = sorted(rows, key=lambda x: x[2], reverse=kindest_first)
+        best, worst = ranked[:n], ranked[-n:][::-1]
+        return (
+            f'<div class="frogroup"><h4>{e(title)}</h4>'
+            f'<p class="fronote">{e(note)}</p><div class="frocols">'
+            '<ul class="frolist">'
+            + "".join(rowline(t, c, v, "good", fmt) for t, c, v in best)
+            + '</ul><ul class="frolist">'
+            + "".join(rowline(t, c, v, "bad", fmt) for t, c, v in worst)
+            + "</ul></div></div>"
+        )
+
+    parts = (
+        block(model_rows, "Our model",
+              "Attack and defence combined, out of ten - higher is better.",
+              True, lambda v: f"{v:.1f}")
+        + block(fdr_rows, "FPL's own difficulty",
+                "FPL's 1-5 rating, unadjusted for either side's own quality "
+                "- lower is easier.", False, lambda v: f"{v:.1f}")
+    )
+    return (
+        '<section class="card"><div class="card-head">'
+        f'<h2>Best and worst fixture runs{components.info_btn()}</h2>'
+        f'<span class="sub" hidden>Next {weeks} gameweeks, every club in the '
+        'league - not just yours. "Owned" counts how many of your 15 play '
+        'for that club.</span></div>'
+        f'<div class="card-body frowrap">{parts}</div></section>'
     )
 
 
@@ -239,10 +313,16 @@ def odds_insights(fixtures, reports, ctx, proj, next_gw):
     attackers = [x for x in rows if x["r"].pos in ("MID", "FWD")]
     if attackers:
         b = max(attackers, key=lambda x: x["xg"])
+        # Named after the fixture, not the one player who happened to have
+        # the top individual xG - Busiest fixture below names everyone
+        # involved, and this read as contradicting it whenever two of your
+        # attackers shared the same match: Semenyo alone here, Semenyo and
+        # Haaland both there, for the identical Man City v Bournemouth game.
+        mates = sorted({x["r"].name for x in attackers if x["fx"] is b["fx"]})
         items.append({
             "tone": "good", "icon": "spark", "label": "Best attacking fixture",
             "value": "{:.2f}".format(b["xg"]), "unit": "goals priced",
-            "who": b["r"].name,
+            "who": ", ".join(mates[:3]),
             "detail": "{} v {} &middot; {:.0f}% to win".format(
                 b["r"].team, b["opp"], b["win"]),
         })
@@ -309,8 +389,8 @@ def odds_insights(fixtures, reports, ctx, proj, next_gw):
     )
     return (
         '<section class="card"><div class="card-head">'
-        f"<h2>What the odds mean for gameweek {next_gw}</h2>"
-        '<span class="sub">Pinnacle, margin removed, applied to your squad. '
+        f"<h2>What the odds mean for gameweek {next_gw}{components.info_btn()}</h2>"
+        '<span class="sub" hidden>Pinnacle, margin removed, applied to your squad. '
         "Each club's next match only.</span></div>"
         f'<div class="card-body"><ul class="oilist">{cards}</ul></div></section>'
     )
@@ -400,8 +480,9 @@ def market_card(market, ctx, reports, fixtures=None):
     if not cards:
         return ""
     return (
-        '<section class="card"><div class="card-head"><h2>The coming round, priced</h2>'
-        '<span class="sub">Pinnacle, with the bookmaker margin removed. Only the '
+        '<section class="card"><div class="card-head">'
+        f'<h2>The coming round, priced{components.info_btn()}</h2>'
+        '<span class="sub" hidden>Pinnacle, with the bookmaker margin removed. Only the '
         "fixtures your players are in.</span></div>"
         '<div class="card-body"><ul class="mlist">{}</ul></div></section>'.format(
             "".join(cards)
