@@ -554,7 +554,7 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 }
 
 /* --- scatter --- */
-:root{--mark-mkt:#87668a; --mark-mine:#953bff}
+:root{--mark-mkt:#87668a; --mark-mine:#953bff; --mark-outlier:#e6007e}
 .chartfilter{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px}
 .chip{
   appearance:none; border:1px solid var(--outline); background:var(--surface);
@@ -569,12 +569,18 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .scatter .axtitle{fill:var(--on-surface-variant); font-size:12px; font-weight:600}
 .scatter .mkt circle{fill:var(--mark-mkt); opacity:.55}
 .scatter .mine circle{fill:var(--mark-mine); stroke:var(--surface); stroke-width:2}
+/* Furthest from the norm, on whichever two measures are picked right now -
+   a market dot (not yours) gets this instead of the plain market fill. */
+.scatter .outlier circle:first-child{
+  fill:var(--mark-outlier); opacity:.85; stroke:var(--surface); stroke-width:1.5;
+}
 .scatter .pt{cursor:pointer}
 .scatter .pt:hover circle{opacity:1; stroke:var(--on-surface); stroke-width:2}
 .scatter .ptlabel{
   fill:var(--on-surface); font-size:11px; font-weight:600; pointer-events:none;
   paint-order:stroke; stroke:var(--surface); stroke-width:3px; stroke-linejoin:round;
 }
+.scatter .ptlabel.outlier-label{fill:var(--mark-outlier)}
 .scatter .hide{display:none}
 
 /* The enlarged hit target must out-specify the mark fill rules above,
@@ -598,6 +604,7 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .key{width:10px; height:10px; border-radius:50%; display:inline-block; margin-left:10px}
 .key.mkt{background:var(--mark-mkt)}
 .key.mine{background:var(--mark-mine)}
+.key.outlier{background:var(--mark-outlier)}
 
 /* --- captaincy radar ---
    Three candidate colours, each a fill/stroke pair from the page's own
@@ -2290,9 +2297,10 @@ def scatter(points):
         "</div>"
         '<div class="scroll"><svg class="scatter" viewBox="0 0 760 400" '
         'role="img" aria-label="Scatter plot of player metrics"></svg></div>'
-        '<p class="readout" aria-live="polite">Click any dot to identify the player.</p>'
+        '<p class="readout" aria-live="polite">Hover or click any dot to identify the player.</p>'
         '<p class="legend"><span class="key mkt"></span>Every player with 60+ minutes'
-        '<span class="key mine"></span>Your squad</p>'
+        '<span class="key mine"></span>Your squad'
+        '<span class="key outlier"></span>Furthest from the norm</p>'
         f'<script type="application/json" class="scatter-data">{json.dumps(data)}</script>'
         "</div></section>"
     )
