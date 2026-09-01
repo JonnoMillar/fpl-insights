@@ -1327,6 +1327,14 @@ table td.tick{border:2px solid var(--surface)}
    one is a ranking, so it is drawn as a ranking - rows down the page with a
    bar you can compare along, red because the whole point is that these went
    onto somebody else's score. */
+.rvtabs{display:flex; gap:6px; margin-bottom:12px}
+.rvtab{
+  appearance:none; border:1px solid var(--outline); background:var(--surface);
+  color:var(--on-surface-variant); font:inherit; font-weight:600; font-size:12px;
+  padding:5px 12px; border-radius:9999px; cursor:pointer;
+}
+.rvtab[aria-selected="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
+.rvtab:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .rvlist{list-style:none; margin:0; padding:0; display:flex;
   flex-direction:column; gap:8px}
 .rv-row{
@@ -1734,6 +1742,19 @@ JS = """
     }
     nav.querySelector('.lc-prev').addEventListener('click', function(){ show(idx - 1); });
     nav.querySelector('.lc-next').addEventListener('click', function(){ show(idx + 1); });
+  });
+
+  // Scoring against you: this week vs the last few weeks summed.
+  document.querySelectorAll('.rvtabs').forEach(function(tabs){
+    var card = tabs.closest('.card');
+    var buttons = tabs.querySelectorAll('.rvtab');
+    var panels = card.querySelectorAll('.rvpanel');
+    buttons.forEach(function(b){
+      b.addEventListener('click', function(){
+        buttons.forEach(function(o){ o.setAttribute('aria-selected', String(o===b)); });
+        panels.forEach(function(p){ p.hidden = p.dataset.rv !== b.dataset.rv; });
+      });
+    });
   });
 
   var tabs=document.querySelectorAll('.tab');
@@ -3068,14 +3089,15 @@ def differential_card(own, by_name, ctx, my_name, photos):
 
 def rival_returns(own, by_name, ctx, my_name, squad_ids, limit=5):
     """Players who scored for the rest of this league last week, and not
-    for you - ranked by the damage done rather than by the raw score.
+    for you - ranked by the points themselves, highest first.
 
-    A haul only costs you ground in proportion to how much of the league
-    was holding it, so the ranking is points times the number of rivals who
-    started him, with a captain counted twice because that is what the
-    armband pays. A 13-pointer nobody else started did you no harm at all
-    and does not belong above a 6-pointer that six of your eight rivals
-    had."""
+    An earlier version ranked by points times how many rivals started him,
+    on the reasoning that a haul only costs you ground in proportion to how
+    much of the league held it. In practice that produced a top-to-bottom
+    order that did not read as "who hurt me" at a glance - a 6-pointer
+    could outrank a 13-pointer - so the simpler, checkable number leads
+    instead. How many rivals held him is still shown, just as context
+    rather than the sort key."""
     if not own or not my_name:
         return []
     rows = []
@@ -3096,22 +3118,81 @@ def rival_returns(own, by_name, ctx, my_name, squad_ids, limit=5):
             "id": pid, "name": el["web_name"], "pos": ctx.pos(el),
             "club": ctx.team_name(el["team"]), "points": pts,
             "starters": len(starters), "captains": len(caps),
-            "damage": pts * (len(starters) + len(caps)),
         })
-    rows.sort(key=lambda r: (-r["damage"], -r["points"]))
+    rows.sort(key=lambda r: -r["points"])
     return rows[:limit]
 
 
-def rivals_card(rows, rivals, photos):
-    """The counterpart to Your differentials, from the other direction.
+def rival_returns_window(rows, ctx, my_name, squad_ids, gw, weeks=3, limit=5,
+                         ttl=fplapi.DEFAULT_TTL):
+    """rival_returns, summed over the last `weeks` gameweeks rather than
+    the one just gone - a single bad week can be an anomaly; a player who
+    keeps doing it to you over a month is a pattern.
 
-    Not called "reverse differentials" - the thing worth naming here is the
-    consequence, not the jargon. These are points that went onto other
-    people's scores and not yours, which in a mini-league is the only kind
-    of points that actually moves you."""
+    The current gameweek's rival squads are already fetched elsewhere in
+    build(), but an earlier gameweek is a different squad for each of them
+    and needs its own picks request - this refetches those specifically,
+    bounded to the same rivals (`rows[:limit]`) already shown everywhere
+    else on the mini-league tab, so the added cost is `weeks` extra picks
+    calls per existing rival, not any new managers. Each gameweek's player
+    points come from one shared event_live call covering everyone, rather
+    than one request per player."""
+    if not rows or not my_name:
+        return []
+    totals = {}
+    start = max(1, gw - weeks + 1)
+    for week in range(start, gw + 1):
+        try:
+            live = fplapi.event_live(week, ttl=ttl)
+        except fplapi.FplError:
+            continue
+        points_by_pid = {
+            e["id"]: e.get("stats", {}).get("total_points", 0)
+            for e in live.get("elements", [])
+        }
+        by_name_week = {}
+        for r in rows[:limit]:
+            try:
+                by_name_week[r["entry_name"]] = analysis.squad_for(r["entry"], week, ctx)
+            except fplapi.FplError:
+                continue
+        own_week = analysis.league_ownership(by_name_week)
+        for pid, rec in own_week.items():
+            if pid in squad_ids:
+                continue
+            starters = [n for n in rec["starters"] if n != my_name]
+            if not starters:
+                continue
+            pts = points_by_pid.get(pid, 0)
+            if pts <= 0:
+                continue
+            caps = [n for n in rec["captains"] if n != my_name]
+            agg = totals.setdefault(
+                pid, {"points": 0, "weeks": 0, "starters": 0, "captains": 0})
+            agg["points"] += pts
+            agg["weeks"] += 1
+            agg["starters"] = max(agg["starters"], len(starters))
+            agg["captains"] += len(caps)
+
+    out = []
+    for pid, agg in totals.items():
+        el = ctx.players.get(pid)
+        if not el:
+            continue
+        out.append({
+            "id": pid, "name": el["web_name"], "pos": ctx.pos(el),
+            "club": ctx.team_name(el["team"]), "points": agg["points"],
+            "starters": agg["starters"], "captains": agg["captains"],
+            "weeks": agg["weeks"],
+        })
+    out.sort(key=lambda r: -r["points"])
+    return out[:limit]
+
+
+def _rivals_list(rows, rivals, photos, weeks_note=False):
     if not rows:
-        return ""
-    top = max(r["damage"] for r in rows) or 1
+        return '<p class="lc-clear">Nobody else in the league returned against you.</p>'
+    top = max(r["points"] for r in rows) or 1
     items = []
     for r in rows:
         photo = photos.get(r["id"])
@@ -3123,23 +3204,53 @@ def rivals_card(rows, rivals, photos):
         bits = [e(f'started by {r["starters"]} of {rivals}')]
         if r["captains"]:
             bits.append(e(f'{r["captains"]} captained him'))
+        if weeks_note:
+            bits.append(e(f'returned in {r["weeks"]} of the weeks shown'))
         items.append(
             f'<li class="rv-row">{face}'
             f'<span class="rv-who"><b>{e(r["name"])}</b>'
             f'<span>{e(r["pos"])} &middot; {e(r["club"])}</span></span>'
             f'<span class="rv-pts num">{r["points"]}</span>'
             f'<span class="rv-track"><i style="width:'
-            f'{r["damage"] / top * 100:.0f}%"></i></span>'
+            f'{r["points"] / top * 100:.0f}%"></i></span>'
             f'<span class="rv-note">{" &middot; ".join(bits)}</span></li>'
         )
+    return f'<ul class="rvlist">{"".join(items)}</ul>'
+
+
+def rivals_card(rows, window_rows, rivals, photos, weeks=3):
+    """The counterpart to Your differentials, from the other direction.
+
+    Not called "reverse differentials" - the thing worth naming here is the
+    consequence, not the jargon. These are points that went onto other
+    people's scores and not yours, which in a mini-league is the only kind
+    of points that actually moves you.
+
+    Two views, toggled rather than shown one below the other: the week
+    just gone, and the last few weeks summed - a single bad week can be a
+    fluke, a name that keeps showing up over a month is a pattern. Both
+    rank by points scored, highest first; the bar is that same number, not
+    a separate "damage" figure - the previous version ranked and drew the
+    bar by points times how many rivals held him, which read as
+    unpredictable (a 6-pointer could sit above a 13-pointer) rather than
+    as "who hurt me"."""
+    if not rows and not window_rows:
+        return ""
     return (
         '<section class="card"><div class="card-head">'
-        '<h2>Scoring against you</h2>'
-        '<span class="sub">Players you did not own who returned for the rest '
-        'of this league last week. The bar is the damage - what he scored '
-        'against how much of the league was holding him, with a captain '
-        'counted twice.</span></div>'
-        f'<div class="card-body"><ul class="rvlist">{"".join(items)}</ul>'
+        f'<h2>Scoring against you{components.info_btn()}</h2>'
+        '<span class="sub" hidden>Players you did not own who returned for the '
+        "rest of this league. Ranked by points scored, highest first.</span></div>"
+        '<div class="card-body">'
+        '<div class="rvtabs" role="tablist" aria-label="Time range">'
+        '<button class="rvtab" role="tab" aria-selected="true" data-rv="now">'
+        "This week</button>"
+        f'<button class="rvtab" role="tab" aria-selected="false" data-rv="window">'
+        f"Last {weeks} weeks</button>"
+        "</div>"
+        f'<div class="rvpanel" data-rv="now">{_rivals_list(rows, rivals, photos)}</div>'
+        f'<div class="rvpanel" data-rv="window" hidden>'
+        f'{_rivals_list(window_rows, rivals, photos, weeks_note=True)}</div>'
         "</div></section>"
     )
 
@@ -4151,7 +4262,11 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     # this is a few extra portrait requests rather than one per player in
     # the league.
     rivals_rows = rival_returns(own, by_name, ctx, my_name, set(squad_ids))
-    for row in rivals_rows:
+    RIVALS_WINDOW_WEEKS = 3
+    rivals_window_rows = rival_returns_window(
+        rows, ctx, my_name, set(squad_ids), gw,
+        weeks=RIVALS_WINDOW_WEEKS, ttl=ttl)
+    for row in rivals_rows + rivals_window_rows:
         league_photos.setdefault(row["id"], fplapi.photo_data_uri(
             ctx.players[row["id"]]["photo"]))
 
@@ -4260,8 +4375,9 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "carousel": ownership_carousel(own, by_name, ctx, my_name) if own else "",
         "template": template_pitch(tpl, ctx, shirts, my_name),
         "differentials": differential_card(own, by_name, ctx, my_name, league_photos),
-        "rivals": rivals_card(rivals_rows, max(0, len(by_name) - 1),
-                              league_photos),
+        "rivals": rivals_card(rivals_rows, rivals_window_rows,
+                              max(0, len(by_name) - 1), league_photos,
+                              weeks=RIVALS_WINDOW_WEEKS),
         "elite": elite_card(elite_res, ctx),
         "chips": chips_table(histories) if histories else "",
         "next_gw": next_gw,
