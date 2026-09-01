@@ -2725,7 +2725,7 @@ def findings_section(finds, reports, ctx, proj=None, market=None, next_gw=None,
     contribution is a distance to a threshold, and both read better as marks
     than as prose. The rest stay as lists, because a set-piece order or an
     injury note is text and dressing it up as a chart would be decoration."""
-    drawn = {"cold", "hot", "defcon", "bcm", "setpieces", "sample", "price",
+    drawn = {"cold", "hot", "defcon", "setpieces", "sample", "price",
              "lineups", "fixtures"}
 
     gaps = [
