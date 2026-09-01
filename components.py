@@ -4,8 +4,10 @@ Chart-ish building blocks for the dashboard.
 
 Each of these exists because a table was the wrong shape for the question:
 
-* `ep_bars` - the four terms of expected points really are parts of one total,
-  which is the one situation a stacked bar is right for.
+* `ep_column` - the terms of expected points really are parts of one total,
+  which is the one situation a stacked bar is right for. One row per man in
+  the starting eleven, in the order they stand on the pitch, so each bar can
+  be read level with its own card.
 * `gap_chart` - a dumbbell. Reading the distance between two dots beats
   reading two numbers and subtracting them in your head.
 * `defcon_bars` - "how close to 10" is a bar with a line on it, not a decimal.
@@ -38,85 +40,71 @@ EP_PARTS = (
 )
 
 
-def ep_bars(eps, collapsed=6):
-    """Expected points as one stacked bar per player.
+def ep_column(eps, order):
+    """Expected points for the starting eleven, one row per pitch card.
 
-    Shows a handful by default and opens to the full squad, because fifteen
-    rows pushed everything below it off the screen for a list you mostly read
-    the top of. Opening animates each bar out from the left in turn - the
-    stagger is what makes it read as a ranking rather than a block appearing.
-    """
+    `order` is the player ids in the order they stand on the pitch, and the
+    rows are emitted in exactly that order rather than ranked - the whole
+    point of this layout is that row N sits level with card N, so the bar
+    is read as belonging to the man beside it. Sorting by size would break
+    that correspondence and turn it back into the ranked list it replaced.
+
+    The eleven are scaled against the biggest of the eleven, so the widths
+    compare like with like across one gameweek's team."""
     if not eps:
         return ""
-    ordered = sorted(eps, key=lambda x: -x[1]["total"])
-    top = max(ep["total"] for _r, ep in eps) or 1.0
+    by_id = {r.element["id"]: (r, ep) for r, ep in eps}
+    picked = [by_id[pid] for pid in order if pid in by_id]
+    if not picked:
+        return ""
+    top = max(ep["total"] for _r, ep in picked) or 1.0
+    total = sum(ep["total"] for _r, ep in picked)
+
     rows = []
-    for i, (r, ep) in enumerate(ordered):
-        segs = []
-        for key, label, colour in EP_PARTS:
-            value = ep.get(key, 0.0)
-            if value <= 0.01:
-                continue
-            segs.append(
-                '<span class="seg" style="width:{:.2f}%;background:{}" '
-                'title="{} {:.2f}"></span>'.format(
-                    value / top * 100, colour, e(label), value
-                )
-            )
-        fixture = "{} ({})".format(ep["opponent"], "H" if ep["home"] else "A")
+    for i, (r, ep) in enumerate(picked):
+        segs = "".join(
+            '<span class="seg" style="width:{:.2f}%;background:{}" '
+            'title="{} {:.2f}"></span>'.format(
+                ep.get(key, 0.0) / top * 100, colour, e(label), ep.get(key, 0.0))
+            for key, label, colour in EP_PARTS
+            if ep.get(key, 0.0) > 0.01
+        )
+        # The name is carried but hidden while the two columns sit side by
+        # side, where the card level with the row already says who this is.
+        # Stacked on a narrow screen there is no card beside it, and eleven
+        # anonymous bars are not worth showing - so it reappears there.
         rows.append(
-            '<li class="epr" style="--i:{i}">'
-            '<span class="epname">{name}<span class="epfx">{fx}</span></span>'
+            '<li class="epcr" style="--i:{i}">'
+            '<span class="epcname">{name}</span>'
             '<span class="epbar">{segs}</span>'
-            '<span class="eptot tnum">{total:.2f}</span></li>'.format(
-                i=i,
-                name=e(r.name), fx=e(fixture), segs="".join(segs),
-                total=ep["total"],
-            )
+            '<span class="eptot tnum">{total:.1f}</span></li>'.format(
+                i=i, name=e(r.name), segs=segs, total=ep["total"])
         )
     legend = "".join(
         '<span class="epkey"><i style="background:{}"></i>{}</span>'.format(c, e(l))
         for _k, l, c in EP_PARTS
     )
-    # The bars are what is hidden, not the players. Collapsed you get the
-    # ranking and the totals; opening slides the bar column out and runs the
-    # reveal, which is the moment worth having an animation for.
-    toggle = (
-        '<button class="epmore" aria-expanded="false">'
-        '<svg viewBox="0 0 16 16" class="epchev" aria-hidden="true">'
-        '<path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" '
-        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-        '<span class="epmore-txt">See<br>more</span></button>'
-    )
-    # Collapsed, the ranking only needs its own width - the rest of the card
-    # used to sit empty between it and the toggle. The single most useful
-    # thing to put there is the answer to the question this list exists to
-    # answer: who to captain. It hides again once the bars open, since the
-    # list itself claims that space then.
-    top_r, top_ep = ordered[0]
-    cap_fixture = "{} ({})".format(top_ep["opponent"], "H" if top_ep["home"] else "A")
-    captain = (
-        '<div class="epcap">'
-        '<span class="epcap-k">Captain pick</span>'
-        '<span class="epcap-name">{name}</span>'
-        '<span class="epcap-fx">{fx}</span>'
-        '<span class="epcap-v"><b class="tnum">{total:.1f}</b> pts'
-        '<span class="epcap-arm tnum"> &rarr; {double:.1f} as armband</span>'
-        "</span></div>"
-    ).format(name=e(top_r.name), fx=e(cap_fixture), total=top_ep["total"],
-             double=top_ep["total"] * 2)
     return (
-        '<section class="card epcard"><div class="card-head">'
-        '<h2>Expected points</h2>'
-        '<span class="sub">Next gameweek, split into what actually earns the '
-        "points. Clean-sheet odds and the goals line come from the betting "
-        "market where it has priced the fixture.</span></div>"
-        '<div class="card-body"><div class="epwrap">'
-        '<ul class="eplist">{rows}</ul>{captain}{toggle}</div>'
-        '<p class="eplegend">{legend}</p></div></section>'.format(
-            rows="".join(rows), captain=captain, legend=legend, toggle=toggle
-        )
+        '<div class="epside" aria-hidden="true">'
+        '<div class="epside-head"><span class="epside-k">Projected</span>'
+        '<b class="tnum">{total:.1f}</b><span class="epside-u">pts, this XI</span>'
+        "</div>"
+        '<ul class="epclist">{rows}</ul>'
+        '<p class="eplegend">{legend}</p></div>'.format(
+            total=total, rows="".join(rows), legend=legend)
     )
+
+
+def info_btn():
+    """The "i" that reveals a card's explanatory line on click.
+
+    Every card head used to print its grey explanation in full, permanently,
+    which is a sentence of small print nobody asked to read before they'd
+    even looked at the numbers. Hiding it behind one click keeps the title
+    doing the work at a glance; the JS toggle lives once in JS, keyed off
+    this class, rather than per-card."""
+    return ('<button class="infobtn" type="button" aria-label="More information" '
+            'aria-expanded="false">i</button>')
 
 
 def gap_chart(rows, title, note, left_label, right_label):
@@ -131,29 +119,38 @@ def gap_chart(rows, title, note, left_label, right_label):
     top = max(max(a, b) for _n, a, b in rows) or 1.0
     items = []
     for name, actual, expected in rows:
-        x1, x2 = actual / top * 100, expected / top * 100
-        lo, hi = min(x1, x2), max(x1, x2)
+        # A dot centred with `left:X%; margin-left:-5.5px` pushes past the
+        # track's own edge whenever X is near 0 or 100 - the CSS percentage
+        # is relative to the track's width, but the 5.5px pullback isn't, so
+        # at the extremes the dot's centre sits closer to the card's edge
+        # than half its own radius. calc() keeps the centre inset by the
+        # dot's radius on both ends regardless of the track's actual width.
+        fa, fx = actual / top, expected / top
+        lo, hi = min(fa, fx), max(fa, fx)
         colour = "var(--success)" if actual < expected else "var(--warn)"
         items.append(
             '<li class="gap"><span class="gapname">{}</span>'
             '<span class="gaptrack">'
-            '<span class="gapline" style="left:{:.1f}%;width:{:.1f}%;background:{}"></span>'
-            '<span class="gapdot d-a" style="left:{:.1f}%" title="{} {:g}"></span>'
-            '<span class="gapdot d-x" style="left:{:.1f}%" title="{} {:.2f}"></span>'
+            '<span class="gapline" style="left:calc(5.5px + (100% - 11px) * {:.4f});'
+            'width:calc((100% - 11px) * {:.4f});background:{}"></span>'
+            '<span class="gapdot d-a" style="left:calc(5.5px + (100% - 11px) * {:.4f})" '
+            'title="{} {:g}"></span>'
+            '<span class="gapdot d-x" style="left:calc(5.5px + (100% - 11px) * {:.4f})" '
+            'title="{} {:.2f}"></span>'
             "</span>"
             '<span class="gapnum tnum">{:g} v {:.2f}</span></li>'.format(
                 e(name), lo, hi - lo, colour,
-                x1, e(left_label), actual,
-                x2, e(right_label), expected,
+                fa, e(left_label), actual,
+                fx, e(right_label), expected,
                 actual, expected,
             )
         )
     return (
-        '<div class="find gapcard"><h3>{}</h3><p class="note">{}</p>'
+        '<div class="find gapcard"><h3>{}{}</h3><p class="note" hidden>{}</p>'
         '<ul class="gaplist">{}</ul>'
         '<p class="eplegend"><span class="epkey"><i class="k-a"></i>{}</span>'
         '<span class="epkey"><i class="k-x"></i>{}</span></p></div>'.format(
-            e(title), e(note), "".join(items), e(left_label), e(right_label)
+            e(title), info_btn(), e(note), "".join(items), e(left_label), e(right_label)
         )
     )
 
@@ -192,10 +189,10 @@ def defcon_bars(rows):
     if not items:
         return ""
     return (
-        '<div class="find gapcard"><h3>Defensive contribution</h3>'
-        '<p class="note">Two points a match at the threshold. The notch is the '
+        '<div class="find gapcard"><h3>Defensive contribution{}</h3>'
+        '<p class="note" hidden>Two points a match at the threshold. The notch is the '
         "threshold; the bar is the rate per 90.</p>"
-        '<ul class="dclist">{}</ul></div>'.format("".join(items))
+        '<ul class="dclist">{}</ul></div>'.format(info_btn(), "".join(items))
     )
 
 
@@ -257,9 +254,9 @@ def set_piece_card(groups):
     if not blocks:
         return ""
     return (
-        '<div class="find gapcard"><h3>Set pieces</h3>'
-        '<p class="note">Who takes them, in the order the club lists them.</p>'
-        '<div class="spwrap">{}</div></div>'.format("".join(blocks))
+        '<div class="find gapcard"><h3>Set pieces{}</h3>'
+        '<p class="note" hidden>Who takes them, in the order the club lists them.</p>'
+        '<div class="spwrap">{}</div></div>'.format(info_btn(), "".join(blocks))
     )
 
 
@@ -314,15 +311,28 @@ def price_move_card(moves):
         )
 
     return (
-        '<div class="find gapcard"><h3>Price movement</h3>'
-        '<p class="note">Since the season started.</p>'
+        '<div class="find gapcard"><h3>Price movement{}</h3>'
+        '<p class="note" hidden>Over the last 7 days. The season-long change for '
+        "any one player is on their own card, in the squad view.</p>"
         '<div class="pmwrap">{}{}</div></div>'.format(
-            block(ups, "up", "Rise"), block(downs, "down", "Fall")
+            info_btn(), block(ups, "up", "Rise"), block(downs, "down", "Fall")
         )
     )
 
 
-def _face(photo, shirt, name, club, price, tone_class):
+def duty_badges(el):
+    """Set-piece duty icons for a suggested transfer target - pens, free
+    kicks, corners, only the ones he's actually on. The responsibility
+    itself is worth as much as the projection when you're weighing a
+    signing, and until now it only showed up on the set-piece card, not
+    anywhere near the suggestion itself."""
+    order_fields = (("pens", "penalties_order"), ("fk", "direct_freekicks_order"),
+                    ("corners", "corners_and_indirect_freekicks_order"))
+    icons = "".join(ICONS[key] for key, field in order_fields if el.get(field))
+    return '<span class="duty-badges">{}</span>'.format(icons) if icons else ""
+
+
+def _face(photo, shirt, name, club, price, tone_class, duties=""):
     """One side of a swap: portrait, club shirt tucked in the corner, name."""
     if photo:
         img = '<img class="tf-photo" src="{}" alt="" width="72" height="92">'.format(photo)
@@ -332,12 +342,12 @@ def _face(photo, shirt, name, club, price, tone_class):
            if shirt else "")
     return (
         '<div class="tf-face {tone}">'
-        '<div class="tf-frame">{img}{kit}</div>'
+        '<div class="tf-frame">{img}{kit}{duties}</div>'
         '<p class="tf-name">{name}</p>'
         '<p class="tf-meta">{club} &middot; {price:.1f}m</p>'
         "</div>"
-    ).format(tone=tone_class, img=img, kit=kit, name=e(name), club=e(club),
-             price=price)
+    ).format(tone=tone_class, img=img, kit=kit, duties=duties, name=e(name),
+             club=e(club), price=price)
 
 
 def transfer_cards(rows, note):
@@ -391,7 +401,8 @@ def transfer_cards(rows, note):
             out=_face(r["out_photo"], r["out_shirt"], r["out"].name,
                       r["out"].team, r["out"].price, "tf-out"),
             inp=_face(r["in_photo"], r["in_shirt"], r["in"]["web_name"],
-                      r["in_club"], r["price"], "tf-in"),
+                      r["in_club"], r["price"], "tf-in",
+                      duties=duty_badges(r["in"])),
             mclass=money_class, money=money,
             oep=out_ep, opct=out_ep / span * 100,
             iep=in_ep, ipct=in_ep / span * 100,
@@ -399,24 +410,24 @@ def transfer_cards(rows, note):
             elite=elite or "same position, within budget",
         ))
     return (
-        '<section class="card"><div class="card-head"><h2>Suggested transfers</h2>'
-        '<span class="sub">{}</span></div>'
+        '<section class="card"><div class="card-head"><h2>Suggested transfers{}</h2>'
+        '<span class="sub" hidden>{}</span></div>'
         '<div class="card-body"><ul class="tflist">{}</ul></div></section>'.format(
-            e(note), "".join(cards)
+            info_btn(), e(note), "".join(cards)
         )
     )
 
 
-def _mini_face(photo, shirt, name, tone_class):
+def _mini_face(photo, shirt, name, tone_class, duties=""):
     if photo:
         img = '<img class="pr-photo" src="{}" alt="" width="44" height="56">'.format(photo)
     else:
         img = '<div class="pr-photo pr-blank">{}</div>'.format(e(name[:1]))
     kit = ('<img class="pr-kit" src="{}" alt="" width="18" height="18">'.format(shirt)
            if shirt else "")
-    return ('<span class="pr-face {tone}"><span class="pr-frame">{img}{kit}</span>'
+    return ('<span class="pr-face {tone}"><span class="pr-frame">{img}{kit}{duties}</span>'
             '<span class="pr-name">{name}</span></span>').format(
-        tone=tone_class, img=img, kit=kit, name=e(name))
+        tone=tone_class, img=img, kit=kit, duties=duties, name=e(name))
 
 
 def pairing_cards(pairings, note, hit=4):
@@ -443,7 +454,8 @@ def pairing_cards(pairings, note, hit=4):
                 out=_mini_face(leg["out_photo"], leg["out_shirt"],
                                leg["out"].name, "pr-out"),
                 inp=_mini_face(leg["in_photo"], leg["in_shirt"],
-                               leg["in"]["web_name"], "pr-in"),
+                               leg["in"]["web_name"], "pr-in",
+                               duties=duty_badges(leg["in"])),
                 gain=leg["gain"],
             )
             for leg in p["legs"]
@@ -472,11 +484,112 @@ def pairing_cards(pairings, note, hit=4):
             )
         )
     return (
-        '<section class="card"><div class="card-head"><h2>Transfer pairings</h2>'
-        '<span class="sub">{}</span></div>'
+        '<section class="card"><div class="card-head"><h2>Transfer pairings{}</h2>'
+        '<span class="sub" hidden>{}</span></div>'
         '<div class="card-body"><ul class="prlist">{}</ul></div></section>'.format(
-            e(note), "".join(cards)
+            info_btn(), e(note), "".join(cards)
         )
+    )
+
+
+POS_ORDER = {"GKP": 0, "DEF": 1, "MID": 2, "FWD": 3}
+
+
+WC_STATS = (
+    ("xp", "xP", "{:.1f}"),
+    ("fixture", "Fixture rating", "{:.1f}"),
+    ("xgi", "xGI", "{:.1f}"),
+    ("form", "Form", "{:.1f}"),
+)
+
+
+def _wc_stats_block(before, after):
+    """Before/after across the four numbers a rebuild should actually move -
+    not just "ten swaps happened" but whether the resulting XI is stronger
+    on points, fixtures, underlying attacking numbers and recent form."""
+    if not after:
+        return ""
+    rows = []
+    for key, label, fmt in WC_STATS:
+        a = after.get(key, 0.0)
+        b = before.get(key, 0.0) if before else 0.0
+        delta = a - b
+        cls = "wc-up" if delta > 0.05 else ("wc-down" if delta < -0.05 else "wc-flat")
+        rows.append(
+            '<div class="wcstat"><span class="wcstat-k">{label}</span>'
+            '<span class="wcstat-b">{bval}</span>'
+            '<span class="wcstat-arrow" aria-hidden="true">&rarr;</span>'
+            '<span class="wcstat-a">{aval}</span>'
+            '<span class="wcstat-d {cls}">{delta}</span></div>'.format(
+                label=e(label), bval=fmt.format(b), aval=fmt.format(a),
+                cls=cls, delta=("{:+.1f}".format(delta) if before else "&mdash;"),
+            )
+        )
+    return '<div class="wcstats">{}</div>'.format("".join(rows))
+
+
+def swap_table(rows, title, note, stats=None):
+    """A whole-squad rebuild as a table: out on the left, in on the right.
+
+    This used to reuse transfer_cards, which draws each swap as two large
+    portraits. That works for the three or four suggestions in "Suggested
+    transfers" and falls apart at a Wildcard's ten - and because none of
+    these rows carry a photo, every one of those portraits rendered as a
+    grey square containing the player's first initial, so the section read
+    as a wall of enormous letters. Ten moves is a list, not a gallery: one
+    row each, positions grouped, columns you can compare straight down.
+
+    `stats` is an optional (before, after) pair of XI aggregates (see
+    chips._xi_stats) rendered above the table - the rebuild's actual case,
+    not just the list of names it would take to get there."""
+    if not rows:
+        return ""
+    rows = sorted(rows, key=lambda r: (POS_ORDER.get(r["out"].pos, 9),
+                                       -r["out"].price))
+    body, seen_pos = [], None
+    for r in rows:
+        pos = r["out"].pos
+        if pos != seen_pos:
+            seen_pos = pos
+            body.append(
+                '<tr class="sw-group"><th colspan="5" scope="colgroup">'
+                '{}</th></tr>'.format(e(pos))
+            )
+        spend = r["spend"]
+        money = "free" if abs(spend) < 0.05 else "{:+.1f}m".format(-spend)
+        mcls = "sw-free" if abs(spend) < 0.05 else (
+            "sw-save" if spend < 0 else "sw-cost")
+        gain = r["gain"]
+        gcls = "sw-up" if gain > 0 else ("sw-down" if gain < 0 else "sw-flat")
+        body.append(
+            '<tr>'
+            '<td class="sw-out"><b>{out}</b><span>{oclub} &middot; {oprice:.1f}</span></td>'
+            '<td class="sw-arrow" aria-hidden="true">&rarr;</td>'
+            '<td class="sw-in"><b>{inn}</b>{duties}<span>{iclub} &middot; {iprice:.1f}</span></td>'
+            '<td class="num {mcls}">{money}</td>'
+            '<td class="num {gcls}">{gain:+.2f}</td>'
+            "</tr>".format(
+                out=e(r["out"].name), oclub=e(r["out"].team),
+                oprice=r["out"].price,
+                inn=e(r["in"]["web_name"]), iclub=e(r["in_club"]),
+                iprice=r["price"], duties=duty_badges(r["in"]),
+                mcls=mcls, money=money, gcls=gcls, gain=gain,
+            )
+        )
+    stats_html = _wc_stats_block(*stats) if stats else ""
+    if stats_html:
+        stats_html = f'<div class="card-body">{stats_html}</div>'
+    return (
+        '<details class="card collapsible swapcard"><summary class="card-head">'
+        '<h2>{title}{infobtn}</h2><span class="sub" hidden>{note}</span></summary>'
+        '{stats}'
+        '<div class="scroll"><table class="swaptbl"><thead><tr>'
+        '<th scope="col">Out</th><th scope="col"></th><th scope="col">In</th>'
+        '<th scope="col" class="num">Bank</th>'
+        '<th scope="col" class="num">Points</th></tr></thead>'
+        "<tbody>{body}</tbody></table></div></details>".format(
+            title=e(title), infobtn=info_btn(), note=e(note),
+            stats=stats_html, body="".join(body))
     )
 
 
@@ -534,10 +647,10 @@ def stat_leaders(groups):
     if not cards:
         return ""
     return (
-        '<section class="card"><div class="card-head"><h2>League leaders</h2>'
-        '<span class="sub">Who is topping each measure so far. Your players are '
-        "marked.</span></div>"
-        '<div class="card-body"><ul class="slwrap">{}</ul></div></section>'.format(
+        '<section class="card"><div class="card-head"><h2>League leaders{}</h2>'
+        '<span class="sub" hidden>Who is topping each measure so far. Your players are '
+        "marked.</span></div>".format(info_btn())
+        + '<div class="card-body"><ul class="slwrap">{}</ul></div></section>'.format(
             "".join(cards)
         )
     )

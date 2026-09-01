@@ -687,10 +687,17 @@ def build_findings(reports, ctx):
         bcm, bcc = ps.get("big_chance_missed"), ps.get("big_chance_created")
         sot, shots = ps.get("ontarget_scoring_att"), ps.get("total_scoring_att")
         if bcm:
-            extra = f", {shots:g} shots ({sot:g} on target)" if shots else ""
+            # Both halves are needed for this clause, and they arrive from
+            # two separate paginated Opta requests - one of which can fail
+            # on its own. Guarding only `shots` crashed the entire build
+            # when the shots-on-target pages were reset mid-fetch, which is
+            # far too much collateral for one missing sub-stat.
+            extra = (f", {shots:g} shots ({sot:g} on target)"
+                     if shots and sot is not None else
+                     f", {shots:g} shots" if shots else "")
             missed.append(f"{r.name} - {bcm:g} big {'chance' if bcm == 1 else 'chances'} missed{extra}")
         if bcc:
-            created.append(f"{r.name} - {bcc:g} big {'chance' if bcc == 1 else 'chances'} created")
+            created.append(f"{r.name} - {bcc:g} big {'chance' if bcc == 1 else 'chances'}")
     if missed:
         out.append(_finding("bcm", "Big chances missed", "good", missed,
                             note="Clear openings not taken. The chances are arriving."))

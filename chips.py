@@ -13,7 +13,9 @@ own squad directly.
 import analysis
 import fplapi
 import squadbuilder
+import ticker
 import transfers
+from analysis import f
 
 # Starting guesses, not a validated calibration - there is no data yet on
 # how these gaps are actually distributed across a real season. Revisit
@@ -55,13 +57,20 @@ def used_chips_this_half(entry_id, next_gw, ttl=fplapi.DEFAULT_TTL):
     return used
 
 
-def build_pool(ctx, proj, market, baselines, start_gw, weeks, exclude_ids=()):
+def build_pool(ctx, proj, market, baselines, start_gw, weeks, exclude_ids=(),
+              case_weighted=False):
     """The whole-league candidate pool, windowed-scored and squadbuilder-
     shaped: {"id", "pos", "club", "price", "value"}. Excludes anyone
     unfit to be suggested at all (transfers._eligible - injured,
     suspended, or ruled out of the predicted lineup) and anyone whose
     start_probability is too low to be worth a squad slot regardless of
     rate stats.
+
+    `case_weighted` adds the same form/underlying-numbers nudge
+    transfers.case_score adds on top of a windowed points total - on for
+    Wildcard, which wants the same weighing as an individual transfer;
+    off for Free Hit and the literal-best-XI card, which are deliberately
+    pure points with nothing else mixed in.
 
     Known limitation: start_probability is a single as-of-now estimate,
     not a per-gameweek one, so a player out injured today but nailed-on
@@ -84,6 +93,10 @@ def build_pool(ctx, proj, market, baselines, start_gw, weeks, exclude_ids=()):
             el, ctx, proj, market, baselines, priors, start_gw, weeks)
         if total <= 0:
             continue
+        if case_weighted:
+            factors = transfers.player_case_factors(el, ctx)
+            total += (transfers.FORM_CASE_WEIGHT * factors["form"]
+                      + transfers.EXPECTED_CASE_WEIGHT * factors["expected"])
         pool.append({
             "id": pid, "pos": ctx.pos(el), "club": ctx.team_name(el["team"]),
             "price": el["now_cost"] / 10.0, "value": total,
@@ -123,6 +136,62 @@ def points_team(ctx, xi_reports, proj, market, baselines, gw):
     }
 
 
+def literal_best_xi(ctx, xi_reports, proj, market, baselines, gw):
+    """The highest-scoring valid eleven in the whole game, one week only -
+    formation rules only, no budget and no club cap.
+
+    This is a different question from points_team's "ideal", which is
+    deliberately budget-capped at the manager's own XI value because it
+    feeds the Free Hit gap - a chip you would actually play, so the
+    comparison has to be a squad you could actually afford. The dashboard's
+    "Highest predicted points XI" card is a different, unconstrained
+    question ("what if points were all that mattered"), and reusing the
+    budget-capped number there quietly answered the wrong question: a
+    manager with a modest squad value saw a "best XI" that wasn't the best
+    XI in the game at all, just the best one at his own price point.
+
+    With no budget or club constraint, the optimal team for a fixed
+    formation is simply the top N scorers at each position - so trying
+    every legal formation (~40 of them) and keeping the best total is
+    exact, not approximate."""
+    pool = build_pool(ctx, proj, market, baselines, gw, weeks=1)
+    by_pos = {}
+    for p in pool:
+        by_pos.setdefault(p["pos"], []).append(p)
+    for lst in by_pos.values():
+        lst.sort(key=lambda p: -p["value"])
+    gks, defs, mids, fwds = (by_pos.get("GKP", []), by_pos.get("DEF", []),
+                             by_pos.get("MID", []), by_pos.get("FWD", []))
+
+    best = None
+    for d in range(3, 6):
+        for m in range(2, 6):
+            for fw in range(1, 4):
+                if 1 + d + m + fw != 11:
+                    continue
+                if len(gks) < 1 or len(defs) < d or len(mids) < m or len(fwds) < fw:
+                    continue
+                picks = gks[:1] + defs[:d] + mids[:m] + fwds[:fw]
+                total = sum(p["value"] for p in picks)
+                if best is None or total > best["value"]:
+                    best = {"value": total, "xi": picks}
+
+    ours_value = 0.0
+    for r in xi_reports:
+        ep = analysis.expected_points(r, ctx, proj, gw, market=market,
+                                      baselines=baselines)
+        ours_value += ep["total"] if ep else 0.0
+
+    if best is None:
+        return {"ideal_value": ours_value, "ours_value": ours_value,
+                "gap": 0.0, "ideal_xi": []}
+    return {
+        "ideal_value": best["value"], "ours_value": ours_value,
+        "gap": max(0.0, best["value"] - ours_value),
+        "ideal_xi": best["xi"],
+    }
+
+
 def free_hit(ctx, xi_reports, proj, market, baselines, next_gw):
     """The gameweek in the current chip window where the manager's own XI
     is furthest behind the best possible team - the Free Hit case."""
@@ -141,6 +210,12 @@ def free_hit(ctx, xi_reports, proj, market, baselines, next_gw):
         "gw": best_gw, "gap": gaps[best_gw],
         "confidence": confidence(gaps[best_gw], others),
         "points_team": pt_by_gw[best_gw],
+        # Every week's ideal team, not just the winning one. The dashboard's
+        # "highest predicted points XI" card wants the *coming* gameweek
+        # specifically, which is rarely the same week Free Hit picks, and
+        # recomputing it would mean building the whole candidate pool a
+        # second time for a number already sitting in this loop.
+        "by_gw": pt_by_gw,
     }
 
 
@@ -207,11 +282,49 @@ def bench_boost(ctx, bench_reports, proj, market, baselines, next_gw, bank=0.0):
     }
 
 
+def _xi_stats(xi_pool, ctx, proj, market, next_gw, weeks):
+    """xP, season xGI, form and mean fixture rating across an XI - the
+    before/after the Wildcard card compares, since "here are fifteen
+    swaps" answers a different question from "is this actually better,
+    and by how much on the numbers that matter". `xi_pool` is
+    squadbuilder's own {"id","pos","club","price","value"} shape."""
+    xgi = form = fixture_total = 0.0
+    fixture_n = 0
+    for p in xi_pool:
+        el = ctx.players[p["id"]]
+        xgi += f(el.get("expected_goal_involvements"))
+        form += f(el.get("form"))
+        cells = ticker._rows_for(p["club"], proj, market, next_gw, weeks)
+        if cells:
+            fixture_total += sum(c["score"] for c in cells) / len(cells)
+            fixture_n += 1
+    return {
+        "xp": sum(p["value"] for p in xi_pool),
+        "xgi": xgi, "form": form,
+        "fixture": fixture_total / fixture_n if fixture_n else 0.0,
+    }
+
+
 def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
     """The best full-squad rebuild available right now, scored over the
     chip window (a permanent change needs a run of fixtures, not one
     week) and diffed against the current squad in sell/buy pairs, ranked
     by price so the story reads most-expensive-change-first.
+
+    Own players and candidates are scored by the identical function
+    (transfers.windowed_candidate_score, plus the same form/underlying-
+    numbers nudge transfers.case_score adds to a single transfer) -
+    previously the own squad was scored by analysis.windowed_ep, a richer,
+    match-history-backed model, while candidates got the cheaper
+    bootstrap-only one. transfers.suggest already avoids exactly that
+    asymmetry for single transfers with a comment explaining why; wildcard
+    didn't, and the result was a rebuild that read as "sell everyone" far
+    more often than the numbers actually supported - whichever side of
+    that mismatch scored systematically higher always won, real quality
+    aside. One scorer for both sides means an own player who is still
+    genuinely one of the best in his position and price range now gets
+    kept, rather than out-competed by a candidate measured on a different
+    scale.
 
     Known limitation, found live-testing this against a real squad: the
     objective is flat expected points across 11 players, with no idea
@@ -224,12 +337,16 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
     here with that in mind rather than as the final word."""
     start, weeks = analysis.chip_window(next_gw)
     exclude_ids = {r.element["id"] for r in all_reports}
+    priors = transfers.positional_priors(ctx)
     pool = build_pool(ctx, proj, market, baselines, start, weeks,
-                      exclude_ids=exclude_ids)
+                      exclude_ids=exclude_ids, case_weighted=True)
     own_pool = []
     for r in all_reports:
-        total, _per_gw = analysis.windowed_ep(r, ctx, proj, market, baselines,
-                                              start, weeks)
+        total, _per_gw = transfers.windowed_candidate_score(
+            r.element, ctx, proj, market, baselines, priors, start, weeks)
+        factors = transfers.player_case_factors(r.element, ctx)
+        total += (transfers.FORM_CASE_WEIGHT * factors["form"]
+                  + transfers.EXPECTED_CASE_WEIGHT * factors["expected"])
         own_pool.append({"id": r.element["id"], "pos": r.pos, "club": r.team,
                          "price": r.price, "value": total})
     full_pool = pool + own_pool
@@ -246,6 +363,10 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
     current_value = current_best["value"] if current_best else 0.0
 
     gap = max(0.0, ideal["value"] - current_value)
+
+    before = (_xi_stats(current_best["xi"], ctx, proj, market, start, weeks)
+              if current_best else None)
+    after = _xi_stats(ideal["xi"], ctx, proj, market, start, weeks)
 
     ideal_ids = {p["id"] for p in ideal["xi"] + ideal["bench"]}
     current_ids = {r.element["id"] for r in all_reports}
@@ -285,14 +406,17 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
     # scored at the window's first gameweek, real numbers rather than
     # placeholders, so the reused card shows an honest fixture and gain
     # per move instead of a flat, meaningless bar.
-    priors = transfers.positional_priors(ctx)
     moves = []
     for out_r, in_el in pairs:
         in_full = analysis.build_player(ctx, in_el["id"], ttl=fplapi.DEFAULT_TTL)
-        out_score = analysis.expected_points(
-            out_r, ctx, proj, start, market=market, baselines=baselines
+        # Same scorer both sides here too - out_r has match history and
+        # in_el doesn't, so analysis.expected_points against
+        # transfers.candidate_score would flatter whichever man got the
+        # richer model on a card whose whole point is comparing the two.
+        out_score = transfers.case_score(
+            out_r.element, ctx, proj, start, market, baselines, priors
         ) or {"total": 0.0, "opponent": "-", "home": True}
-        in_score = transfers.candidate_score(
+        in_score = transfers.case_score(
             in_el, ctx, proj, start, market, baselines, priors
         ) or {"total": 0.0, "opponent": "-", "home": True}
         moves.append({
@@ -307,5 +431,5 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
     return {
         "gw_window": (start, weeks), "gap": gap,
         "confidence": confidence(ideal["value"], [current_value]),
-        "moves": moves,
+        "moves": moves, "before": before, "after": after,
     }

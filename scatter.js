@@ -14,9 +14,11 @@
 
     var svg = card.querySelector('svg.scatter');
     var out = card.querySelector('.readout');
+    var defaultReadout = out ? out.innerHTML : '';
     var data = JSON.parse(holder.textContent);
     var pos = 'ALL';
     var selGroup = null;
+    var pinnedG = null;
 
     function axisLabel(key) {
       var o = card.querySelector('.axis[data-axis="y"] option[value="' + key + '"]');
@@ -45,6 +47,10 @@
       var rows = data.filter(function (d) { return pos === 'ALL' || d.p === pos; });
 
       while (svg.firstChild) { svg.removeChild(svg.firstChild); }
+      // Every dot below is a fresh element - a pin from before this redraw
+      // would otherwise point at a node no longer in the document.
+      pinnedG = null;
+      if (out) { out.innerHTML = defaultReadout; }
       if (!rows.length) { return; }
 
       var xs = rows.map(function (d) { return d[xk]; });
@@ -87,7 +93,7 @@
         },
         axisLabel(yk)));
 
-      var mine = [];
+      var mine = [], others = [];
       rows.forEach(function (d) {
         var cx = sx(d[xk]), cy = sy(d[yk]);
         var detail = d.n + ' (' + d.t + ', ' + d.p + ') - ' + d.price.toFixed(1) +
@@ -102,16 +108,39 @@
         g.appendChild(node('circle', { 'class': 'hit', cx: cx, cy: cy, r: 11 }));
         g.appendChild(node('title', {}, detail));
         g._d = d; g._cx = cx; g._cy = cy; g._detail = detail;
-        g.addEventListener('click', function () { pick(this); });
-        g.addEventListener('focus', function () { pick(this); });
+        g.addEventListener('click', function () { pinnedG = this; pick(this); });
+        g.addEventListener('focus', function () { pinnedG = this; pick(this); });
+        // Hovering used to do nothing until the dot was clicked or tabbed
+        // to - reading a value meant clicking it first, on a chart whose
+        // whole point is scanning many dots quickly. A click still pins
+        // the selection so it survives the mouse moving away.
+        g.addEventListener('mouseenter', function () { pick(this); });
+        g.addEventListener('mouseleave', unpick);
         svg.appendChild(g);
-        if (d.mine) { mine.push({ d: d, cx: cx, cy: cy }); }
+        if (d.mine) { mine.push({ d: d, cx: cx, cy: cy, g: g }); }
+        else { others.push({ d: d, cx: cx, cy: cy, g: g }); }
       });
 
+      // Furthest from the norm: distance from the centroid of every point
+      // shown, in the same screen pixels the chart itself is drawn in, so
+      // it re-ranks correctly whenever the axes or the position filter
+      // change rather than favouring whichever axis happens to have the
+      // wider spread of raw units.
+      var allPts = rows.map(function (d) { return { cx: sx(d[xk]), cy: sy(d[yk]) }; });
+      var cxAvg = allPts.reduce(function (s, p) { return s + p.cx; }, 0) / allPts.length;
+      var cyAvg = allPts.reduce(function (s, p) { return s + p.cy; }, 0) / allPts.length;
+      others.forEach(function (o) { o.dist = Math.hypot(o.cx - cxAvg, o.cy - cyAvg); });
+      others.sort(function (a, b) { return b.dist - a.dist; });
+      var OUTLIER_N = 4;
+      var outliers = others.slice(0, OUTLIER_N);
+      outliers.forEach(function (o) { o.g.classList.add('outlier'); });
+
       // Greedy de-collision: try slots above the dot, then further off, and
-      // take the first that does not overlap a label already placed.
+      // take the first that does not overlap a label already placed. Your
+      // squad and the outliers share one placement pass so their labels
+      // never overlap each other either.
       var placed = [];
-      mine.forEach(function (m) {
+      mine.concat(outliers).forEach(function (m) {
         var halfw = m.d.n.length * 3.2 + 4;
         var ly = null, lx = null;
         [-11, -23, 16, -35, 28, -47].some(function (dy) {
@@ -127,8 +156,10 @@
           return true;
         });
         if (ly === null) { lx = m.cx; ly = m.cy - 11; }
-        svg.appendChild(node('text',
-          { 'class': 'ptlabel', x: lx, y: ly, 'text-anchor': 'middle' }, m.d.n));
+        svg.appendChild(node('text', {
+          'class': 'ptlabel' + (m.d.mine ? ' mine-label' : ' outlier-label'),
+          x: lx, y: ly, 'text-anchor': 'middle',
+        }, m.d.n));
       });
 
       selGroup = node('g', { 'class': 'sel' });
@@ -152,6 +183,15 @@
         out.innerHTML = '<b>' + g._d.n + '</b>' +
           g._detail.slice(g._d.n.length);
       }
+    }
+
+    function unpick() {
+      // A click pins the selection so it survives the mouse moving on;
+      // a bare hover reverts to whatever was pinned, or to the default
+      // placeholder if nothing was ever clicked.
+      if (pinnedG) { pick(pinnedG); return; }
+      if (selGroup) { selGroup.setAttribute('hidden', ''); }
+      if (out) { out.innerHTML = defaultReadout; }
     }
 
     card.querySelectorAll('.axis').forEach(function (a) {

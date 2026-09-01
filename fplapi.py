@@ -121,6 +121,14 @@ def entry_picks(entry_id, event, **kw):
     return get_json(f"{BASE}/entry/{entry_id}/event/{event}/picks/", **kw)
 
 
+def event_live(event, **kw):
+    """Every player's points for one past gameweek, in a single request -
+    {"elements": [{"id", "stats": {"total_points", "minutes", ...}}, ...]}.
+    The cheap way to price a specific past gameweek across many players:
+    one call here beats one element-summary call per player."""
+    return get_json(f"{BASE}/event/{event}/live/", **kw)
+
+
 def entry(entry_id, **kw):
     return get_json(f"{BASE}/entry/{entry_id}/", **kw)
 
