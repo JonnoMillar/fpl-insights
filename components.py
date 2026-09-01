@@ -320,7 +320,19 @@ def price_move_card(moves):
     )
 
 
-def _face(photo, shirt, name, club, price, tone_class):
+def duty_badges(el):
+    """Set-piece duty icons for a suggested transfer target - pens, free
+    kicks, corners, only the ones he's actually on. The responsibility
+    itself is worth as much as the projection when you're weighing a
+    signing, and until now it only showed up on the set-piece card, not
+    anywhere near the suggestion itself."""
+    order_fields = (("pens", "penalties_order"), ("fk", "direct_freekicks_order"),
+                    ("corners", "corners_and_indirect_freekicks_order"))
+    icons = "".join(ICONS[key] for key, field in order_fields if el.get(field))
+    return '<span class="duty-badges">{}</span>'.format(icons) if icons else ""
+
+
+def _face(photo, shirt, name, club, price, tone_class, duties=""):
     """One side of a swap: portrait, club shirt tucked in the corner, name."""
     if photo:
         img = '<img class="tf-photo" src="{}" alt="" width="72" height="92">'.format(photo)
@@ -330,12 +342,12 @@ def _face(photo, shirt, name, club, price, tone_class):
            if shirt else "")
     return (
         '<div class="tf-face {tone}">'
-        '<div class="tf-frame">{img}{kit}</div>'
+        '<div class="tf-frame">{img}{kit}{duties}</div>'
         '<p class="tf-name">{name}</p>'
         '<p class="tf-meta">{club} &middot; {price:.1f}m</p>'
         "</div>"
-    ).format(tone=tone_class, img=img, kit=kit, name=e(name), club=e(club),
-             price=price)
+    ).format(tone=tone_class, img=img, kit=kit, duties=duties, name=e(name),
+             club=e(club), price=price)
 
 
 def transfer_cards(rows, note):
@@ -389,7 +401,8 @@ def transfer_cards(rows, note):
             out=_face(r["out_photo"], r["out_shirt"], r["out"].name,
                       r["out"].team, r["out"].price, "tf-out"),
             inp=_face(r["in_photo"], r["in_shirt"], r["in"]["web_name"],
-                      r["in_club"], r["price"], "tf-in"),
+                      r["in_club"], r["price"], "tf-in",
+                      duties=duty_badges(r["in"])),
             mclass=money_class, money=money,
             oep=out_ep, opct=out_ep / span * 100,
             iep=in_ep, ipct=in_ep / span * 100,
@@ -405,16 +418,16 @@ def transfer_cards(rows, note):
     )
 
 
-def _mini_face(photo, shirt, name, tone_class):
+def _mini_face(photo, shirt, name, tone_class, duties=""):
     if photo:
         img = '<img class="pr-photo" src="{}" alt="" width="44" height="56">'.format(photo)
     else:
         img = '<div class="pr-photo pr-blank">{}</div>'.format(e(name[:1]))
     kit = ('<img class="pr-kit" src="{}" alt="" width="18" height="18">'.format(shirt)
            if shirt else "")
-    return ('<span class="pr-face {tone}"><span class="pr-frame">{img}{kit}</span>'
+    return ('<span class="pr-face {tone}"><span class="pr-frame">{img}{kit}{duties}</span>'
             '<span class="pr-name">{name}</span></span>').format(
-        tone=tone_class, img=img, kit=kit, name=e(name))
+        tone=tone_class, img=img, kit=kit, duties=duties, name=e(name))
 
 
 def pairing_cards(pairings, note, hit=4):
@@ -441,7 +454,8 @@ def pairing_cards(pairings, note, hit=4):
                 out=_mini_face(leg["out_photo"], leg["out_shirt"],
                                leg["out"].name, "pr-out"),
                 inp=_mini_face(leg["in_photo"], leg["in_shirt"],
-                               leg["in"]["web_name"], "pr-in"),
+                               leg["in"]["web_name"], "pr-in",
+                               duties=duty_badges(leg["in"])),
                 gain=leg["gain"],
             )
             for leg in p["legs"]
@@ -551,15 +565,15 @@ def swap_table(rows, title, note, stats=None):
             '<tr>'
             '<td class="sw-out"><b>{out}</b><span>{oclub} &middot; {oprice:.1f}</span></td>'
             '<td class="sw-arrow" aria-hidden="true">&rarr;</td>'
-            '<td class="sw-in"><b>{inn}</b><span>{iclub} &middot; {iprice:.1f}</span></td>'
+            '<td class="sw-in"><b>{inn}</b>{duties}<span>{iclub} &middot; {iprice:.1f}</span></td>'
             '<td class="num {mcls}">{money}</td>'
             '<td class="num {gcls}">{gain:+.2f}</td>'
             "</tr>".format(
                 out=e(r["out"].name), oclub=e(r["out"].team),
                 oprice=r["out"].price,
                 inn=e(r["in"]["web_name"]), iclub=e(r["in_club"]),
-                iprice=r["price"], mcls=mcls, money=money,
-                gcls=gcls, gain=gain,
+                iprice=r["price"], duties=duty_badges(r["in"]),
+                mcls=mcls, money=money, gcls=gcls, gain=gain,
             )
         )
     stats_html = _wc_stats_block(*stats) if stats else ""

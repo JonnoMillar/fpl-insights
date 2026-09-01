@@ -164,13 +164,53 @@
     });
     svg.appendChild(labels);
 
+    // Hovering shows one line at a time - useful for a quick pass down the
+    // chart, but "how does he actually break down" needs all five numbers
+    // together, which is what a click pins in the detail panel until
+    // another name is clicked or the same one toggles it off.
+    var detail = card.querySelector('.radar-detail');
+    var pinned = null;
+
+    function renderDetail(i) {
+      if (!detail) return;
+      if (i === null) { detail.hidden = true; detail.innerHTML = ''; return; }
+      var c = candidates[i];
+      var rows = metrics.map(function (m) {
+        var raw = c[m.key];
+        var note = c[m.key + '_note'];
+        return '<div class="radar-detail-row"><dt>' + m.label + '</dt>' +
+          '<dd>' + fmtValue(raw, m.unit) +
+          (note ? '<span class="radar-detail-note">' + note + '</span>' : '') +
+          '</dd></div>';
+      }).join('');
+      detail.innerHTML = '<div class="radar-detail-head">' + c.player + ' &middot; vs ' +
+        c.opponent + (c.home ? ' (H)' : ' (A)') + '</div>' + rows;
+      detail.hidden = false;
+    }
+
     legendItems.forEach(function (li) {
       var i = Number(li.getAttribute('data-i'));
       var c = candidates[i];
       li.addEventListener('mouseenter', function () { setActive(i); setReadout(summaryText(c)); });
-      li.addEventListener('mouseleave', function () { setActive(null); setReadout(null); });
+      li.addEventListener('mouseleave', function () {
+        setActive(pinned); setReadout(pinned === null ? null : summaryText(candidates[pinned]));
+      });
       li.addEventListener('focus', function () { setActive(i); setReadout(summaryText(c)); });
-      li.addEventListener('blur', function () { setActive(null); setReadout(null); });
+      li.addEventListener('blur', function () {
+        setActive(pinned); setReadout(pinned === null ? null : summaryText(candidates[pinned]));
+      });
+      function toggle() {
+        pinned = pinned === i ? null : i;
+        legendItems.forEach(function (o) {
+          o.setAttribute('aria-pressed', String(Number(o.getAttribute('data-i')) === pinned));
+        });
+        setActive(pinned);
+        renderDetail(pinned);
+      }
+      li.addEventListener('click', toggle);
+      li.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(); }
+      });
     });
   });
 })();

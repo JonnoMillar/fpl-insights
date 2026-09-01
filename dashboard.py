@@ -615,7 +615,10 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 }
 .cap-layout{display:flex; align-items:flex-start; gap:20px; flex-wrap:wrap}
 .cap-side{flex:0 0 auto; display:flex; flex-direction:column; gap:12px; max-width:220px}
-.cap-chart{flex:1 1 280px; display:flex; justify-content:flex-end; margin:0}
+.cap-chart{
+  flex:1 1 280px; display:flex; flex-direction:column; align-items:flex-end;
+  gap:10px; margin:0;
+}
 .radar{width:100%; min-width:300px; max-width:360px; height:auto; display:block}
 .radar-ring{fill:none; stroke:var(--outline-variant); stroke-width:1}
 .radar-axis-line{stroke:var(--outline-variant); stroke-width:1}
@@ -659,6 +662,30 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .radar-readout{
   margin:0; font-size:13px; min-height:2.6em; color:var(--on-surface-variant);
   font-variant-numeric:tabular-nums; border-top:1px solid var(--outline-variant); padding-top:8px;
+}
+.venue-icon{
+  width:12px; height:12px; vertical-align:-1px; margin-right:4px;
+  color:var(--on-surface-variant); flex:none;
+}
+/* Hover shows one metric at a time; a click pins all five here instead -
+   "how does he actually break down" needs the full set together. */
+.radar-detail{
+  width:100%; max-width:360px; margin:0; padding:10px 13px;
+  border-radius:var(--radius-s); background:var(--surface-variant); font-size:12px;
+}
+.radar-detail-head{font-weight:700; font-size:13px; margin-bottom:6px}
+.radar-detail-row{
+  display:flex; justify-content:space-between; align-items:baseline;
+  gap:10px; padding:3px 0;
+}
+.radar-detail-row dt{color:var(--on-surface-variant); flex:none}
+.radar-detail-row dd{
+  margin:0; font-family:var(--mono); text-align:right;
+  display:flex; flex-direction:column; align-items:flex-end;
+}
+.radar-detail-note{
+  font-family:Archivo,sans-serif; font-size:10px; font-weight:400;
+  color:var(--on-surface-variant);
 }
 
 /* --- ownership doughnuts + carousel --- */
@@ -1399,6 +1426,17 @@ table td.tick{border:2px solid var(--surface)}
   box-shadow:0 1px 4px rgb(0 0 0 / 25%);
 }
 .tf-out .tf-photo{filter:grayscale(.75) opacity(.72)}
+/* Set-piece duties on a suggested target - who takes pens, free kicks or
+   corners is worth knowing right next to the signing, not only on the
+   set-piece card three sections away. */
+.duty-badges{display:inline-flex; gap:2px; vertical-align:middle}
+.duty-badges .spicon{width:11px; height:11px; color:var(--accent-ink)}
+.tf-frame .duty-badges,.pr-frame .duty-badges{
+  position:absolute; top:-4px; left:-4px; background:var(--surface);
+  border-radius:var(--radius-xs); padding:2px; box-shadow:0 1px 3px rgb(0 0 0 / 20%);
+}
+.pr-frame .duty-badges .spicon{width:8px; height:8px}
+.sw-in .duty-badges{margin-left:4px}
 .tf-name{margin:10px 0 0; font-weight:700; font-size:14px;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .tf-meta{margin:1px 0 0; font-size:11px; color:var(--on-surface-variant)}
@@ -3301,6 +3339,15 @@ WARN_SVG = ('<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">'
             'stroke-linecap="round"/><circle cx="8" cy="11.9" r="1" '
             'fill="currentColor"/></svg>')
 
+HOME_SVG = ('<svg class="venue-icon" viewBox="0 0 24 24" aria-hidden="true">'
+            '<path d="M4 11.5 12 4l8 7.5V19a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1Z" '
+            'fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>')
+AWAY_SVG = ('<svg class="venue-icon" viewBox="0 0 24 24" aria-hidden="true">'
+            '<rect x="4" y="8" width="16" height="11" rx="2" fill="none" '
+            'stroke="currentColor" stroke-width="1.7"/>'
+            '<path d="M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" fill="none" '
+            'stroke="currentColor" stroke-width="1.7"/></svg>')
+
 POS_LABEL = {"GKP": "Goalkeeper", "DEF": "Defenders",
              "MID": "Midfielders", "FWD": "Forwards"}
 POS_SEQ = ("GKP", "DEF", "MID", "FWD")
@@ -3491,16 +3538,20 @@ def verdict_board_card(vb, next_gw):
 def captaincy_card(cm):
     """The Captaincy Decision Matrix - a radar chart overlaying this
     gameweek's top expected-points XI candidates across form, fixture
-    strength, goal threat, start certainty, and home/away edge, so the
-    shapes can be compared directly. See captaincy.py for what each axis
-    actually measures and where the numbers come from."""
+    strength, goal threat, start certainty, and set-piece responsibilities,
+    so the shapes can be compared directly. Home/away is a small venue icon
+    by each name rather than a sixth axis - see captaincy.py for why, and
+    for what each remaining axis actually measures and where the numbers
+    come from."""
     if not cm:
         return ""
     top = next(c for c in cm["candidates"] if c["is_top_area"])
     legend = "".join(
-        f'<li class="radar-leg" data-i="{i}" tabindex="0">'
+        f'<li class="radar-leg" data-i="{i}" tabindex="0" role="button" '
+        f'aria-pressed="false">'
         f'<span class="radar-swatch radar-c{i}"></span>'
-        f'<span class="radar-leg-text"><span class="radar-leg-name">{e(c["player"])}</span>'
+        f'<span class="radar-leg-text"><span class="radar-leg-name">'
+        f'{HOME_SVG if c["home"] else AWAY_SVG}{e(c["player"])}</span>'
         f'<span class="radar-leg-sub">vs {e(c["opponent"])} '
         f'({"H" if c["home"] else "A"}) &middot; {c["ep_total"]:.1f} pts proj</span></span>'
         "</li>"
@@ -3511,16 +3562,25 @@ def captaincy_card(cm):
         "candidates": cm["candidates"],
     }
     return (
-        '<section class="card"><div class="card-head"><h2>Captaincy decision matrix</h2>'
-        f'<span class="sub">This gameweek\'s top armband candidates from your XI, '
+        '<section class="card"><div class="card-head">'
+        f'<h2>Captaincy decision matrix{components.info_btn()}</h2>'
+        f'<span class="sub" hidden>This gameweek\'s top armband candidates from your XI, '
         f'overlaid across five axes. The largest shaded shape - '
         f'<b>{e(top["player"])}</b> this week - is the safest or '
-        f'highest-ceiling pick.</span></div>'
+        f'highest-ceiling pick. Click a name for the full breakdown.</span></div>'
         '<div class="card-body cap-layout">'
         f'<div class="cap-side"><ul class="radar-legend">{legend}</ul>'
         '<p class="radar-readout" aria-live="polite">Hover a shape or a dot for its value.</p></div>'
-        '<div class="cap-chart scroll"><svg class="radar" viewBox="0 0 400 360" '
-        'role="img" aria-label="Captaincy decision matrix radar chart"></svg></div>'
+        # Padded 65px past the plain 0-400 the axis points are drawn in, on
+        # both sides - a long label like "Fixture (xG mult)" grows rightward
+        # from an anchor already near x=334, and clipped against the SVG's
+        # own edge (an SVG root defaults to overflow:hidden) rather than the
+        # card. CX/CY/R in captaincy.js are unchanged; this only widens the
+        # canvas the same drawing sits inside.
+        '<div class="cap-chart scroll"><svg class="radar" viewBox="-65 0 530 360" '
+        'role="img" aria-label="Captaincy decision matrix radar chart"></svg>'
+        '<dl class="radar-detail" hidden aria-live="polite"></dl>'
+        "</div>"
         f'<script type="application/json" class="captaincy-data">{json.dumps(data)}</script>'
         "</div></section>"
     )
