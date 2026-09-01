@@ -48,12 +48,16 @@ was degenerate for most candidates most weeks - replaced with start
 certainty, a genuine and always-available signal. Home/away edge held the
 fifth slot after that, and was replaced in turn by responsibilities.
 
-Form, fixture, goal threat and start certainty are min-max normalised
-across just the candidates shown (0-100) - the chart compares this week's
-shortlist against each other, not against the whole league. Responsibility
-is the one axis that is NOT normalised this way: 65/85/100 are fixed
-points regardless of who else is shown, since "on penalties" means the
-same thing whoever you are compared against.
+Every axis is scaled to a fixed, real-world range for that metric (0-100),
+not to whichever candidates happen to be shown. Min-max across just the
+shortlist was tried first and rejected: with 2-3 points, that scaling
+stretches to fill the full 0-100 span regardless of how big the actual gap
+is, so a fixture edge of a few tenths (a real but modest difference) read
+identically to a fixture edge of a full point (an enormous one) - both
+just "one candidate at the centre, one at the rim". A fixed scale means
+the edge of the chart means the same thing every week: genuinely one of
+the best fixtures anyone gets, not just the best of whoever is on screen
+today. See SCALES below for where each bound comes from.
 """
 
 import math
@@ -71,27 +75,77 @@ METRICS = [
     ("responsibility", "Responsibilities", "%"),
 ]
 
+# The (low, high) each axis is scaled against - the real range the number
+# is actually measured on, not the spread of whoever is on the chart this
+# week. Two of these are exact by construction; the other two are set from
+# where genuine top-of-the-game numbers actually land, not fitted or
+# revisited week to week:
+#   fixture         analysis.expected_points hard-clamps fixture_mult to
+#                   [0.5, 2.0] itself - reusing that bound rather than
+#                   inventing a second one keeps the axis honest about what
+#                   the underlying number can even be.
+#   start_cert      already a probability - 0-100% is exact, not a choice.
+#   form            0 to 30: a 4-match haul of 30 (7.5 pts/match) is a
+#                   season-defining hot streak - sampling this season's
+#                   top-priced XIs, even a p99 run over the last 4 played
+#                   sat at 25, so 30 leaves room above anything actually
+#                   seen without needing revisiting most weeks.
+#   goal_threat     0 to 1.5 expected goals in one match - above what even
+#                   an elite striker's best-priced fixture reaches most
+#                   weeks (sampled top-priced attackers this season peaked
+#                   fixture-adjusted around 1.2), so genuinely explosive
+#                   fixtures still read near, not past, the rim.
+SCALES = {
+    "form": (0.0, 30.0),
+    "fixture": (0.5, 2.0),
+    "goal_threat": (0.0, 1.5),
+    "start_cert": (0.0, 100.0),
+    "responsibility": (0.0, 100.0),
+}
 
-NORM_FLOOR = 6.0
+# A value sitting exactly at or below its scale's floor would draw as a
+# zero-radius point - invisible, not "genuinely the worst possible", and
+# indistinguishable from missing data. A small floor keeps every vertex on
+# every candidate's polygon visible without changing what the position
+# above it says.
+SCALE_FLOOR = 6.0
 
 
-def _normalise(values):
-    """Min-max to 0-100, except the minimum lands on NORM_FLOOR, not 0.
+def _scale(values, key):
+    """Fixed-range 0-100 scaling for one metric's raw values, using
+    SCALES[key] rather than this call's own min and max - see the module
+    docstring for why."""
+    lo, hi = SCALES[key]
+    span = hi - lo
+    out = []
+    for v in values:
+        pct = (v - lo) / span * 100
+        out.append(round(max(SCALE_FLOOR, min(100.0, pct)), 1))
+    return out
 
-    Two candidates from the same club share the same team-level fixture
-    multiplier - a real tie, not missing data - and whichever axis they
-    tie lowest on used to put both vertices exactly on the chart's centre
-    point, radius zero. That reads as a missing line rather than a real,
-    if unexceptional, value: the tooltip still had the honest number, but
-    the shape gave the eye nothing to see. A small floor keeps every
-    candidate's polygon visible on every axis without changing what the
-    comparison actually says - the spread between candidates is untouched,
-    only the bottom of the scale moved off exactly zero."""
-    lo, hi = min(values), max(values)
-    if hi - lo < 1e-9:
-        return [70.0 for _ in values]
-    return [round(NORM_FLOOR + (100 - NORM_FLOOR) * (v - lo) / (hi - lo), 1)
-            for v in values]
+
+def _duty_active(ctx, r, field):
+    """Whether this player will actually be the one taking this duty, not
+    just whether the club has ever named him on it anywhere in the order.
+    Order 1 always counts. A backup (order 2+) only counts if the club's
+    order-1 man is known not to be playing this match - otherwise he is
+    just the name on the team sheet who will not get the touches, and
+    crediting him the same as the nailed-on taker (the Isak-behind-Isak...
+    case: a backup penalty taker whose own club's #1 is predicted to
+    start) overstates his responsibilities."""
+    order = r.element.get(field)
+    if not order:
+        return False
+    if order == 1:
+        return True
+    primary = next(
+        (p for p in ctx.players.values()
+         if p.get("team") == r.element.get("team") and p.get(field) == 1),
+        None,
+    )
+    if primary is None:
+        return True  # no recorded #1 for this duty - keep prior behaviour
+    return ctx.is_predicted(primary) is False
 
 
 def _polygon_area(values, keys):
@@ -140,16 +194,27 @@ def matrix(ctx, xi, eps_by_id, top_n=3):
         start_cert = round(100 * r.start_probability(ctx), 1)
 
         resp, resp_parts = 0.0, []
-        if r.element.get("penalties_order"):
+        if _duty_active(ctx, r, "penalties_order"):
             resp += RESP_WEIGHTS["pens"]
             resp_parts.append("penalties")
-        if r.element.get("direct_freekicks_order"):
+        if _duty_active(ctx, r, "direct_freekicks_order"):
             resp += RESP_WEIGHTS["fk"]
             resp_parts.append("free kicks")
-        if r.element.get("corners_and_indirect_freekicks_order"):
+        if _duty_active(ctx, r, "corners_and_indirect_freekicks_order"):
             resp += RESP_WEIGHTS["corners"]
             resp_parts.append("corners")
         resp_note = ("on " + ", ".join(resp_parts)) if resp_parts else "not on any set piece"
+        # Shown on the chart itself instead of the 0-100 score - a captain
+        # pick cares which duties he's actually on, not a blind weighting
+        # number that happens to read like a percentage.
+        resp_label = ", ".join(resp_parts).capitalize() if resp_parts else "None"
+        # One duty per line for the chart itself: the Responsibilities axis
+        # sits in a fixed, narrow spot (upper-left of the pentagon), and the
+        # full comma-joined label ("Penalties, free kicks, corners") is
+        # wider than the room the chart has there and gets clipped by the
+        # SVG's own edge. Short, stacked lines fit regardless of how many
+        # duties a player holds.
+        resp_lines = [p.capitalize() for p in resp_parts] if resp_parts else ["None"]
 
         raw.append({
             "player": r.name,
@@ -162,18 +227,16 @@ def matrix(ctx, xi, eps_by_id, top_n=3):
             "goal_threat": ep["exp_goals"], "goal_threat_note": ep["xg_source"],
             "start_cert": start_cert, "start_cert_note": "chance of starting",
             "responsibility": resp, "responsibility_note": resp_note,
+            "responsibility_label": resp_label, "responsibility_lines": resp_lines,
         })
 
     keys = [k for k, _, _ in METRICS]
-    # Responsibility is fixed - 65/85/100 mean the same thing whoever else
-    # is shown - so it skips the relative min-max normalisation every other
-    # axis gets. Without this, a shortlist where nobody takes penalties
-    # would stretch someone on corners alone out to the full edge.
-    normed = {
-        k: (list(row[k] for row in raw) if k == "responsibility"
-            else _normalise([row[k] for row in raw]))
-        for k in keys
-    }
+    # Every axis, responsibility included, now scales against its own
+    # fixed real-world range (SCALES) rather than whoever else is on the
+    # chart - see the module docstring. Responsibility's raw values (0,
+    # 65, 85, 100) already sit on that same 0-100 scale, so this is a
+    # no-op for it beyond applying the visibility floor.
+    normed = {k: _scale([row[k] for row in raw], k) for k in keys}
 
     out = []
     for i, row in enumerate(raw):

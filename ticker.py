@@ -128,18 +128,25 @@ def _rows_for(club, proj, market, start_gw, weeks):
     return out
 
 
+FIXTURE_PAGE_SIZE = 8
+
+
 def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
+    """Every club in the league, not just yours - see fixture_run_summary
+    for the same reasoning applied to the best/worst-run card. Twenty rows
+    is too many to show at once without either a scrollbar or a wall of a
+    table, so the card pages through FIXTURE_PAGE_SIZE at a time client
+    side (ticker.js) rather than scrolling - sorted by rating first, so
+    the page you land on is already the most useful one."""
     if not proj:
         return ""
-    clubs, seen, owned = [], set(), {}
+    owned = {}
     for r in reports:
-        if r.team not in seen:
-            seen.add(r.team)
-            clubs.append(r.team)
         owned[r.team] = owned.get(r.team, 0) + 1
 
     rows = []
-    for club in clubs:
+    for tid, t in ctx.teams.items():
+        club = t["short_name"]
         cells = _rows_for(club, proj, market, start_gw, weeks)
         if not cells:
             continue
@@ -163,14 +170,17 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
             )
         acls, astyle = _cell_style(avg)
         own_n = owned.get(club, 0)
-        own_badge = (f'<span class="fxown" title="{own_n} of your players">'
-                     f'{own_n}</span>' if own_n else "")
+        own_cell = (
+            f'<span class="fxown" title="{own_n} of your players">{own_n}</span>'
+            if own_n else '<span class="fxown fxown-0">0</span>'
+        )
         rows.append((
-            avg,
-            '<tr><td class="fxclub"><b>{club}</b>{own}</td>'
+            avg, own_n,
+            '<tr><td class="fxclub"><b>{club}</b></td>'
+            '<td class="num" data-v="{own_n}">{own}</td>'
             '<td class="num"><span class="fxavg {acls}" style="{astyle}">'
             "{avg:.1f}</span></td>{chips}</tr>".format(
-                club=e(club), own=own_badge, acls=acls, astyle=astyle,
+                club=e(club), own_n=own_n, own=own_cell, acls=acls, astyle=astyle,
                 avg=avg, chips="".join(chips)),
         ))
     if not rows:
@@ -185,19 +195,37 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
     # and heading a higher-is-better column "difficulty" invites exactly the
     # misreading it got: a club on 7.0 looks like the hard one when it is the
     # club with the kindest run on the page.
+    page_count = -(-len(rows) // FIXTURE_PAGE_SIZE)  # ceil division
+    nav = ""
+    if page_count > 1:
+        nav = (
+            '<div class="fxnav">'
+            '<button class="fxnav-btn" data-dir="-1" disabled '
+            'aria-label="Previous clubs">&#8249;</button>'
+            f'<span class="fxnav-pos">1 of {page_count}</span>'
+            '<button class="fxnav-btn" data-dir="1" '
+            'aria-label="Next clubs">&#8250;</button></div>'
+        )
     return (
         '<section class="card"><div class="card-head">'
         f'<h2>Fixture outlook{components.info_btn()}</h2>'
-        '<span class="sub" hidden>How good each fixture is to own a player for, '
-        "rated out of ten - <b>higher is better</b>, the opposite way round to "
-        "FPL's 1-5 difficulty. Expected goals and clean-sheet odds combined, "
-        'weighted toward attack. A dot means the market priced it.</span></div>'
-        '<div class="scroll"><table data-sortable class="fxtable">'
+        '<span class="sub" hidden>Every club in the league, rated out of ten '
+        "for how good the fixture is to own a player for - "
+        "<b>higher is better</b>, the opposite way round to FPL's 1-5 "
+        "difficulty. Expected goals and clean-sheet odds combined, weighted "
+        f'toward attack. A dot means the market priced it. '
+        f'{FIXTURE_PAGE_SIZE} clubs at a time - cycle through with the '
+        'arrows, or sort a column to re-rank all twenty - click Owned to '
+        'bring your own squad\'s clubs to the top.</span></div>'
+        f'{nav}'
+        '<table data-sortable data-paged class="fxtable">'
         '<thead><tr><th scope="col" class="sortable">Club</th>'
+        '<th scope="col" class="num sortable" title="How many of your 15 '
+        'play for this club">Owned</th>'
         '<th scope="col" class="num sortable" title="Mean rating over the '
         'fixtures shown - higher is better">Rating</th>'
         f"{heads}</tr></thead><tbody>"
-        f"{''.join(r[1] for r in rows)}</tbody></table></div></section>"
+        f"{''.join(r[2] for r in rows)}</tbody></table></section>"
     )
 
 
@@ -235,7 +263,11 @@ def fixture_run_summary(reports, ctx, proj, market, next_gw, weeks=6, n=3):
 
     def rowline(tid, club, val, tone, fmt):
         count = owned.get(tid, 0)
-        mine = f'<span class="fro-mine">{count} owned</span>' if count else ""
+        mine = ""
+        if count:
+            dots = '<span class="fro-dot"></span>' * count
+            mine = (f'<span class="fro-mine"><span class="fro-dots">{dots}'
+                    f'</span>{count} owned</span>')
         return (f'<li class="fro-row fro-{tone}"><span class="fro-club">'
                 f"{e(club)}</span><span class=\"fro-val\">{fmt(val)}</span>"
                 f"{mine}</li>")
@@ -245,14 +277,20 @@ def fixture_run_summary(reports, ctx, proj, market, next_gw, weeks=6, n=3):
             return ""
         ranked = sorted(rows, key=lambda x: x[2], reverse=kindest_first)
         best, worst = ranked[:n], ranked[-n:][::-1]
+        # Best and worst used to differ only by a near-white background
+        # tint, which read as barely different at a glance, especially
+        # side by side. A labelled header plus a solid colour edge on each
+        # row make the two columns unmistakable without needing to read
+        # every number first.
         return (
             f'<div class="frogroup"><h4>{e(title)}</h4>'
             f'<p class="fronote">{e(note)}</p><div class="frocols">'
-            '<ul class="frolist">'
+            '<div class="frocol fro-col-good"><h5>Best</h5><ul class="frolist">'
             + "".join(rowline(t, c, v, "good", fmt) for t, c, v in best)
-            + '</ul><ul class="frolist">'
+            + '</ul></div><div class="frocol fro-col-bad"><h5>Worst</h5>'
+            '<ul class="frolist">'
             + "".join(rowline(t, c, v, "bad", fmt) for t, c, v in worst)
-            + "</ul></div></div>"
+            + "</ul></div></div></div>"
         )
 
     parts = (

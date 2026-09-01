@@ -361,9 +361,15 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
   letter-spacing:-0.03em;
 }
 .tile .n{font-size:12px; color:rgb(255 255 255 / 58%)}
-/* The tile the week actually turns on gets the amber. Exactly one. */
-.tile.tile-key{background:rgb(255 176 0 / 13%); border-color:rgb(255 176 0 / 34%)}
-.tile.tile-key .v{color:var(--accent)}
+/* Only two of the six tiles ever carry a tone - see render() for which and
+   why. Same three-way good/warn/bad vocabulary the delta chips already
+   use, just applied to the whole tile instead of a chip inside it. */
+.tile.tile-good{background:rgb(1 252 122 / 9%); border-color:rgb(1 252 122 / 26%)}
+.tile.tile-good .v{color:#8affc4}
+.tile.tile-warn{background:rgb(255 176 0 / 13%); border-color:rgb(255 176 0 / 34%)}
+.tile.tile-warn .v{color:var(--accent)}
+.tile.tile-bad{background:rgb(230 0 35 / 11%); border-color:rgb(230 0 35 / 28%)}
+.tile.tile-bad .v{color:#ff9aa8}
 
 /* --- tabs --- */
 .tabs{display:flex; gap:4px; margin:16px 0 12px; flex-wrap:wrap}
@@ -473,6 +479,53 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
   font-size:11px; text-transform:uppercase; letter-spacing:0.06em;
   color:var(--on-surface-variant); text-align:center; margin-bottom:8px; font-weight:600;
 }
+.bbpitch{padding:16px 10px}
+
+/* A name only suggested, not already owned - the Bench Boost proposed bench
+   and the Wildcard "Proposed" pitch both use this on top of the ordinary
+   .pl/.pk shirt card, so the same visual language marks "new" everywhere a
+   proposed squad appears on the page. */
+.pl-incoming{
+  outline:2px solid var(--accent); outline-offset:2px;
+  box-shadow:0 2px 6px rgb(0 0 0 / 25%), 0 0 0 5px var(--accent-wash);
+}
+.pl-in-tag{
+  position:absolute; top:3px; right:3px; z-index:2; padding:1px 5px;
+  border-radius:9999px; background:var(--accent); color:#04331d;
+  font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.04em;
+}
+
+/* --- Wildcard before/after mini pitches ---------------------------------
+   A scaled-down .pitch, not a second bespoke component - same shirts,
+   smaller and side by side, so "would I actually want this squad" is a
+   five-second glance rather than a table read. */
+.wcpitches{display:flex; gap:16px; flex-wrap:wrap; margin-top:14px}
+.wcpitch{flex:1 1 260px; min-width:0}
+.wcpitch h4{
+  margin:0 0 8px; font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--on-surface-variant); text-align:center;
+}
+.pitch.mini{padding:12px 6px; border-radius:var(--radius-s)}
+/* Scoped to .wcpitch, not .pitch.mini, so the same small-card sizing also
+   reaches the bench strip below the pitch - a sibling of .pitch.mini in
+   the markup, not a descendant of it. */
+.wcpitch .row{gap:5px; margin-bottom:8px}
+.wcpitch .pl{width:60px}
+.wcpitch .pl .crest{height:30px}
+/* Same specificity as .pl .crest img.kit/.crestimg (three classes, one
+   element) further down this sheet, which otherwise wins the 40px/32px
+   full-size shirt image on source order alone and overflows this 30px-tall
+   crest box - matching the class names here, not just "img", closes that
+   tie in this rule's favour. */
+.wcpitch .pl .crest img.kit,
+.wcpitch .pl .crest img.crestimg{width:20px; height:20px}
+.wcpitch .pl .nm{font-size:9px; padding:2px 3px}
+.wcpitch .pl .pk-fx{padding:2px 2px 0}
+.wcpitch .pl .fxpill{padding:1px 4px; font-size:8px; gap:2px}
+.wcpitch .pl-in-tag{font-size:7px; padding:0 4px; top:2px; right:2px}
+.wcpitch .benchstrip{padding:10px 6px; border-radius:var(--radius-s); margin-top:8px}
+.wcpitch .benchstrip .lbl{margin-bottom:6px}
+@media (max-width:640px){.wcpitches{flex-direction:column}}
 
 /* --- collapsible cards --- */
 /* A card that is also a <details>. The generic `details summary` rules below
@@ -660,16 +713,29 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
   --radar-c1-fill:var(--accent); --radar-c1-stroke:var(--accent-ink);
   --radar-c2-fill:var(--warn); --radar-c2-stroke:var(--warn-ink);
 }
-.cap-layout{display:flex; align-items:flex-start; gap:20px; flex-wrap:wrap}
-.cap-side{flex:0 0 auto; display:flex; flex-direction:column; gap:12px; max-width:220px}
+.cap-layout{display:flex; align-items:center; gap:20px; flex-wrap:wrap}
+/* Fixed width (not max-width) and a fixed-height readout line below - both
+   used to be auto-sized to their own content, so a longer or shorter hover
+   readout resized .cap-side itself. With align-items:center on the row,
+   that resize recentred the whole column (the names visibly shifted up or
+   down) and, since .cap-side's width could shift too, nudged the chart
+   sideways as its flex sibling. Fixed dimensions here mean hovering never
+   changes either box's size, so nothing next to it has to move. */
+.cap-side{flex:0 0 240px; width:240px; display:flex; flex-direction:column; gap:12px}
+/* Centred rather than pushed to the chart's own right edge, and a wider cap
+   on both the column and the chart it holds - a 360px chart right-aligned
+   inside a much wider flex column left a dead gap between the legend and
+   the chart itself on any card wider than about 620px. A bigger chart
+   drawn dead-centre in the space it's given closes most of that gap
+   directly instead of needing a second column to fill it. */
 .cap-chart{
-  flex:1 1 280px; display:flex; flex-direction:column; align-items:flex-end;
+  flex:1 1 380px; display:flex; flex-direction:column; align-items:center;
   gap:10px; margin:0;
 }
-.radar{width:100%; min-width:300px; max-width:360px; height:auto; display:block}
+.radar{width:100%; min-width:320px; max-width:600px; height:auto; display:block}
 .radar-ring{fill:none; stroke:var(--outline-variant); stroke-width:1}
 .radar-axis-line{stroke:var(--outline-variant); stroke-width:1}
-.radar-label{fill:var(--on-surface-variant); font-size:11px; font-weight:600}
+.radar-label{fill:var(--on-surface-variant); font-size:12px; font-weight:700}
 .radar-fill{
   fill-opacity:.22; stroke-width:2;
   transition:fill-opacity .15s, opacity .15s, stroke-width .15s;
@@ -679,7 +745,7 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
   transition:r .15s;
 }
 .radar-area{
-  transform-box:view-box; transform-origin:200px 175px;
+  transform-box:view-box; transform-origin:210px 195px;
   transition:transform .18s ease, opacity .15s;
 }
 .radar-area.dim{opacity:.25}
@@ -707,33 +773,42 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .radar-leg-name{font-weight:600}
 .radar-leg-sub{color:var(--on-surface-variant); font-variant-numeric:tabular-nums; font-size:12px}
 .radar-readout{
-  margin:0; font-size:13px; min-height:2.6em; color:var(--on-surface-variant);
-  font-variant-numeric:tabular-nums; border-top:1px solid var(--outline-variant); padding-top:8px;
+  margin:0; font-size:13px; line-height:1.4; height:4.2em; overflow:hidden;
+  color:var(--on-surface-variant); font-variant-numeric:tabular-nums;
+  border-top:1px solid var(--outline-variant); padding-top:8px;
 }
 .venue-icon{
   width:12px; height:12px; vertical-align:-1px; margin-right:4px;
   color:var(--on-surface-variant); flex:none;
 }
-/* Hover shows one metric at a time; a click pins all five here instead -
-   "how does he actually break down" needs the full set together. */
-.radar-detail{
-  width:100%; max-width:360px; margin:0; padding:10px 13px;
-  border-radius:var(--radius-s); background:var(--surface-variant); font-size:12px;
+/* Hover shows one metric at a time; a click pins all five instead - "how
+   does he actually break down" needs the full set together. A separate
+   boxed panel elsewhere on the card used to hold those five, which read as
+   a second block bolted beside the chart it described. Pinning now draws
+   directly on the chart instead: each axis's plain name swaps for a short
+   arrow running from that shape's own vertex out to a label and value, in
+   the exact spot the name sat a moment ago - a mind-map reading of one
+   shape's own numbers, nothing elsewhere on the card changing size to
+   show it. */
+.radar-callout-line{stroke-width:1.5; opacity:.85}
+.radar-callout-label{
+  font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.05em; fill:var(--on-surface-variant);
 }
-.radar-detail-head{font-weight:700; font-size:13px; margin-bottom:6px}
-.radar-detail-row{
-  display:flex; justify-content:space-between; align-items:baseline;
-  gap:10px; padding:3px 0;
-}
-.radar-detail-row dt{color:var(--on-surface-variant); flex:none}
-.radar-detail-row dd{
-  margin:0; font-family:var(--mono); text-align:right;
-  display:flex; flex-direction:column; align-items:flex-end;
-}
-.radar-detail-note{
-  font-family:Archivo,sans-serif; font-size:10px; font-weight:400;
-  color:var(--on-surface-variant);
-}
+.radar-callout-value{font-size:17px; font-weight:800; font-variant-numeric:tabular-nums}
+.radar-callout:focus-visible .radar-callout-value{outline:2px solid var(--accent); outline-offset:2px}
+.radar-c0 .radar-callout-line{stroke:var(--radar-c0-stroke)}
+.radar-c1 .radar-callout-line{stroke:var(--radar-c1-stroke)}
+.radar-c2 .radar-callout-line{stroke:var(--radar-c2-stroke)}
+.radar-c0 .radar-callout-value{fill:var(--radar-c0-stroke)}
+.radar-c1 .radar-callout-value{fill:var(--radar-c1-stroke)}
+.radar-c2 .radar-callout-value{fill:var(--radar-c2-stroke)}
+/* The arrowhead <path> lives inside <defs>, one <marker> per candidate
+   colour - see captaincy.js for why a single shared marker cannot just
+   follow the referencing line's own colour. */
+.radar-arrow-head.radar-c0{fill:var(--radar-c0-stroke)}
+.radar-arrow-head.radar-c1{fill:var(--radar-c1-stroke)}
+.radar-arrow-head.radar-c2{fill:var(--radar-c2-stroke)}
 
 /* --- ownership doughnuts + carousel --- */
 .carnav{margin-left:auto; display:flex; gap:6px}
@@ -1078,44 +1153,45 @@ table td.tick{border:2px solid var(--surface)}
 .frogroup h4{margin:0; font-size:13px; font-weight:700}
 .fronote{margin:2px 0 10px; font-size:12px; color:var(--on-surface-variant)}
 .frocols{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+.frocol h5{margin:0 0 6px; font-size:10px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.06em}
+.frocol.fro-col-good h5{color:var(--good-ink)}
+.frocol.fro-col-bad h5{color:var(--bad-ink)}
 .frolist{list-style:none; margin:0; padding:0; display:grid; gap:6px}
 .fro-row{
-  display:flex; align-items:center; gap:8px; padding:6px 9px;
+  display:flex; align-items:center; gap:8px; padding:6px 9px 6px 8px;
   border-radius:var(--radius-s); background:var(--surface-variant);
+  border-left:3px solid transparent;
 }
-.fro-row.fro-good{background:var(--good-wash)}
-.fro-row.fro-bad{background:var(--bad-wash)}
+/* A pale wash alone read almost the same on both sides at a glance - a
+   solid colour edge plus a stronger fill make "good" and "bad" tell apart
+   without reading the number first. */
+.fro-row.fro-good{background:var(--good-wash); border-left-color:var(--good)}
+.fro-row.fro-bad{background:var(--bad-wash); border-left-color:var(--bad)}
 .fro-club{font-size:13px; font-weight:600; flex:1}
 .fro-val{font-family:var(--mono); font-size:13px; font-weight:600}
 .fro-row.fro-good .fro-val{color:var(--good-ink)}
 .fro-row.fro-bad .fro-val{color:var(--bad-ink)}
 .fro-mine{
+  display:inline-flex; align-items:center; gap:4px;
   font-size:10px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.04em; color:var(--accent); white-space:nowrap;
+  letter-spacing:.04em; color:var(--accent-ink); white-space:nowrap;
+  padding:2px 7px 2px 5px; border-radius:9999px; background:var(--accent-wash);
 }
+/* One dot per owned player (max 3, the club cap) - text alone read
+   identically whether it said "1 owned" or "3 owned" from a normal
+   reading distance; the dot count makes the difference visible instantly. */
+.fro-dots{display:inline-flex; gap:2px}
+.fro-dot{width:5px; height:5px; border-radius:50%; background:var(--accent-ink)}
 @media (max-width:520px){.frocols{grid-template-columns:1fr}}
 
-/* --- wildcard / bench boost rebuild table -------------------------------
-   Column against column, the same grammar as Squad detail, because ten
-   swaps is a list to be compared down the page and not a gallery. */
+/* --- wildcard / bench boost rebuild -------------------------------------
+   Both now shirt-and-pitch views rather than a table of price deltas -
+   "would I actually want this squad/bench" reads off shirts faster than a
+   table of price deltas. wcstats is the numeric case above the pitches:
+   is the resulting XI actually stronger on points, fixtures, underlying
+   attacking numbers and form, not just "N swaps happened". */
 .swapcard summary{cursor:pointer}
-.swaptbl{font-size:13px}
-.swaptbl th{white-space:nowrap}
-.swaptbl td{padding:5px 8px; vertical-align:middle}
-.swaptbl .sw-group th{
-  padding:10px 8px 3px; font-size:10px; font-weight:700; text-align:left;
-  text-transform:uppercase; letter-spacing:.07em; color:var(--on-surface-variant);
-  border-bottom:1px solid var(--outline-variant);
-}
-.sw-out b,.sw-in b{display:block; font-size:13px}
-.sw-out span,.sw-in span{display:block; font-size:11px; color:var(--on-surface-variant)}
-.sw-out{opacity:.62}
-.sw-arrow{color:var(--p40); font-size:15px; width:1.4em; text-align:center}
-.sw-up{color:var(--good-ink); font-weight:700}
-.sw-down{color:var(--bad-ink); font-weight:700}
-.sw-flat,.sw-free{color:var(--on-surface-variant)}
-.sw-save{color:var(--good-ink)}
-.sw-cost{color:var(--bad-ink)}
 .wcstats{
   display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
   gap:10px 16px; padding-bottom:14px; margin-bottom:2px;
@@ -1248,6 +1324,25 @@ table td.tick{border:2px solid var(--surface)}
 @media (max-width:560px){.slwrap{grid-template-columns:minmax(0,1fr)}}
 
 /* --- fixture difficulty --- */
+/* Twenty clubs, eight shown at a time - the table itself never scrolls
+   internally (rows are hidden/shown, not overflowed), so the card's
+   height is only ever one page tall. */
+.fxnav{
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  padding:0 16px 10px;
+}
+.fxnav-btn{
+  appearance:none; border:1px solid var(--outline); background:var(--surface);
+  color:var(--on-surface); width:28px; height:28px; border-radius:50%;
+  font-size:16px; line-height:1; cursor:pointer; display:grid; place-items:center;
+}
+.fxnav-btn:disabled{opacity:.35; cursor:default}
+.fxnav-btn:not(:disabled):hover{background:var(--surface-variant)}
+.fxnav-btn:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.fxnav-pos{
+  font-size:11px; font-weight:600; color:var(--on-surface-variant);
+  font-variant-numeric:tabular-nums; min-width:5em; text-align:center;
+}
 .fxtable td.fxc{
   text-align:center; padding:6px 8px; border:2px solid var(--surface);
   border-radius:var(--radius-xs); min-width:58px; line-height:1.2;
@@ -1265,6 +1360,15 @@ table td.tick{border:2px solid var(--surface)}
   font-weight:700; font-variant-numeric:tabular-nums;
 }
 .fxtable thead th{white-space:nowrap}
+/* No scroll container on this table (see fixture_ticker) - so on a narrow
+   card, the later gameweek columns have to actually disappear rather than
+   sit clipped and invisible past the card's own edge the way removing
+   .scroll here would otherwise leave them. Nearest weeks matter most, so
+   those are the ones kept as the width shrinks. */
+/* Indices bumped by one for the Owned column inserted after Club - same
+   number of gameweek columns kept visible at each breakpoint as before. */
+@media (max-width:640px){.fxtable th:nth-child(n+8),.fxtable td:nth-child(n+8){display:none}}
+@media (max-width:460px){.fxtable th:nth-child(n+7),.fxtable td:nth-child(n+7){display:none}}
 /* The page's one "top reward" look - green through silver to blue - kept
    for the rare figure that earns its own treatment rather than blending
    into the top step of an ordinary scale. A fixture rated above 9 is the
@@ -1279,10 +1383,15 @@ table td.tick{border:2px solid var(--surface)}
 }
 .fxown{
   display:inline-flex; align-items:center; justify-content:center;
-  min-width:16px; height:16px; padding:0 4px; margin-left:6px;
+  min-width:16px; height:16px; padding:0 4px;
   border-radius:9999px; background:var(--accent-wash); color:var(--accent-ink);
   font-size:10px; font-weight:700; vertical-align:middle;
 }
+/* Its own Owned column now, not a badge tucked into the club name - the
+   accent pill makes sense for "you have exposure here" but would read as a
+   false highlight repeated down a column of mostly zeroes, so a club with
+   none gets a plain muted number instead. */
+.fxown-0{background:none; color:var(--on-surface-variant); font-weight:500}
 
 /* --- priced round --- */
 .mlist{list-style:none; margin:0; padding:0; display:grid;
@@ -1317,6 +1426,10 @@ table td.tick{border:2px solid var(--surface)}
   /* Four pairings divide as 2x2 for the same reason. */
   grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px}
 .pr-card{background:var(--surface-variant); border-radius:var(--radius-m); padding:14px}
+.pr-tag{
+  margin:0 0 8px; font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--warn-ink);
+}
 .pr-head{display:flex; gap:14px; align-items:flex-end; margin-bottom:12px}
 .pr-total,.pr-hit,.pr-bank{display:flex; flex-direction:column;
   font-variant-numeric:tabular-nums; line-height:1.05}
@@ -1505,7 +1618,6 @@ table td.tick{border:2px solid var(--surface)}
   border-radius:var(--radius-xs); padding:2px; box-shadow:0 1px 3px rgb(0 0 0 / 20%);
 }
 .pr-frame .duty-badges .spicon{width:8px; height:8px}
-.sw-in .duty-badges{margin-left:4px}
 .tf-name{margin:10px 0 0; font-weight:700; font-size:14px;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .tf-meta{margin:1px 0 0; font-size:11px; color:var(--on-surface-variant)}
@@ -1765,6 +1877,7 @@ SCATTER_JS = (Path(__file__).with_name("scatter.js")).read_text(encoding="utf-8"
 PLAYERVIEW_JS = (Path(__file__).with_name("playerview.js")).read_text(encoding="utf-8")
 CAPTAINCY_JS = (Path(__file__).with_name("captaincy.js")).read_text(encoding="utf-8")
 LEAGUECHART_JS = (Path(__file__).with_name("leaguechart.js")).read_text(encoding="utf-8")
+TICKER_JS = (Path(__file__).with_name("ticker.js")).read_text(encoding="utf-8")
 
 JS = """
 (function(){
@@ -3569,6 +3682,169 @@ CONFIDENCE_LABEL = {"strong": "Strong", "watch": "Worth watching",
                     "flexible": "Timing flexible"}
 
 
+def _mini_shirt_card(pid, pos, team_id, team_name, name, price, ctx, badges,
+                     shirts, fx_html="", incoming=False):
+    """One shirt card for a compact pitch/bench view - the same `.pl`
+    component the Squad tab pitch uses, but built from whatever identifies
+    a player rather than requiring a full PlayerReport, since a proposed
+    incoming man has no match history to build one from. `incoming` adds a
+    distinct outline and an IN tag, for a squad view that mixes players
+    actually owned with ones only being suggested."""
+    shirt = shirts.get((team_id, pos == "GKP"))
+    uri = shirt or badges.get(team_id)
+    crest = (
+        f'<img class="kit" src="{uri}" alt="{e(team_name)}">' if shirt
+        else f'<img class="crestimg" src="{uri}" alt="{e(team_name)}">' if uri
+        else f'<span class="letters">{e(team_name)}</span>'
+    )
+    tag = ('<span class="pl-in-tag" title="Suggested incoming">IN</span>'
+           if incoming else "")
+    cls = "pl pk pl-incoming" if incoming else "pl pk"
+    title = f"{name} - {pos}, {team_name}, {price:.1f}m"
+    fx = f'<div class="pk-fx">{fx_html}</div>' if fx_html else ""
+    return (
+        f'<div class="{cls}" data-player="{pid}" title="{e(title)}">'
+        f'{tag}<div class="crest">{crest}</div>'
+        f'<div class="nm">{e(name)}</div>{fx}</div>'
+    )
+
+
+def _fixture_pill_for(team_name, pos, proj, market, next_gw):
+    rows = ticker._rows_for(team_name, proj, market, next_gw, 1)
+    if not rows:
+        return ""
+    r = rows[0]
+    return pos_fixture_pill(pos, r["opp"], r["home"], r["cs"], r["xg"])
+
+
+def _report_row(r):
+    return (r.element["id"], r.pos, r.element["team"], r.team, r.name, r.price)
+
+
+def _pool_row(p, ctx):
+    el = ctx.players[p["id"]]
+    return (p["id"], p["pos"], el["team"], p["club"], el["web_name"], p["price"])
+
+
+def mini_pitch(xi_rows, bench_rows, ctx, badges, shirts, incoming_ids=frozenset()):
+    """A much smaller version of the Squad tab pitch - shirts and names
+    only, no stats footer - for a before/after comparison where two full
+    squads need to sit side by side without either one dominating the
+    card. Starting XI grouped by position on the pitch, bench below in its
+    own strip, the same split the real FPL app shows - not all fifteen
+    lumped into position rows with no start/bench distinction. `xi_rows`
+    and `bench_rows` are each a list of (id, pos, club_id, club_name, name,
+    price) tuples, the common shape _report_row and _pool_row reduce a
+    PlayerReport or a squadbuilder pool entry to, so this does not need to
+    care which kind of squad it was given. Bench cards run cheapest to
+    priciest left to right, matching how the Wildcard bench itself is now
+    chosen (see squadbuilder.best_squad)."""
+    order = {"GKP": 1, "DEF": 2, "MID": 3, "FWD": 4}
+    by_pos = {1: [], 2: [], 3: [], 4: []}
+    for row in xi_rows:
+        by_pos[order.get(row[1], 4)].append(row)
+    out = ['<div class="pitch mini">']
+    for k in (1, 2, 3, 4):
+        if not by_pos[k]:
+            continue
+        cards = "".join(
+            _mini_shirt_card(pid, pos, team_id, team_name, name, price,
+                             ctx, badges, shirts, incoming=pid in incoming_ids)
+            for pid, pos, team_id, team_name, name, price in by_pos[k]
+        )
+        out.append(f'<div class="row">{cards}</div>')
+    out.append("</div>")
+    bench_cards = "".join(
+        _mini_shirt_card(pid, pos, team_id, team_name, name, price,
+                         ctx, badges, shirts, incoming=pid in incoming_ids)
+        for pid, pos, team_id, team_name, name, price
+        in sorted(bench_rows, key=lambda row: row[5])
+    )
+    out.append(
+        f'<div class="benchstrip"><div class="lbl">Bench</div>'
+        f'<div class="row">{bench_cards}</div></div>'
+    )
+    return "".join(out)
+
+
+def wildcard_section(wc, xi_reports, bench_reports, ctx, badges, shirts):
+    """The proposed full-squad rebuild as two small pitches, not a table of
+    price deltas - "would I actually want this squad" is a look-at-the-
+    shirts question. Now above, Proposed below, with a distinct outline
+    and an IN tag on whichever names in the proposed squad are not already
+    owned - the eye only needs to find the outlined shirts to see what a
+    Wildcard here would actually change, rather than reading fifteen rows
+    of a table to work it out."""
+    if not wc or not wc.get("ideal_xi"):
+        return ""
+    before_xi = [_report_row(r) for r in xi_reports]
+    before_bench = [_report_row(r) for r in bench_reports]
+    after_xi = [_pool_row(p, ctx) for p in wc["ideal_xi"]]
+    after_bench = [_pool_row(p, ctx) for p in wc["ideal_bench"]]
+    incoming_ids = wc.get("incoming_ids") or set()
+    start, weeks = wc["gw_window"]
+    stats_html = components.wc_stats_block(wc.get("before"), wc.get("after"))
+    return (
+        '<details class="card collapsible swapcard"><summary class="card-head">'
+        f'<h2>Wildcard rebuild{components.info_btn()}</h2>'
+        f'<span class="sub" hidden>The full squad this would become, scored '
+        f'across GW{start}-{start + weeks - 1}. Outlined shirts with an IN '
+        f'tag are not already owned.</span></summary>'
+        f'<div class="card-body">{stats_html}'
+        '<div class="wcpitches">'
+        f'<div class="wcpitch"><h4>Now</h4>'
+        f'{mini_pitch(before_xi, before_bench, ctx, badges, shirts)}</div>'
+        f'<div class="wcpitch"><h4>Proposed</h4>'
+        f'{mini_pitch(after_xi, after_bench, ctx, badges, shirts, incoming_ids)}</div>'
+        "</div></div></details>"
+    )
+
+
+def bench_boost_pitch(bb, bench_reports, ctx, badges, shirts, proj, market,
+                      next_gw):
+    """The four names actually proposed for the bench on Bench Boost week,
+    laid out as the same bench strip the Squad tab pitch already draws -
+    not a table of price deltas, since "is this a bench worth boosting" is
+    a look-at-the-shirts-and-fixtures question, not a spreadsheet one. A
+    suggested incoming swap replaces the outgoing man's slot outright, so
+    this shows the bench as it WOULD be, not the one sitting there today -
+    with a distinct outline and an IN tag on whichever slots changed, so a
+    glance tells you which of the four are new."""
+    if not bb:
+        return ""
+    out_by_id = {t["out"].element["id"]: t
+                for t in (bb.get("transfers") or [])}
+    cards = []
+    for r in bench_reports:
+        t = out_by_id.get(r.element["id"])
+        if t:
+            el = t["in"]
+            team_name = ctx.team_name(el["team"])
+            cards.append(_mini_shirt_card(
+                el["id"], ctx.pos(el), el["team"], team_name,
+                el["web_name"], el["now_cost"] / 10.0, ctx, badges, shirts,
+                fx_html=_fixture_pill_for(team_name, ctx.pos(el), proj,
+                                          market, next_gw),
+                incoming=True))
+        else:
+            cards.append(_mini_shirt_card(
+                r.element["id"], r.pos, r.element["team"], r.team, r.name,
+                r.price, ctx, badges, shirts,
+                fx_html=_fixture_pill_for(r.team, r.pos, proj, market, next_gw),
+                incoming=False))
+    note = ("Moves that would improve that specific week, not this one."
+           if bb["transfers"] else
+           "Your bench as it stands - nothing here is worth changing "
+           "for that week.")
+    return (
+        '<details class="card collapsible swapcard"><summary class="card-head">'
+        f'<h2>Bench Boost rebuild, GW{bb["gw"]}{components.info_btn()}</h2>'
+        f'<span class="sub" hidden>{e(note)}</span></summary>'
+        f'<div class="card-body"><div class="benchstrip bbpitch">'
+        f'<div class="row">{"".join(cards)}</div></div></div></details>'
+    )
+
+
 def _cp_card(label, used_gw, body_html):
     if used_gw:
         return (
@@ -3578,7 +3854,8 @@ def _cp_card(label, used_gw, body_html):
     return f'<div class="cp"><p class="cp-label">{e(label)}</p>{body_html}</div>'
 
 
-def chip_planner_card(fh, tc, bb, wc, used):
+def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
+                      proj, market, next_gw):
     """The four chip recommendations, one card each - target gameweek,
     the number behind it, and a plain-language confidence read."""
     if not (fh or tc or bb or wc):
@@ -3628,25 +3905,16 @@ def chip_planner_card(fh, tc, bb, wc, used):
         )
         cards.append(_cp_card("Wildcard", used.get("wildcard"), body))
 
-    # The grid above is the compact per-chip summary only; the move lists
-    # are tables of their own below it. They render as swap_table rather
-    # than transfer_cards because neither list carries player photos, and
-    # transfer_cards falls back to a large initial-in-a-box per face - ten
-    # Wildcard moves came out as twenty enormous letters. Collapsed by
-    # default too: a rebuild you are not doing this week does not deserve
-    # a screen of its own every visit.
+    # The grid above is the compact per-chip summary only; each chip's
+    # actual squad change is its own collapsed card below it - a rebuild
+    # you are not doing this week does not deserve a screen of its own
+    # every visit.
     extra = []
-    if bb and bb["transfers"]:
-        extra.append(components.swap_table(
-            bb["transfers"], f"Bench Boost rebuild, GW{bb['gw']}",
-            "Moves that would improve that specific week, not this one."))
-    if wc and wc["moves"]:
-        extra.append(components.swap_table(
-            wc["moves"], "Wildcard rebuild",
-            f"The full squad this would become, scored across GW"
-            f"{wc['gw_window'][0]}-{wc['gw_window'][0] + wc['gw_window'][1] - 1}. "
-            "Selling price is taken as current price.",
-            stats=(wc.get("before"), wc.get("after"))))
+    if bb:
+        extra.append(bench_boost_pitch(bb, bench, ctx, badges, shirts,
+                                       proj, market, next_gw))
+    if wc:
+        extra.append(wildcard_section(wc, xi, bench, ctx, badges, shirts))
 
     return (
         f'<section class="card"><div class="card-head"><h2>Chip planner{components.info_btn()}</h2>'
@@ -3691,9 +3959,10 @@ def best_xi_card(pt, ctx, squad_ids, next_gw):
     rather than pulled out into their own group, so the gap between the
     two teams is a count you can see rather than a number to be trusted.
 
-    No budget, no club cap - the literal highest-scoring valid formation in
-    the game (see chips.literal_best_xi), not the best one affordable at
-    the manager's own squad value."""
+    No budget cap, but the real 3-per-club squad limit still applies - the
+    literal highest-scoring valid formation in the game (see
+    chips.literal_best_xi), not the best one affordable at the manager's
+    own squad value."""
     if not pt or not pt.get("ideal_xi"):
         return ""
     xi = pt["ideal_xi"]
@@ -3740,8 +4009,8 @@ def best_xi_card(pt, ctx, squad_ids, next_gw):
         '<section class="card bxicard"><div class="card-head">'
         f'<h2>Highest predicted points XI{components.info_btn()}</h2>'
         f'<span class="sub" hidden>The literal highest-scoring valid eleven in the '
-        f'game for gameweek {next_gw} - no budget, no club limit, formation '
-        f'rules only.</span></div>'
+        f'game for gameweek {next_gw} - no budget, but the real 3-per-club '
+        f'limit and formation rules still apply.</span></div>'
         '<div class="card-body">'
         '<div class="bxi-head">'
         f'<div class="bxi-big"><span class="num">{pt["ideal_value"]:.1f}</span>'
@@ -3781,8 +4050,9 @@ def kneejerk_card(kj, gw):
             f"One transfer will not reach him, but selling "
             f"{e(funder_pair['primary'].name)} and "
             f"{e(funder_pair['second'].name)} together would, backfilled "
-            f"by {e(funder_pair['replacement'])} at "
-            f"{funder_pair['replacement_price']:.1f}m."
+            f"by {e(funder_pair['replacement']['web_name'])} at "
+            f"{funder_pair['replacement']['now_cost'] / 10.0:.1f}m - see "
+            f"Suggested pairs below."
         )
         tone = "warn"
     elif not funder:
@@ -3857,8 +4127,12 @@ def verdict_board_card(vb, next_gw):
         '<section class="card vbcard"><div class="card-head">'
         f'<h2>Buy, sell, keep, avoid{components.info_btn()}</h2>'
         f'<span class="sub" hidden>Four different questions, not one ranking split '
-        f'four ways. Everything is projected for gameweek {next_gw}, and the '
-        f'figure beside each name is that projection.</span></div>'
+        f'four ways. The figure beside each name is total projected points '
+        f'across the next {transfers.TRANSFER_HORIZON_WEEKS} gameweeks - not '
+        f'gameweek {next_gw} alone - plus a small nudge for recent form and '
+        f'underlying numbers, which is why it reads much higher than a '
+        f'single week\'s score. The opponent named in each note is still '
+        f'just the very next fixture, for context.</span></div>'
         f'<div class="card-body vb-grid">{"".join(cols)}</div></section>'
     )
 
@@ -3893,21 +4167,29 @@ def captaincy_card(cm):
         '<section class="card"><div class="card-head">'
         f'<h2>Captaincy decision matrix{components.info_btn()}</h2>'
         f'<span class="sub" hidden>This gameweek\'s top armband candidates from your XI, '
-        f'overlaid across five axes. The largest shaded shape - '
-        f'<b>{e(top["player"])}</b> this week - is the safest or '
-        f'highest-ceiling pick. Click a name for the full breakdown.</span></div>'
+        f'overlaid across five axes. Each axis is scaled to that metric\'s '
+        f'own real range (0.5x-2.0x for the fixture multiplier, 0-100% for '
+        f'start certainty, and so on - see captaincy.py) - not to whoever '
+        f'else is shown - so the edge of the chart means the same thing '
+        f'every week: genuinely one of the best fixtures or returns anyone '
+        f'gets, not just the best of this shortlist. Two candidates from the '
+        f'same club can also share an axis exactly (same team, same '
+        f'fixture), which is a genuine tie, not missing data. The largest '
+        f'shaded shape - <b>{e(top["player"])}</b> this week - is the safest '
+        f'or highest-ceiling pick. Click a name for the full breakdown.</span></div>'
         '<div class="card-body cap-layout">'
         f'<div class="cap-side"><ul class="radar-legend">{legend}</ul>'
         '<p class="radar-readout" aria-live="polite">Hover a shape or a dot for its value.</p></div>'
-        # Padded 65px past the plain 0-400 the axis points are drawn in, on
-        # both sides - a long label like "Fixture (xG mult)" grows rightward
-        # from an anchor already near x=334, and clipped against the SVG's
-        # own edge (an SVG root defaults to overflow:hidden) rather than the
-        # card. CX/CY/R in captaincy.js are unchanged; this only widens the
-        # canvas the same drawing sits inside.
-        '<div class="cap-chart scroll"><svg class="radar" viewBox="-65 0 530 360" '
+        # Padded well past CX/CY/R/TEXT_R in captaincy.js (currently
+        # 210/195/130/174) on every side - a long label like "Fixture (xG
+        # mult)" or a pinned callout's value line grows outward from an
+        # anchor already near the edge of the plain drawing area, and gets
+        # clipped against the SVG's own edge (an SVG root defaults to
+        # overflow:hidden) rather than the card if there is no margin left
+        # for it. Change CX/CY/R/TEXT_R together with this viewBox, not
+        # separately - they size the same canvas.
+        '<div class="cap-chart scroll"><svg class="radar" viewBox="-100 -10 640 400" '
         'role="img" aria-label="Captaincy decision matrix radar chart"></svg>'
-        '<dl class="radar-detail" hidden aria-live="polite"></dl>'
         "</div>"
         f'<script type="application/json" class="captaincy-data">{json.dumps(data)}</script>'
         "</div></section>"
@@ -4197,25 +4479,38 @@ def render(d, standalone=True):
         lg_chip = (f'<span class="delta delta-{"up" if lg_move > 0 else "down"}">'
                    f'{abs(lg_move)}</span>')
 
+    # Two of the six tiles get a tone - not all of them, since a hero row
+    # in six different colours would just be noise. These are the two
+    # where the number alone already answers "good or bad", so the colour
+    # repeats a judgement the reader is about to make anyway rather than
+    # asserting a new one: the gameweek score against the average sitting
+    # right beside it, and whether anything actually needs the manager's
+    # attention this week.
+    gw_pts = eh.get("points")
+    gw_tone = ""
+    if isinstance(gw_pts, (int, float)) and avg:
+        gw_tone = "tile-good" if gw_pts >= avg else "tile-bad"
+    attn_tone = "tile-warn" if attention else "tile-good"
+
     tiles = [
-        ("Gameweek", eh.get("points", "-"), gw_note, ""),
+        ("Gameweek", eh.get("points", "-"), gw_note, "", gw_tone),
         ("Total", eh.get("total_points", "-"),
          f"{d['overall_rank']:,} overall" if d.get("overall_rank") else "points",
-         rank_chip),
+         rank_chip, ""),
         ("League", f"{d['my_rank']}/{d['league_size']}" if d["my_rank"] else "-",
-         e(d["league_name"]), lg_chip),
+         e(d["league_name"]), lg_chip, ""),
         ("Projected", f"{projected:.1f}" if projected else "-",
-         f"your XI, GW{d['next_gw']}", ""),
+         f"your XI, GW{d['next_gw']}", "", ""),
         ("Needs a look", len(attention),
          ", ".join(attention[:2]) + ("&hellip;" if len(attention) > 2 else "")
-         if attention else "nobody flagged", ""),
+         if attention else "nobody flagged", "", attn_tone),
         ("In the bank", f"{eh.get('bank', 0) / 10:.1f}m",
-         f"squad {eh.get('value', 0) / 10:.1f}m", ""),
+         f"squad {eh.get('value', 0) / 10:.1f}m", "", ""),
     ]
     tile_html = "".join(
-        f'<div class="tile"><div class="k">{e(k)}</div>'
+        f'<div class="tile {tone}"><div class="k">{e(k)}</div>'
         f'<div class="v tnum">{e(v)}{chip}</div><div class="n">{n}</div></div>'
-        for k, v, n, chip in tiles
+        for k, v, n, chip, tone in tiles
     )
     # Two one-liners, one for each direction the page can be read in. The
     # Pick team view swaps them; see the .pkview handler.
@@ -4343,7 +4638,7 @@ def render(d, standalone=True):
     page = (
         f"{head}{body}<script>{JS}</script><script>{SCATTER_JS}</script>"
         f"<script>{PLAYERVIEW_JS}</script><script>{CAPTAINCY_JS}</script>"
-        f"<script>{LEAGUECHART_JS}</script>"
+        f"<script>{LEAGUECHART_JS}</script><script>{TICKER_JS}</script>"
     )
     if not standalone:
         return page
@@ -4354,7 +4649,8 @@ def render(d, standalone=True):
         f"<script>{SCATTER_JS}</script>"
         f"<script>{PLAYERVIEW_JS}</script>"
         f"<script>{CAPTAINCY_JS}</script>"
-        f"<script>{LEAGUECHART_JS}</script></body></html>"
+        f"<script>{LEAGUECHART_JS}</script>"
+        f"<script>{TICKER_JS}</script></body></html>"
     )
 
 
@@ -4625,6 +4921,55 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     lg_scores = transfers.league_scores(ctx, proj, next_gw, market, baselines)
     kj = transfers.kneejerk(ctx, xi + bench, lg_scores, bank=bank)
     vb = transfers.verdict_board(ctx, xi + bench, lg_scores, bank=bank)
+
+    # The knee-jerk card states in prose that a pair reaches him, but
+    # "Suggested pairs" runs its own separate top-gain search and has no
+    # reason to have found this specific pairing on its own - the knee-jerk
+    # target is a one-week impulse buy, not necessarily one of the best
+    # multi-week upgrades in the pool. Built here, once the funder_pair
+    # search above has already done the actual sell/buy legwork, and
+    # dropped into the same list of cards so "how would I actually get
+    # him" has a real answer to look at rather than only a sentence.
+    fp = kj.get("funder_pair") if kj else None
+    if fp and kj.get("ep") is not None:
+        target_el = ctx.players[kj["id"]]
+        repl_el = fp["replacement"]
+        primary, second = fp["primary"], fp["second"]
+        already_shown = any(
+            {primary.element["id"], second.element["id"]}
+            == {leg["out"].element["id"] for leg in p["legs"]}
+            for p in pairings
+        )
+        if not already_shown:
+            primary_gain = kj["ep"] - lg_scores.get(
+                primary.element["id"], {}).get("total", 0.0)
+            second_gain = fp["replacement_score"]["total"] - lg_scores.get(
+                second.element["id"], {}).get("total", 0.0)
+            spend = (
+                (target_el["now_cost"] + repl_el["now_cost"]) / 10.0
+                - primary.price - second.price
+            )
+            pairings.append({
+                "tag": f"Reaches the knee-jerk pick, {target_el['web_name']}",
+                "legs": [
+                    {"out": primary, "in": target_el, "gain": primary_gain,
+                     "out_photo": photos.get(primary.element["id"]),
+                     "in_photo": fplapi.photo_data_uri(target_el["photo"]),
+                     "out_shirt": shirts.get(
+                         (primary.element["team"], primary.pos == "GKP")),
+                     "in_shirt": shirts.get(
+                         (target_el["team"], ctx.pos(target_el) == "GKP"))},
+                    {"out": second, "in": repl_el, "gain": second_gain,
+                     "out_photo": photos.get(second.element["id"]),
+                     "in_photo": fplapi.photo_data_uri(repl_el["photo"]),
+                     "out_shirt": shirts.get(
+                         (second.element["team"], second.pos == "GKP")),
+                     "in_shirt": shirts.get(
+                         (repl_el["team"], ctx.pos(repl_el) == "GKP"))},
+                ],
+                "gain": primary_gain + second_gain,
+                "bank_after": bank - spend,
+            })
     # A genuinely different question from Free Hit's budget-capped "ideal" -
     # see chips.literal_best_xi for why reusing that number here was wrong.
     next_ideal = chips.literal_best_xi(ctx, xi, proj, market, baselines, next_gw)
@@ -4651,7 +4996,9 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "pitch": pitch(xi, bench, ctx, badges, shirts, cap, vice, gw=gw),
         "pick_pitch": pick_team_pitch(xi, bench, ctx, badges, shirts, cap,
                                       vice, proj, market, next_gw, eps),
-        "chip_planner": chip_planner_card(fh, tc, bb, wc, used),
+        "chip_planner": chip_planner_card(fh, tc, bb, wc, used, xi, bench,
+                                          ctx, badges, shirts, proj, market,
+                                          next_gw),
         "best_xi": best_xi_card(next_ideal, ctx, set(squad_ids), next_gw),
         "kneejerk": kneejerk_card(kj, gw),
         "verdicts": verdict_board_card(vb, next_gw),

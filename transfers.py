@@ -447,8 +447,11 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
       This is the only list here that reads the market rather than the
       model, and the only one that can disagree with the crowd.
 
-    One gameweek of projection underneath all four, the same as every
-    other recommendation on the page.
+    Every figure is a case_score total - points summed across the next
+    TRANSFER_HORIZON_WEEKS gameweeks plus a small form/underlying-numbers
+    nudge, not one gameweek alone - the same scorer every other transfer
+    recommendation on the page uses. The opponent named alongside it is
+    still just the very next fixture, kept for context.
     """
     owned = {r.element["id"]: r for r in squad_reports}
     scored_owned = [r for r in squad_reports if r.element["id"] in scores]
@@ -552,8 +555,9 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
             continue
         if not club_ok(el):
             continue
-        buy.append(row(el, s, "{:.1f} projected, {} {}".format(
-            s["total"], "vs" if s["home"] else "at", s["opponent"])))
+        buy.append(row(el, s, "{:.1f} across {}gw, next {} {}".format(
+            s["total"], TRANSFER_HORIZON_WEEKS,
+            "vs" if s["home"] else "at", s["opponent"])))
     buy.sort(key=lambda x: -x["ep"])
 
     # --- Keep: rated well, and nothing wants to move him -------------
@@ -668,15 +672,27 @@ def kneejerk(ctx, squad_reports, scores, bank=0.0):
             if rival is None or s["total"] > rival[1]["total"]:
                 rival = (el, s)
 
-    # No single sale reaches him - try a pair. Sell the cheapest man in his
-    # position (frees the slot he needs) plus a second squad player in any
-    # position, and check whether a legal replacement for that second slot
-    # is still affordable with what's left. Bounded, not exhaustive: the
-    # first workable second sale wins rather than searching for the
-    # cheapest or the best-backfilled one, which is the same trade-off
-    # pair_suggestions makes for the same reason - a full search here is
-    # squad-size squared for a card that only needs one honest answer to
-    # "how would I actually get him".
+    # No single sale reaches him - try a pair. Sell a man in his position
+    # (frees the slot he needs, since he replaces that man directly) plus a
+    # second squad player in ANY position, and check whether a legal
+    # replacement for that second slot is still affordable with what's left.
+    # Bounded, not exhaustive: the first workable pair wins rather than
+    # searching for the cheapest or the best-backfilled one, which is the
+    # same trade-off pair_suggestions makes for the same reason - a full
+    # search here is squad-size squared for a card that only needs one
+    # honest answer to "how would I actually get him".
+    #
+    # The primary sale (the man the target directly replaces) is tried
+    # cheapest-first, for minimum disruption - but if the cheapest one in
+    # his position does not free enough cash even paired with a second
+    # sale, pricier men in that position are tried next. Selling the
+    # cheapest one first and never reconsidering used to be the only
+    # option tried: it frees the least possible cash of any primary
+    # candidate, since the target fills that slot directly with no
+    # replacement to buy, so a target well above the cheapest man's price
+    # routinely came back "unreachable, even in a pair" when a pair through
+    # a pricier same-position man - or one funded by selling a forward
+    # alongside a cheap primary - would have worked.
     #
     # The second sale is chosen by weakest projected case_score, not by
     # lowest price, and never the squad's single best asset regardless of
@@ -691,17 +707,20 @@ def kneejerk(ctx, squad_reports, scores, bank=0.0):
     # was correct and the suggestion was still bad advice: selling your
     # single strongest asset to fund a speculative one-week pickup fails
     # the same scrutiny the whole card exists to apply, so that player is
-    # excluded outright rather than just ranked last.
+    # excluded outright rather than just ranked last - as either the
+    # primary or the second sale.
     funder_pair = None
     if not funder:
         best_owned_id = max(
             squad_reports,
             key=lambda r: scores.get(r.element["id"], {}).get("total", 0.0),
         ).element["id"]
-        same_pos = sorted((r for r in squad_reports if r.pos == pos),
-                          key=lambda r: r.price)
-        if same_pos:
-            primary = same_pos[0]
+        same_pos = sorted(
+            (r for r in squad_reports
+             if r.pos == pos and r.element["id"] != best_owned_id),
+            key=lambda r: r.price,
+        )
+        for primary in same_pos:
             others = sorted(
                 (r for r in squad_reports
                  if r.element["id"] not in (primary.element["id"], best_owned_id)),
@@ -730,12 +749,20 @@ def kneejerk(ctx, squad_reports, scores, bank=0.0):
                     candidates.append((el, s))
                 if not candidates:
                     continue
-                repl_el, _repl_s = max(candidates, key=lambda x: x[1]["total"])
+                repl_el, repl_s = max(candidates, key=lambda x: x[1]["total"])
+                # The full element and score, not just a name and a price -
+                # the dashboard's Suggested pairs card wants to draw this
+                # exact pairing as one of its own cards (photo, shirt, gain
+                # figure and all), and a display string alone cannot do
+                # that. kneejerk_card still only prints the name and price
+                # out of this, so nothing about the existing verdict text
+                # changes.
                 funder_pair = {
                     "primary": primary, "second": second,
-                    "replacement": repl_el["web_name"],
-                    "replacement_price": repl_el["now_cost"] / 10.0,
+                    "replacement": repl_el, "replacement_score": repl_s,
                 }
+                break
+            if funder_pair:
                 break
 
     return {
