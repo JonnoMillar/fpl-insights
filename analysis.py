@@ -680,11 +680,13 @@ def build_findings(reports, ctx):
     # Big chances come from the Premier League's own Opta feed, not FPL.
     # A missed big chance is the cleanest "he should have scored" evidence
     # there is - stronger than xG alone, because it counts clear openings
-    # rather than summing every half-shot.
-    missed, created = [], []
+    # rather than summing every half-shot. Big chances created is drawn
+    # separately (see dashboard.big_chances_card) alongside chances created,
+    # rather than listed here on its own.
+    missed = []
     for r in reports:
         ps = r.element.get("_pulse") or {}
-        bcm, bcc = ps.get("big_chance_missed"), ps.get("big_chance_created")
+        bcm = ps.get("big_chance_missed")
         sot, shots = ps.get("ontarget_scoring_att"), ps.get("total_scoring_att")
         if bcm:
             # Both halves are needed for this clause, and they arrive from
@@ -696,14 +698,9 @@ def build_findings(reports, ctx):
                      if shots and sot is not None else
                      f", {shots:g} shots" if shots else "")
             missed.append(f"{r.name} - {bcm:g} big {'chance' if bcm == 1 else 'chances'} missed{extra}")
-        if bcc:
-            created.append(f"{r.name} - {bcc:g} big {'chance' if bcc == 1 else 'chances'}")
     if missed:
         out.append(_finding("bcm", "Big chances missed", "good", missed,
                             note="Clear openings not taken. The chances are arriving."))
-    if created:
-        out.append(_finding("bcc", "Big chances created", "good", created,
-                            note="Passes that set up a clear opening."))
 
     moves = []
     for r in reports:
