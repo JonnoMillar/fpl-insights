@@ -414,6 +414,10 @@ section{margin-bottom:20px}
    sets of pills side by side would have read as two sets of tabs. Selected
    is simply the bold one. */
 .statsel{display:flex; align-items:center; gap:2px; margin-left:auto}
+/* An author `display` beats the user-agent's [hidden] rule at equal
+   specificity, so the JS setting .hidden on this group did nothing and the
+   figure selector stayed on screen in the one view where it means nothing. */
+.statsel[hidden]{display:none}
 .stbtn{
   appearance:none; border:0; background:none; cursor:pointer;
   color:var(--on-surface-variant); font:inherit; font-family:var(--mono);
@@ -764,65 +768,114 @@ table td.tick{border:2px solid var(--surface)}
 .spteam{margin-left:auto; color:var(--on-surface-variant); font-size:11px}
 .mkt-cs,.mkt-xg{color:var(--accent); font-weight:700}
 
-/* --- expected points: the bars slide out sideways --- */
-.epwrap{display:flex; gap:14px; align-items:stretch}
-/* Collapsed, the list is only as wide as a name and a total need - it must
-   not flex-grow, or it stretches across the whole card and leaves every row
-   pushed to the left with dead space trailing it before the toggle. Open,
-   the bars need the room, so growth turns back on. */
-.eplist{flex:0 1 auto; min-width:0}
-.epcard.open .eplist{flex:1 1 auto}
-/* No length is transitioned here, deliberately. Chrome would not interpolate
-   the grid track between 0fr and 1fr, and a max-width transition got stuck at
-   its start value - in both cases the bars simply never appeared. So the
-   layout snaps (flex-grow 0 to 1, instant) and every bit of the motion comes
-   from a transform, which is reliable and cheap to composite. */
-.epcard .epr{display:flex; align-items:center; gap:12px}
-.epcard .epname{flex:0 0 150px}
-.epcard .eptot{flex:0 0 52px; text-align:right}
-.epcard .epbar{flex:0 0 0px; min-width:0; overflow:hidden}
-.epcard.open .epbar{flex:1 1 auto}
-
-/* The space collapsing frees up, filled with the one thing worth surfacing
-   at a glance: who to captain. Gone once the bars themselves need the room. */
-.epcap{
-  flex:1 1 auto; display:flex; flex-direction:column; justify-content:center;
-  gap:1px; padding-left:14px; border-left:1px solid var(--outline-variant);
-  min-width:0;
+/* --- pick team: the eleven fold into a column, the bars extend beside it ---
+   No length is transitioned here, for the reason recorded further down this
+   file the last time it was tried: Chrome will not interpolate a grid track
+   between 0fr and 1fr, and a max-width transition sticks at its start value.
+   So the layout snaps and every bit of the motion is a transform or an
+   opacity, which are reliable and cheap to composite. */
+.pkstage{display:flex; align-items:flex-start}
+.pkboard{flex:1 1 auto; min-width:0}
+.epside{flex:0 0 0; width:0; overflow:hidden; opacity:0; padding:0}
+/* Matches .epside's own top padding, so the two headers - and therefore the
+   two lists under them - start on the same line. */
+.pkstage.ep-on .pkboard{flex:0 0 214px; padding:12px 0 0 12px}
+.pkstage.ep-on .epside{
+  flex:1 1 auto; width:auto; opacity:1; padding:12px 16px 14px;
+  transition:opacity .28s ease .06s;
 }
-.epcard.open .epcap{display:none}
-.epcap-k{font-size:10px; text-transform:uppercase; letter-spacing:.06em;
-  font-weight:700; color:var(--on-surface-variant)}
-.epcap-name{font-size:16px; font-weight:700}
-.epcap-fx{font-size:12px; color:var(--on-surface-variant)}
-.epcap-v{font-size:13px; margin-top:3px}
-.epcap-v b{font-size:18px}
-.epcap-arm{color:var(--on-surface-variant); font-size:12px; margin-left:2px}
-@media (max-width:560px){.epcap{display:none}}
+/* These two headers exist to be the same height as each other: the eleven
+   on the left and their bars on the right have to start level, or every bar
+   reads as belonging to the card above it. */
+.epside-head,.pkboard-head{
+  display:flex; align-items:baseline; gap:7px; height:34px;
+  border-bottom:1px solid var(--outline-variant); margin-bottom:10px;
+}
+.pkboard-head{
+  display:none; padding:0 2px; font-size:10px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.06em;
+  color:var(--on-surface-variant); align-items:flex-end; padding-bottom:8px;
+}
+.pkstage.ep-on .pkboard-head{display:flex}
+.epside-k,.epside-u{font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--on-surface-variant)}
+.epside-head b{font-size:24px; line-height:1}
+/* The 12px is the pitch's own top padding, which sits between the left
+   header and the first card and has no counterpart on this side. */
+.epclist{list-style:none; margin:0; padding:12px 0 0; display:flex;
+  flex-direction:column; gap:6px}
+/* Row height and gap are the pick card's, so bar N sits level with card N.
+   Change one and the other has to move with it. */
+.epcr{display:flex; align-items:center; gap:10px; height:42px}
+.epcr .epbar{flex:1 1 auto; min-width:0; transform-origin:left center}
+.epcr .eptot{flex:0 0 38px; text-align:right; font-size:14px}
+
+.pkstage.ep-on .pitch{
+  display:flex; flex-direction:column; gap:6px; padding:12px 10px;
+  background:var(--pitch-b);
+}
+.pkstage.ep-on .pitch::before{display:none}
+.pkstage.ep-on .pitch .row{display:contents}
+.pkstage.ep-on .benchstrip{display:none}
+.pkstage.ep-on .pk{
+  width:auto; height:42px; display:flex; align-items:center;
+  border-radius:var(--radius-xs);
+  animation:pkfold .34s cubic-bezier(.2,.7,.3,1) both;
+}
+.pkstage.ep-on .pk .crest{
+  height:42px; width:38px; flex:none; background:none;
+}
+.pkstage.ep-on .pk .crest img{width:24px; height:24px}
+.pkstage.ep-on .pk .nm{
+  flex:1 1 auto; min-width:0; background:none; color:var(--on-surface);
+  text-align:left; padding:0 4px 0 0; font-size:12px;
+}
+.pkstage.ep-on .pk .pk-fx{flex:none; padding:0 8px 0 0}
+/* The form line is a second row of text this strip has no height for, and
+   the bar beside it now says the same thing better. */
+.pkstage.ep-on .pk .pk-form{display:none}
+.pkstage.ep-on .pk .arm{top:50%; left:2px; transform:translateY(-50%);
+  width:16px; height:16px; font-size:10px}
+@keyframes pkfold{
+  from{opacity:0; transform:translateX(-12px)}
+  to{opacity:1; transform:none}
+}
+
+/* Same plain-text treatment as the figure selector beside it - this row
+   should never look like two sets of tabs. */
+.epbtn{
+  appearance:none; border:0; background:none; cursor:pointer; margin-left:auto;
+  color:var(--on-surface-variant); font:inherit; font-family:var(--mono);
+  font-size:11px; font-weight:500; padding:5px 6px;
+  border-radius:var(--radius-xs);
+}
+.epbtn::before{
+  content:""; display:inline-block; width:7px; height:7px; margin-right:6px;
+  border-radius:50%; vertical-align:1px;
+  border:1.5px solid var(--outline); background:none;
+}
+.epbtn[aria-pressed="true"]{color:var(--on-surface); font-weight:700}
+.epbtn[aria-pressed="true"]::before{background:var(--good); border-color:var(--good-ink)}
+.epbtn:hover{color:var(--on-surface)}
+.epbtn:focus-visible{outline:3px solid var(--accent); outline-offset:1px}
+
+@media (max-width:760px){
+  /* Two columns of this width would leave the bars a few pixels wide. The
+     board keeps the full width and the column stacks under it. */
+  .pkstage{flex-direction:column}
+  .pkstage.ep-on .pkboard{flex:1 1 auto; width:100%}
+  .pkstage.ep-on .epside{width:100%; padding:12px 0 0}
+}
+@media (prefers-reduced-motion:reduce){
+  .pkstage.ep-on .pk{animation:none}
+  .pkstage.ep-on .epside{transition:none}
+}
+
 /* The reveal is driven from JavaScript rather than a keyframe. A delayed CSS
    animation with fill-mode both holds its opening frame, and that kept the
    bars pinned at scaleX(0); the Web Animations API with fill "none" cannot
    leave anything stuck, because the element returns to its own styles the
    moment the animation ends. */
-.epcard .epbar{transform-origin:left center}
-.epmore{
-  appearance:none; flex:0 0 62px; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; gap:6px;
-  background:var(--surface-variant); border:1px solid var(--outline-variant);
-  color:var(--on-surface-variant); font:inherit; font-size:11px; font-weight:700;
-  text-transform:uppercase; letter-spacing:.04em; line-height:1.25;
-  border-radius:var(--radius-s); cursor:pointer;
-  transition:background .2s ease, color .2s ease;
-}
-.epmore:hover{background:var(--outline-variant); color:var(--on-surface)}
-.epmore:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
-.epchev{width:15px; height:15px; transition:transform .3s ease}
-.epcard.open .epchev{transform:rotate(180deg)}
-
-@media (prefers-reduced-motion:reduce){
-
-  .epchev{transition:none}
-}
 
 .rpill{
   display:inline-flex; align-items:center; gap:4px; border-radius:var(--radius-xs);
@@ -1257,10 +1310,6 @@ table td.tick{border:2px solid var(--surface)}
 .tf-elite{font-weight:600; color:var(--accent)}
 
 /* --- expected points, stacked --- */
-.eplist{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px}
-.epr{display:grid; align-items:center; gap:12px}
-.epname{font-weight:700; font-size:14px; line-height:1.2}
-.epfx{display:block; font-weight:400; font-size:11px; color:var(--on-surface-variant)}
 .epbar{
   display:flex; height:16px; border-radius:9999px; overflow:hidden;
   background:var(--outline-variant);
@@ -1503,11 +1552,53 @@ JS = """
           p.hidden = p.dataset.pkview !== view;
         });
         // The figure selector only means anything on the two views that
-        // share the overview pitch.
+        // share the overview pitch; the predicted-points toggle only means
+        // anything on the one that does not.
         var sel = group.querySelector('.statsel');
         if (sel) { sel.hidden = view === 'pk'; }
+        var epb = group.querySelector('.epbtn');
+        if (epb) { epb.hidden = view !== 'pk'; }
+        // The hero's one-liner belongs to the view, not to the card: on
+        // Pick team it should be looking at the week ahead rather than
+        // reporting the one just gone. It lives above the tabs, outside
+        // this card, so it is switched separately.
+        // Only two lines exist - looking forward on Pick team, looking back
+        // on either of the other two - so they key off the same collapse
+        // the panels use rather than off all three view names.
+        var heroKey = view === 'pk' ? 'pk' : 'back';
+        document.querySelectorAll('.hero [data-pkview]').forEach(function(p){
+          p.hidden = p.dataset.pkview !== heroKey;
+        });
         points(view);
       });
+    });
+  });
+
+  // Predicted points: the eleven shrink into a column and the bars extend
+  // across the space that opens beside them.
+  document.querySelectorAll('.epbtn').forEach(function (btn) {
+    var stage = btn.closest('.card').querySelector('.pkstage');
+    if (!stage) { btn.hidden = true; return; }
+    var side = stage.querySelector('.epside');
+    var reduce = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    btn.addEventListener('click', function () {
+      var on = btn.getAttribute('aria-pressed') !== 'true';
+      btn.setAttribute('aria-pressed', String(on));
+      stage.classList.toggle('ep-on', on);
+      if (side) { side.setAttribute('aria-hidden', String(!on)); }
+      if (!on || reduce || !side) { return; }
+      // Run the bars out only once the column has finished opening,
+      // otherwise they animate to a width that is still changing.
+      window.setTimeout(function () {
+        side.querySelectorAll('.epcr .epbar').forEach(function (bar, i) {
+          if (!bar.animate) { return; }
+          bar.animate(
+            [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
+            { duration: 340, delay: i * 45, easing: 'cubic-bezier(.2,.7,.3,1)' }
+          );
+        });
+      }, 260);
     });
   });
 
@@ -1527,32 +1618,6 @@ JS = """
     });
   });
 
-  // Expected points: the bars slide out when opened.
-  document.querySelectorAll('.epcard').forEach(function (card) {
-    var btn = card.querySelector('.epmore');
-    var txt = btn && btn.querySelector('.epmore-txt');
-    var reduce = window.matchMedia &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    function reveal() {
-      if (reduce || !card.classList.contains('open')) { return; }
-      card.querySelectorAll('.epr .epbar').forEach(function (bar, i) {
-        if (!bar.animate) { return; }
-        bar.animate(
-          [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
-          { duration: 450, delay: i * 42, fill: 'none',
-            easing: 'cubic-bezier(.22,.7,.3,1)' }
-        );
-      });
-    }
-    if (btn) {
-      btn.addEventListener('click', function () {
-        var open = card.classList.toggle('open');
-        btn.setAttribute('aria-expanded', String(open));
-        if (txt) { txt.innerHTML = open ? 'Hide<br>bars' : 'See<br>more'; }
-        reveal();
-      });
-    }
-  });
   document.querySelectorAll('table[data-sortable]').forEach(function(tbl){
     tbl.querySelectorAll('th.sortable').forEach(function(th,i){
       var idx=Array.prototype.indexOf.call(th.parentNode.children,th);
@@ -1726,12 +1791,30 @@ def pick_card(r, ctx, badges, shirts, captain_id, vice_id, proj, market,
 
 
 def pick_team_pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id,
-                    proj, market, next_gw):
+                    proj, market, next_gw, eps=None):
+    """The pick-team pitch, and the expected-points column it folds out to.
+
+    Both live in one `.pkstage` so the Predicted points toggle can move
+    between them as a single layout change rather than swapping one block
+    of markup for another - the eleven cards shrink into a column on the
+    left and the bars extend across the space that opens on the right,
+    which only reads as the same eleven if they are the same elements
+    throughout.
+
+    Keeper first, forwards last, top to bottom. That is already the order
+    the pitch draws in, so the folded-out column inherits it for free, and
+    `ep_column` is handed the ids in exactly that order so every bar sits
+    level with its own card."""
     order = {"GKP": 1, "DEF": 2, "MID": 3, "FWD": 4}
     rows = {1: [], 2: [], 3: [], 4: []}
     for r in xi:
         rows[order.get(r.pos, 4)].append(r)
-    out = ['<div class="pitch">']
+    # The left column carries a header of its own only so the two columns
+    # start at the same height - without it the eleven began level with the
+    # side panel's title and every bar sat one card low.
+    out = ['<div class="pkstage"><div class="pkboard">'
+           '<div class="pkboard-head">Your eleven</div><div class="pitch">']
+    pitch_order = []
     for k in (1, 2, 3, 4):
         if not rows[k]:
             continue
@@ -1740,6 +1823,7 @@ def pick_team_pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id,
                      market, next_gw, r.minutes > 0)
             for r in rows[k]
         )
+        pitch_order.extend(r.element["id"] for r in rows[k])
         out.append(f'<div class="row">{cards}</div>')
     out.append("</div>")
     cards = "".join(
@@ -1749,8 +1833,10 @@ def pick_team_pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id,
     )
     out.append(
         f'<div class="benchstrip"><div class="lbl">Bench</div>'
-        f'<div class="row">{cards}</div></div>'
+        f'<div class="row">{cards}</div></div></div>'
     )
+    out.append(components.ep_column(eps or [], pitch_order))
+    out.append("</div>")
     return "".join(out)
 
 
@@ -2315,6 +2401,35 @@ def compact_rank(n):
     if n >= 1_000:
         return f"{n / 1_000:.0f}k"
     return f"{n:,}"
+
+
+def next_week_line(ctx, xi, eps, next_gw):
+    """The forward-looking counterpart to week_verdict, for Pick team.
+
+    The same sentence a manager would say out loud, pointed the other way:
+    what the eleven is projected to score, where most of it is expected to
+    come from, and the one thing that could stop it. Anyone in the eleven
+    left out of a published side is that thing, and it leads if it exists -
+    a projection is worth nothing if the man carrying it is on the bench."""
+    xi_ids = {r.element["id"] for r in xi}
+    picked = [(r, ep) for r, ep in (eps or []) if r.element["id"] in xi_ids]
+    if not picked:
+        return ""
+    total = sum(ep["total"] for _r, ep in picked)
+    lead_r, lead_ep = max(picked, key=lambda x: x[1]["total"])
+    where = "at home to" if lead_ep["home"] else "away at"
+    line = (f"Gameweek {next_gw}: this eleven projects "
+            f"<b>{total:.1f}</b>, the biggest single piece of it "
+            f"{e(lead_r.name)} {where} {e(lead_ep['opponent'])}.")
+
+    benched = [e(r.name) for r in xi if ctx.is_predicted(r.element) is False]
+    if benched:
+        who = benched[0] if len(benched) == 1 else (
+            ", ".join(benched[:-1]) + " and " + benched[-1])
+        verb = "is" if len(benched) == 1 else "are"
+        line += (f" {who} {verb} not in a predicted eleven, so that number "
+                 f"is soft until the team news lands.")
+    return line
 
 
 def week_verdict(ctx, gw, squad_ids, captain_id, points, average, pending):
@@ -3200,8 +3315,16 @@ def render(d, standalone=True):
         f'<div class="v tnum">{e(v)}{chip}</div><div class="n">{n}</div></div>'
         for k, v, n, chip in tiles
     )
+    # Two one-liners, one for each direction the page can be read in. The
+    # Pick team view swaps them; see the .pkview handler.
     verdict = d.get("verdict") or ""
-    verdict_html = f'<p class="hero-line">{verdict}</p>' if verdict else ""
+    ahead = d.get("next_line") or ""
+    verdict_html = (
+        (f'<p class="hero-line" data-pkview="back">{verdict}</p>'
+         if verdict else "")
+        + (f'<p class="hero-line" data-pkview="pk" hidden>{ahead}</p>'
+           if ahead else "")
+    )
 
     body = f"""
 <header class="topbar"><div class="topbar-in">
@@ -3240,11 +3363,11 @@ def render(d, standalone=True):
           <button class="stbtn" data-stat="g" aria-pressed="false">per game</button>
           <button class="stbtn" data-stat="x" aria-pressed="false">xGI</button>
         </div>
+        <button class="epbtn" aria-pressed="false" hidden>predicted points</button>
       </div>
       <div class="pkpanel" data-view="ov">{d['pitch']}</div>
       <div class="pkpanel" data-view="pk" hidden>{d['pick_pitch']}</div>
     </section>
-    {d['ep']}
     <details class="card collapsible">
       <summary class="card-head"><h2>Squad detail</h2>
         <span class="sub">Click a column heading to sort. Next 3 fixtures coloured by difficulty.</span>
@@ -3554,7 +3677,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "xgi_note": xgi_note,
         "pitch": pitch(xi, bench, ctx, badges, shirts, cap, vice, gw=gw),
         "pick_pitch": pick_team_pitch(xi, bench, ctx, badges, shirts, cap,
-                                      vice, proj, market, next_gw),
+                                      vice, proj, market, next_gw, eps),
         "chip_planner": chip_planner_card(fh, tc, bb, wc, used),
         "best_xi": best_xi_card(next_ideal, ctx, set(squad_ids), next_gw),
         "kneejerk": kneejerk_card(kj, gw),
@@ -3582,7 +3705,6 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             f"projected gain for gameweek {next_gw}. Selling price is taken as "
             f"current price. One gameweek of data underneath - read these as "
             f"prompts, not instructions."),
-        "ep": components.ep_bars(eps),
         "dialog": player_dialog([
             player_payload(r, ctx, proj, ep, next_gw, photos) for r, ep in eps
         ] + [
@@ -3606,6 +3728,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "gw_average": gw_average,
         "rank_move": rank_move,
         "verdict": verdict,
+        "next_line": next_week_line(ctx, xi, eps, next_gw),
         "projected_xi": sum(
             ep["total"] for r, ep in eps
             if r.element["id"] in set(xi_ids)

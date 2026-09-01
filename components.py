@@ -4,8 +4,10 @@ Chart-ish building blocks for the dashboard.
 
 Each of these exists because a table was the wrong shape for the question:
 
-* `ep_bars` - the four terms of expected points really are parts of one total,
-  which is the one situation a stacked bar is right for.
+* `ep_column` - the terms of expected points really are parts of one total,
+  which is the one situation a stacked bar is right for. One row per man in
+  the starting eleven, in the order they stand on the pitch, so each bar can
+  be read level with its own card.
 * `gap_chart` - a dumbbell. Reading the distance between two dots beats
   reading two numbers and subtracting them in your head.
 * `defcon_bars` - "how close to 10" is a bar with a line on it, not a decimal.
@@ -38,84 +40,53 @@ EP_PARTS = (
 )
 
 
-def ep_bars(eps, collapsed=6):
-    """Expected points as one stacked bar per player.
+def ep_column(eps, order):
+    """Expected points for the starting eleven, one row per pitch card.
 
-    Shows a handful by default and opens to the full squad, because fifteen
-    rows pushed everything below it off the screen for a list you mostly read
-    the top of. Opening animates each bar out from the left in turn - the
-    stagger is what makes it read as a ranking rather than a block appearing.
-    """
+    `order` is the player ids in the order they stand on the pitch, and the
+    rows are emitted in exactly that order rather than ranked - the whole
+    point of this layout is that row N sits level with card N, so the bar
+    is read as belonging to the man beside it. Sorting by size would break
+    that correspondence and turn it back into the ranked list it replaced.
+
+    The eleven are scaled against the biggest of the eleven, so the widths
+    compare like with like across one gameweek's team."""
     if not eps:
         return ""
-    ordered = sorted(eps, key=lambda x: -x[1]["total"])
-    top = max(ep["total"] for _r, ep in eps) or 1.0
+    by_id = {r.element["id"]: (r, ep) for r, ep in eps}
+    picked = [by_id[pid] for pid in order if pid in by_id]
+    if not picked:
+        return ""
+    top = max(ep["total"] for _r, ep in picked) or 1.0
+    total = sum(ep["total"] for _r, ep in picked)
+
     rows = []
-    for i, (r, ep) in enumerate(ordered):
-        segs = []
-        for key, label, colour in EP_PARTS:
-            value = ep.get(key, 0.0)
-            if value <= 0.01:
-                continue
-            segs.append(
-                '<span class="seg" style="width:{:.2f}%;background:{}" '
-                'title="{} {:.2f}"></span>'.format(
-                    value / top * 100, colour, e(label), value
-                )
-            )
-        fixture = "{} ({})".format(ep["opponent"], "H" if ep["home"] else "A")
+    for i, (r, ep) in enumerate(picked):
+        segs = "".join(
+            '<span class="seg" style="width:{:.2f}%;background:{}" '
+            'title="{} {:.2f}"></span>'.format(
+                ep.get(key, 0.0) / top * 100, colour, e(label), ep.get(key, 0.0))
+            for key, label, colour in EP_PARTS
+            if ep.get(key, 0.0) > 0.01
+        )
         rows.append(
-            '<li class="epr" style="--i:{i}">'
-            '<span class="epname">{name}<span class="epfx">{fx}</span></span>'
+            '<li class="epcr" style="--i:{i}">'
             '<span class="epbar">{segs}</span>'
-            '<span class="eptot tnum">{total:.2f}</span></li>'.format(
-                i=i,
-                name=e(r.name), fx=e(fixture), segs="".join(segs),
-                total=ep["total"],
-            )
+            '<span class="eptot tnum">{total:.1f}</span></li>'.format(
+                i=i, segs=segs, total=ep["total"])
         )
     legend = "".join(
         '<span class="epkey"><i style="background:{}"></i>{}</span>'.format(c, e(l))
         for _k, l, c in EP_PARTS
     )
-    # The bars are what is hidden, not the players. Collapsed you get the
-    # ranking and the totals; opening slides the bar column out and runs the
-    # reveal, which is the moment worth having an animation for.
-    toggle = (
-        '<button class="epmore" aria-expanded="false">'
-        '<svg viewBox="0 0 16 16" class="epchev" aria-hidden="true">'
-        '<path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" '
-        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-        '<span class="epmore-txt">See<br>more</span></button>'
-    )
-    # Collapsed, the ranking only needs its own width - the rest of the card
-    # used to sit empty between it and the toggle. The single most useful
-    # thing to put there is the answer to the question this list exists to
-    # answer: who to captain. It hides again once the bars open, since the
-    # list itself claims that space then.
-    top_r, top_ep = ordered[0]
-    cap_fixture = "{} ({})".format(top_ep["opponent"], "H" if top_ep["home"] else "A")
-    captain = (
-        '<div class="epcap">'
-        '<span class="epcap-k">Captain pick</span>'
-        '<span class="epcap-name">{name}</span>'
-        '<span class="epcap-fx">{fx}</span>'
-        '<span class="epcap-v"><b class="tnum">{total:.1f}</b> pts'
-        '<span class="epcap-arm tnum"> &rarr; {double:.1f} as armband</span>'
-        "</span></div>"
-    ).format(name=e(top_r.name), fx=e(cap_fixture), total=top_ep["total"],
-             double=top_ep["total"] * 2)
     return (
-        '<section class="card epcard"><div class="card-head">'
-        '<h2>Expected points</h2>'
-        '<span class="sub">Next gameweek, split into what actually earns the '
-        "points. Clean-sheet odds and the goals line come from the betting "
-        "market where it has priced the fixture.</span></div>"
-        '<div class="card-body"><div class="epwrap">'
-        '<ul class="eplist">{rows}</ul>{captain}{toggle}</div>'
-        '<p class="eplegend">{legend}</p></div></section>'.format(
-            rows="".join(rows), captain=captain, legend=legend, toggle=toggle
-        )
+        '<div class="epside" aria-hidden="true">'
+        '<div class="epside-head"><span class="epside-k">Projected</span>'
+        '<b class="tnum">{total:.1f}</b><span class="epside-u">pts, this XI</span>'
+        "</div>"
+        '<ul class="epclist">{rows}</ul>'
+        '<p class="eplegend">{legend}</p></div>'.format(
+            total=total, rows="".join(rows), legend=legend)
     )
 
 
