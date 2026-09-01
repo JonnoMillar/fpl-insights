@@ -69,11 +69,16 @@ def ep_column(eps, order):
             for key, label, colour in EP_PARTS
             if ep.get(key, 0.0) > 0.01
         )
+        # The name is carried but hidden while the two columns sit side by
+        # side, where the card level with the row already says who this is.
+        # Stacked on a narrow screen there is no card beside it, and eleven
+        # anonymous bars are not worth showing - so it reappears there.
         rows.append(
             '<li class="epcr" style="--i:{i}">'
+            '<span class="epcname">{name}</span>'
             '<span class="epbar">{segs}</span>'
             '<span class="eptot tnum">{total:.1f}</span></li>'.format(
-                i=i, segs=segs, total=ep["total"])
+                i=i, name=e(r.name), segs=segs, total=ep["total"])
         )
     legend = "".join(
         '<span class="epkey"><i style="background:{}"></i>{}</span>'.format(c, e(l))

@@ -809,6 +809,8 @@ table td.tick{border:2px solid var(--surface)}
 .epcr{display:flex; align-items:center; gap:10px; height:42px}
 .epcr .epbar{flex:1 1 auto; min-width:0; transform-origin:left center}
 .epcr .eptot{flex:0 0 38px; text-align:right; font-size:14px}
+.epcname{display:none; flex:0 0 96px; font-size:12px; font-weight:600;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
 .pkstage.ep-on .pitch{
   display:flex; flex-direction:column; gap:6px; padding:12px 10px;
@@ -865,6 +867,10 @@ table td.tick{border:2px solid var(--surface)}
   .pkstage{flex-direction:column}
   .pkstage.ep-on .pkboard{flex:1 1 auto; width:100%}
   .pkstage.ep-on .epside{width:100%; padding:12px 0 0}
+  /* Nothing sits level with these rows any more, so each says who it is. */
+  .epcname{display:block}
+  .epcr{height:34px}
+  .epside-head,.pkboard-head{height:auto; min-height:30px}
 }
 @media (prefers-reduced-motion:reduce){
   .pkstage.ep-on .pk{animation:none}
