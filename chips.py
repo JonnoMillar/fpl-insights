@@ -141,6 +141,12 @@ def free_hit(ctx, xi_reports, proj, market, baselines, next_gw):
         "gw": best_gw, "gap": gaps[best_gw],
         "confidence": confidence(gaps[best_gw], others),
         "points_team": pt_by_gw[best_gw],
+        # Every week's ideal team, not just the winning one. The dashboard's
+        # "highest predicted points XI" card wants the *coming* gameweek
+        # specifically, which is rarely the same week Free Hit picks, and
+        # recomputing it would mean building the whole candidate pool a
+        # second time for a number already sitting in this loop.
+        "by_gw": pt_by_gw,
     }
 
 

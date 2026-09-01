@@ -308,6 +308,305 @@ def _eligible(el, ctx):
     return True
 
 
+def league_scores(ctx, proj, gw, market, baselines, priors=None):
+    """Every eligible player in the game scored for one gameweek,
+    {player_id: score}. Includes players already owned - the caller decides
+    what "owned" means for its own purposes, and the Buy/Sell/Keep/Avoid
+    board needs both sides of that line scored on identical terms.
+
+    Deliberately the same scorer `suggest` uses on both the squad and the
+    candidates, for the reason given there: a board that scored owned
+    players with the richer history-backed model and everyone else with
+    this one would be comparing two different yardsticks and calling the
+    difference a recommendation."""
+    priors = priors or positional_priors(ctx)
+    out = {}
+    for el in ctx.players.values():
+        if not _eligible(el, ctx):
+            continue
+        s = candidate_score(el, ctx, proj, gw, market, baselines, priors)
+        if s:
+            out[el["id"]] = s
+    return out
+
+
+# How much better a reachable replacement has to project before the man he
+# would replace is called a sell rather than a hold. Candidate scores sit
+# roughly in the 2-6 point range, so a fraction under a point is a real
+# difference without being a rounding artefact - and every suggestion on
+# this page is one gameweek of evidence, which does not deserve a hair
+# trigger.
+SELL_MARGIN = 0.6
+
+# Net transfers in across a gameweek that mark a player as a bandwagon
+# rather than quiet accumulation. Against an active manager base in the
+# millions, six figures of net movement in a few days is a crowd.
+BANDWAGON_NET = 60000
+
+
+def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
+    """Buy, Sell, Keep and Avoid - four questions with four different
+    rules, not one ranking sliced into quarters.
+
+    Slicing one ranking is the obvious implementation and it is wrong: it
+    makes "avoid" mean nothing more than "ranked low", which is already
+    what "sell" means, and it can never say the one useful thing about a
+    player the whole game is buying this week. So:
+
+    * **Buy** - not owned, projects highest for the coming week, and is
+      actually reachable by selling someone you own in that position.
+    * **Sell** - owned, and a specific affordable replacement projects
+      meaningfully higher. Named, so the claim is checkable.
+    * **Keep** - owned, projects well, and nothing above wants to move
+      him. The useful half of a recommendation engine is the part that
+      tells you to sit still.
+    * **Avoid** - not owned, being bought heavily right now, and a
+      same-position player at the same price or less projects higher.
+      This is the only list here that reads the market rather than the
+      model, and the only one that can disagree with the crowd.
+
+    One gameweek of projection underneath all four, the same as every
+    other recommendation on the page.
+    """
+    owned = {r.element["id"]: r for r in squad_reports}
+    scored_owned = [r for r in squad_reports if r.element["id"] in scores]
+    if not scored_owned:
+        return None
+
+    # The most expensive man held in each position sets what a purchase
+    # there can cost: you have to sell someone to buy someone.
+    ceiling = {}
+    for r in scored_owned:
+        ceiling[r.pos] = max(ceiling.get(r.pos, 0.0), r.price + bank)
+
+    # Three per club, the same rule `suggest` enforces. Without it the Buy
+    # column filled with whichever club had the kindest fixture that week -
+    # four Manchester City names, on top of the two City players already
+    # owned - which is not a shortlist, it is an illegal squad.
+    club_counts = {}
+    for r in squad_reports:
+        club_counts[r.element["team"]] = club_counts.get(r.element["team"], 0) + 1
+
+    def club_ok(el, selling=None):
+        """Whether signing `el` keeps the squad legal. `selling` is the
+        player being sold to fund him where there is a designated one -
+        leaving a club frees the slot that joining it fills."""
+        count = club_counts.get(el["team"], 0)
+        if selling is not None and selling.element["team"] == el["team"]:
+            count -= 1
+        return count < SQUAD_LIMIT_PER_CLUB
+
+    def take(rows, n):
+        """The first `n` rows, but no more from one club than there are
+        squad slots left for it.
+
+        Checking legality one row at a time is not enough for a column
+        read as a shortlist: with two Manchester City players already
+        owned, every City man passes that test on his own, and Buy came
+        out as four City names when only one of them can actually be
+        signed. The budget has to be spent across the list, not re-offered
+        to each row."""
+        room, out = {}, []
+        for r in rows:
+            team = ctx.players[r["id"]]["team"]
+            if team not in room:
+                room[team] = SQUAD_LIMIT_PER_CLUB - club_counts.get(team, 0)
+            if room[team] <= 0:
+                continue
+            room[team] -= 1
+            out.append(r)
+            if len(out) >= n:
+                break
+        return out
+
+    def row(el, s, note):
+        return {
+            "id": el["id"], "name": el["web_name"], "pos": ctx.pos(el),
+            "club": ctx.team_name(el["team"]), "price": el["now_cost"] / 10.0,
+            "ep": s["total"], "opponent": s["opponent"], "home": s["home"],
+            "note": note,
+        }
+
+    # --- Sell, and the replacement that justifies calling it one -------
+    sell, sell_ids = [], set()
+    for r in scored_owned:
+        mine = scores[r.element["id"]]["total"]
+        budget = r.price + bank
+        best = None
+        for pid, s in scores.items():
+            if pid in owned:
+                continue
+            el = ctx.players[pid]
+            if ctx.pos(el) != r.pos:
+                continue
+            if el["now_cost"] / 10.0 > budget + 1e-9:
+                continue
+            if not club_ok(el, selling=r):
+                continue
+            if best is None or s["total"] > best[1]["total"]:
+                best = (el, s)
+        if not best or best[1]["total"] - mine < SELL_MARGIN:
+            continue
+        sell_ids.add(r.element["id"])
+        sell.append({
+            "id": r.element["id"], "name": r.name, "pos": r.pos,
+            "club": r.team, "price": r.price, "ep": mine,
+            "opponent": scores[r.element["id"]]["opponent"],
+            "home": scores[r.element["id"]]["home"],
+            "gap": best[1]["total"] - mine,
+            "note": "{} projects {:+.1f} in his place".format(
+                best[0]["web_name"], best[1]["total"] - mine),
+        })
+    sell.sort(key=lambda x: -x["gap"])
+
+    # --- Buy: reachable, and projects highest ------------------------
+    buy = []
+    for pid, s in scores.items():
+        if pid in owned:
+            continue
+        el = ctx.players[pid]
+        pos = ctx.pos(el)
+        if pos not in ceiling or el["now_cost"] / 10.0 > ceiling[pos] + 1e-9:
+            continue
+        if not club_ok(el):
+            continue
+        buy.append(row(el, s, "{:.1f} projected, {} {}".format(
+            s["total"], "vs" if s["home"] else "at", s["opponent"])))
+    buy.sort(key=lambda x: -x["ep"])
+
+    # --- Keep: rated well, and nothing wants to move him -------------
+    keep = []
+    for r in scored_owned:
+        if r.element["id"] in sell_ids:
+            continue
+        s = scores[r.element["id"]]
+        keep.append({
+            "id": r.element["id"], "name": r.name, "pos": r.pos,
+            "club": r.team, "price": r.price, "ep": s["total"],
+            "opponent": s["opponent"], "home": s["home"],
+            "note": "no reachable upgrade at {:.1f}m".format(r.price + bank),
+        })
+    keep.sort(key=lambda x: -x["ep"])
+
+    # --- Avoid: the crowd is buying, the numbers do not agree --------
+    avoid = []
+    for pid, s in scores.items():
+        if pid in owned:
+            continue
+        el = ctx.players[pid]
+        net = el.get("transfers_in_event", 0) - el.get("transfers_out_event", 0)
+        if net < BANDWAGON_NET or not club_ok(el):
+            continue
+        pos, price = ctx.pos(el), el["now_cost"] / 10.0
+        better = None
+        for oid, os_ in scores.items():
+            if oid == pid or oid in owned:
+                continue
+            oel = ctx.players[oid]
+            if ctx.pos(oel) != pos or oel["now_cost"] / 10.0 > price + 1e-9:
+                continue
+            if os_["total"] <= s["total"] or not club_ok(oel):
+                continue
+            if better is None or os_["total"] > better[1]["total"]:
+                better = (oel, os_)
+        if not better:
+            continue
+        avoid.append({
+            **row(el, s, "{} is {:.1f}m and projects {:+.1f}".format(
+                better[0]["web_name"], better[0]["now_cost"] / 10.0,
+                better[1]["total"] - s["total"])),
+            "net": net,
+        })
+    avoid.sort(key=lambda x: -x["net"])
+
+    # Sell and Keep are lists of players already owned, so the club budget
+    # does not apply to them - it only constrains who you can sign.
+    return {
+        "buy": take(buy, per_list), "sell": sell[:per_list],
+        "keep": keep[:per_list], "avoid": take(avoid, per_list),
+    }
+
+
+def kneejerk(ctx, squad_reports, scores, bank=0.0):
+    """The player who just hauled and you do not own - named as the
+    impulse it is, and priced honestly.
+
+    Every manager has this thought on a Saturday evening, so the card
+    exists to answer it rather than pretend it does not get had. What
+    makes it worth rendering is the second half: last week's points are
+    the one number in this whole page with no predictive weight at all,
+    so the card carries the projection for the coming week beside them,
+    and the best available alternative at the same money. If the impulse
+    survives that comparison it was not a knee-jerk.
+
+    Returns None when the top scorer of the week is already in the squad,
+    which is the happy case and needs no card."""
+    owned = {r.element["id"]: r for r in squad_reports}
+    best = None
+    for el in ctx.players.values():
+        if el["id"] in owned or not _eligible(el, ctx):
+            continue
+        pts = el.get("event_points") or 0
+        if pts <= 0:
+            continue
+        if best is None or pts > (best.get("event_points") or 0):
+            best = el
+    if best is None:
+        return None
+
+    pos, price = ctx.pos(best), best["now_cost"] / 10.0
+    score = scores.get(best["id"])
+
+    # Who you would have to sell to afford him, and whether anyone at that
+    # money is projected to do better.
+    affordable = [r for r in squad_reports
+                  if r.pos == pos and r.price + bank + 1e-9 >= price]
+    funder = min(affordable, key=lambda r: r.price) if affordable else None
+
+    club_counts = {}
+    for r in squad_reports:
+        club_counts[r.element["team"]] = club_counts.get(r.element["team"], 0) + 1
+
+    rival = None
+    if funder:
+        budget = funder.price + bank
+        for pid, s in scores.items():
+            if pid in owned or pid == best["id"]:
+                continue
+            el = ctx.players[pid]
+            if ctx.pos(el) != pos or el["now_cost"] / 10.0 > budget + 1e-9:
+                continue
+            # Same three-per-club rule: an alternative you cannot legally
+            # sign is not an alternative.
+            count = club_counts.get(el["team"], 0)
+            if funder.element["team"] == el["team"]:
+                count -= 1
+            if count >= SQUAD_LIMIT_PER_CLUB:
+                continue
+            if rival is None or s["total"] > rival[1]["total"]:
+                rival = (el, s)
+
+    return {
+        "id": best["id"], "name": best["web_name"], "pos": pos,
+        "club": ctx.team_name(best["team"]), "price": price,
+        "points": best.get("event_points") or 0,
+        "owned": f(best.get("selected_by_percent")),
+        # Gross, not net. Bruno Fernandes came out of gameweek 2 on 23
+        # points with 182,843 managers buying him and almost as many
+        # selling - a net of +2,090, which printed on a card headed "the
+        # knee-jerk" reads as nobody wanting him. The crowd buying is the
+        # signal this card is about, so the crowd buying is the number.
+        "bought": best.get("transfers_in_event", 0),
+        "ep": score["total"] if score else None,
+        "opponent": score["opponent"] if score else None,
+        "home": score["home"] if score else None,
+        "funder": funder,
+        "rival": ({"name": rival[0]["web_name"],
+                   "price": rival[0]["now_cost"] / 10.0,
+                   "ep": rival[1]["total"]} if rival else None),
+    }
+
+
 def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
                      shortlist=30, limit=4, elite=None, hit_cost=4):
     """Two out, two in - the moves a single transfer cannot reach.
@@ -432,12 +731,17 @@ def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
 
     # One appearance per outgoing player across the whole list, so four
     # pairings read as four decisions rather than four ways of selling Konsa.
-    used, picked = set(), []
+    # Incoming players are held distinct across the whole list for the same
+    # reason as in `suggest`: two pairings that both sign the same man are
+    # one decision shown twice, and only one of them can be acted on.
+    used, bought, picked = set(), set(), []
     for p in pairings:
         outs = {leg["out"].element["id"] for leg in p["legs"]}
-        if outs & used:
+        ins = {leg["in"]["id"] for leg in p["legs"]}
+        if outs & used or ins & bought:
             continue
         used |= outs
+        bought |= ins
         picked.append(p)
         if len(picked) >= limit:
             break
@@ -520,12 +824,19 @@ def suggest(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
 
     # One suggestion per outgoing player, so the list reads as a set of
     # distinct decisions rather than five variations on selling the same man.
-    seen, picked = set(), []
+    #
+    # And one per *incoming* player too, which this used to miss: the same
+    # replacement could be offered against two different squad players, so
+    # a Bench Boost rebuild came out reading "Konsa to Davis" and "Diop to
+    # Davis" on consecutive rows. You cannot buy him twice, and even where
+    # the second row is a legal alternative it is the same decision twice
+    # over, which is exactly what this filter exists to prevent.
+    seen_out, seen_in, picked = set(), set(), []
     for row in out_rows:
-        key = row["out"].element["id"]
-        if key in seen:
+        if row["out"].element["id"] in seen_out or row["in"]["id"] in seen_in:
             continue
-        seen.add(key)
+        seen_out.add(row["out"].element["id"])
+        seen_in.add(row["in"]["id"])
         picked.append(row)
         if len(picked) >= limit:
             break

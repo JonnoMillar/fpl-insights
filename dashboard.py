@@ -867,10 +867,135 @@ table td.tick{border:2px solid var(--surface)}
   display:inline-block; margin-top:8px; padding:2px 8px; border-radius:9999px;
   font-size:11px; font-weight:700;
 }
-.cp-conf-strong{background:var(--success); color:#fff}
+/* Not var(--success) as a background: that token is the FPL green, and
+   white on it measures about 1.3:1. The dark green does the same job. */
+.cp-conf-strong{background:var(--good-ink); color:#fff}
 .cp-conf-watch{background:var(--p40); color:var(--ink)}
 .cp-conf-flexible{background:var(--outline-variant); color:var(--on-surface-variant)}
 .cp-used-tag{font-size:11px; color:var(--on-surface-variant); margin-top:8px}
+
+/* --- wildcard / bench boost rebuild table -------------------------------
+   Column against column, the same grammar as Squad detail, because ten
+   swaps is a list to be compared down the page and not a gallery. */
+.swapcard summary{cursor:pointer}
+.swaptbl{font-size:13px}
+.swaptbl th{white-space:nowrap}
+.swaptbl td{padding:5px 8px; vertical-align:middle}
+.swaptbl .sw-group th{
+  padding:10px 8px 3px; font-size:10px; font-weight:700; text-align:left;
+  text-transform:uppercase; letter-spacing:.07em; color:var(--on-surface-variant);
+  border-bottom:1px solid var(--outline-variant);
+}
+.sw-out b,.sw-in b{display:block; font-size:13px}
+.sw-out span,.sw-in span{display:block; font-size:11px; color:var(--on-surface-variant)}
+.sw-out{opacity:.62}
+.sw-arrow{color:var(--p40); font-size:15px; width:1.4em; text-align:center}
+.sw-up{color:var(--good-ink); font-weight:700}
+.sw-down{color:var(--bad-ink); font-weight:700}
+.sw-flat,.sw-free{color:var(--on-surface-variant)}
+.sw-save{color:var(--good-ink)}
+.sw-cost{color:var(--bad-ink)}
+
+/* --- highest predicted points XI ----------------------------------------
+   Positions down, not one ranked eleven: the question this answers is
+   "where is my team behind", which only reads position by position. */
+.bxi-head{
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:8px 18px;
+  padding-bottom:12px; margin-bottom:12px;
+  border-bottom:1px solid var(--outline-variant);
+}
+.bxi-big{display:flex; align-items:baseline; gap:7px}
+.bxi-big .num{font-size:34px; font-weight:700; line-height:1}
+.bxi-big small{font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--on-surface-variant); max-width:6em}
+.bxi-own{margin:0; display:inline-flex; align-items:center; gap:5px;
+  font-size:13px; color:var(--on-surface-variant)}
+.bxi-own .ic{width:15px; height:15px; color:var(--good-ink)}
+.bxi-own b{color:var(--on-surface)}
+.bxi-read{margin:0; flex:1 1 260px; font-size:12px;
+  color:var(--on-surface-variant); line-height:1.45}
+.bxi-grid{display:grid; gap:14px 22px;
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.bxi-group h4{
+  margin:0 0 5px; font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.07em; color:var(--on-surface-variant);
+}
+.bxi-group ul{list-style:none; margin:0; padding:0}
+.bxi-row{
+  display:grid; align-items:center; gap:0 7px; padding:3px 0 3px 2px;
+  grid-template-columns:15px minmax(0,1fr) auto 46px 30px;
+}
+.bxi-mark .ic{width:13px; height:13px; color:var(--good-ink)}
+.bxi-name{font-size:13px; font-weight:600; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap}
+.bxi-club{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
+  color:var(--p50)}
+.bxi-bar{display:block; height:5px; border-radius:3px; background:var(--p10)}
+.bxi-bar i{display:block; height:100%; border-radius:3px; background:var(--p30)}
+.bxi-ep{font-size:12px; text-align:right; color:var(--on-surface-variant)}
+/* Owned men are the reference, so they carry the colour; the ones you are
+   missing stay plain and let the tick count do the talking. */
+.bxi-row.is-mine .bxi-bar i{background:var(--accent)}
+.bxi-row.is-mine .bxi-name,.bxi-row.is-mine .bxi-ep{color:var(--on-surface)}
+.bxi-row.is-mine .bxi-ep{font-weight:700}
+
+/* --- the knee-jerk ------------------------------------------------------
+   The one card arguing with the reader, so the one card on ink. */
+.kjcard{
+  background:var(--ink); color:var(--white); border:0;
+  border-left:5px solid var(--warn); overflow:hidden;
+}
+.kjcard.kj-good{border-left-color:var(--accent)}
+.kjcard.kj-bad{border-left-color:var(--bad)}
+.kj-tag{
+  padding:9px 18px 0; font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.14em; color:var(--accent);
+}
+.kj-body{padding:2px 18px 16px}
+.kj-lead{margin:2px 0 0; font-size:15px; color:rgb(255 255 255 / 76%)}
+.kj-lead b{color:var(--white)}
+.kj-score{margin:2px 0 0; display:flex; align-items:baseline; gap:9px}
+.kj-score .num{font-size:52px; font-weight:700; line-height:1; color:var(--accent)}
+.kj-score small{font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; color:rgb(255 255 255 / 62%)}
+.kj-facts{
+  display:flex; flex-wrap:wrap; gap:6px 26px; margin:14px 0 0;
+  padding-top:12px; border-top:1px solid rgb(255 255 255 / 16%);
+}
+.kj-facts dt{font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; color:rgb(255 255 255 / 55%)}
+.kj-facts dd{margin:1px 0 0; font-size:17px; font-weight:700}
+.kj-verdict{margin:12px 0 0; font-size:13px; line-height:1.5;
+  color:rgb(255 255 255 / 80%)}
+.kj-fx{
+  display:inline-block; margin-left:4px; padding:1px 7px; border-radius:9999px;
+  font-size:11px; font-weight:700; background:rgb(255 255 255 / 12%);
+  color:var(--white);
+}
+
+/* --- buy / sell / keep / avoid ------------------------------------------ */
+.vb-grid{display:grid; gap:12px;
+  grid-template-columns:repeat(auto-fit,minmax(216px,1fr))}
+.vb-col{padding:11px 12px 10px; border-radius:var(--radius-m);
+  background:var(--surface-variant); border-top:3px solid var(--p30)}
+.vb-col h4{margin:0; font-size:13px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em}
+.vb-rule{margin:2px 0 8px; font-size:11px; line-height:1.35;
+  color:var(--on-surface-variant)}
+.vb-col ul{list-style:none; margin:0; padding:0; display:grid; gap:7px}
+.vb-top{display:flex; align-items:baseline; justify-content:space-between; gap:8px}
+.vb-top b{font-size:13px}
+.vb-ep{font-size:13px; font-weight:700}
+.vb-sub{display:block; font-size:11px; line-height:1.35;
+  color:var(--on-surface-variant)}
+.vb-none{font-size:12px; color:var(--p50)}
+.vb-good{border-top-color:var(--good); background:var(--good-wash)}
+.vb-good .vb-ep{color:var(--good-ink)}
+.vb-bad{border-top-color:var(--bad); background:var(--bad-wash)}
+.vb-bad .vb-ep{color:var(--bad-ink)}
+.vb-accent{border-top-color:var(--ink)}
+.vb-warn{border-top-color:var(--warn); background:var(--warn-wash)}
+.vb-warn .vb-ep{color:var(--warn-ink)}
 
 /* If the count does not fill the last row, the final card stretches across
    what is left rather than sitting beside a hole. */
@@ -2506,26 +2631,24 @@ def chip_planner_card(fh, tc, bb, wc, used):
         )
         cards.append(_cp_card("Wildcard", used.get("wildcard"), body))
 
-    # The grid above is for the compact per-chip summary only.
-    # components.transfer_cards renders its own full-width "Suggested
-    # transfers"-shaped section (portrait, arrow, portrait) - it does not
-    # fit a ~250px grid column, so Bench Boost's and Wildcard's move lists
-    # render as their own full-width sections below the grid instead of
-    # nested inside it. Found by actually looking at the rendered page,
-    # not assumed safe from the code alone.
+    # The grid above is the compact per-chip summary only; the move lists
+    # are tables of their own below it. They render as swap_table rather
+    # than transfer_cards because neither list carries player photos, and
+    # transfer_cards falls back to a large initial-in-a-box per face - ten
+    # Wildcard moves came out as twenty enormous letters. Collapsed by
+    # default too: a rebuild you are not doing this week does not deserve
+    # a screen of its own every visit.
     extra = []
     if bb and bb["transfers"]:
-        rows = [{**t, "out_photo": None, "in_photo": None,
-                "out_shirt": None, "in_shirt": None}
-               for t in bb["transfers"]]
-        extra.append(components.transfer_cards(
-            rows, f"Bench Boost, GW{bb['gw']} - would improve that specific week."))
+        extra.append(components.swap_table(
+            bb["transfers"], f"Bench Boost rebuild, GW{bb['gw']}",
+            "Moves that would improve that specific week, not this one."))
     if wc and wc["moves"]:
-        rows = [{**mv, "out_photo": None, "in_photo": None,
-                "out_shirt": None, "in_shirt": None}
-               for mv in wc["moves"]]
-        extra.append(components.transfer_cards(
-            rows, "Wildcard - suggested rebuild, most expensive first."))
+        extra.append(components.swap_table(
+            wc["moves"], "Wildcard rebuild",
+            f"The full squad this would become, scored across GW"
+            f"{wc['gw_window'][0]}-{wc['gw_window'][0] + wc['gw_window'][1] - 1}. "
+            "Selling price is taken as current price."))
 
     return (
         '<section class="card"><div class="card-head"><h2>Chip planner</h2>'
@@ -2533,6 +2656,194 @@ def chip_planner_card(fh, tc, bb, wc, used):
         'scored from the same projections as the rest of the page.</span></div>'
         f'<div class="card-body"><ul class="cplist">{"".join(cards)}</ul></div></section>'
         f'{"".join(extra)}'
+    )
+
+
+TICK_SVG = ('<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">'
+            '<path d="M3 8.5 6.4 12 13 4.6" fill="none" stroke="currentColor" '
+            'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>')
+WARN_SVG = ('<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">'
+            '<path d="M8 2.6 15 14H1Z" fill="none" stroke="currentColor" '
+            'stroke-width="1.7" stroke-linejoin="round"/>'
+            '<path d="M8 6.6v3.2" stroke="currentColor" stroke-width="1.7" '
+            'stroke-linecap="round"/><circle cx="8" cy="11.9" r="1" '
+            'fill="currentColor"/></svg>')
+
+POS_LABEL = {"GKP": "Goalkeeper", "DEF": "Defenders",
+             "MID": "Midfielders", "FWD": "Forwards"}
+POS_SEQ = ("GKP", "DEF", "MID", "FWD")
+
+
+def best_xi_card(pt, ctx, squad_ids, next_gw):
+    """The highest-projecting eleven available in the whole game for the
+    coming week, against the eleven actually owned.
+
+    Sorted into positions rather than one ranked list, because the useful
+    question is not "who scores most" - it is "where is my team behind",
+    and that only reads position by position. Owned players are ticked
+    rather than pulled out into their own group, so the gap between the
+    two teams is a count you can see rather than a number to be trusted.
+
+    The budget is the manager's own XI value, so this is not a fantasy of
+    an unlimited team - it is the best eleven reachable for the money
+    already committed."""
+    if not pt or not pt.get("ideal_xi"):
+        return ""
+    xi = pt["ideal_xi"]
+    owned_n = sum(1 for p in xi if p["id"] in squad_ids)
+    top = max(p["value"] for p in xi) or 1.0
+
+    groups = []
+    for pos in POS_SEQ:
+        men = sorted((p for p in xi if p["pos"] == pos),
+                     key=lambda p: -p["value"])
+        if not men:
+            continue
+        rows = []
+        for p in men:
+            el = ctx.players.get(p["id"])
+            name = el["web_name"] if el else "?"
+            mine = p["id"] in squad_ids
+            rows.append(
+                f'<li class="bxi-row{" is-mine" if mine else ""}">'
+                f'<span class="bxi-mark" aria-hidden="true">'
+                f'{TICK_SVG if mine else ""}</span>'
+                f'<span class="bxi-name">{e(name)}</span>'
+                f'<span class="bxi-club">{e(p["club"])}</span>'
+                f'<span class="bxi-bar"><i style="width:'
+                f'{p["value"] / top * 100:.0f}%"></i></span>'
+                f'<span class="bxi-ep num">{p["value"]:.1f}</span></li>'
+            )
+        groups.append(
+            f'<div class="bxi-group"><h4>{e(POS_LABEL[pos])}</h4>'
+            f'<ul>{"".join(rows)}</ul></div>'
+        )
+
+    gap = pt["gap"]
+    if gap < 0.5:
+        read = ("Your eleven is already within half a point of the best one "
+                "available for the money. There is nothing to chase here.")
+    else:
+        read = (f"Your eleven projects {pt['ours_value']:.1f}. The gap is "
+                f"{gap:.1f} points, spread across the "
+                f"{11 - owned_n} name{'s' if 11 - owned_n != 1 else ''} you "
+                f"do not own.")
+
+    return (
+        '<section class="card bxicard"><div class="card-head">'
+        f'<h2>Highest predicted points XI</h2>'
+        f'<span class="sub">The best eleven in the game for gameweek '
+        f'{next_gw} within your own XI\'s budget, formation optimised. '
+        f'Greedy fill then hill-climb, so it is a strong answer rather '
+        f'than a proven best one.</span></div>'
+        '<div class="card-body">'
+        '<div class="bxi-head">'
+        f'<div class="bxi-big"><span class="num">{pt["ideal_value"]:.1f}</span>'
+        f'<small>projected, best XI</small></div>'
+        f'<p class="bxi-own">{TICK_SVG}<b>{owned_n} of 11</b> already yours</p>'
+        f'<p class="bxi-read">{e(read)}</p></div>'
+        f'<div class="bxi-grid">{"".join(groups)}</div>'
+        "</div></section>"
+    )
+
+
+def kneejerk_card(kj, gw):
+    """The player who hauled last week and is not in the squad.
+
+    Deliberately named for the impulse rather than dressed up as a
+    recommendation, and deliberately loud - it is the one card on the page
+    arguing with the reader rather than informing them. Last week's points
+    are the single number here with no predictive weight whatsoever, so
+    they are printed at full size and then immediately answered by the
+    projection for the coming week and the best alternative at the same
+    money. If the case survives that, it was never a knee-jerk."""
+    if not kj:
+        return ""
+    ep = kj["ep"]
+    rival = kj["rival"]
+    funder = kj["funder"]
+
+    if ep is None:
+        verdict, tone = "No fixture priced for him yet this week.", "warn"
+    elif rival and rival["ep"] > ep:
+        verdict = (f'{rival["name"]} at {rival["price"]:.1f}m projects '
+                   f'{rival["ep"] - ep:+.2f} more for the same slot.')
+        tone = "bad"
+    elif not funder:
+        verdict = (f"You cannot reach him: nobody you own at {kj['pos']} "
+                   f"frees up {kj['price']:.1f}m.")
+        tone = "warn"
+    else:
+        verdict = (f"He also holds up on the projection, and selling "
+                   f"{e(funder.name)} would pay for him.")
+        tone = "good"
+
+    fixture = ""
+    if kj["opponent"]:
+        fixture = (f'<span class="kj-fx">{"vs" if kj["home"] else "at"} '
+                   f'{e(kj["opponent"])}</span>')
+    ep_txt = f"{ep:.1f}" if ep is not None else "&mdash;"
+
+    return (
+        f'<section class="card kjcard kj-{tone}">'
+        '<div class="kj-tag">The knee-jerk</div>'
+        '<div class="kj-body">'
+        f'<p class="kj-lead">You did not own <b>{e(kj["name"])}</b>, and he '
+        f'scored</p>'
+        f'<p class="kj-score"><span class="num">{kj["points"]}</span>'
+        f'<small>in gameweek {gw}</small></p>'
+        '<dl class="kj-facts">'
+        f'<div><dt>Price</dt><dd class="num">{kj["price"]:.1f}m</dd></div>'
+        f'<div><dt>Owned</dt><dd class="num">{kj["owned"]:.1f}%</dd></div>'
+        f'<div><dt>Bought this week</dt><dd class="num">{kj["bought"]:,}</dd></div>'
+        f'<div><dt>Next GW</dt><dd class="num">{ep_txt}</dd></div>'
+        "</dl>"
+        f'<p class="kj-verdict">{verdict} {fixture}</p>'
+        "</div></section>"
+    )
+
+
+VERDICT_COLS = [
+    ("buy", "Buy", "good", "Not yours, reachable, projects highest."),
+    ("sell", "Sell", "bad", "A named replacement projects meaningfully more."),
+    ("keep", "Keep", "accent", "Nothing above wants to move him."),
+    ("avoid", "Avoid", "warn", "Being bought hard; a cheaper man projects more."),
+]
+
+
+def verdict_board_card(vb, next_gw):
+    """Buy, Sell, Keep, Avoid as four columns with four different rules.
+
+    See transfers.verdict_board for what each one actually means - the
+    important part is that they are four questions rather than one ranking
+    cut into quarters, and Avoid is the only column reading the transfer
+    market rather than the model."""
+    if not vb or not any(vb.get(k) for k, _l, _t, _s in VERDICT_COLS):
+        return ""
+    cols = []
+    for key, label, tone, sub in VERDICT_COLS:
+        rows = vb.get(key) or []
+        if not rows:
+            items = '<li class="vb-none">Nothing this week.</li>'
+        else:
+            items = "".join(
+                f'<li><span class="vb-top"><b>{e(r["name"])}</b>'
+                f'<span class="vb-ep num">{r["ep"]:.1f}</span></span>'
+                f'<span class="vb-sub">{e(r["club"])} &middot; '
+                f'{r["price"]:.1f}m &middot; {e(r["note"])}</span></li>'
+                for r in rows
+            )
+        cols.append(
+            f'<div class="vb-col vb-{tone}"><h4>{e(label)}</h4>'
+            f'<p class="vb-rule">{e(sub)}</p><ul>{items}</ul></div>'
+        )
+    return (
+        '<section class="card vbcard"><div class="card-head">'
+        '<h2>Buy, sell, keep, avoid</h2>'
+        f'<span class="sub">Four different questions, not one ranking split '
+        f'four ways. Everything is projected for gameweek {next_gw}, and the '
+        f'figure beside each name is that projection.</span></div>'
+        f'<div class="card-body vb-grid">{"".join(cols)}</div></section>'
     )
 
 
@@ -2833,12 +3144,15 @@ def render(d, standalone=True):
   </div>
 
   <div class="panel" id="p-market" role="tabpanel" hidden>
-    {d['chip_planner']}
-    {d['captaincy']}
-    {d['ticker']}
     {d['market']}
+    {d['best_xi']}
+    {d['kneejerk']}
+    {d['verdicts']}
     {d['transfers']}
     {d['pairings']}
+    {d['captaincy']}
+    {d['chip_planner']}
+    {d['ticker']}
     {d['leaders']}
     {d['price_watch']}
     {d['scatter']}
@@ -3095,6 +3409,16 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         except fplapi.FplError as ex:
             print(f"[chips] chip history unavailable: {ex}")
 
+    # One scoring pass over the whole league, shared by the knee-jerk card
+    # and the Buy/Sell/Keep/Avoid board so the two cannot disagree with
+    # each other about the same player.
+    lg_scores = transfers.league_scores(ctx, proj, next_gw, market, baselines)
+    kj = transfers.kneejerk(ctx, xi + bench, lg_scores, bank=bank)
+    vb = transfers.verdict_board(ctx, xi + bench, lg_scores, bank=bank)
+    # free_hit searches the whole chip window; the card below wants the
+    # coming week specifically, which is rarely the week Free Hit picks.
+    next_ideal = (fh or {}).get("by_gw", {}).get(next_gw)
+
     return {
         "ctx": ctx,
         "gw": gw,
@@ -3118,6 +3442,9 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "pick_pitch": pick_team_pitch(xi, bench, ctx, badges, shirts, cap,
                                       vice, proj, market, next_gw),
         "chip_planner": chip_planner_card(fh, tc, bb, wc, used),
+        "best_xi": best_xi_card(next_ideal, ctx, set(squad_ids), next_gw),
+        "kneejerk": kneejerk_card(kj, gw),
+        "verdicts": verdict_board_card(vb, next_gw),
         "captaincy": captaincy_card(cap_matrix),
         "squad_table": squad_table(xi + bench, ctx, cap, vice,
                                    proj, market, next_gw),
