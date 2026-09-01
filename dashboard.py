@@ -1195,6 +1195,39 @@ table td.tick{border:2px solid var(--surface)}
   font-variant-numeric:tabular-nums}
 .dfempty{margin:0; font-size:14px; color:var(--on-surface-variant); max-width:56ch}
 
+/* --- scoring against you ------------------------------------------------
+   Deliberately not the same card as Your differentials sitting above it.
+   That one is four facts about one player and is drawn as a portrait; this
+   one is a ranking, so it is drawn as a ranking - rows down the page with a
+   bar you can compare along, red because the whole point is that these went
+   onto somebody else's score. */
+.rvlist{list-style:none; margin:0; padding:0; display:flex;
+  flex-direction:column; gap:8px}
+.rv-row{
+  display:grid; align-items:center; gap:2px 12px;
+  grid-template-columns:44px minmax(110px,175px) 34px minmax(90px,1fr);
+  grid-template-areas:"face who pts track" ". note note note";
+}
+.rv-photo{grid-area:face; width:44px; height:56px; border-radius:var(--radius-xs);
+  object-fit:cover; background:var(--surface-variant); flex:none}
+.rv-blank{display:grid; place-items:center; font-size:19px; font-weight:700;
+  color:var(--on-surface-variant)}
+.rv-who{grid-area:who; min-width:0; display:flex; flex-direction:column}
+.rv-who b{font-size:14px; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap}
+.rv-who span{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
+  color:var(--p50)}
+.rv-pts{grid-area:pts; font-size:19px; font-weight:700; text-align:right;
+  color:var(--bad-ink)}
+.rv-track{grid-area:track; height:9px; border-radius:5px;
+  background:var(--outline-variant); overflow:hidden}
+.rv-track i{display:block; height:100%; border-radius:5px; background:var(--bad)}
+.rv-note{grid-area:note; font-size:11px; color:var(--on-surface-variant)}
+@media (max-width:620px){
+  .rv-row{grid-template-columns:44px minmax(0,1fr) 34px;
+    grid-template-areas:"face who pts" "face track track" ". note note"}
+}
+
 /* --- league leaders --- */
 .slwrap{
   list-style:none; margin:0; padding:0; display:grid;
@@ -2697,6 +2730,84 @@ def differential_card(own, by_name, ctx, my_name, photos):
     )
 
 
+def rival_returns(own, by_name, ctx, my_name, squad_ids, limit=5):
+    """Players who scored for the rest of this league last week, and not
+    for you - ranked by the damage done rather than by the raw score.
+
+    A haul only costs you ground in proportion to how much of the league
+    was holding it, so the ranking is points times the number of rivals who
+    started him, with a captain counted twice because that is what the
+    armband pays. A 13-pointer nobody else started did you no harm at all
+    and does not belong above a 6-pointer that six of your eight rivals
+    had."""
+    if not own or not my_name:
+        return []
+    rows = []
+    for pid, rec in own.items():
+        if pid in squad_ids:
+            continue
+        starters = [n for n in rec["starters"] if n != my_name]
+        if not starters:
+            continue
+        el = ctx.players.get(pid)
+        if not el:
+            continue
+        pts = el.get("event_points") or 0
+        if pts <= 0:
+            continue
+        caps = [n for n in rec["captains"] if n != my_name]
+        rows.append({
+            "id": pid, "name": el["web_name"], "pos": ctx.pos(el),
+            "club": ctx.team_name(el["team"]), "points": pts,
+            "starters": len(starters), "captains": len(caps),
+            "damage": pts * (len(starters) + len(caps)),
+        })
+    rows.sort(key=lambda r: (-r["damage"], -r["points"]))
+    return rows[:limit]
+
+
+def rivals_card(rows, rivals, photos):
+    """The counterpart to Your differentials, from the other direction.
+
+    Not called "reverse differentials" - the thing worth naming here is the
+    consequence, not the jargon. These are points that went onto other
+    people's scores and not yours, which in a mini-league is the only kind
+    of points that actually moves you."""
+    if not rows:
+        return ""
+    top = max(r["damage"] for r in rows) or 1
+    items = []
+    for r in rows:
+        photo = photos.get(r["id"])
+        face = (
+            f'<img class="rv-photo" src="{photo}" alt="" width="44" height="56">'
+            if photo
+            else f'<span class="rv-photo rv-blank">{e(r["name"][:1])}</span>'
+        )
+        bits = [e(f'started by {r["starters"]} of {rivals}')]
+        if r["captains"]:
+            bits.append(e(f'{r["captains"]} captained him'))
+        items.append(
+            f'<li class="rv-row">{face}'
+            f'<span class="rv-who"><b>{e(r["name"])}</b>'
+            f'<span>{e(r["pos"])} &middot; {e(r["club"])}</span></span>'
+            f'<span class="rv-pts num">{r["points"]}</span>'
+            f'<span class="rv-track"><i style="width:'
+            f'{r["damage"] / top * 100:.0f}%"></i></span>'
+            f'<span class="rv-note">{" &middot; ".join(bits)}</span></li>'
+        )
+    return (
+        '<section class="card"><div class="card-head">'
+        '<h2>Scoring against you</h2>'
+        '<span class="sub">Players you did not own who returned for the rest '
+        'of this league last week. The bar is the damage - what he scored '
+        'against how much of the league was holding him, with a captain '
+        'counted twice.</span></div>'
+        f'<div class="card-body"><ul class="rvlist">{"".join(items)}</ul>'
+        "</div></section>"
+    )
+
+
 def leader_groups(ctx, squad_ids, depth=4, min_minutes=45):
     """Top few players on each measure, mixing FPL's numbers with Opta's.
 
@@ -3407,6 +3518,7 @@ def render(d, standalone=True):
     {d['template']}
     {d['carousel']}
     {d['differentials']}
+    {d['rivals']}
     <section>{d['ownership']}</section>
     <section class="card">
       <div class="card-head"><h2>Chips used</h2>
@@ -3619,6 +3731,13 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             if my_name in rec["owners"] and len(rec["owners"]) == 1:
                 league_photos.setdefault(pid, fplapi.photo_data_uri(
                     ctx.players[pid]["photo"]))
+    # The handful of rival-owned scorers the card below actually shows, so
+    # this is a few extra portrait requests rather than one per player in
+    # the league.
+    rivals_rows = rival_returns(own, by_name, ctx, my_name, set(squad_ids))
+    for row in rivals_rows:
+        league_photos.setdefault(row["id"], fplapi.photo_data_uri(
+            ctx.players[row["id"]]["photo"]))
 
     # Same graceful-degradation shape ticker.fixture_ticker already uses
     # for the same reason: if proj never arrived this build, there is
@@ -3721,6 +3840,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "carousel": ownership_carousel(own, by_name, ctx, my_name) if own else "",
         "template": template_pitch(tpl, ctx, shirts, my_name),
         "differentials": differential_card(own, by_name, ctx, my_name, league_photos),
+        "rivals": rivals_card(rivals_rows, max(0, len(by_name) - 1),
+                              league_photos),
         "elite": elite_card(elite_res, ctx),
         "chips": chips_table(histories) if histories else "",
         "next_gw": next_gw,
