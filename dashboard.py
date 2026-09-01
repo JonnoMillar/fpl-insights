@@ -606,6 +606,35 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .key.mine{background:var(--mark-mine)}
 .key.outlier{background:var(--mark-outlier)}
 
+/* --- league position over time -------------------------------------------
+   One line per manager, straight segments between gameweeks - there is
+   nothing to smooth between two discrete, already-final scores. */
+.lptoggle{display:flex; gap:6px; margin-bottom:10px}
+.lpbtn{
+  appearance:none; border:1px solid var(--outline); background:var(--surface);
+  color:var(--on-surface-variant); font:inherit; font-weight:600; font-size:12px;
+  padding:5px 12px; border-radius:9999px; cursor:pointer;
+}
+.lpbtn[aria-pressed="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
+.lpbtn:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.lpchart{width:100%; min-width:520px; height:auto; display:block}
+.lpgrid line{stroke:var(--outline-variant); stroke-width:1}
+.lpgrid text{fill:var(--on-surface-variant); font-size:10px; font-variant-numeric:tabular-nums}
+.lpline{transition:opacity .15s}
+.lpline.dim{opacity:.15}
+.lplegend{
+  list-style:none; margin:12px 0 0; padding:0; display:flex; flex-wrap:wrap;
+  gap:8px 14px; font-size:12px;
+}
+.lpleg{
+  display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--on-surface-variant);
+  transition:opacity .15s; border-radius:var(--radius-xs);
+}
+.lpleg.dim{opacity:.35}
+.lpleg.lp-mine{font-weight:700; color:var(--ink)}
+.lpleg:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.lpswatch{width:10px; height:10px; border-radius:50%; flex:none}
+
 /* --- captaincy radar ---
    Three candidate colours, each a fill/stroke pair from the page's own
    palette: full-strength purple, the bright green accent, and the amber
@@ -1704,6 +1733,7 @@ details .scroll{padding:0 14px 14px}
 SCATTER_JS = (Path(__file__).with_name("scatter.js")).read_text(encoding="utf-8")
 PLAYERVIEW_JS = (Path(__file__).with_name("playerview.js")).read_text(encoding="utf-8")
 CAPTAINCY_JS = (Path(__file__).with_name("captaincy.js")).read_text(encoding="utf-8")
+LEAGUECHART_JS = (Path(__file__).with_name("leaguechart.js")).read_text(encoding="utf-8")
 
 JS = """
 (function(){
@@ -3717,6 +3747,70 @@ def player_dialog(payloads):
     )
 
 
+def league_position_series(histories, my_name):
+    """Every manager's league position and total points, gameweek by
+    gameweek - built entirely from the entry histories already fetched for
+    the Chips used table, so this costs no extra requests.
+
+    Position is rank by THIS LEAGUE's total points at each gameweek, not
+    each manager's FPL-wide overall rank - "your position" in a
+    mini-league context means position among these rivals, not among the
+    ten million entries FPL actually has."""
+    if not histories:
+        return None
+    by_gw = {}
+    for name, h in histories.items():
+        for row in h.get("current", []):
+            by_gw.setdefault(row["event"], {})[name] = row["total_points"]
+    if not by_gw:
+        return None
+    gws = sorted(by_gw.keys())
+    points = {name: [] for name in histories}
+    position = {name: [] for name in histories}
+    for gw in gws:
+        totals = by_gw[gw]
+        ranked = sorted(totals.items(), key=lambda x: -x[1])
+        rank_by_name = {name: i + 1 for i, (name, _pts) in enumerate(ranked)}
+        for name in histories:
+            points[name].append(totals.get(name))
+            position[name].append(rank_by_name.get(name))
+    series = [
+        {"name": name, "mine": name == my_name,
+         "points": points[name], "position": position[name]}
+        for name in histories
+    ]
+    return {"gws": gws, "managers": len(histories), "series": series}
+
+
+def league_position_card(data):
+    """Position and total points across the season, one line per manager -
+    the line chart the league table itself can only show one frame of."""
+    if not data or len(data["series"]) < 2:
+        return ""
+    legend = "".join(
+        '<li class="lpleg{mine}" data-i="{i}" tabindex="0">'
+        '<span class="lpswatch" data-i="{i}"></span>{name}</li>'.format(
+            mine=" lp-mine" if s["mine"] else "", i=i, name=e(s["name"]))
+        for i, s in enumerate(data["series"])
+    )
+    return (
+        '<section class="card"><div class="card-head">'
+        f'<h2>League position over time{components.info_btn()}</h2>'
+        '<span class="sub" hidden>Every manager\'s rank in this league, gameweek '
+        'by gameweek - 1st at the top. Toggle to total points instead.</span></div>'
+        '<div class="card-body">'
+        '<div class="lptoggle" role="group" aria-label="Y axis">'
+        '<button class="lpbtn" data-y="position" aria-pressed="true">Position</button>'
+        '<button class="lpbtn" data-y="points" aria-pressed="false">Points</button>'
+        "</div>"
+        '<div class="scroll"><svg class="lpchart" viewBox="0 0 720 360" '
+        'role="img" aria-label="League position over time"></svg></div>'
+        f'<ul class="lplegend">{legend}</ul>'
+        f'<script type="application/json" class="lpchart-data">{json.dumps(data)}</script>'
+        "</div></section>"
+    )
+
+
 def league_table(rows, squads, ctx, me):
     maxx = max(
         [analysis.squad_underlying(p, ctx)["xgi"] for p in squads.values()] + [0.01]
@@ -3996,6 +4090,7 @@ def render(d, standalone=True):
       </div>
       {d['league_table']}
     </section>
+    {d['position_chart']}
     {d['template']}
     {d['carousel']}
     {d['differentials']}
@@ -4030,6 +4125,7 @@ def render(d, standalone=True):
     page = (
         f"{head}{body}<script>{JS}</script><script>{SCATTER_JS}</script>"
         f"<script>{PLAYERVIEW_JS}</script><script>{CAPTAINCY_JS}</script>"
+        f"<script>{LEAGUECHART_JS}</script>"
     )
     if not standalone:
         return page
@@ -4039,7 +4135,8 @@ def render(d, standalone=True):
         f"{head}</head><body>{body}<script>{JS}</script>"
         f"<script>{SCATTER_JS}</script>"
         f"<script>{PLAYERVIEW_JS}</script>"
-        f"<script>{CAPTAINCY_JS}</script></body></html>"
+        f"<script>{CAPTAINCY_JS}</script>"
+        f"<script>{LEAGUECHART_JS}</script></body></html>"
     )
 
 
@@ -4371,6 +4468,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "price_watch": price_watch_card(pw),
         "scatter": scatter(scatter_pts),
         "league_table": league_table(rows, squads, ctx, entry_id) if rows else "",
+        "position_chart": league_position_card(
+            league_position_series(histories, my_name)),
         "ownership": ownership_cards(own, by_name, ctx, my_name) if own else "",
         "carousel": ownership_carousel(own, by_name, ctx, my_name) if own else "",
         "template": template_pitch(tpl, ctx, shirts, my_name),
