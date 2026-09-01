@@ -55,16 +55,34 @@ SCALE = [
 ]
 
 
+# A fixture this kind gets its own treatment rather than just the top step
+# of the ordinary scale - the scale's job is to make a run of green or red
+# visible down a column, and a 9+ is rare enough that it deserves to read
+# as an event rather than blend into "also green".
+PREMIUM_RATING = 9.0
+
+
+def _cell_style(score):
+    """(class, inline-style) for one rating - a class for a premium
+    fixture, since a gradient reads badly as an inline string repeated on
+    every such cell, otherwise the ordinary flat tone."""
+    if score > PREMIUM_RATING:
+        return "fx-premium", ""
+    bg, fg = _tone(score)
+    return "", "background:{};color:{}".format(bg, fg)
+
+
 def rating_pill(opp, home, score):
     """A fixture chip using the same rating and ramp as the ticker, so a
     fixture looks the same wherever it appears."""
-    bg, fg = _tone(score)
+    cls, style = _cell_style(score)
     label = opp.upper() if home else opp.lower()
     return (
-        '<span class="rpill" style="background:{bg};color:{fg}" '
+        '<span class="rpill {cls}" style="{style}" '
         'title="{opp} {venue} - rating {score:.1f} of 10">'
         "{label}<b>{score:.1f}</b></span>".format(
-            bg=bg, fg=fg, opp=e(opp), venue="at home" if home else "away",
+            cls=cls, style=style, opp=e(opp),
+            venue="at home" if home else "away",
             score=score, label=e(label))
     )
 
@@ -113,11 +131,12 @@ def _rows_for(club, proj, market, start_gw, weeks):
 def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
     if not proj:
         return ""
-    clubs, seen = [], set()
+    clubs, seen, owned = [], set(), {}
     for r in reports:
         if r.team not in seen:
             seen.add(r.team)
             clubs.append(r.team)
+        owned[r.team] = owned.get(r.team, 0) + 1
 
     rows = []
     for club in clubs:
@@ -127,28 +146,32 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
         avg = sum(c["score"] for c in cells) / len(cells)
         chips = []
         for c in cells:
-            bg, fg = _tone(c["score"])
+            cls, style = _cell_style(c["score"])
             label = c["opp"].upper() if c["home"] else c["opp"].lower()
             mark = '<i class="fx-mkt" title="Priced by the market"></i>' if c["source"] == "market" else ""
             chips.append(
-                '<td class="fxc" style="background:{bg};color:{fg}" '
+                '<td class="fxc {cls}" style="{style}" '
                 'title="GW{gw}, {venue} to {opp} - rating {score:.1f} of 10, '
                 '{xg:.2f} expected goals, {cs:.0f}% clean sheet ({src})">'
                 '<span class="fxc-opp">{label}{mark}</span>'
                 '<span class="fxc-score">{score:.1f}</span></td>'.format(
-                    bg=bg, fg=fg, gw=c["gw"],
+                    cls=cls, style=style, gw=c["gw"],
                     venue="home" if c["home"] else "away", opp=e(c["opp"]),
                     score=c["score"], xg=c["xg"], cs=c["cs"], src=c["source"],
                     label=e(label), mark=mark,
                 )
             )
-        abg, afg = _tone(avg)
+        acls, astyle = _cell_style(avg)
+        own_n = owned.get(club, 0)
+        own_badge = (f'<span class="fxown" title="{own_n} of your players">'
+                     f'{own_n}</span>' if own_n else "")
         rows.append((
             avg,
-            '<tr><td class="fxclub"><b>{club}</b></td>'
-            '<td class="num"><span class="fxavg" style="background:{abg};color:{afg}">'
+            '<tr><td class="fxclub"><b>{club}</b>{own}</td>'
+            '<td class="num"><span class="fxavg {acls}" style="{astyle}">'
             "{avg:.1f}</span></td>{chips}</tr>".format(
-                club=e(club), abg=abg, afg=afg, avg=avg, chips="".join(chips)),
+                club=e(club), own=own_badge, acls=acls, astyle=astyle,
+                avg=avg, chips="".join(chips)),
         ))
     if not rows:
         return ""

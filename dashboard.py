@@ -947,17 +947,24 @@ table td.tick{border:2px solid var(--surface)}
 .cp-used-tag{font-size:11px; color:var(--on-surface-variant); margin-top:8px}
 
 /* --- predicted line-ups card -------------------------------------------
-   A count and an exception list. Fifteen rows saying "starting" is fifteen
-   rows of nothing. */
-.lc-count{
-  display:flex; align-items:center; gap:7px; margin:0 0 10px;
-  padding-bottom:10px; border-bottom:1px solid var(--outline-variant);
+   A donut and an exception list. Fifteen rows saying "starting" is fifteen
+   rows of nothing. Full squad, XI and bench cycle through the one donut,
+   since a gap in the bench and the same gap in the XI are not the same
+   question. */
+.lcnav{
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  margin-bottom:6px;
 }
-.lc-count .ic{width:19px; height:19px; color:var(--good-ink); flex:none}
-.lc-count b{font-size:21px; font-weight:700; line-height:1}
-.lc-count span{font-size:11px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.06em; color:var(--on-surface-variant)}
-.lc-clear{margin:0; font-size:12px; color:var(--on-surface-variant)}
+.lc-navlabel{
+  font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--on-surface-variant); min-width:7em;
+  text-align:center;
+}
+.lc-donut-row{display:flex; justify-content:center; margin-bottom:10px}
+.lcpanel{
+  padding-top:10px; border-top:1px solid var(--outline-variant);
+}
+.lc-clear{margin:0; font-size:12px; color:var(--on-surface-variant); text-align:center}
 .lc-block + .lc-block{margin-top:10px}
 .lc-block h4{
   margin:0 0 5px; display:flex; align-items:center; gap:6px;
@@ -973,6 +980,16 @@ table td.tick{border:2px solid var(--surface)}
 .lc-club{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
   color:var(--p50)}
 .lc-fx{margin-left:auto; display:flex; gap:3px}
+
+/* --- fixture swings -------------------------------------------------------
+   "Kind"/"hard" comes from FPL's own FDR; the fixtures themselves are drawn
+   with our own rating pills so the claim is checkable, not just a number. */
+.fsw-kind h4{color:var(--good-ink)}
+.fsw-hard h4{color:var(--bad-ink)}
+.fsw-row{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.fsw-club{font-size:13px; font-weight:600}
+.fsw-fdr{font-size:10px; font-family:var(--mono); color:var(--on-surface-variant)}
+.fsw-fx{margin-left:auto; display:flex; gap:3px; flex-wrap:wrap}
 
 /* --- fixture run summary ------------------------------------------------
    Best/worst three, model and FDR side by side - two rankings because they
@@ -1168,6 +1185,21 @@ table td.tick{border:2px solid var(--surface)}
   font-weight:700; font-variant-numeric:tabular-nums;
 }
 .fxtable thead th{white-space:nowrap}
+/* A fixture rated above 9 is rare enough to earn its own look rather than
+   blend into the top step of the ordinary five-band scale. */
+.fx-premium{
+  background:linear-gradient(135deg, #0c6e55 0%, #c9d3d9 52%, #1b5ce0 100%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.5);
+}
+.fx-premium .fxc-opp,.fx-premium .fxc-score,.rpill.fx-premium,.fxavg.fx-premium{
+  color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.25);
+}
+.fxown{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:16px; height:16px; padding:0 4px; margin-left:6px;
+  border-radius:9999px; background:var(--accent-wash); color:var(--accent-ink);
+  font-size:10px; font-weight:700; vertical-align:middle;
+}
 
 /* --- priced round --- */
 .mlist{list-style:none; margin:0; padding:0; display:grid;
@@ -1572,6 +1604,27 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
 .fi-det:only-child{margin-left:0; text-align:left}
 .fnum{font-family:var(--mono); font-weight:600; letter-spacing:-0.02em}
 
+/* --- attacking returns ---------------------------------------------------
+   Goals and assists as the one number FPL managers already mean by
+   "returns", not the two parts it's made of. A defender's row is marked
+   and picked out, since the same total is the rarer, more valuable one. */
+.arrlist{list-style:none; margin:0; padding:0; display:flex;
+  flex-direction:column; gap:7px}
+.arr{display:flex; align-items:center; gap:9px; font-size:13px}
+.arr-name{font-weight:600; display:flex; align-items:center; gap:6px}
+.arr-club{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
+  color:var(--p50)}
+.arr-detail{
+  margin-left:auto; color:var(--on-surface-variant); font-size:12px;
+  font-family:var(--mono);
+}
+.arr-total{font-size:16px; font-weight:700; min-width:1.4em; text-align:right}
+.arr-def{
+  font-size:9px; font-weight:800; letter-spacing:.05em; padding:1px 5px;
+  border-radius:9999px; background:var(--accent-wash); color:var(--accent-ink);
+}
+.arr-isdef .arr-total{color:var(--accent-ink)}
+
 /* --- match logs --- */
 details{border-bottom:1px solid var(--outline-variant)}
 details summary{
@@ -1618,6 +1671,24 @@ JS = """
     // Some of these buttons live inside a <summary> - without this, opening
     // the explanation also springs the whole collapsible card open.
     if (btn.closest('summary')) { ev.preventDefault(); ev.stopPropagation(); }
+  });
+
+  // Predicted line-ups: full squad, XI or bench answer different questions
+  // about the same fifteen, so one donut cycles between them rather than
+  // showing three at once.
+  document.querySelectorAll('.lcnav').forEach(function(nav){
+    var card = nav.closest('.lccard');
+    var panels = Array.from(card.querySelectorAll('.lcpanel'));
+    var label = nav.querySelector('.lc-navlabel');
+    var idx = panels.findIndex(function(p){ return !p.hidden; });
+    if (idx < 0) idx = 0;
+    function show(i){
+      idx = (i + panels.length) % panels.length;
+      panels.forEach(function(p, j){ p.hidden = j !== idx; });
+      label.textContent = panels[idx].dataset.lclabel;
+    }
+    nav.querySelector('.lc-prev').addEventListener('click', function(){ show(idx - 1); });
+    nav.querySelector('.lc-next').addEventListener('click', function(){ show(idx + 1); });
   });
 
   var tabs=document.querySelectorAll('.tab');
@@ -2366,29 +2437,31 @@ def _next_three(r, ctx, proj, market, next_gw):
     )
 
 
-def lineup_card(reports, ctx, proj, market, next_gw):
-    """Who is predicted to start, as a count and then an exception list.
+def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
+    """Who is predicted to start, as a donut and then an exception list.
 
     Fifteen rows saying "predicted to start" is fifteen rows of nothing:
     the information is entirely in the handful who are not, and in how many
-    that is. So the count leads with a tick, and only the men who need a
+    that is. So the count leads with a donut, and only the men who need a
     decision are named - each with the three fixtures that decide whether
     he is worth keeping through it.
+
+    Three different subsets of the same squad answer three different
+    questions - a gap in the bench barely matters, the same gap in the
+    starting XI is the whole ballgame - so the donut switches between
+    full squad, XI and bench rather than only ever answering the first one.
 
     Unknown is kept separate from no. Fantasy Football Scout not having
     published a side yet is a gap in the feed; being left out of a
     published side is a fact about the player."""
     if not ctx.lineups_known():
         return ""
-    out, unknown = [], []
-    for r in reports:
-        pred = ctx.is_predicted(r.element)
-        if pred is False:
-            out.append(r)
-        elif pred is None:
-            unknown.append(r)
-    total = len(reports)
-    starting = total - len(out) - len(unknown)
+    xi_ids = xi_ids or set()
+    views = [
+        ("squad", "Full squad", reports),
+        ("xi", "Starting XI", [r for r in reports if r.element["id"] in xi_ids]),
+        ("bench", "Bench", [r for r in reports if r.element["id"] not in xi_ids]),
+    ]
 
     def block(rows, cls, label, fixtures=True):
         if not rows:
@@ -2404,16 +2477,50 @@ def lineup_card(reports, ctx, proj, market, next_gw):
         return (f'<div class="lc-block {cls}"><h4>{WARN_SVG}{e(label)}</h4>'
                 f"<ul>{items}</ul></div>")
 
-    if not out and not unknown:
-        body = ('<p class="lc-clear">Every one of them is named in a '
-                'published side. Nothing to decide here.</p>')
-    else:
-        # No fixtures for the "out" block: he is not playing this week
-        # regardless of who it is against, so a fixture rating there answers
-        # a question nobody is asking. "Unknown" still gets them, because
-        # there the question is live - a side has not been named yet.
-        body = (block(out, "lc-out", "Not predicted to start:", fixtures=False)
-                + block(unknown, "lc-unk", "No side published yet"))
+    panels = []
+    for i, (key, label, rows) in enumerate(views):
+        out, unknown = [], []
+        for r in rows:
+            pred = ctx.is_predicted(r.element)
+            if pred is False:
+                out.append(r)
+            elif pred is None:
+                unknown.append(r)
+        total = len(rows)
+        starting = total - len(out) - len(unknown)
+        pct = (starting / total * 100) if total else 0.0
+        tone = ("var(--good-ink)" if pct >= 90 else
+                "var(--warn-ink)" if pct >= 60 else "var(--bad-ink)")
+        if not total:
+            body = '<p class="lc-clear">Nobody in this group.</p>'
+        elif not out and not unknown:
+            body = ('<p class="lc-clear">Every one of them is named in a '
+                    'published side. Nothing to decide here.</p>')
+        else:
+            # No fixtures for the "out" block: he is not playing this week
+            # regardless of who it is against, so a fixture rating there
+            # answers a question nobody is asking. "Unknown" still gets
+            # them, because there the question is live - a side has not
+            # been named yet.
+            body = (block(out, "lc-out", "Not predicted to start:", fixtures=False)
+                    + block(unknown, "lc-unk", "No side published yet"))
+        panels.append(
+            f'<div class="lcpanel" data-lcview="{key}" data-lclabel="{e(label)}"'
+            f'{" hidden" if i else ""}>'
+            '<div class="lc-donut-row">'
+            + donut(pct, f"{label} - {starting} of {total} predicted to start",
+                    f"{starting}/{total}", "predicted to start", tone)
+            + f"</div>{body}</div>"
+        )
+
+    nav = (
+        '<div class="lcnav" role="group" aria-label="Squad subset">'
+        '<button class="arrow lc-prev" type="button" aria-label="Previous group">'
+        "&#8249;</button>"
+        f'<span class="lc-navlabel">{e(views[0][1])}</span>'
+        '<button class="arrow lc-next" type="button" aria-label="Next group">'
+        "&#8250;</button></div>"
+    )
 
     return (
         f'<div class="find gapcard lccard"><h3>Predicted line-ups'
@@ -2421,13 +2528,99 @@ def lineup_card(reports, ctx, proj, market, next_gw):
         f'<p class="note" hidden>Fantasy Football Scout\'s predicted elevens. '
         f'They are re-tuned after each press conference, so they sharpen '
         f'closer to the deadline.</p>'
-        f'<p class="lc-count">{TICK_SVG}<b class="num">{starting}/{total}</b>'
-        f"<span>predicted to start</span></p>{body}</div>"
+        f'{nav}{"".join(panels)}</div>'
+    )
+
+
+def attacking_returns_card(reports):
+    """Goals and assists as one number - a "return" in the sense every FPL
+    manager already means it, rather than broken back into the two halves
+    that made it. A defender's return is marked: the same haul means more
+    from the back, and the badge is the reward for scoring rarer points."""
+    rows = [
+        (r.name, r.team, r.pos, r.goals + r.assists, r.goals, r.assists)
+        for r in reports if (r.goals + r.assists) > 0
+    ]
+    if not rows:
+        return ""
+    rows.sort(key=lambda x: -x[3])
+    items = "".join(
+        '<li class="arr{defcls}"><span class="arr-name">{name}{badge}</span>'
+        '<span class="arr-club">{club}</span>'
+        '<span class="arr-detail">{g:g}G {a:g}A</span>'
+        '<span class="arr-total num">{total:g}</span></li>'.format(
+            defcls=" arr-isdef" if pos == "DEF" else "",
+            name=e(name), club=e(club),
+            badge='<span class="arr-def" title="Defender">DEF</span>' if pos == "DEF" else "",
+            g=g, a=a, total=total,
+        )
+        for name, club, pos, total, g, a in rows
+    )
+    return (
+        f'<div class="find gapcard"><h3>Attacking returns{components.info_btn()}</h3>'
+        '<p class="note" hidden>Goals and assists combined, one number per player. '
+        "A defender's return is marked - the same haul is worth more from the "
+        "back than from the front.</p>"
+        f'<ul class="arrlist">{items}</ul></div>'
+    )
+
+
+def fixture_swings_card(reports, ctx, proj, market, next_gw):
+    """Clubs with a notably kind or hard run next, with the fixtures that
+    make it one rather than just the average that summarises it.
+
+    "Kind"/"hard" still comes from FPL's own 1-5 difficulty rating - a
+    different, deliberately independent signal from our own model (see
+    ticker.fixture_run_summary's before/after split for why both exist) -
+    but the actual fixtures are drawn with our own rating and its pill,
+    the same as everywhere else on the page, so a run called "kind" is a
+    claim you can see rather than a number you have to take on trust."""
+    kind, hard, seen = [], [], set()
+    for r in reports:
+        if r.team in seen:
+            continue
+        seen.add(r.team)
+        near = ctx.fixture_score(r.element["team"], 3)
+        if near is None:
+            continue
+        if near <= 2.4:
+            kind.append((r.team, r.element["team"], near))
+        elif near >= 3.6:
+            hard.append((r.team, r.element["team"], near))
+    if not kind and not hard:
+        return ""
+    kind.sort(key=lambda x: x[2])
+    hard.sort(key=lambda x: -x[2])
+
+    def block(rows, cls, label):
+        if not rows:
+            return ""
+        items = "".join(
+            '<li class="fsw-row"><span class="fsw-club">{club}</span>'
+            '<span class="fsw-fdr">FDR {fdr:.1f}</span>'
+            '<span class="fsw-fx">{pills}</span></li>'.format(
+                club=e(club), fdr=fdr,
+                pills="".join(
+                    ticker.rating_pill(row["opp"], row["home"], row["score"])
+                    for row in ticker._rows_for(club, proj, market, next_gw, 3)
+                ),
+            )
+            for club, _tid, fdr in rows
+        )
+        return f'<div class="lc-block {cls}"><h4>{e(label)}</h4><ul>{items}</ul></div>'
+
+    body = block(kind, "fsw-kind", "Kind run") + block(hard, "fsw-hard", "Hard run")
+    return (
+        f'<div class="find gapcard"><h3>Fixture swings{components.info_btn()}</h3>'
+        '<p class="note" hidden>FPL\'s own 1-5 difficulty rating, averaged over '
+        'the next 3 gameweeks - the fixtures behind a "kind" or "hard" run, '
+        "not just the number that summarises it.</p>"
+        f'{body}</div>'
     )
 
 
 def findings_section(finds, reports, ctx, proj=None, market=None, next_gw=None,
-                      weekly_price=None):
+                      weekly_price=None, xi_ids=None):
     """Findings, with the ones that have a shape drawn rather than listed.
 
     Three of these are genuinely numeric comparisons and were being written
@@ -2436,7 +2629,7 @@ def findings_section(finds, reports, ctx, proj=None, market=None, next_gw=None,
     than as prose. The rest stay as lists, because a set-piece order or an
     injury note is text and dressing it up as a chart would be decoration."""
     drawn = {"cold", "hot", "defcon", "bcm", "setpieces", "sample", "price",
-             "lineups"}
+             "lineups", "fixtures"}
 
     gaps = [
         (r.name, r.goals, r.xg)
@@ -2470,9 +2663,15 @@ def findings_section(finds, reports, ctx, proj=None, market=None, next_gw=None,
         groups.append((key, title, rows))
 
     cards = []
-    lu = lineup_card(reports, ctx, proj, market, next_gw)
+    lu = lineup_card(reports, ctx, proj, market, next_gw, xi_ids)
     if lu:
         cards.append(lu)
+    ar = attacking_returns_card(reports)
+    if ar:
+        cards.append(ar)
+    fsw = fixture_swings_card(reports, ctx, proj, market, next_gw)
+    if fsw:
+        cards.append(fsw)
     if gaps:
         cards.append(components.gap_chart(
             gaps,
@@ -3195,15 +3394,25 @@ def kneejerk_card(kj, gw):
     rival = kj["rival"]
     funder = kj["funder"]
 
+    funder_pair = kj.get("funder_pair")
     if ep is None:
         verdict, tone = "No fixture priced for him yet this week.", "warn"
     elif rival and rival["ep"] > ep:
         verdict = (f'{rival["name"]} at {rival["price"]:.1f}m projects '
                    f'{rival["ep"] - ep:+.2f} more for the same slot.')
         tone = "bad"
+    elif not funder and funder_pair:
+        verdict = (
+            f"One transfer will not reach him, but selling "
+            f"{e(funder_pair['primary'].name)} and "
+            f"{e(funder_pair['second'].name)} together would, backfilled "
+            f"by {e(funder_pair['replacement'])} at "
+            f"{funder_pair['replacement_price']:.1f}m."
+        )
+        tone = "warn"
     elif not funder:
         verdict = (f"You cannot reach him: nobody you own at {kj['pos']} "
-                   f"frees up {kj['price']:.1f}m.")
+                   f"frees up {kj['price']:.1f}m, even in a pair.")
         tone = "warn"
     else:
         verdict = (f"He also holds up on the projection, and selling "
@@ -3974,7 +4183,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "findings": findings_section(
             analysis.build_findings(list(reports.values()), ctx),
             list(reports.values()), ctx, proj, market, next_gw,
-            weekly_price=weekly_price),
+            weekly_price=weekly_price,
+            xi_ids={r.element["id"] for r in xi}),
         "price_watch": price_watch_card(pw),
         "scatter": scatter(scatter_pts),
         "league_table": league_table(rows, squads, ctx, entry_id) if rows else "",

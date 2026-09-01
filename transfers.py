@@ -668,6 +668,76 @@ def kneejerk(ctx, squad_reports, scores, bank=0.0):
             if rival is None or s["total"] > rival[1]["total"]:
                 rival = (el, s)
 
+    # No single sale reaches him - try a pair. Sell the cheapest man in his
+    # position (frees the slot he needs) plus a second squad player in any
+    # position, and check whether a legal replacement for that second slot
+    # is still affordable with what's left. Bounded, not exhaustive: the
+    # first workable second sale wins rather than searching for the
+    # cheapest or the best-backfilled one, which is the same trade-off
+    # pair_suggestions makes for the same reason - a full search here is
+    # squad-size squared for a card that only needs one honest answer to
+    # "how would I actually get him".
+    #
+    # The second sale is chosen by weakest projected case_score, not by
+    # lowest price, and never the squad's single best asset regardless of
+    # the arithmetic. Sorting by price alone tried the cheapest bench man
+    # first, which sounds right but isn't enough: buying a pricey target
+    # also has to leave enough spare cash for HIS replacement, and a cheap
+    # second sale rarely clears that on top of the target's own price - so
+    # price-first search kept failing the "can I also afford his
+    # replacement" check until it reached whichever squad player was
+    # expensive enough to clear both, which was the squad's own best
+    # player, Haaland, on the squad this was built against. The arithmetic
+    # was correct and the suggestion was still bad advice: selling your
+    # single strongest asset to fund a speculative one-week pickup fails
+    # the same scrutiny the whole card exists to apply, so that player is
+    # excluded outright rather than just ranked last.
+    funder_pair = None
+    if not funder:
+        best_owned_id = max(
+            squad_reports,
+            key=lambda r: scores.get(r.element["id"], {}).get("total", 0.0),
+        ).element["id"]
+        same_pos = sorted((r for r in squad_reports if r.pos == pos),
+                          key=lambda r: r.price)
+        if same_pos:
+            primary = same_pos[0]
+            others = sorted(
+                (r for r in squad_reports
+                 if r.element["id"] not in (primary.element["id"], best_owned_id)),
+                key=lambda r: scores.get(r.element["id"], {}).get("total", 0.0),
+            )
+            for second in others:
+                budget = primary.price + second.price + bank
+                if budget + 1e-9 < price:
+                    continue
+                remaining = budget - price
+                after = dict(club_counts)
+                after[primary.element["team"]] -= 1
+                after[second.element["team"]] -= 1
+                after[best["team"]] = after.get(best["team"], 0) + 1
+                candidates = []
+                for pid, s in scores.items():
+                    if pid in owned or pid == best["id"]:
+                        continue
+                    el = ctx.players[pid]
+                    if ctx.pos(el) != second.pos:
+                        continue
+                    if el["now_cost"] / 10.0 > remaining + 1e-9:
+                        continue
+                    if after.get(el["team"], 0) >= SQUAD_LIMIT_PER_CLUB:
+                        continue
+                    candidates.append((el, s))
+                if not candidates:
+                    continue
+                repl_el, _repl_s = max(candidates, key=lambda x: x[1]["total"])
+                funder_pair = {
+                    "primary": primary, "second": second,
+                    "replacement": repl_el["web_name"],
+                    "replacement_price": repl_el["now_cost"] / 10.0,
+                }
+                break
+
     return {
         "id": best["id"], "name": best["web_name"], "pos": pos,
         "club": ctx.team_name(best["team"]), "price": price,
@@ -683,6 +753,7 @@ def kneejerk(ctx, squad_reports, scores, bank=0.0):
         "opponent": score["opponent"] if score else None,
         "home": score["home"] if score else None,
         "funder": funder,
+        "funder_pair": funder_pair,
         "rival": ({"name": rival[0]["web_name"],
                    "price": rival[0]["now_cost"] / 10.0,
                    "ep": rival[1]["total"]} if rival else None),
