@@ -1120,16 +1120,28 @@ def market_scatter_points(ctx, squad_ids=(), min_minutes=60):
 
 
 def squad_underlying(picks, ctx):
-    """Season xGI and DefCon of a manager's starting XI, from bootstrap
+    """Underlying quality of a manager's starting XI, from bootstrap
     totals. Answers 'is this rival's score built on something repeatable, or
-    on one lucky captain haul?' without 15 extra API calls per manager."""
+    on one lucky captain haul?' without 15 extra API calls per manager.
+
+    `xgi` sums each starter's expected-goal-involvement rate per 90,
+    damped toward zero for anyone with still little football behind them
+    (`min(1, minutes/180)`, roughly two matches) - not a season *total*
+    (L14), which is dominated by minutes played rather than quality: a
+    nailed-on squad player who has started every match racks up a bigger
+    total than an explosive but rotated starter regardless of which one is
+    actually better, and every rival XI in a real league ends up sitting in
+    the same narrow band that tells you nothing. The per-90, minutes-damped
+    version is the number that actually separates a genuinely strong XI
+    from one that has merely played a lot of minutes."""
     xi = [p for p in picks["picks"] if p["position"] <= 11]
     xgi = mins = defcon = 0.0
     for p in xi:
         el = ctx.players.get(p["element"])
         if not el:
             continue
-        xgi += f(el["expected_goal_involvements"])
-        mins += el["minutes"]
+        el_minutes = el["minutes"]
+        xgi += f(el.get("expected_goal_involvements_per_90")) * min(1.0, el_minutes / 180.0)
+        mins += el_minutes
         defcon += el.get("defensive_contribution", 0)
     return {"xgi": xgi, "minutes": mins, "defcon": defcon}

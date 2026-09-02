@@ -19,20 +19,29 @@ from analysis import f
 
 # Starting guesses, not a validated calibration - there is no data yet on
 # how these gaps are actually distributed across a real season. Revisit
-# once the recommender has run for a few gameweeks.
-CONFIDENCE_STRONG = 0.20
+# once the recommender has run for a few gameweeks. Re-tuned for a
+# runner-up comparison (L9): the mean of a dozen-plus rejected candidates
+# these used to be checked against sits far below any of them, so the
+# maximum was "strong" almost by construction and the pill carried no
+# information. The runner-up is a much harder bar to clear.
+CONFIDENCE_STRONG = 0.15
 CONFIDENCE_WATCH = 0.05
 
 
-def confidence(best_value, other_values):
-    """How much better the recommended week is than the rest of the
-    window, as a plain-language read rather than a bare percentage."""
-    if not other_values:
+def confidence(best_value, runner_up):
+    """How much better the recommended pick is than its closest rival, as
+    a plain-language read rather than a bare percentage.
+
+    Compared against the runner-up, not the mean of every other candidate
+    (L9) - the best of many candidates is, by construction, comfortably
+    above their average, so a mean comparison always read "Strong"
+    regardless of how close the actual second-best pick was. `runner_up`
+    is `None` when there was only one candidate to begin with."""
+    if runner_up is None:
         return "flexible"
-    avg_other = sum(other_values) / len(other_values)
-    if avg_other <= 0:
+    if runner_up <= 0:
         return "strong" if best_value > 0 else "flexible"
-    lift = (best_value - avg_other) / avg_other
+    lift = (best_value - runner_up) / runner_up
     if lift >= CONFIDENCE_STRONG:
         return "strong"
     if lift >= CONFIDENCE_WATCH:
@@ -57,8 +66,7 @@ def used_chips_this_half(entry_id, next_gw, ttl=fplapi.DEFAULT_TTL):
     return used
 
 
-def build_pool(ctx, proj, market, baselines, start_gw, weeks, exclude_ids=(),
-              case_weighted=False):
+def build_pool(ctx, proj, market, baselines, start_gw, weeks, exclude_ids=()):
     """The whole-league candidate pool, windowed-scored and squadbuilder-
     shaped: {"id", "pos", "club", "price", "value"}. Excludes anyone
     unfit to be suggested at all (transfers._eligible - injured,
@@ -66,11 +74,12 @@ def build_pool(ctx, proj, market, baselines, start_gw, weeks, exclude_ids=(),
     start_probability is too low to be worth a squad slot regardless of
     rate stats.
 
-    `case_weighted` adds the same form/underlying-numbers nudge
-    transfers.case_score adds on top of a windowed points total - on for
-    Wildcard, which wants the same weighing as an individual transfer;
-    off for Free Hit and the literal-best-XI card, which are deliberately
-    pure points with nothing else mixed in.
+    Pure windowed points, for every caller including Wildcard (L7): the
+    form/underlying-numbers nudge transfers.case_score adds on top of that
+    for a single transfer decision used to be mixed in here too, but that
+    nudge is a cross-position adjustment (it penalises defenders and
+    keepers against midfielders and forwards) and a formation choice is
+    exactly the place a cross-position bias cannot be allowed to leak in.
 
     Known limitation: start_probability is a single as-of-now estimate,
     not a per-gameweek one, so a player out injured today but nailed-on
@@ -93,10 +102,6 @@ def build_pool(ctx, proj, market, baselines, start_gw, weeks, exclude_ids=(),
             el, ctx, proj, market, baselines, priors, start_gw, weeks)
         if total <= 0:
             continue
-        if case_weighted:
-            factors = transfers.player_case_factors(el, ctx)
-            total += (transfers.FORM_CASE_WEIGHT * factors["form"]
-                      + transfers.EXPECTED_CASE_WEIGHT * factors["expected"])
         pool.append({
             "id": pid, "pos": ctx.pos(el), "club": ctx.team_name(el["team"]),
             "price": el["now_cost"] / 10.0, "value": total,
@@ -104,10 +109,16 @@ def build_pool(ctx, proj, market, baselines, start_gw, weeks, exclude_ids=(),
     return pool
 
 
-def points_team(ctx, xi_reports, proj, market, baselines, gw):
+def points_team(ctx, xi_reports, proj, market, baselines, gw, budget):
     """The highest-scoring possible team this gameweek, against what the
     manager's own current best XI actually projects to - single week
-    only, since this is also Free Hit's one-week evidence."""
+    only, since this is also Free Hit's one-week evidence.
+
+    `budget` is the whole-squad sell value (15 players) plus the bank - what
+    a Free Hit actually spends (L3). The manager's own current XI price is
+    not that budget: it is roughly the sell value minus a cheap bench,
+    which understates what a Free Hit XI can actually cost by however much
+    the bench is worth, and made the "ideal" team look artificially weak."""
     exclude_ids = {r.element["id"] for r in xi_reports}
     pool = build_pool(ctx, proj, market, baselines, gw, weeks=1,
                       exclude_ids=exclude_ids)
@@ -123,7 +134,6 @@ def points_team(ctx, xi_reports, proj, market, baselines, gw):
         })
     full_pool = pool + own_pool
 
-    budget = sum(r.price for r in xi_reports)  # XI-only budget, bench excluded
     ideal = squadbuilder.best_xi(full_pool, budget)
     ours_value = sum(p["value"] for p in own_pool)
     if ideal is None:
@@ -245,23 +255,26 @@ def literal_best_xi(ctx, xi_reports, proj, market, baselines, gw):
     }
 
 
-def free_hit(ctx, xi_reports, proj, market, baselines, next_gw):
+def free_hit(ctx, xi_reports, proj, market, baselines, next_gw, budget):
     """The gameweek in the current chip window where the manager's own XI
-    is furthest behind the best possible team - the Free Hit case."""
+    is furthest behind the best possible team - the Free Hit case.
+
+    `budget` is the whole squad's sell value plus the bank (L3) - what a
+    Free Hit actually spends, not the current XI's own price."""
     start, weeks = analysis.chip_window(next_gw)
     gaps = {}
     pt_by_gw = {}
     for gw in range(start, start + weeks):
-        pt = points_team(ctx, xi_reports, proj, market, baselines, gw)
+        pt = points_team(ctx, xi_reports, proj, market, baselines, gw, budget)
         gaps[gw] = pt["gap"]
         pt_by_gw[gw] = pt
     if not gaps:
         return None
     best_gw = max(gaps, key=gaps.get)
-    others = [v for gw, v in gaps.items() if gw != best_gw]
+    runner_up = max((v for gw, v in gaps.items() if gw != best_gw), default=None)
     return {
         "gw": best_gw, "gap": gaps[best_gw],
-        "confidence": confidence(gaps[best_gw], others),
+        "confidence": confidence(gaps[best_gw], runner_up),
         "points_team": pt_by_gw[best_gw],
         # Every week's ideal team, not just the winning one. The dashboard's
         # "highest predicted points XI" card wants the *coming* gameweek
@@ -289,10 +302,10 @@ def triple_captain(ctx, xi_reports, proj, market, baselines, next_gw):
     if not candidates:
         return None
     best = max(candidates, key=lambda c: c[2])
-    others = [c[2] for c in candidates if c is not best]
+    runner_up = max((c[2] for c in candidates if c is not best), default=None)
     return {
         "player": best[0], "gw": best[1], "ep": best[2],
-        "confidence": confidence(best[2], others),
+        "confidence": confidence(best[2], runner_up),
     }
 
 
@@ -318,19 +331,22 @@ def bench_boost(ctx, bench_reports, proj, market, baselines, next_gw, bank=0.0):
     if not totals:
         return None
     best_gw = max(totals, key=totals.get)
-    others = [v for gw, v in totals.items() if gw != best_gw]
+    runner_up = max((v for gw, v in totals.items() if gw != best_gw), default=None)
 
     # transfers.suggest computes its own positional_priors internally -
-    # nothing else needed here.
+    # nothing else needed here. xi_based=False: the bench itself is what's
+    # being scored here, not a full 15, so there is no best XI to measure a
+    # swap against - and the bench genuinely does play this specific week,
+    # so its own raw gain is the right question (L2).
     suggestions = transfers.suggest(
         ctx, bench_reports, proj, best_gw, market, baselines,
-        bank=bank, per_slot=1, limit=3)
+        bank=bank, per_slot=1, limit=3, xi_based=False)
     for t in suggestions:
         t["in_club"] = ctx.team_name(t["in"]["team"])
 
     return {
         "gw": best_gw, "ep": totals[best_gw],
-        "confidence": confidence(totals[best_gw], others),
+        "confidence": confidence(totals[best_gw], runner_up),
         "transfers": suggestions,
     }
 
@@ -365,9 +381,10 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
     by price so the story reads most-expensive-change-first.
 
     Own players and candidates are scored by the identical function
-    (transfers.windowed_candidate_score, plus the same form/underlying-
-    numbers nudge transfers.case_score adds to a single transfer) -
-    previously the own squad was scored by analysis.windowed_ep, a richer,
+    (transfers.windowed_candidate_score, pure windowed points - see
+    build_pool for why the case_score form/underlying-numbers nudge is not
+    mixed in here, L7) - previously the own squad was scored by
+    analysis.windowed_ep, a richer,
     match-history-backed model, while candidates got the cheaper
     bootstrap-only one. transfers.suggest already avoids exactly that
     asymmetry for single transfers with a comment explaining why; wildcard
@@ -399,14 +416,11 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
     exclude_ids = {r.element["id"] for r in all_reports}
     priors = transfers.positional_priors(ctx)
     pool = build_pool(ctx, proj, market, baselines, start, weeks,
-                      exclude_ids=exclude_ids, case_weighted=True)
+                      exclude_ids=exclude_ids)
     own_pool = []
     for r in all_reports:
         total, _per_gw = transfers.windowed_candidate_score(
             r.element, ctx, proj, market, baselines, priors, start, weeks)
-        factors = transfers.player_case_factors(r.element, ctx)
-        total += (transfers.FORM_CASE_WEIGHT * factors["form"]
-                  + transfers.EXPECTED_CASE_WEIGHT * factors["expected"])
         own_pool.append({"id": r.element["id"], "pos": r.pos, "club": r.team,
                          "price": r.price, "value": total})
     full_pool = pool + own_pool
@@ -478,7 +492,7 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
 
     return {
         "gw_window": (start, weeks), "gap": gap,
-        "confidence": confidence(ideal["value"], [current_value]),
+        "confidence": confidence(ideal["value"], current_value),
         "before": before, "after": after,
         # The proposed fifteen itself (pool-shaped: id/pos/club/price/value),
         # for the dashboard's own mini-pitch view - "before" is just the
