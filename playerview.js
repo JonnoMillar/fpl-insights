@@ -194,7 +194,7 @@
       var pts = p.log.map(function (r) { return r.pts; });
       h.push('<section class="pv-block"><h3>Match log' +
         (pts.length > 1 ? '<span class="pv-spark">' +
-          sparkline(pts, 'var(--lilac)') + '</span>' : '') +
+          sparkline(pts, 'var(--p60)') + '</span>' : '') +
         '</h3><div class="scroll"><table><thead><tr>' +
         '<th>GW</th><th>Opponent</th><th class="num">Min</th>' +
         '<th class="num">G</th><th class="num">A</th><th class="num">xG</th>' +
