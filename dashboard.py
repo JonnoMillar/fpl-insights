@@ -4620,8 +4620,10 @@ def render(d, standalone=True):
   <div class="panel" id="p-league" role="tabpanel" hidden>
     <section class="card">
       <div class="card-head"><h2>{e(d['league_name'])}{components.info_btn()}</h2>
-        <span class="sub" hidden>XI xGI is the season expected involvement of the eleven that started.
-        A big score beside a small xGI came from somewhere that will not repeat.</span>
+        <span class="sub" hidden>XI xGI is each starter's expected goal involvement per 90, damped down
+        for anyone with still little football behind them, summed across the eleven that started - not a
+        season total, which measures minutes played more than quality. A big score beside a small xGI
+        came from somewhere that will not repeat.</span>
       </div>
       {d['league_table']}
     </section>
