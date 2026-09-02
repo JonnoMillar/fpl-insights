@@ -321,10 +321,13 @@ def bench_boost(ctx, bench_reports, proj, market, baselines, next_gw, bank=0.0):
     others = [v for gw, v in totals.items() if gw != best_gw]
 
     # transfers.suggest computes its own positional_priors internally -
-    # nothing else needed here.
+    # nothing else needed here. xi_based=False: the bench itself is what's
+    # being scored here, not a full 15, so there is no best XI to measure a
+    # swap against - and the bench genuinely does play this specific week,
+    # so its own raw gain is the right question (L2).
     suggestions = transfers.suggest(
         ctx, bench_reports, proj, best_gw, market, baselines,
-        bank=bank, per_slot=1, limit=3)
+        bank=bank, per_slot=1, limit=3, xi_based=False)
     for t in suggestions:
         t["in_club"] = ctx.team_name(t["in"]["team"])
 

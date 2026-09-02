@@ -22,6 +22,7 @@ Two constraints shape the implementation:
 """
 
 import analysis
+import squadbuilder
 from analysis import f, per90
 
 SQUAD_LIMIT_PER_CLUB = 3
@@ -425,6 +426,63 @@ SELL_MARGIN = 0.6 * TRANSFER_HORIZON_WEEKS
 # millions, six figures of net movement in a few days is a crowd.
 BANDWAGON_NET = 60000
 
+# A bench player is not worthless - he plays when the man above him in the
+# XI blanks or gets hurt - but scoring a transfer by his own raw total
+# treats a bench swap as equal to an XI swap, which is how the suggestion
+# engine ended up recommending a 4.5m benchwarmer upgrade above the genuine
+# XI decisions (L2). This is the auto-sub probability the bench portion of
+# a candidate's raw gain is discounted by, once the swap's effect on the
+# squad's best XI is measured directly instead.
+BENCH_AUTOSUB_ALLOWANCE = 0.15
+
+# How many of the raw-score-ranked replacement candidates for one outgoing
+# player get the (more expensive) best-XI recompute. The raw score already
+# orders candidates sensibly; this just caps how many of them pay for a
+# squadbuilder.best_xi call each, which per suggest()/pair_suggestions()'s
+# own docstrings is cheap per call but not free across ~600 candidates.
+XI_GAIN_CANDIDATES = 30
+
+
+def _own_pool_row(r, value):
+    """One owned player as a squadbuilder pool row."""
+    return {"id": r.element["id"], "pos": r.pos, "club": r.team,
+            "price": r.price, "value": value}
+
+
+def _candidate_pool_row(el, ctx, value):
+    """One transfer candidate as a squadbuilder pool row."""
+    return {"id": el["id"], "pos": ctx.pos(el),
+            "club": ctx.team_name(el["team"]),
+            "price": el["now_cost"] / 10.0, "value": value}
+
+
+def _xi_value(pool):
+    result = squadbuilder.best_xi(pool, budget=1e9)
+    return result["value"] if result else 0.0
+
+
+def _xi_swap_gain(own_pool, base_xi_value, out_id, in_row):
+    """What a single swap actually earns: the change in the squad's best-XI
+    projection, not the raw difference between the two players' own scores
+    (L2). A bench-for-bench swap that never touches the best XI scores
+    (near) zero here even when the incoming player's own total is much
+    higher - which is the whole point."""
+    new_pool = [row for row in own_pool if row["id"] != out_id] + [in_row]
+    return _xi_value(new_pool) - base_xi_value
+
+
+def _rank_swap_options(own_pool, base_xi_value, out_id, options, limit):
+    """Attach the best-XI-based gain (L2) to the top `limit` raw-scored
+    options (by `raw_gain`) and return just those, best gain first. Options
+    are dicts carrying at least `raw_gain` and `row` (a squadbuilder pool
+    row for the incoming player); `gain` is added in place."""
+    top = sorted(options, key=lambda o: -o["raw_gain"])[:limit]
+    for opt in top:
+        xi_gain = _xi_swap_gain(own_pool, base_xi_value, out_id, opt["row"])
+        opt["gain"] = xi_gain + BENCH_AUTOSUB_ALLOWANCE * opt["raw_gain"]
+    top.sort(key=lambda o: -o["gain"])
+    return top
+
 
 def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
     """Buy, Sell, Keep and Avoid - four questions with four different
@@ -457,6 +515,14 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
     scored_owned = [r for r in squad_reports if r.element["id"] in scores]
     if not scored_owned:
         return None
+
+    # The pool a Sell candidate's replacement is judged against: the change
+    # in the squad's best-XI projection, not the raw gap between the two
+    # players' own totals (L2) - the same reasoning transfers.suggest
+    # applies to its own gain figure.
+    own_pool = [_own_pool_row(r, scores[r.element["id"]]["total"])
+                for r in scored_owned]
+    base_xi_value = _xi_value(own_pool)
 
     # The most expensive man held in each position sets what a purchase
     # there can cost: you have to sell someone to buy someone.
@@ -530,7 +596,17 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
                 continue
             if best is None or s["total"] > best[1]["total"]:
                 best = (el, s)
-        if not best or best[1]["total"] - mine < SELL_MARGIN:
+        if not best:
+            continue
+        # The gap that matters is what the swap does to the squad's best
+        # XI, not the raw difference between the two players' own totals
+        # (L2) - a bench player's replacement can print a large raw gap
+        # while changing nothing about what actually gets selected each
+        # week.
+        in_row = _candidate_pool_row(best[0], ctx, best[1]["total"])
+        gap = (_xi_swap_gain(own_pool, base_xi_value, r.element["id"], in_row)
+               + BENCH_AUTOSUB_ALLOWANCE * (best[1]["total"] - mine))
+        if gap < SELL_MARGIN:
             continue
         sell_ids.add(r.element["id"])
         sell.append({
@@ -538,9 +614,9 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
             "club": r.team, "price": r.price, "ep": mine,
             "opponent": scores[r.element["id"]]["opponent"],
             "home": scores[r.element["id"]]["home"],
-            "gap": best[1]["total"] - mine,
+            "gap": gap,
             "note": "{} projects {:+.1f} in his place".format(
-                best[0]["web_name"], best[1]["total"] - mine),
+                best[0]["web_name"], gap),
         })
     sell.sort(key=lambda x: -x["gap"])
 
@@ -832,14 +908,29 @@ def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
         for row in elite.get("rows", []):
             elite_by_id[row["id"]] = row
 
-    # Shortlist per squad player. The ceiling allows for money freed by the
-    # other sale, so genuinely reachable upgrades are not filtered out early.
-    here, shortlists = {}, {}
+    # Every squad player's own score, needed up front to build the pool a
+    # swap's gain is measured against (L2: what a swap earns is its effect
+    # on the squad's best XI, not the raw gap between two players' totals).
+    here = {}
     for r in squad_reports:
         base = case_score(r.element, ctx, proj, gw, market, baselines, priors)
+        if base:
+            here[r.element["id"]] = base
+    own_pool = [_own_pool_row(r, here[r.element["id"]]["total"])
+                for r in squad_reports if r.element["id"] in here]
+    base_xi_value = _xi_value(own_pool)
+
+    # Shortlist per squad player. The ceiling allows for money freed by the
+    # other sale, so genuinely reachable upgrades are not filtered out early.
+    # Only the `shortlist` best raw-scored options pay for the best-XI
+    # recompute (XI_GAIN_CANDIDATES caps this the same way in `suggest`);
+    # the raw score is cheap to compute for every candidate in the game and
+    # orders them well enough to pick who is worth that recompute.
+    shortlists = {}
+    for r in squad_reports:
+        base = here.get(r.element["id"])
         if not base:
             continue
-        here[r.element["id"]] = base
         ceiling = r.price + bank + 6.0
         options = []
         for pid, s in scored.items():
@@ -849,12 +940,14 @@ def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
             price = el["now_cost"] / 10.0
             if price > ceiling:
                 continue
-            gain = s["total"] - base["total"]
-            if gain <= MIN_CASE_GAIN / 3:
+            raw_gain = s["total"] - base["total"]
+            if raw_gain <= MIN_CASE_GAIN / 3:
                 continue
-            options.append({"el": el, "score": s, "gain": gain, "price": price})
-        options.sort(key=lambda o: -o["gain"])
-        shortlists[r.element["id"]] = options[:shortlist]
+            options.append({"el": el, "score": s, "raw_gain": raw_gain,
+                            "price": price,
+                            "row": _candidate_pool_row(el, ctx, s["total"])})
+        shortlists[r.element["id"]] = _rank_swap_options(
+            own_pool, base_xi_value, r.element["id"], options, shortlist)
 
     reports_by_id = {r.element["id"]: r for r in squad_reports}
     ids = [r.element["id"] for r in squad_reports if r.element["id"] in shortlists]
@@ -930,12 +1023,22 @@ def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
 
 
 def suggest(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
-            per_slot=3, limit=6, elite=None):
+            per_slot=3, limit=6, elite=None, xi_based=True):
     """Swaps worth a look: one out, one in, same position, affordable.
 
     Ranked on the gain in case_score, not one gameweek of raw projected
     points - see case_score for what that adds (a few weeks' points and
-    each player's own form and underlying numbers) and why."""
+    each player's own form and underlying numbers) and why.
+
+    `xi_based` scores a swap by what it does to the squad's best-XI
+    projection rather than the raw difference between the two players' own
+    totals (L2) - a bench slot is worth much less than an XI slot, and the
+    raw comparison cannot tell them apart. `squad_reports` has to be a full
+    15 for that to mean anything; chips.bench_boost calls this with just
+    the four-player bench, which cannot field a best XI at all, so it
+    passes `xi_based=False` to keep the original per-player comparison,
+    which is the right question for a bench that genuinely plays that
+    week."""
     club_counts = {}
     squad_ids = set()
     for r in squad_reports:
@@ -958,13 +1061,25 @@ def suggest(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
         for row in elite.get("rows", []):
             elite_by_id[row["id"]] = row
 
+    own_pool = base_xi_value = None
+    if xi_based:
+        own_scores = {}
+        for r in squad_reports:
+            s = case_score(r.element, ctx, proj, gw, market, baselines, priors)
+            if s:
+                own_scores[r.element["id"]] = s
+        own_pool = [_own_pool_row(r, own_scores[r.element["id"]]["total"])
+                    for r in squad_reports if r.element["id"] in own_scores]
+        base_xi_value = _xi_value(own_pool)
+
     out_rows = []
     for r in squad_reports:
         # Deliberately the same scorer as the candidates. The richer model in
         # analysis.py blends a player's own last season, which candidates
         # cannot have without a request each - comparing the two would flatter
         # whichever side got the better treatment.
-        here = case_score(r.element, ctx, proj, gw, market, baselines, priors)
+        here = (own_scores[r.element["id"]] if xi_based and r.element["id"] in own_scores
+                else case_score(r.element, ctx, proj, gw, market, baselines, priors))
         if not here:
             continue
         budget = r.price + bank
@@ -983,15 +1098,24 @@ def suggest(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
                 count -= 1
             if count >= SQUAD_LIMIT_PER_CLUB:
                 continue
-            gain = s["total"] - here["total"]
-            if gain <= MIN_CASE_GAIN:
+            raw_gain = s["total"] - here["total"]
+            if not xi_based and raw_gain <= MIN_CASE_GAIN:
                 continue
             options.append({
-                "element": el, "score": s, "gain": gain,
+                "element": el, "score": s, "raw_gain": raw_gain,
                 "price": price, "spend": price - r.price,
                 "elite": elite_by_id.get(pid),
+                "row": _candidate_pool_row(el, ctx, s["total"]) if xi_based else None,
             })
-        options.sort(key=lambda o: -o["gain"])
+        if xi_based:
+            options = _rank_swap_options(
+                own_pool, base_xi_value, r.element["id"], options,
+                XI_GAIN_CANDIDATES)
+            options = [o for o in options if o["gain"] > MIN_CASE_GAIN]
+        else:
+            for o in options:
+                o["gain"] = o["raw_gain"]
+            options.sort(key=lambda o: -o["gain"])
         for opt in options[:per_slot]:
             out_rows.append({
                 "out": r, "out_score": here,
