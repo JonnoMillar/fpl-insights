@@ -57,8 +57,7 @@ def used_chips_this_half(entry_id, next_gw, ttl=fplapi.DEFAULT_TTL):
     return used
 
 
-def build_pool(ctx, proj, market, baselines, start_gw, weeks, exclude_ids=(),
-              case_weighted=False):
+def build_pool(ctx, proj, market, baselines, start_gw, weeks, exclude_ids=()):
     """The whole-league candidate pool, windowed-scored and squadbuilder-
     shaped: {"id", "pos", "club", "price", "value"}. Excludes anyone
     unfit to be suggested at all (transfers._eligible - injured,
@@ -66,11 +65,12 @@ def build_pool(ctx, proj, market, baselines, start_gw, weeks, exclude_ids=(),
     start_probability is too low to be worth a squad slot regardless of
     rate stats.
 
-    `case_weighted` adds the same form/underlying-numbers nudge
-    transfers.case_score adds on top of a windowed points total - on for
-    Wildcard, which wants the same weighing as an individual transfer;
-    off for Free Hit and the literal-best-XI card, which are deliberately
-    pure points with nothing else mixed in.
+    Pure windowed points, for every caller including Wildcard (L7): the
+    form/underlying-numbers nudge transfers.case_score adds on top of that
+    for a single transfer decision used to be mixed in here too, but that
+    nudge is a cross-position adjustment (it penalises defenders and
+    keepers against midfielders and forwards) and a formation choice is
+    exactly the place a cross-position bias cannot be allowed to leak in.
 
     Known limitation: start_probability is a single as-of-now estimate,
     not a per-gameweek one, so a player out injured today but nailed-on
@@ -93,10 +93,6 @@ def build_pool(ctx, proj, market, baselines, start_gw, weeks, exclude_ids=(),
             el, ctx, proj, market, baselines, priors, start_gw, weeks)
         if total <= 0:
             continue
-        if case_weighted:
-            factors = transfers.player_case_factors(el, ctx)
-            total += (transfers.FORM_CASE_WEIGHT * factors["form"]
-                      + transfers.EXPECTED_CASE_WEIGHT * factors["expected"])
         pool.append({
             "id": pid, "pos": ctx.pos(el), "club": ctx.team_name(el["team"]),
             "price": el["now_cost"] / 10.0, "value": total,
@@ -376,9 +372,10 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
     by price so the story reads most-expensive-change-first.
 
     Own players and candidates are scored by the identical function
-    (transfers.windowed_candidate_score, plus the same form/underlying-
-    numbers nudge transfers.case_score adds to a single transfer) -
-    previously the own squad was scored by analysis.windowed_ep, a richer,
+    (transfers.windowed_candidate_score, pure windowed points - see
+    build_pool for why the case_score form/underlying-numbers nudge is not
+    mixed in here, L7) - previously the own squad was scored by
+    analysis.windowed_ep, a richer,
     match-history-backed model, while candidates got the cheaper
     bootstrap-only one. transfers.suggest already avoids exactly that
     asymmetry for single transfers with a comment explaining why; wildcard
@@ -410,14 +407,11 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
     exclude_ids = {r.element["id"] for r in all_reports}
     priors = transfers.positional_priors(ctx)
     pool = build_pool(ctx, proj, market, baselines, start, weeks,
-                      exclude_ids=exclude_ids, case_weighted=True)
+                      exclude_ids=exclude_ids)
     own_pool = []
     for r in all_reports:
         total, _per_gw = transfers.windowed_candidate_score(
             r.element, ctx, proj, market, baselines, priors, start, weeks)
-        factors = transfers.player_case_factors(r.element, ctx)
-        total += (transfers.FORM_CASE_WEIGHT * factors["form"]
-                  + transfers.EXPECTED_CASE_WEIGHT * factors["expected"])
         own_pool.append({"id": r.element["id"], "pos": r.pos, "club": r.team,
                          "price": r.price, "value": total})
     full_pool = pool + own_pool

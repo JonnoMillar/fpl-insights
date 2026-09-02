@@ -71,7 +71,7 @@ EVIDENCE_MINUTES = 180.0
 
 def _acc_new():
     return {"min": 0.0, "xg": 0.0, "xa": 0.0, "bonus": 0.0, "dc": 0.0,
-            "bps": 0.0}
+            "bps": 0.0, "xgi": 0.0}
 
 
 def _acc_add(a, el, ctx, mins):
@@ -85,16 +85,22 @@ def _acc_add(a, el, ctx, mins):
     a["bonus"] += el.get("bonus", 0)
     a["dc"] += el.get("defensive_contribution", 0)
     a["bps"] += analysis.other_bps_per90(el, ctx, mins) * mins / 90.0
+    # FPL's own bootstrap per-90 xGI, folded through the same
+    # rate-accumulation-then-per90 pattern as the lines above so it can be
+    # minutes-weighted and price-fitted exactly like every other rate here
+    # (L7 - player_case_factors shrinks this rather than using it raw).
+    a["xgi"] += f(el.get("expected_goal_involvements_per_90")) * mins / 90.0
 
 
 def _rates(a):
     m = a["min"] or 1.0
     return {"xg90": per90(a["xg"], m), "xa90": per90(a["xa"], m),
             "bonus90": per90(a["bonus"], m), "dc90": per90(a["dc"], m),
-            "bps90": per90(a["bps"], m), "minutes": a["min"]}
+            "bps90": per90(a["bps"], m), "xgi90": per90(a["xgi"], m),
+            "minutes": a["min"]}
 
 
-RATE_KEYS = ("xg90", "xa90", "bonus90", "dc90", "bps90")
+RATE_KEYS = ("xg90", "xa90", "bonus90", "dc90", "bps90", "xgi90")
 
 
 def _fit_on_price(samples, key):
@@ -151,7 +157,7 @@ def positional_priors(ctx):
 
 
 DEFAULT_PRIOR = {"xg90": 0.1, "xa90": 0.1, "bonus90": 0.25, "dc90": 4.0,
-                 "bps90": 12.0}
+                 "bps90": 12.0, "xgi90": 0.2}
 
 
 def _prior_for(el, pos, priors):
@@ -318,7 +324,15 @@ TRANSFER_HORIZON_WEEKS = 5
 # 40-point swing. A flat weight instead says "this recent form is worth
 # about half a match's evidence", however long the window being ranked is.
 FORM_CASE_WEIGHT = 0.5      # extra points/match of recent form, flat
-EXPECTED_CASE_WEIGHT = 3.0  # extra xGI (xGI minus xGC for def/gk), per 90
+EXPECTED_CASE_WEIGHT = 3.0  # extra points per shrunk xGI/90 above the prior
+
+# A cap on the xGI nudge itself (EXPECTED_CASE_WEIGHT * factors["expected"]),
+# in points. Unshrunk raw xGI/90 used to feed this directly, so a 63-minute
+# cameo with one big chance could carry a bigger nudge than MIN_CASE_GAIN by
+# itself, bypassing every shrinkage candidate_score applies elsewhere (L7).
+# Shrinking the rate (below) makes that far less likely on its own; this
+# cap is the hard backstop for whatever gets through anyway.
+MAX_EXPECTED_NUDGE = 2.0
 
 # A meaningful gain in case_score, scaled to the horizon it's summed over -
 # the single-gameweek thresholds this replaced (0.15, 0.05) were tuned to a
@@ -327,7 +341,7 @@ EXPECTED_CASE_WEIGHT = 3.0  # extra xGI (xGI minus xGC for def/gk), per 90
 MIN_CASE_GAIN = 0.15 * TRANSFER_HORIZON_WEEKS
 
 
-def player_case_factors(el, ctx):
+def player_case_factors(el, ctx, priors=None):
     """Two signals a transfer decision should weigh beyond one gameweek's
     fixture-adjusted points, both already sitting in the bootstrap payload
     so neither costs an extra request per candidate.
@@ -335,18 +349,24 @@ def player_case_factors(el, ctx):
     `form` is FPL's own recent-points-per-match average - a different
     read from the season-long, price-shrunk rate candidate_score uses
     internally, since a player heating up or cooling off shows here before
-    enough matches exist to move his season rate much. `expected` is xGI
-    alone for a midfielder or forward, and xGI net of xGC for a defender or
-    keeper, because the defensive half of the game matters as much as the
-    attacking half for those two positions and a shrunk points total can
-    still be sitting on a stale prior for a player just breaking out."""
+    enough matches exist to move his season rate much.
+
+    `expected` is the player's own xGI/90, shrunk toward his position-at-
+    his-price prior exactly like every rate candidate_score uses (L7) - it
+    used to be raw and therefore unshrunk, so a single big chance in a
+    63-minute cameo could out-nudge MIN_CASE_GAIN on its own, bypassing
+    every bit of shrinkage applied elsewhere. It also used to be xGI net of
+    expected goals conceded for a defender or keeper; xGC/90 sits in a
+    narrow band for every defender in the game, so that term acted as a
+    flat penalty on the position rather than a signal that separated
+    players within it, and it double-counted a clean-sheet probability the
+    points total already prices in. Dropped; `expected` is now the shrunk
+    xGI/90 for every position alike."""
     pos = ctx.pos(el)
     form = f(el.get("form"))
     xgi90 = f(el.get("expected_goal_involvements_per_90"))
-    if pos in ("DEF", "GKP"):
-        expected = xgi90 - f(el.get("expected_goals_conceded_per_90"))
-    else:
-        expected = xgi90
+    prior_xgi90 = _prior_for(el, pos, priors)["xgi90"]
+    expected = _shrink(xgi90, el.get("minutes", 0) or 0, prior_xgi90)
     return {"form": form, "expected": expected}
 
 
@@ -370,10 +390,12 @@ def case_score(el, ctx, proj, gw, market, baselines, priors=None,
         return None
     windowed_total, _ = windowed_candidate_score(
         el, ctx, proj, market, baselines, priors, gw, weeks)
-    factors = player_case_factors(el, ctx)
+    factors = player_case_factors(el, ctx, priors)
+    expected_nudge = max(-MAX_EXPECTED_NUDGE, min(
+        MAX_EXPECTED_NUDGE, EXPECTED_CASE_WEIGHT * factors["expected"]))
     case_total = (windowed_total
                   + FORM_CASE_WEIGHT * factors["form"]
-                  + EXPECTED_CASE_WEIGHT * factors["expected"])
+                  + expected_nudge)
     return {**here, "total": case_total, "next_gw_total": here["total"], **factors}
 
 
