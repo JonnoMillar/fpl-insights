@@ -978,7 +978,10 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
     defence = cs_prob * CS_POINTS.get(r.pos, 0) * (1.0 if share > 0.65 else 0.0)
     appearance = 2.0 * share if minutes >= 60 else 1.0 * share
     hit_rate = (r.defcon_hits / r.appearances) if r.appearances else 0.0
-    defcon = hit_rate * DEFCON_POINTS * share
+    # hit_rate is already per appearance (appearances includes short
+    # cameos), so weighting it by share double-counts minutes; weight by
+    # the probability of starting instead.
+    defcon = hit_rate * DEFCON_POINTS * start_prob
     bonus = expected_bonus(r.pos, share, exp_goals, exp_assists, cs_prob,
                            other_bps90, minutes)
 
