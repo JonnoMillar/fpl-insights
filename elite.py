@@ -8,18 +8,13 @@ exactly the same way a mini-league rival's can. Ownership among that group is
 the single most useful number FPL does not publish: it separates "popular"
 from "popular with people who are winning".
 
-On scale, honestly: exact ownership for the top 10,000 would need roughly
-10,200 requests - two hundred pages of standings plus one squad lookup each.
-That is not a reasonable thing to do to somebody's free API, and it would take
-half an hour. So there are two modes:
-
-* **exact** - every manager in the top N (default 100). ~N requests.
-* **sampled** - a systematic sample spread evenly across the top N, which
-  estimates ownership rather than measuring it. 500 managers sampled from the
-  top 10,000 puts the margin of error near +/-4.4 points at 95% confidence,
-  which is far finer than any decision this feeds.
-
-Sampled results are always labelled as estimates and carry their margin.
+Early in a season, though, the current-season top of that table is mostly a
+survivorship sample of lucky captaincy picks, not skill - two or three good
+gameweeks is not evidence of judgement. So the reference set here is
+"proven" managers: among the current top PROVEN_POOL_SIZE, only those whose
+most recently completed season finished inside the top PROVEN_LAST_SEASON_RANK
+count. That is a season-plus of track record behind the sample, at the cost
+of a smaller n, which is why every figure carries its margin of error.
 """
 
 import math
@@ -29,6 +24,9 @@ import fplapi
 
 OVERALL_LEAGUE = 314
 PAGE = 50
+PROVEN_POOL_SIZE = 250
+PROVEN_LAST_SEASON_RANK = 100_000
+MIN_PROVEN_MANAGERS = 50
 
 
 def top_entries(count, ttl=fplapi.DEFAULT_TTL):
@@ -46,25 +44,24 @@ def top_entries(count, ttl=fplapi.DEFAULT_TTL):
     return ids[:count]
 
 
-def sampled_entries(depth, sample, ttl=fplapi.DEFAULT_TTL):
-    """A systematic sample of `sample` managers spread across the top `depth`.
-
-    Systematic rather than random: taking every Kth rank guarantees even
-    coverage of the whole range, where a random draw could clump into the top
-    few hundred and quietly bias the answer toward elite play."""
-    step = max(1, depth // sample)
-    wanted = set(range(1, depth + 1, step))
-    pages = sorted({(r - 1) // PAGE + 1 for r in wanted})
+def proven_entries(pool_size=PROVEN_POOL_SIZE, rank_cutoff=PROVEN_LAST_SEASON_RANK,
+                   ttl=fplapi.DEFAULT_TTL, progress=True):
+    """Managers in the current top `pool_size` whose most recently completed
+    season finished inside the top `rank_cutoff` - proven, not just lucky
+    this fortnight."""
+    candidates = top_entries(pool_size, ttl=ttl)
     out = []
-    for page in pages:
+    for i, (rank, entry_id, name) in enumerate(candidates, 1):
         try:
-            data = fplapi.league_standings(OVERALL_LEAGUE, page=page, ttl=ttl)
-        except fplapi.FplError as e:
-            print(f"[elite] standings page {page}: {e}")
+            hist = fplapi.entry_history(entry_id, ttl=ttl)
+        except fplapi.FplError:
             continue
-        for r in data["standings"]["results"]:
-            if r["rank"] in wanted:
-                out.append((r["rank"], r["entry"], r["entry_name"]))
+        past = hist.get("past") or []
+        last_season_rank = past[-1].get("rank") if past else None
+        if last_season_rank and last_season_rank <= rank_cutoff:
+            out.append((rank, entry_id, name))
+        if progress and i % 50 == 0:
+            print(f"[elite] checked {i}/{len(candidates)} candidates for a proven history")
     return out
 
 
@@ -97,32 +94,33 @@ def ownership(ctx, entries, event=None, ttl=fplapi.DEFAULT_TTL, progress=True):
     return counts, captains, ok
 
 
-def compare(ctx, squad_ids, depth=100, sample=None, event=None,
+def compare(ctx, squad_ids, depth=PROVEN_POOL_SIZE, event=None,
             ttl=fplapi.DEFAULT_TTL, limit=12):
-    """Elite ownership next to overall ownership, and where you differ.
+    """Proven-manager ownership next to overall ownership, and where you differ.
 
     The gap between the two is the interesting part: a player owned by half
-    the top managers and a twentieth of everyone else is a signal, and one
-    owned the other way round is a trap."""
-    if sample:
-        entries = sampled_entries(depth, sample, ttl=ttl)
-        mode, label = "sampled", f"sample of {len(entries)} from the top {depth:,}"
-    else:
-        entries = top_entries(depth, ttl=ttl)
-        mode, label = "exact", f"every manager in the top {depth:,}"
+    the proven managers and a twentieth of everyone else is a signal, and one
+    owned the other way round is a trap. Below MIN_PROVEN_MANAGERS qualifying
+    managers there isn't enough of a sample to say anything, so this returns
+    None rather than print noise."""
+    entries = proven_entries(pool_size=depth, ttl=ttl)
+    if len(entries) < MIN_PROVEN_MANAGERS:
+        return {"insufficient": True}
+    label = (f"top-{PROVEN_LAST_SEASON_RANK:,} finish last season, "
+             f"top-{depth} now")
 
     counts, captains, ok = ownership(ctx, entries, event=event, ttl=ttl)
     if not ok:
-        return None
-    moe = margin_of_error(ok) if mode == "sampled" else 0.0
+        return {"insufficient": True}
+    moe = margin_of_error(ok)
 
     rows = []
     for pid, n in counts.items():
         el = ctx.players.get(pid)
         if not el:
             continue
-        elite_pct = 100.0 * n / ok
-        overall = analysis.f(el.get("selected_by_percent"))
+        elite_pct = round(100.0 * n / ok)
+        overall = round(analysis.f(el.get("selected_by_percent")))
         rows.append({
             "id": pid,
             "name": el["web_name"],
@@ -138,8 +136,11 @@ def compare(ctx, squad_ids, depth=100, sample=None, event=None,
             "points": el["total_points"],
         })
     rows.sort(key=lambda r: -r["elite"])
+    # A gap smaller than 2x the margin of error is indistinguishable from
+    # sampling noise at 95% confidence - not worth calling a signal.
+    signal = lambda r: abs(r["edge"]) >= 2 * moe
     return {
-        "mode": mode,
+        "mode": "proven",
         "label": label,
         "managers": ok,
         "moe": moe,
@@ -148,12 +149,12 @@ def compare(ctx, squad_ids, depth=100, sample=None, event=None,
         "most_owned": rows[:limit],
         # Owned far more by the elite than by the crowd, and not by you.
         "elite_edge": sorted(
-            (r for r in rows if not r["mine"] and r["edge"] > 0),
+            (r for r in rows if not r["mine"] and r["edge"] > 0 and signal(r)),
             key=lambda r: -r["edge"],
         )[:limit],
         # You own it, the elite largely do not.
         "against": sorted(
-            (r for r in rows if r["mine"] and r["edge"] < 0),
+            (r for r in rows if r["mine"] and r["edge"] < 0 and signal(r)),
             key=lambda r: r["edge"],
         )[:limit],
         "captains": sorted(

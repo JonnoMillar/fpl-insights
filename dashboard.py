@@ -2573,14 +2573,21 @@ def ownership_carousel(own, by_name, ctx, my_name):
 
 
 def elite_card(res, ctx):
-    """What the best managers in the world own, against what everyone owns."""
+    """What proven managers own, against what everyone owns."""
     if not res:
         return ""
-    est = res["mode"] == "sampled"
+    if res.get("insufficient"):
+        return (
+            '<section class="card">'
+            f'<div class="card-head"><h2>What proven managers own{components.info_btn()}</h2></div>'
+            '<div class="card-body"><p class="tnote">Elite ownership needs '
+            "~10 gameweeks before the top of the table means anything - too "
+            "few managers with a proven top-100k season are in the current "
+            "top ranks yet.</p></div></section>"
+        )
     caveat = (
-        f" Estimated from a {res['managers']}-manager sample, so each figure "
+        f" Read from {res['managers']} proven managers, so each figure "
         f"carries about &plusmn;{res['moe']:.1f} points at 95% confidence."
-        if est else ""
     )
 
     def table(rows, cols_note):
@@ -2592,10 +2599,10 @@ def elite_card(res, ctx):
                 f"<tr{cls}><td><b>{e(r['name'])}</b></td>"
                 f"<td>{e(r['pos'])}</td><td>{e(r['team'])}</td>"
                 f'<td class="num">{r["price"]:.1f}</td>'
-                f'<td class="num" data-v="{r["elite"]}">{r["elite"]:.1f}%</td>'
-                f'<td class="num" data-v="{r["overall"]}">{r["overall"]:.1f}%</td>'
+                f'<td class="num" data-v="{r["elite"]}">{r["elite"]:.0f}%</td>'
+                f'<td class="num" data-v="{r["overall"]}">{r["overall"]:.0f}%</td>'
                 f'<td class="num" data-v="{r["edge"]}" style="color:{edge_tone}">'
-                f'<b>{r["edge"]:+.1f}</b></td></tr>'
+                f'<b>{r["edge"]:+.0f}</b></td></tr>'
             )
         return (
             f'<p class="tnote">{cols_note}</p>'
@@ -2609,20 +2616,20 @@ def elite_card(res, ctx):
             f"</tr></thead><tbody>{''.join(body)}</tbody></table></div>"
         )
 
-    parts = [table(res["most_owned"], "Most owned by the elite.")]
+    parts = [table(res["most_owned"], "Most owned by proven managers.")]
     if res["elite_edge"]:
         parts.append(table(
             res["elite_edge"],
-            "Owned far more by the elite than by the crowd - and you do not own them.",
+            "Owned far more by proven managers than by the crowd - and you do not own them.",
         ))
     if res["against"]:
         parts.append(table(
             res["against"],
-            "You own these; the elite largely do not.",
+            "You own these; proven managers largely do not.",
         ))
     return (
         '<section class="card">'
-        f'<div class="card-head"><h2>What the best managers own{components.info_btn()}</h2>'
+        f'<div class="card-head"><h2>What proven managers own{components.info_btn()}</h2>'
         f'<span class="sub" hidden>{e(res["label"])}, read from the global FPL league at '
         f"gameweek {res['event']}.{caveat}</span></div>"
         f'<div class="card-body">{"".join(parts)}</div></section>'
@@ -4725,7 +4732,7 @@ def _update_price_history(ctx):
 
 
 def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
-          elite_depth=100, elite_sample=None):
+          elite_depth=elite.PROVEN_POOL_SIZE):
     """Gather everything the page needs."""
     ctx = analysis.Ctx.load(ttl=ttl)
     gw = gw or ctx.last_event_with_picks()
@@ -4810,8 +4817,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     elite_res = None
     if elite_depth:
         try:
-            elite_res = elite.compare(ctx, squad_ids, depth=elite_depth,
-                                      sample=elite_sample, ttl=ttl)
+            elite_res = elite.compare(ctx, squad_ids, depth=elite_depth, ttl=ttl)
         except fplapi.FplError as ex:
             print(f"[elite] skipped: {ex}")
 

@@ -217,7 +217,7 @@ def cmd_dashboard(args, cfg):
     import dashboard
 
     data = dashboard.build(entry_id, league_id, ttl=args.ttl, gw=args.gw,
-                           elite_depth=args.elite, elite_sample=args.elite_sample)
+                           elite_depth=args.elite)
     out = Path(args.out).resolve()
     out.write_text(dashboard.render(data, standalone=True), encoding="utf-8")
     print(f"wrote {out}  ({out.stat().st_size / 1024:.0f} KB)")
@@ -285,11 +285,9 @@ def main(argv=None):
     d.add_argument("--league", type=int)
     d.add_argument("--gw", type=int)
     d.add_argument("--out", default="dashboard.html")
-    d.add_argument("--elite", type=int, default=100, metavar="N",
-                   help="rank depth for elite ownership (0 disables it)")
-    d.add_argument("--elite-sample", type=int, default=None, metavar="N",
-                   help="sample N managers across --elite instead of reading "
-                        "every one; needed for depths beyond a few hundred")
+    d.add_argument("--elite", type=int, default=250, metavar="N",
+                   help="how many current top-ranked managers to check for a "
+                        "proven (top-100k last season) history (0 disables it)")
     d.add_argument("--open", action="store_true", help="open it in your browser")
     d.add_argument("--artifact", action="store_true",
                    help="also write a body-only copy for publishing as an Artifact")
