@@ -760,6 +760,9 @@ GOAL_POINTS = {"GKP": 10, "DEF": 6, "MID": 5, "FWD": 4}
 CS_POINTS = {"GKP": 4, "DEF": 4, "MID": 1, "FWD": 0}
 ASSIST_POINTS = 3
 DEFCON_POINTS = 2
+GC_PENALTY_POS = ("GKP", "DEF")   # -1 per 2 goals conceded
+SAVE_POINTS_PER = 3.0             # +1 per 3 saves, GKP only
+YELLOW_CARD_POINTS = -1.0
 
 # Chance of a late cameo when a player does not start, given as `pred` from
 # `ctx.is_predicted`. A predicted starter who drops out (True) more often
@@ -768,6 +771,20 @@ DEFCON_POINTS = 2
 # option who does get thrown on.
 CAMEO_PROB_DOUBT = 0.2
 CAMEO_PROB_ROTATION = 0.5
+
+
+def expected_gc_penalty(opp_xg, max_k=10):
+    """E[floor(goals conceded / 2)] under a Poisson(opp_xg) model - the
+    -1-per-2-conceded penalty for GKP/DEF. The tail beyond max_k goals is
+    folded into the last bucket rather than dropped, since it is a real if
+    tiny slice of probability mass, not zero."""
+    total, remaining = 0.0, 1.0
+    for k in range(max_k):
+        p = math.exp(-opp_xg) * opp_xg ** k / math.factorial(k)
+        remaining -= p
+        total += p * (k // 2)
+    total += remaining * (max_k // 2)
+    return total
 
 
 # --- bonus ---------------------------------------------------------------
@@ -978,6 +995,18 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
     else:
         cs_prob, cs_source = 0.0, "none"
 
+    # --- opponent's attack, for the goals-conceded penalty and saves ---
+    if mk_matches:
+        opp_xg = max(0.15, mk["total"] - team_xg)
+    elif fixture:
+        opp_row = proj.get((fixture.get("opp"), gw))
+        opp_xg = (float(opp_row["g"]) if opp_row and opp_row.get("g") is not None
+                 else league_avg_xg)
+    elif mk:
+        opp_xg = max(0.15, mk["total"] - team_xg)
+    else:
+        opp_xg = league_avg_xg
+
     # --- the player's own rates, blended with last season while thin ---
     xg90, xa90 = per90(r.xg, r.minutes), per90(r.xa, r.minutes)
     other_bps90 = other_bps_per90(el, ctx, r.minutes)
@@ -1006,7 +1035,17 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
     bonus = expected_bonus(r.pos, share, exp_goals, exp_assists, cs_prob,
                            other_bps90, p60)
 
-    total = attack + defence + appearance + defcon + bonus
+    # Four scoring events the parts above never touch - and biased, not
+    # random, omissions: leaving them out under-projects every keeper and
+    # over-projects defenders on leaky sides (see L6).
+    gc = -expected_gc_penalty(opp_xg) * p60 if r.pos in GC_PENALTY_POS else 0.0
+    saves90 = per90(el.get("saves", 0), el.get("minutes", 0))
+    save_mult = max(0.6, min(1.6, opp_xg / league_avg_xg)) if league_avg_xg else 1.0
+    saves_pts = (saves90 * share * save_mult) / SAVE_POINTS_PER if r.pos == "GKP" else 0.0
+    yellow90 = per90(el.get("yellow_cards", 0), el.get("minutes", 0))
+    cards = yellow90 * share * YELLOW_CARD_POINTS
+
+    total = attack + defence + appearance + defcon + bonus + gc + saves_pts + cards
     return {
         "total": total,
         "attack": attack,
@@ -1016,6 +1055,9 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
         "appearance": appearance,
         "defcon": defcon,
         "bonus": bonus,
+        "gc": gc,
+        "saves": saves_pts,
+        "cards": cards,
         "exp_goals": exp_goals,
         "exp_assists": exp_assists,
         "minutes": minutes,
@@ -1023,6 +1065,7 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
         "cs_source": cs_source,
         "team_xg": team_xg,
         "xg_source": xg_source,
+        "opp_xg": opp_xg,
         "baseline": baseline,
         "fixture_mult": fixture_mult,
         # The fixture itself - who and where - is always this gameweek's own

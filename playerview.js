@@ -104,20 +104,30 @@
         ['Goals', p.ep.goals, '#953bff'],
         ['Assists', p.ep.assists, '#00b3d6'],
         ['Clean sheet', p.ep.defence, '#00a35c'],
+        ['Saves', p.ep.saves, '#1b5ce0'],
         ['Appearance', p.ep.appearance, '#87668a'],
         ['DefCon', p.ep.defcon, '#e07b00'],
-        ['Bonus', p.ep.bonus, '#d81b8c']
+        ['Bonus', p.ep.bonus, '#d81b8c'],
+        ['Goals conceded', p.ep.gc, 'var(--bad)'],
+        ['Cards', p.ep.cards, 'var(--bad)']
       ];
+      // The bar fills to the sum of the positive parts, not p.ep.total -
+      // total nets out the goals-conceded/cards deductions, and dividing by
+      // it would stretch the positive segments past 100% width.
+      var positiveTotal = parts.reduce(function (sum, q) {
+        return sum + (q[1] > 0 ? q[1] : 0);
+      }, 0) || p.ep.total || 1;
       var segs = parts.map(function (q) {
         if (!q[1] || q[1] <= 0.01) { return ''; }
         return '<span class="seg" style="width:' +
-          (q[1] / p.ep.total * 100).toFixed(1) + '%;background:' + q[2] +
+          (q[1] / positiveTotal * 100).toFixed(1) + '%;background:' + q[2] +
           '" title="' + q[0] + ' ' + q[1].toFixed(2) + '"></span>';
       }).join('');
       // Every component printed as a number too: several segment colours sit
       // under 3:1 against the surface, so the bar is never the only way to
-      // read this.
-      var rows = parts.filter(function (q) { return q[1] && q[1] > 0.01; })
+      // read this. Deductions (negative) are listed here even though they
+      // never render as a bar segment.
+      var rows = parts.filter(function (q) { return q[1] && Math.abs(q[1]) > 0.01; })
         .map(function (q) {
           return '<li><i style="background:' + q[2] + '"></i>' +
             '<span>' + q[0] + '</span><b>' + q[1].toFixed(2) + '</b></li>';
