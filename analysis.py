@@ -761,6 +761,14 @@ CS_POINTS = {"GKP": 4, "DEF": 4, "MID": 1, "FWD": 0}
 ASSIST_POINTS = 3
 DEFCON_POINTS = 2
 
+# Chance of a late cameo when a player does not start, given as `pred` from
+# `ctx.is_predicted`. A predicted starter who drops out (True) more often
+# means rested or missing entirely than a genuine late run-out; someone who
+# was never the predicted starter (False/None) is more often a real rotation
+# option who does get thrown on.
+CAMEO_PROB_DOUBT = 0.2
+CAMEO_PROB_ROTATION = 0.5
+
 
 # --- bonus ---------------------------------------------------------------
 
@@ -807,7 +815,7 @@ def other_bps_per90(el, ctx, minutes):
 
 
 def expected_bonus(pos, share, exp_goals, exp_assists, cs_prob, other_bps90,
-                   minutes):
+                   p60):
     """Expected bonus points, built from the same parts as the rest of the
     projection.
 
@@ -817,13 +825,16 @@ def expected_bonus(pos, share, exp_goals, exp_assists, cs_prob, other_bps90,
     enumerated - nought, one or two goals, an assist or not, a clean sheet or
     not - each scored for BPS and mapped to bonus, then weighted by how likely
     it is. That is why a forward with a real chance of scoring now carries
-    expected bonus even when he has none on record."""
+    expected bonus even when he has none on record.
+
+    `p60` (probability of reaching 60 minutes) weights the 6-vs-3 appearance
+    BPS split and the clean-sheet BPS, in place of a hard minutes>=60 cliff."""
     if share <= 0:
         return 0.0
-    appearance_bps = 6.0 if minutes >= 60 else 3.0
+    appearance_bps = p60 * 6.0 + (1 - p60) * 3.0
     base = appearance_bps + other_bps90 * share
     goal_bps = GOAL_BPS.get(pos, 12)
-    cs_bps = CS_BPS.get(pos, 0) if minutes >= 60 else 0
+    cs_bps = CS_BPS.get(pos, 0) * p60
 
     # Poisson for goals, Bernoulli for the rest.
     lam = max(0.0, exp_goals)
@@ -926,7 +937,15 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
         min(90.0, sum(h["minutes"] for h in r.history if h["starts"]) / r.starts)
         if r.starts else 75.0
     )
-    minutes = start_prob * avg_start_minutes + (1 - start_prob) * 8.0
+    cameo_prob = (
+        CAMEO_PROB_DOUBT if ctx.is_predicted(el) is True else CAMEO_PROB_ROTATION
+    )
+    p_cameo = (1 - start_prob) * cameo_prob
+    # Probability of reaching the 60-minute clean-sheet/bonus threshold: he
+    # has to start, and then (if his starts themselves run short) actually
+    # last that long within one.
+    p60 = start_prob * (1.0 if avg_start_minutes >= 60 else avg_start_minutes / 60.0)
+    minutes = start_prob * avg_start_minutes + p_cameo * 8.0
     minutes = max(0.0, min(90.0, minutes))
     share = minutes / 90.0
 
@@ -974,16 +993,18 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
     assists_pts = exp_assists * ASSIST_POINTS
     attack = goals_pts + assists_pts
 
-    # Clean-sheet points need 60 minutes, so a fringe player earns none.
-    defence = cs_prob * CS_POINTS.get(r.pos, 0) * (1.0 if share > 0.65 else 0.0)
-    appearance = 2.0 * share if minutes >= 60 else 1.0 * share
+    # Branch-wise expectation, not the 60-minute rule applied to the mixture's
+    # mean: a start earns full clean-sheet eligibility and 2 appearance
+    # points, a cameo earns neither CS nor more than 1.
+    defence = p60 * cs_prob * CS_POINTS.get(r.pos, 0)
+    appearance = start_prob * 2.0 + p_cameo * 1.0
     hit_rate = (r.defcon_hits / r.appearances) if r.appearances else 0.0
     # hit_rate is already per appearance (appearances includes short
     # cameos), so weighting it by share double-counts minutes; weight by
     # the probability of starting instead.
     defcon = hit_rate * DEFCON_POINTS * start_prob
     bonus = expected_bonus(r.pos, share, exp_goals, exp_assists, cs_prob,
-                           other_bps90, minutes)
+                           other_bps90, p60)
 
     total = attack + defence + appearance + defcon + bonus
     return {

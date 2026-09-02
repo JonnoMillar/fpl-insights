@@ -200,24 +200,34 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
     starts = el.get("starts", 0) or 0
     pred = ctx.is_predicted(el)
     if pred is True:
-        minutes = 85.0
+        p_start, avg_start_minutes = 0.92, 90.0
     elif pred is False:
-        minutes = 15.0
+        p_start, avg_start_minutes = 0.10, 75.0
     elif starts:
-        minutes = min(90.0, minutes_played / max(1, starts))
+        p_start, avg_start_minutes = 0.75, min(90.0, minutes_played / max(1, starts))
     else:
-        minutes = 30.0
+        p_start, avg_start_minutes = 0.5, 75.0
 
     # A predicted-lineup feed naming a man who has not kicked a ball this
     # season is a weaker claim than the same feed naming a regular, but the
     # branch above treats them identically - which is how a zero-minute
-    # player came to be scored as a nailed-on 85-minute starter carrying
-    # league-average rates, and outranked a fit player mid-hot-streak.
-    # Temper toward a squad player's involvement until there is some
-    # football to back the billing up.
+    # player came to be scored as a nailed-on starter carrying league-average
+    # rates, and outranked a fit player mid-hot-streak. Temper the start
+    # probability toward a coin flip until there is some football to back
+    # the billing up.
     if minutes_played < EVIDENCE_MINUTES:
         evidence = minutes_played / EVIDENCE_MINUTES
-        minutes = minutes * evidence + 45.0 * (1 - evidence)
+        p_start = p_start * evidence + 0.5 * (1 - evidence)
+
+    # Branch-wise, not a hard 60-minute cliff on the mixture's mean: p60 is
+    # the probability of reaching the clean-sheet/bonus threshold, p_cameo
+    # the probability of a late run-out when he does not start.
+    cameo_prob = (
+        analysis.CAMEO_PROB_DOUBT if pred is True else analysis.CAMEO_PROB_ROTATION
+    )
+    p_cameo = (1 - p_start) * cameo_prob
+    p60 = p_start * (1.0 if avg_start_minutes >= 60 else avg_start_minutes / 60.0)
+    minutes = p_start * avg_start_minutes + p_cameo * 8.0
     share = minutes / 90.0
 
     baseline = (baselines or {}).get(el["team"], league_avg)
@@ -262,8 +272,8 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
 
     goals = xg90 * share * mult * analysis.GOAL_POINTS.get(pos, 4)
     assists = xa90 * share * mult * analysis.ASSIST_POINTS
-    defence = cs_prob * analysis.CS_POINTS.get(pos, 0) * (1.0 if share > 0.65 else 0.0)
-    appearance = 2.0 * share if minutes >= 60 else 1.0 * share
+    defence = p60 * cs_prob * analysis.CS_POINTS.get(pos, 0)
+    appearance = p_start * 2.0 + p_cameo * 1.0
 
     threshold = analysis.DEFCON_THRESHOLD.get(pos)
     defcon = 0.0
@@ -275,7 +285,7 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
         defcon = min(1.0, max(0.0, (rate / threshold) ** 2)) * analysis.DEFCON_POINTS * share
     bonus = analysis.expected_bonus(pos, share, goals / max(1e-9, analysis.GOAL_POINTS.get(pos, 4)),
                                     assists / analysis.ASSIST_POINTS, cs_prob,
-                                    other_bps90, minutes)
+                                    other_bps90, p60)
 
     return {
         "total": goals + assists + defence + appearance + defcon + bonus,
