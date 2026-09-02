@@ -15,26 +15,35 @@ Axes, and where each number actually comes from:
                       match than their own season baseline - the market's
                       read on the opponent's defence wherever it has priced
                       the game.
-  * Goal threat     - exp_goals from the same calculation: this player's own
-                      expected goals for this specific match. This is a
-                      market-informed proxy for scoring likelihood, not a
-                      quoted anytime-goalscorer price - odds.py reads
-                      Pinnacle's team-level markets, not individual player
-                      lines, so there is no genuine anytime-scorer number
-                      available here.
+  * Goal threat     - the player's own expected-goal-involvement rate
+                      (goals + assists) per 90, blended toward last season
+                      while this season is thin, the same blend
+                      analysis.expected_points applies to xg90/xa90. This
+                      used to be exp_goals from expected_points, which
+                      already carries fixture_mult and a share-of-minutes
+                      discount inside it - counting fixture quality and
+                      start certainty a second time, on top of their own
+                      dedicated axes. The player-alone rate keeps this axis
+                      about the player, Fixture about the fixture, and
+                      Start certainty about his minutes.
   * Start certainty - start_probability from the same module: how nailed-on
                       he is to actually take the pitch. Not a scoring
                       dimension, but the one thing that zeroes out every
                       other axis if it does not hold - a captain who gets
                       benched is the real nightmare, not a quiet return.
   * Responsibilities - a blind weighting of the set-piece duties he's
-                      actually named on: 65 if he takes penalties, +20 if
-                      he also takes free kicks, +15 if he also takes
-                      corners - so a penalty taker alone sits at 65, a
-                      penalty-and-free-kick man at 85, and a man on all
-                      three reaches the edge. "Blind" because it does not
-                      weigh how often the duty actually arises or how well
-                      he converts it - only whether the club has named him
+                      actually named on: 50 if he takes penalties, +25 if
+                      he also takes corners, +25 if he also takes free
+                      kicks - so a penalty taker alone sits at 50, and a
+                      man on all three reaches the edge. Penalties no
+                      longer dominate the axis the way a 65-point floor
+                      did: a penalty is worth roughly 0.08 xG per match to
+                      its taker, not a whole scoring axis's worth of edge,
+                      so this split leaves room for corners and free kicks
+                      to matter too rather than being rounding error next
+                      to the spot kick. "Blind" because it does not weigh
+                      how often the duty actually arises or how well he
+                      converts it - only whether the club has named him
                       for it. Home/away moved off the chart into a small
                       venue icon by each candidate's name instead: it was
                       the one axis that was not really about captaincy
@@ -60,17 +69,20 @@ the best fixtures anyone gets, not just the best of whoever is on screen
 today. See SCALES below for where each bound comes from.
 """
 
-import math
+import analysis
 
-# 65% for penalties, +20% for free kicks, +15% for corners - see the module
-# docstring for why this is "blind" rather than reliability-weighted.
-RESP_WEIGHTS = {"pens": 65.0, "fk": 20.0, "corners": 15.0}
+# 50% for penalties, 25% for corners, 25% for free kicks - see the module
+# docstring for why this is "blind" rather than reliability-weighted, and
+# L8 in the quality audit for why penalties dominate less than the old
+# 65/20/15 split: a penalty is worth roughly 0.08 xG per match to its
+# taker, not the full weight of a whole other scoring axis.
+RESP_WEIGHTS = {"pens": 50.0, "fk": 25.0, "corners": 25.0}
 
 # (key, label, unit) - unit drives client-side tooltip formatting only.
 METRICS = [
     ("form", "Form (last 4)", "pts"),
     ("fixture", "Fixture (xG mult)", "x"),
-    ("goal_threat", "Goal threat", "xG"),
+    ("goal_threat", "Goal threat", "xGI/90"),
     ("start_cert", "Start certainty", "%"),
     ("responsibility", "Responsibilities", "%"),
 ]
@@ -90,11 +102,11 @@ METRICS = [
 #                   top-priced XIs, even a p99 run over the last 4 played
 #                   sat at 25, so 30 leaves room above anything actually
 #                   seen without needing revisiting most weeks.
-#   goal_threat     0 to 1.5 expected goals in one match - above what even
-#                   an elite striker's best-priced fixture reaches most
-#                   weeks (sampled top-priced attackers this season peaked
-#                   fixture-adjusted around 1.2), so genuinely explosive
-#                   fixtures still read near, not past, the rim.
+#   goal_threat     0 to 1.5 blended xGI (goals + assists) per 90 - above
+#                   what even an elite attacker's own rate reaches across a
+#                   full season (a genuinely explosive early-season run,
+#                   sampled this season, peaked around 1.2), so a hot
+#                   streak still reads near, not past, the rim.
 SCALES = {
     "form": (0.0, 30.0),
     "fixture": (0.5, 2.0),
@@ -148,22 +160,21 @@ def _duty_active(ctx, r, field):
     return ctx.is_predicted(primary) is False
 
 
-def _polygon_area(values, keys):
-    """Shoelace formula over the pentagon, metrics evenly spaced by angle,
-    each axis already 0-100. Used only to state which shape is largest in
-    words - the chart itself is drawn client-side."""
-    n = len(keys)
-    pts = []
-    for i, k in enumerate(keys):
-        angle = -math.pi / 2 + i * (2 * math.pi / n)
-        r = values[k]
-        pts.append((r * math.cos(angle), r * math.sin(angle)))
-    area = 0.0
-    for i in range(n):
-        x1, y1 = pts[i]
-        x2, y2 = pts[(i + 1) % n]
-        area += x1 * y2 - x2 * y1
-    return abs(area) / 2
+def _blended_goal_threat(r):
+    """This player's own expected-goal-involvement rate per 90, blended
+    toward last season while this season is thin - the same blend
+    analysis.expected_points applies to xg90/xa90, but with no fixture
+    multiplier or minutes share folded in, so this stays a read on the
+    player alone (see the module docstring's Goal threat entry)."""
+    xgi90 = r.xgi90
+    ls = r.last_season()
+    if r.minutes < analysis.THIN_SAMPLE_MINUTES and ls and ls["minutes"] >= 900:
+        blend = r.minutes / analysis.THIN_SAMPLE_MINUTES
+        xgi90 = blend * xgi90 + (1 - blend) * analysis.per90(ls["xgi"], ls["minutes"])
+        note = "blended with last season"
+    else:
+        note = "this season"
+    return xgi90, note
 
 
 def matrix(ctx, xi, eps_by_id, top_n=3):
@@ -216,6 +227,8 @@ def matrix(ctx, xi, eps_by_id, top_n=3):
         # duties a player holds.
         resp_lines = [p.capitalize() for p in resp_parts] if resp_parts else ["None"]
 
+        goal_threat, goal_threat_note = _blended_goal_threat(r)
+
         raw.append({
             "player": r.name,
             "team": r.team,
@@ -224,7 +237,7 @@ def matrix(ctx, xi, eps_by_id, top_n=3):
             "ep_total": round(ep["total"], 1),
             "form": form, "form_note": form_note,
             "fixture": ep["fixture_mult"], "fixture_note": "vs season baseline",
-            "goal_threat": ep["exp_goals"], "goal_threat_note": ep["xg_source"],
+            "goal_threat": goal_threat, "goal_threat_note": goal_threat_note,
             "start_cert": start_cert, "start_cert_note": "chance of starting",
             "responsibility": resp, "responsibility_note": resp_note,
             "responsibility_label": resp_label, "responsibility_lines": resp_lines,
@@ -234,18 +247,19 @@ def matrix(ctx, xi, eps_by_id, top_n=3):
     # Every axis, responsibility included, now scales against its own
     # fixed real-world range (SCALES) rather than whoever else is on the
     # chart - see the module docstring. Responsibility's raw values (0,
-    # 65, 85, 100) already sit on that same 0-100 scale, so this is a
+    # 50, 75, 100) already sit on that same 0-100 scale, so this is a
     # no-op for it beyond applying the visibility floor.
     normed = {k: _scale([row[k] for row in raw], k) for k in keys}
 
     out = []
     for i, row in enumerate(raw):
         values = {k: normed[k][i] for k in keys}
-        out.append({**row, "values": values,
-                    "area": _polygon_area(values, keys)})
+        out.append({**row, "values": values})
 
-    top = max(out, key=lambda c: c["area"])
-    for row in out:
-        row["is_top_area"] = row is top
+    # candidates (and so raw/out) are already sorted by ep_total descending
+    # from the top of this function - the top pick is whoever projects the
+    # most points, not whichever radar shape happens to enclose the most
+    # area (which depends on axis order and scale, not on points).
+    top = out[0]
 
     return {"candidates": out, "metrics": METRICS, "top": top["player"]}

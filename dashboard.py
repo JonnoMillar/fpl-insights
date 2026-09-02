@@ -4186,7 +4186,9 @@ def captaincy_card(cm):
     come from."""
     if not cm:
         return ""
-    top = next(c for c in cm["candidates"] if c["is_top_area"])
+    # candidates are ranked by projected points, highest first - see
+    # captaincy.matrix.
+    top = cm["candidates"][0]
     legend = "".join(
         f'<li class="radar-leg" data-i="{i}" tabindex="0" role="button" '
         f'aria-pressed="false">'
@@ -4213,9 +4215,9 @@ def captaincy_card(cm):
         f'every week: genuinely one of the best fixtures or returns anyone '
         f'gets, not just the best of this shortlist. Two candidates from the '
         f'same club can also share an axis exactly (same team, same '
-        f'fixture), which is a genuine tie, not missing data. The largest '
-        f'shaded shape - <b>{e(top["player"])}</b> this week - is the safest '
-        f'or highest-ceiling pick. Click a name for the full breakdown.</span></div>'
+        f'fixture), which is a genuine tie, not missing data. Ranked by '
+        f'projected points - <b>{e(top["player"])}</b> is on top this week - '
+        f'the shape shows why. Click a name for the full breakdown.</span></div>'
         '<div class="card-body cap-layout">'
         f'<div class="cap-side"><ul class="radar-legend">{legend}</ul>'
         '<p class="radar-readout" aria-live="polite">Hover a shape or a dot for its value.</p></div>'

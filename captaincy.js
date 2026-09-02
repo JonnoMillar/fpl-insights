@@ -45,7 +45,7 @@
     if (unit === 'pts') { return raw.toFixed(0) + ' pts'; }
     if (unit === '%') { return raw.toFixed(0) + '%'; }
     if (unit === 'x') { return raw.toFixed(2) + 'x'; }
-    if (unit === 'xG') { return raw.toFixed(2) + ' xG'; }
+    if (unit === 'xGI/90') { return raw.toFixed(2) + ' xGI/90'; }
     return String(raw);
   }
 
