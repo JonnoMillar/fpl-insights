@@ -1347,6 +1347,7 @@ table td.tick{border:2px solid var(--surface)}
   text-align:center; padding:6px 8px; border:2px solid var(--surface);
   border-radius:var(--radius-xs); min-width:58px; line-height:1.2;
 }
+.fxc-blank{background:var(--surface-variant); color:var(--on-surface-variant)}
 .fxc-opp{display:block; font-size:11px; font-weight:700}
 .fxc-score{display:block; font-size:13px; font-weight:700;
   font-variant-numeric:tabular-nums}

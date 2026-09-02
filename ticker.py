@@ -114,6 +114,13 @@ def _rows_for(club, proj, market, start_gw, weeks):
     out = []
     mk = (market or {}).get(club)
     for fx in ffs.ticker(proj, club, start_gw, weeks):
+        if fx.get("blank"):
+            out.append({
+                "gw": fx["gw"], "opp": None, "home": None,
+                "xg": 0.0, "cs": 0.0, "source": "blank",
+                "score": 0.0, "blank": True,
+            })
+            continue
         xg, cs, source = fx["xg"], fx["cs"], "model"
         # The market only prices the imminent round, so it can only replace the
         # first cell - and only when the opponent matches, guarding against a
@@ -153,6 +160,13 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
         avg = sum(c["score"] for c in cells) / len(cells)
         chips = []
         for c in cells:
+            if c.get("blank"):
+                chips.append(
+                    '<td class="fxc fxc-blank" '
+                    'title="GW{gw}, blank - no fixture">'
+                    '<span class="fxc-opp">&mdash;</span></td>'.format(gw=c["gw"])
+                )
+                continue
             cls, style = _cell_style(c["score"])
             label = c["opp"].upper() if c["home"] else c["opp"].lower()
             mark = '<i class="fx-mkt" title="Priced by the market"></i>' if c["source"] == "market" else ""

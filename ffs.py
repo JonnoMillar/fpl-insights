@@ -100,6 +100,11 @@ def ticker(proj, club, start_gw, count=6):
                 "cs": float(item.get("cs") or 0),
                 "xg": float(item.get("g") or 0),
             })
+        else:
+            # A blank gameweek - no fixture at all, not a missing lookup.
+            # Emitting a row (rather than skipping) keeps every club's
+            # columns aligned to the same GW headers.
+            rows.append({"gw": gw, "blank": True})
         gw += 1
     return rows
 
@@ -113,7 +118,7 @@ def summary(proj, club, start_gw, count=6):
         return None
     return {
         "count": len(rows),
-        "cs": sum(r["cs"] for r in rows) / len(rows),
-        "xg": sum(r["xg"] for r in rows) / len(rows),
+        "cs": sum(r.get("cs", 0.0) for r in rows) / len(rows),
+        "xg": sum(r.get("xg", 0.0) for r in rows) / len(rows),
         "rows": rows,
     }
