@@ -58,3 +58,82 @@
     render();
   });
 })();
+
+// Fixture outlook controls: the Games selector and the Target fixtures
+// toggle. Both act on cells already in the DOM (see ticker.py's
+// data-score/fxc-target) rather than fetching or re-rendering anything, the
+// same "hide/relabel what's already there" approach pagination above uses.
+(function () {
+  // Mirrors ticker.py's SCALE/PREMIUM_RATING exactly, so a recomputed
+  // average never reads a different colour than the same value would have
+  // been given at build time.
+  var SCALE = [
+    [2.0, '#a4133c', '#ffffff'],
+    [4.0, '#f4845f', '#40190e'],
+    [6.0, '#eae7ec', '#37003c'],
+    [8.0, '#7ac9a0', '#0d3b26'],
+    [10.1, '#17876a', '#ffffff']
+  ];
+  var PREMIUM_RATING = 9.0;
+
+  function toneFor(score) {
+    for (var i = 0; i < SCALE.length; i++) {
+      if (score < SCALE[i][0]) { return SCALE[i]; }
+    }
+    return SCALE[SCALE.length - 1];
+  }
+
+  function paintAvg(span, score) {
+    if (score > PREMIUM_RATING) {
+      span.className = 'fxavg fx-premium';
+      span.style.background = '';
+      span.style.color = '';
+    } else {
+      var t = toneFor(score);
+      span.className = 'fxavg';
+      span.style.background = t[1];
+      span.style.color = t[2];
+    }
+  }
+
+  function recomputeGames(tbl, n) {
+    tbl.dataset.games = n;
+    Array.prototype.forEach.call(tbl.tBodies[0].rows, function (row) {
+      var cells = Array.prototype.slice.call(row.querySelectorAll('.fxc'), 0, n);
+      if (!cells.length) { return; }
+      var sum = cells.reduce(function (s, c) {
+        return s + (parseFloat(c.dataset.score) || 0);
+      }, 0);
+      var avg = sum / cells.length;
+      var avgCell = row.querySelector('.fxavg-cell');
+      var avgSpan = row.querySelector('.fxavg');
+      if (avgCell) { avgCell.dataset.v = avg.toFixed(2); }
+      if (avgSpan) {
+        avgSpan.textContent = avg.toFixed(1);
+        paintAvg(avgSpan, avg);
+      }
+    });
+  }
+
+  document.querySelectorAll('table.fxtable').forEach(function (tbl) {
+    var card = tbl.closest('.card');
+    if (!card) { return; }
+
+    var select = card.querySelector('.fx-games');
+    if (select) {
+      select.value = tbl.dataset.games;
+      select.addEventListener('change', function () {
+        recomputeGames(tbl, parseInt(select.value, 10) || 1);
+      });
+    }
+
+    var toggle = card.querySelector('.fx-target');
+    if (toggle) {
+      toggle.addEventListener('click', function () {
+        var on = toggle.getAttribute('aria-pressed') !== 'true';
+        toggle.setAttribute('aria-pressed', String(on));
+        tbl.classList.toggle('target-on', on);
+      });
+    }
+  });
+})();

@@ -261,14 +261,36 @@ def _club_norms(ctx, proj):
 
 FIXTURE_PAGE_SIZE = 8
 
+# The selector's range is 1-8 games; the table always renders all 8 gameweek
+# columns so the client can widen/narrow the window without a rebuild, but
+# opens on FIXTURE_GAMES_DEFAULT so nothing on first paint looks different
+# from before the selector existed.
+FIXTURE_GAMES_MAX = 8
+FIXTURE_GAMES_DEFAULT = 6
 
-def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
+# A fixture below this doesn't get to hide behind a mediocre one any more
+# when Target fixtures is on. Set from the shape of the score distribution
+# itself: with the 70/30 absolute/relative blend, a single fixture only
+# clears ~7.5 when a genuinely strong side is at home (or otherwise
+# favoured) against a genuinely weak one - comfortably above what an
+# average week for a good team looks like, so switching it on is a real
+# filter, not one that leaves most of the board lit up.
+TARGET_RATING = 7.5
+
+
+def fixture_ticker(reports, ctx, proj, start_gw, weeks=FIXTURE_GAMES_MAX, market=None):
     """Every club in the league, not just yours - see fixture_run_summary
     for the same reasoning applied to the best/worst-run card. Twenty rows
     is too many to show at once without either a scrollbar or a wall of a
     table, so the card pages through FIXTURE_PAGE_SIZE at a time client
     side (ticker.js) rather than scrolling - sorted by rating first, so
-    the page you land on is already the most useful one."""
+    the page you land on is already the most useful one.
+
+    All `weeks` (up to FIXTURE_GAMES_MAX) gameweek columns are always
+    rendered, each fixture cell carrying its own score as `data-score` and
+    a `fxc-target` class when it clears TARGET_RATING - ticker.js uses
+    those to drive the games-count selector and the Target fixtures toggle
+    without needing a second render."""
     if not proj:
         return ""
     owned = {}
@@ -283,21 +305,24 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
                           baseline_xg.get(club), club_mean_cs.get(club))
         if not cells:
             continue
-        avg = sum(c["score"] for c in cells) / len(cells)
+        default_cells = cells[:FIXTURE_GAMES_DEFAULT]
+        avg = sum(c["score"] for c in default_cells) / len(default_cells)
         chips = []
         for c in cells:
             if c.get("blank"):
                 chips.append(
-                    '<td class="fxc fxc-blank" '
+                    '<td class="fxc fxc-blank" data-score="0" '
                     'title="GW{gw}, blank - no fixture">'
                     '<span class="fxc-opp">&mdash;</span></td>'.format(gw=c["gw"])
                 )
                 continue
             cls, style = _cell_style(c["score"])
+            if c["score"] >= TARGET_RATING:
+                cls = (cls + " fxc-target").strip()
             label = c["opp"].upper() if c["home"] else c["opp"].lower()
             mark = '<i class="fx-mkt" title="Priced by the market"></i>' if c["source"] == "market" else ""
             chips.append(
-                '<td class="fxc {cls}" style="{style}" '
+                '<td class="fxc {cls}" style="{style}" data-score="{score:.2f}" '
                 'title="GW{gw}, {venue} to {opp} - rating {score:.1f} of 10, '
                 '{xg:.2f} expected goals, {cs:.0f}% clean sheet ({src})">'
                 '<span class="fxc-opp">{label}{mark}</span>'
@@ -318,8 +343,9 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
             avg, own_n,
             '<tr><td class="fxclub"><b>{club}</b></td>'
             '<td class="num" data-v="{own_n}">{own}</td>'
-            '<td class="num"><span class="fxavg {acls}" style="{astyle}">'
-            "{avg:.1f}</span></td>{chips}</tr>".format(
+            '<td class="num fxavg-cell" data-v="{avg:.2f}">'
+            '<span class="fxavg {acls}" style="{astyle}">{avg:.1f}</span></td>'
+            '{chips}</tr>'.format(
                 club=e(club), own_n=own_n, own=own_cell, acls=acls, astyle=astyle,
                 avg=avg, chips="".join(chips)),
         ))
@@ -329,6 +355,10 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
     heads = "".join(
         '<th scope="col" class="num">GW{}</th>'.format(g)
         for g in range(start_gw, start_gw + weeks)
+    )
+    games_options = "".join(
+        f'<option value="{n}"{" selected" if n == FIXTURE_GAMES_DEFAULT else ""}>{n}</option>'
+        for n in range(1, FIXTURE_GAMES_MAX + 1)
     )
     # Deliberately not called "difficulty". The number here runs the opposite
     # way to FPL's own 1-to-5 FDR - ten is a great fixture, not a brutal one -
@@ -346,6 +376,15 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
             '<button class="fxnav-btn" data-dir="1" '
             'aria-label="Next clubs">&#8250;</button></div>'
         )
+    controls = (
+        '<div class="fxcontrols">'
+        '<label class="axpick">Games <select class="fx-games">'
+        f'{games_options}</select></label>'
+        '<button type="button" class="chip fx-target" aria-pressed="false" '
+        f'title="Only fixtures rated {TARGET_RATING:g} or above stay lit up">'
+        "Target fixtures</button>"
+        "</div>"
+    )
     return (
         '<section class="card"><div class="card-head">'
         f'<h2>Fixture outlook{components.info_btn()}</h2>'
@@ -353,17 +392,20 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
         "for how good the fixture is to own a player for - "
         "<b>higher is better</b>, the opposite way round to FPL's 1-5 "
         "difficulty. Expected goals and clean-sheet odds combined, weighted "
-        f'toward attack. A dot means the market priced it. '
-        f'{FIXTURE_PAGE_SIZE} clubs at a time - cycle through with the '
-        'arrows, or sort a column to re-rank all twenty - click Owned to '
-        'bring your own squad\'s clubs to the top.</span></div>'
-        f'{nav}'
-        '<table data-sortable data-paged class="fxtable">'
+        "toward attack. A dot means the market priced it. Games sets how "
+        "many of the next fixtures the Rating column averages; Target "
+        f"fixtures dims everything below {TARGET_RATING:g} so the genuinely "
+        f"good ones stand out. {FIXTURE_PAGE_SIZE} clubs at a time - cycle "
+        "through with the arrows, or sort a column to re-rank all twenty - "
+        "click Owned to bring your own squad's clubs to the top.</span></div>"
+        f'{controls}{nav}'
+        f'<table data-sortable data-paged class="fxtable" '
+        f'data-games="{FIXTURE_GAMES_DEFAULT}" data-target="{TARGET_RATING}">'
         '<thead><tr><th scope="col" class="sortable">Club</th>'
         '<th scope="col" class="num sortable" title="How many of your 15 '
         'play for this club">Owned</th>'
         '<th scope="col" class="num sortable" title="Mean rating over the '
-        'fixtures shown - higher is better">Rating</th>'
+        'games selected - higher is better">Rating</th>'
         f"{heads}</tr></thead><tbody>"
         f"{''.join(r[2] for r in rows)}</tbody></table></section>"
     )

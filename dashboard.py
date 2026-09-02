@@ -1343,11 +1343,23 @@ table td.tick{border:2px solid var(--surface)}
   font-size:11px; font-weight:600; color:var(--on-surface-variant);
   font-variant-numeric:tabular-nums; min-width:5em; text-align:center;
 }
+.fxcontrols{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding:0 16px 12px;
+}
 .fxtable td.fxc{
   text-align:center; padding:6px 8px; border:2px solid var(--surface);
   border-radius:var(--radius-xs); min-width:58px; line-height:1.2;
+  transition:opacity .15s, filter .15s;
 }
 .fxc-blank{background:var(--surface-variant); color:var(--on-surface-variant)}
+/* Target fixtures: everything that doesn't clear TARGET_RATING fades out,
+   so the genuinely good match-ups are the only thing that still pops. A
+   fade rather than display:none - removing cells would shift every later
+   column in that row out of alignment with the header above it. */
+.fxtable.target-on .fxc:not(.fxc-target):not(.fxc-blank){
+  opacity:.18; filter:grayscale(.5);
+}
 .fxc-opp{display:block; font-size:11px; font-weight:700}
 .fxc-score{display:block; font-size:13px; font-weight:700;
   font-variant-numeric:tabular-nums}
@@ -1370,6 +1382,18 @@ table td.tick{border:2px solid var(--surface)}
    number of gameweek columns kept visible at each breakpoint as before. */
 @media (max-width:640px){.fxtable th:nth-child(n+8),.fxtable td:nth-child(n+8){display:none}}
 @media (max-width:460px){.fxtable th:nth-child(n+7),.fxtable td:nth-child(n+7){display:none}}
+/* The Games selector: GW columns start at nth-child(4) (after Club, Owned,
+   Rating), so showing only the first N hides from nth-child(4+N) on -
+   ticker.js sets data-games to match the <select>. 8 needs no rule, every
+   column FIXTURE_GAMES_MAX renders is already shown. Composes fine with
+   the responsive rules above - whichever applies hides that column. */
+.fxtable[data-games="1"] th:nth-child(n+5),.fxtable[data-games="1"] td:nth-child(n+5){display:none}
+.fxtable[data-games="2"] th:nth-child(n+6),.fxtable[data-games="2"] td:nth-child(n+6){display:none}
+.fxtable[data-games="3"] th:nth-child(n+7),.fxtable[data-games="3"] td:nth-child(n+7){display:none}
+.fxtable[data-games="4"] th:nth-child(n+8),.fxtable[data-games="4"] td:nth-child(n+8){display:none}
+.fxtable[data-games="5"] th:nth-child(n+9),.fxtable[data-games="5"] td:nth-child(n+9){display:none}
+.fxtable[data-games="6"] th:nth-child(n+10),.fxtable[data-games="6"] td:nth-child(n+10){display:none}
+.fxtable[data-games="7"] th:nth-child(n+11),.fxtable[data-games="7"] td:nth-child(n+11){display:none}
 /* The page's one "top reward" look - green through silver to blue - kept
    for the rare figure that earns its own treatment rather than blending
    into the top step of an ordinary scale. A fixture rated above 9 is the
@@ -5049,7 +5073,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "squad_table": squad_table(xi + bench, ctx, cap, vice,
                                    proj, market, next_gw),
         "ticker": ticker.fixture_ticker(xi + bench, ctx, proj, next_gw,
-                                        weeks=6, market=market),
+                                        market=market),
         "fixture_runs": ticker.fixture_run_summary(xi + bench, ctx, proj,
                                                     market, next_gw, weeks=6),
         "market": ticker.odds_insights(market_fixtures, xi, ctx, proj, next_gw),
