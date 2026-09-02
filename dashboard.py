@@ -3215,8 +3215,12 @@ def template_xi(own, by_name, ctx):
     return {"picks": picks, "shape": shape, "managers": n}
 
 
-def template_pitch(tpl, ctx, shirts, my_name):
-    """The template eleven, laid out on a pitch."""
+def template_pitch(tpl, ctx, shirts, my_name, known_ids=frozenset()):
+    """The template eleven, laid out on a pitch.
+
+    `known_ids` are the ids the player dialog has a payload for (the
+    manager's own squad) - most of a league template is other managers'
+    picks, so only those cards get the clickable attributes."""
     if not tpl:
         return ""
     n = tpl["managers"]
@@ -3231,9 +3235,13 @@ def template_pitch(tpl, ctx, shirts, my_name):
             )
             mine = my_name in rec["starters"]
             pct = 100.0 * count / n
+            clickable = (
+                f'data-player="{el["id"]}" role="button" tabindex="0" '
+                if el["id"] in known_ids else ""
+            )
             cards.append(
                 f'<div class="pl{" tpl-mine" if mine else ""}" '
-                f'data-player="{el["id"]}" role="button" tabindex="0" '
+                f'{clickable}'
                 f'title="{e(el["web_name"])} - started by {count} of {n}'
                 f'{" including you" if mine else ", not by you"}">'
                 f'<div class="crest">{crest}</div>'
@@ -3683,13 +3691,17 @@ CONFIDENCE_LABEL = {"strong": "Strong", "watch": "Worth watching",
 
 
 def _mini_shirt_card(pid, pos, team_id, team_name, name, price, ctx, badges,
-                     shirts, fx_html="", incoming=False):
+                     shirts, fx_html="", incoming=False, known=True):
     """One shirt card for a compact pitch/bench view - the same `.pl`
     component the Squad tab pitch uses, but built from whatever identifies
     a player rather than requiring a full PlayerReport, since a proposed
     incoming man has no match history to build one from. `incoming` adds a
     distinct outline and an IN tag, for a squad view that mixes players
-    actually owned with ones only being suggested."""
+    actually owned with ones only being suggested. `known` is False when
+    the player dialog has no payload for this id (a suggested player who
+    is not in the manager's own squad) - those cards render without the
+    clickable attributes rather than opening a dialog that silently does
+    nothing."""
     shirt = shirts.get((team_id, pos == "GKP"))
     uri = shirt or badges.get(team_id)
     crest = (
@@ -3702,8 +3714,9 @@ def _mini_shirt_card(pid, pos, team_id, team_name, name, price, ctx, badges,
     cls = "pl pk pl-incoming" if incoming else "pl pk"
     title = f"{name} - {pos}, {team_name}, {price:.1f}m"
     fx = f'<div class="pk-fx">{fx_html}</div>' if fx_html else ""
+    clickable = f'data-player="{pid}" role="button" tabindex="0" ' if known else ""
     return (
-        f'<div class="{cls}" data-player="{pid}" title="{e(title)}">'
+        f'<div class="{cls}" {clickable}title="{e(title)}">'
         f'{tag}<div class="crest">{crest}</div>'
         f'<div class="nm">{e(name)}</div>{fx}</div>'
     )
@@ -3726,7 +3739,8 @@ def _pool_row(p, ctx):
     return (p["id"], p["pos"], el["team"], p["club"], el["web_name"], p["price"])
 
 
-def mini_pitch(xi_rows, bench_rows, ctx, badges, shirts, incoming_ids=frozenset()):
+def mini_pitch(xi_rows, bench_rows, ctx, badges, shirts, incoming_ids=frozenset(),
+               known_ids=None):
     """A much smaller version of the Squad tab pitch - shirts and names
     only, no stats footer - for a before/after comparison where two full
     squads need to sit side by side without either one dominating the
@@ -3749,14 +3763,16 @@ def mini_pitch(xi_rows, bench_rows, ctx, badges, shirts, incoming_ids=frozenset(
             continue
         cards = "".join(
             _mini_shirt_card(pid, pos, team_id, team_name, name, price,
-                             ctx, badges, shirts, incoming=pid in incoming_ids)
+                             ctx, badges, shirts, incoming=pid in incoming_ids,
+                             known=known_ids is None or pid in known_ids)
             for pid, pos, team_id, team_name, name, price in by_pos[k]
         )
         out.append(f'<div class="row">{cards}</div>')
     out.append("</div>")
     bench_cards = "".join(
         _mini_shirt_card(pid, pos, team_id, team_name, name, price,
-                         ctx, badges, shirts, incoming=pid in incoming_ids)
+                         ctx, badges, shirts, incoming=pid in incoming_ids,
+                         known=known_ids is None or pid in known_ids)
         for pid, pos, team_id, team_name, name, price
         in sorted(bench_rows, key=lambda row: row[5])
     )
@@ -3782,6 +3798,7 @@ def wildcard_section(wc, xi_reports, bench_reports, ctx, badges, shirts):
     after_xi = [_pool_row(p, ctx) for p in wc["ideal_xi"]]
     after_bench = [_pool_row(p, ctx) for p in wc["ideal_bench"]]
     incoming_ids = wc.get("incoming_ids") or set()
+    after_known_ids = {row[0] for row in after_xi + after_bench} - incoming_ids
     start, weeks = wc["gw_window"]
     stats_html = components.wc_stats_block(wc.get("before"), wc.get("after"))
     return (
@@ -3795,7 +3812,7 @@ def wildcard_section(wc, xi_reports, bench_reports, ctx, badges, shirts):
         f'<div class="wcpitch"><h4>Now</h4>'
         f'{mini_pitch(before_xi, before_bench, ctx, badges, shirts)}</div>'
         f'<div class="wcpitch"><h4>Proposed</h4>'
-        f'{mini_pitch(after_xi, after_bench, ctx, badges, shirts, incoming_ids)}</div>'
+        f'{mini_pitch(after_xi, after_bench, ctx, badges, shirts, incoming_ids, after_known_ids)}</div>'
         "</div></div></details>"
     )
 
@@ -3825,7 +3842,7 @@ def bench_boost_pitch(bb, bench_reports, ctx, badges, shirts, proj, market,
                 el["web_name"], el["now_cost"] / 10.0, ctx, badges, shirts,
                 fx_html=_fixture_pill_for(team_name, ctx.pos(el), proj,
                                           market, next_gw),
-                incoming=True))
+                incoming=True, known=False))
         else:
             cards.append(_mini_shirt_card(
                 r.element["id"], r.pos, r.element["team"], r.team, r.name,
@@ -5049,7 +5066,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             league_position_series(histories, my_name)),
         "ownership": ownership_cards(own, by_name, ctx, my_name) if own else "",
         "carousel": ownership_carousel(own, by_name, ctx, my_name) if own else "",
-        "template": template_pitch(tpl, ctx, shirts, my_name),
+        "template": template_pitch(tpl, ctx, shirts, my_name, set(squad_ids)),
         "differentials": differential_card(own, by_name, ctx, my_name, league_photos),
         "watchlist": differential_watchlist_card(
             watchlist_rows, league_photos, transfers.TRANSFER_HORIZON_WEEKS),
