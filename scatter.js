@@ -32,6 +32,31 @@
       return n;
     }
 
+    // Round step sizes only - {1, 2, 2.5, 5} x 10^k - so axis labels read as
+    // numbers a person would actually pick (0.5, 1.5, 2), not arbitrary
+    // fifths of whatever range the data happens to span (2.21, 1.65...).
+    // The domain is padded out to the resulting ticks, not the other way
+    // round, so the outermost gridline always lands exactly on the edge.
+    function niceStep(rawStep) {
+      var exponent = Math.floor(Math.log(rawStep) / Math.LN10);
+      var base = Math.pow(10, exponent);
+      var frac = rawStep / base;
+      var niceFrac = frac <= 1 ? 1 : frac <= 2 ? 2 : frac <= 2.5 ? 2.5 : frac <= 5 ? 5 : 10;
+      return niceFrac * base;
+    }
+
+    function niceTicks(min, max, maxTicks) {
+      if (min === max) { min -= 1; max += 1; }
+      var step = niceStep((max - min) / Math.max(1, maxTicks));
+      var niceMin = Math.floor(min / step) * step;
+      var niceMax = Math.ceil(max / step) * step;
+      var ticks = [];
+      for (var v = niceMin; v <= niceMax + step / 1e6; v += step) {
+        ticks.push(Math.round(v / step) * step);
+      }
+      return { ticks: ticks, min: niceMin, max: niceMax };
+    }
+
     // Decimals follow the span of the axis, not the size of the number: two
     // decimals suit a 0-to-2 xGI scale and look wrong on a points axis, where
     // "-2.00" reads as a measurement rather than a whole number of points.
@@ -55,11 +80,11 @@
 
       var xs = rows.map(function (d) { return d[xk]; });
       var ys = rows.map(function (d) { return d[yk]; });
-      var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
-      var y0 = Math.min(0, Math.min.apply(null, ys)), y1 = Math.max.apply(null, ys);
-      var xpad = (x1 - x0) * 0.06 || 1;
-      var ypad = (y1 - y0) * 0.08 || 1;
-      x0 -= xpad; x1 += xpad; y1 += ypad;
+      var rawX0 = Math.min.apply(null, xs), rawX1 = Math.max.apply(null, xs);
+      var rawY0 = Math.min(0, Math.min.apply(null, ys)), rawY1 = Math.max.apply(null, ys);
+      var xTicks = niceTicks(rawX0, rawX1, 5);
+      var yTicks = niceTicks(rawY0, rawY1, 4);
+      var x0 = xTicks.min, x1 = xTicks.max, y0 = yTicks.min, y1 = yTicks.max;
       if (x1 === x0) { x1 = x0 + 1; }
       if (y1 === y0) { y1 = y0 + 1; }
 
@@ -68,19 +93,18 @@
 
       var grid = node('g', { 'class': 'grid' });
       var labels = node('g', { 'class': 'axlab' });
-      var i;
-      for (i = 0; i <= 4; i++) {
-        var yv = y0 + (y1 - y0) * i / 4, gy = sy(yv);
+      yTicks.ticks.forEach(function (yv) {
+        var gy = sy(yv);
         grid.appendChild(node('line', { x1: ML, y1: gy, x2: W - MR, y2: gy }));
         labels.appendChild(node('text',
           { x: ML - 8, y: gy + 4, 'text-anchor': 'end' }, fmt(yv, y1 - y0)));
-      }
-      for (i = 0; i <= 5; i++) {
-        var xv = x0 + (x1 - x0) * i / 5, gx = sx(xv);
+      });
+      xTicks.ticks.forEach(function (xv) {
+        var gx = sx(xv);
         grid.appendChild(node('line', { x1: gx, y1: MT, x2: gx, y2: H - MB }));
         labels.appendChild(node('text',
           { x: gx, y: H - MB + 18, 'text-anchor': 'middle' }, fmt(xv, x1 - x0)));
-      }
+      });
       svg.appendChild(grid);
       svg.appendChild(labels);
       svg.appendChild(node('text',
