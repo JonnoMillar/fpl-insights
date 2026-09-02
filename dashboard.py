@@ -1347,6 +1347,15 @@ table td.tick{border:2px solid var(--surface)}
   display:flex; align-items:center; gap:14px; flex-wrap:wrap;
   padding:0 16px 12px;
 }
+/* A stepper, not a <select> - two round arrow buttons either side of the
+   number, the same shape as the club-paging arrows below (.fxnav-btn) so
+   the card doesn't introduce a second way of doing the same kind of thing. */
+.fxgames{display:flex; align-items:center; gap:8px}
+.fxgames-label{font-size:13px; font-weight:600}
+.fxgames-n{
+  min-width:1.4em; text-align:center; font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
 .fxtable td.fxc{
   text-align:center; padding:6px 8px; border:2px solid var(--surface);
   border-radius:var(--radius-xs); min-width:58px; line-height:1.2;

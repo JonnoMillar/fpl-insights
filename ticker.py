@@ -356,10 +356,6 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=FIXTURE_GAMES_MAX, market
         '<th scope="col" class="num">GW{}</th>'.format(g)
         for g in range(start_gw, start_gw + weeks)
     )
-    games_options = "".join(
-        f'<option value="{n}"{" selected" if n == FIXTURE_GAMES_DEFAULT else ""}>{n}</option>'
-        for n in range(1, FIXTURE_GAMES_MAX + 1)
-    )
     # Deliberately not called "difficulty". The number here runs the opposite
     # way to FPL's own 1-to-5 FDR - ten is a great fixture, not a brutal one -
     # and heading a higher-is-better column "difficulty" invites exactly the
@@ -378,8 +374,15 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=FIXTURE_GAMES_MAX, market
         )
     controls = (
         '<div class="fxcontrols">'
-        '<label class="axpick">Games <select class="fx-games">'
-        f'{games_options}</select></label>'
+        '<div class="fxgames">'
+        '<span class="fxgames-label" id="fxgames-label">Games</span>'
+        '<button type="button" class="fxnav-btn fxgames-btn" data-dir="-1" '
+        'aria-label="Fewer games">&#8249;</button>'
+        f'<span class="fxgames-n" role="status" aria-live="polite" '
+        f'aria-labelledby="fxgames-label">{FIXTURE_GAMES_DEFAULT}</span>'
+        '<button type="button" class="fxnav-btn fxgames-btn" data-dir="1" '
+        'aria-label="More games">&#8250;</button>'
+        "</div>"
         '<button type="button" class="chip fx-target" aria-pressed="false" '
         f'title="Only fixtures rated {TARGET_RATING:g} or above stay lit up">'
         "Target fixtures</button>"
