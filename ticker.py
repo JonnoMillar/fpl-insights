@@ -11,12 +11,16 @@ There is now one number per fixture. It combines the two things that decide
 whether a fixture is worth owning a player for, in one 0-to-10 rating where
 higher is better:
 
-    attack   the club's expected goals in that match, against a league norm
-    defence  the probability they keep a clean sheet
+    attack   the club's expected goals in that match, against their own
+             season norm for that venue (home or away)
+    defence  their clean-sheet chance, against that same club-and-venue norm
 
 Weighted 55/45 toward attack, because most of a squad scores its points at the
-other end. Where the betting market has priced a fixture its numbers are used;
-beyond that, Fantasy Football Scout's model fills in, and the cell says which.
+other end. Both halves are relative to the club's own level, not the whole
+league's - see relative_rating - and split by venue, since a side's home and
+away form genuinely differ. Where the betting market has priced a fixture its
+numbers are used; beyond that, Fantasy Football Scout's model fills in, and
+the cell says which.
 
 Colours are light throughout, with dark text - a rating is read from the
 number, and the fill is there to let a run of green or a run of red show up
@@ -25,7 +29,6 @@ when you glance down a row.
 
 import html
 
-import analysis
 import components
 import ffs
 
@@ -111,23 +114,53 @@ def rating(xg, cs_pct):
     return 10.0 * (ATTACK_WEIGHT * attack + (1 - ATTACK_WEIGHT) * defence)
 
 
-def _season_mean_cs(proj):
-    """Each club's own mean clean-sheet chance across the whole season in
-    `proj` - the baseline a single fixture's clean-sheet odds are compared
-    against, the same way analysis.team_attack_baselines isolates attack."""
-    totals, counts = {}, {}
+def _season_norms(proj):
+    """Each club's own mean expected goals and clean-sheet chance across
+    the whole season in `proj`, split home vs away - a side's home and away
+    levels genuinely differ (crowd, no travel, and so on), so a fixture
+    should be judged against whichever one it's actually being played
+    under, not a blend of both.
+
+    Both numbers are sourced from `proj` (FFS's own model) rather than
+    real observed results, because `proj` is the only season-long feed
+    that already tags every row with a venue - splitting real match xG by
+    venue would mean an extra API call per player, for every player in the
+    league, just for this. Returns (baseline_xg, club_mean_cs,
+    league_avg_xg, league_avg_cs), the first two keyed
+    {club: {"H": v, "A": v}}."""
+    sums = {}
     for (club, _gw), row in proj.items():
-        totals[club] = totals.get(club, 0.0) + float(row.get("cs") or 0)
-        counts[club] = counts.get(club, 0) + 1
-    league_avg = sum(totals.values()) / sum(counts.values()) if counts else 25.0
-    return {c: totals[c] / counts[c] for c in totals if counts[c]}, league_avg
+        venue = "H" if (row.get("ven") or "H").upper() == "H" else "A"
+        acc = sums.setdefault(club, {}).setdefault(venue, {"xg": 0.0, "cs": 0.0, "n": 0})
+        acc["xg"] += float(row.get("g") or 0)
+        acc["cs"] += float(row.get("cs") or 0)
+        acc["n"] += 1
+
+    baseline_xg, club_mean_cs = {}, {}
+    league_xg_total, league_cs_total, league_n = 0.0, 0.0, 0
+    for club, by_venue in sums.items():
+        baseline_xg[club], club_mean_cs[club] = {}, {}
+        for venue, acc in by_venue.items():
+            if not acc["n"]:
+                continue
+            baseline_xg[club][venue] = acc["xg"] / acc["n"]
+            club_mean_cs[club][venue] = acc["cs"] / acc["n"]
+            league_xg_total += acc["xg"]
+            league_cs_total += acc["cs"]
+            league_n += acc["n"]
+    league_avg_xg = league_xg_total / league_n if league_n else 1.45
+    league_avg_cs = league_cs_total / league_n if league_n else 25.0
+    return baseline_xg, club_mean_cs, league_avg_xg, league_avg_cs
 
 
 def relative_rating(xg, cs_pct, baseline_xg, club_mean_cs):
     """How good this fixture is *for this club*, against its own season
-    norm - not how good the club is in absolute terms. A fixture exactly at
-    a club's own average scores a flat 5 either half; an 80% swing either
-    way moves that half from end to end, clamped there."""
+    norm for the venue it's actually being played at - not how good the
+    club is in absolute terms, and not blended across home and away. A
+    fixture exactly at a club's own average (for that venue) scores a flat
+    5 either half; an 80% swing either way moves that half from end to
+    end, clamped there. `baseline_xg`/`club_mean_cs` are the single home
+    or away number already selected by the caller - see _season_norms."""
     attack = _clamp01((xg / baseline_xg - 0.6) / 0.8) if baseline_xg else 0.5
     defence = _clamp01((cs_pct / club_mean_cs - 0.6) / 0.8) if club_mean_cs else 0.5
     return 10.0 * (ATTACK_WEIGHT * attack + (1 - ATTACK_WEIGHT) * defence)
@@ -143,9 +176,11 @@ def _tone(score):
 def _rows_for(club, proj, market, start_gw, weeks, baseline_xg=None, club_mean_cs=None):
     """Fixtures for one club, market first and model behind.
 
-    `baseline_xg`/`club_mean_cs` are this club's own season norms (see
-    relative_rating) - required for a fixture-relative score. Omit either
-    to fall back to the absolute, team-ranking score instead."""
+    `baseline_xg`/`club_mean_cs` are this club's own season norms, keyed
+    by venue - {"H": v, "A": v} - so each row picks the one matching where
+    that fixture is actually played (see relative_rating and
+    _season_norms). Omit either to fall back to the absolute,
+    team-ranking score instead."""
     out = []
     mk = (market or {}).get(club)
     for fx in ffs.ticker(proj, club, start_gw, weeks):
@@ -162,8 +197,11 @@ def _rows_for(club, proj, market, start_gw, weeks, baseline_xg=None, club_mean_c
         # postponement putting the two sources out of step.
         if mk and not out and mk.get("opp") == fx["opp"]:
             xg, cs, source = mk["xg"], mk["cs"], "market"
-        if baseline_xg and club_mean_cs:
-            score = relative_rating(xg, cs, baseline_xg, club_mean_cs)
+        venue = "H" if fx["home"] else "A"
+        bx = (baseline_xg or {}).get(venue)
+        cm = (club_mean_cs or {}).get(venue)
+        if bx and cm:
+            score = relative_rating(xg, cs, bx, cm)
         else:
             score = rating(xg, cs)
         out.append({
@@ -175,16 +213,20 @@ def _rows_for(club, proj, market, start_gw, weeks, baseline_xg=None, club_mean_c
 
 
 def _club_norms(ctx, proj):
-    """(baseline_xg, club_mean_cs) keyed by club short name, for
-    relative_rating - each club's own season-long attack and defence
-    norms, the same isolation analysis.expected_points already applies."""
-    baseline_xg = {
-        ctx.team_name(tid): v
-        for tid, v in analysis.team_attack_baselines(ctx).items()
-    }
-    club_mean_cs, league_avg_cs = _season_mean_cs(proj)
+    """(baseline_xg, club_mean_cs) keyed by club short name, each a
+    {"H": v, "A": v} dict, for relative_rating - each club's own
+    season-long attack and defence norms, split by venue (_season_norms),
+    with a league-wide fallback for a club/venue combination proj has no
+    rows for."""
+    baseline_xg, club_mean_cs, league_avg_xg, league_avg_cs = _season_norms(proj)
     for t in ctx.teams.values():
-        club_mean_cs.setdefault(t["short_name"], league_avg_cs)
+        club = t["short_name"]
+        bx = baseline_xg.setdefault(club, {})
+        bx.setdefault("H", league_avg_xg)
+        bx.setdefault("A", league_avg_xg)
+        cm = club_mean_cs.setdefault(club, {})
+        cm.setdefault("H", league_avg_cs)
+        cm.setdefault("A", league_avg_cs)
     return baseline_xg, club_mean_cs
 
 
