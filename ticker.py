@@ -25,6 +25,7 @@ when you glance down a row.
 
 import html
 
+import analysis
 import components
 import ffs
 
@@ -96,9 +97,39 @@ def _clamp01(v):
 
 
 def rating(xg, cs_pct):
-    """One 0-10 score for how good a fixture is to own a player from."""
+    """One 0-10 score for how good a fixture is in absolute terms - how
+    much a side is expected to score and keep out, full stop.
+
+    This ranks *teams*, not fixtures: a genuinely strong side reads as a
+    good fixture even against a tough opponent, because it correctly
+    expects to score and defend well regardless of who it faces. Kept only
+    for fixture_run_summary's "Our model" column, labelled as expected
+    output rather than a fixture rating - see relative_rating for the
+    per-club-isolated version everything else on the page uses."""
     attack = _clamp01((xg - XG_LOW) / (XG_HIGH - XG_LOW))
     defence = _clamp01((cs_pct / 100.0 - CS_LOW) / (CS_HIGH - CS_LOW))
+    return 10.0 * (ATTACK_WEIGHT * attack + (1 - ATTACK_WEIGHT) * defence)
+
+
+def _season_mean_cs(proj):
+    """Each club's own mean clean-sheet chance across the whole season in
+    `proj` - the baseline a single fixture's clean-sheet odds are compared
+    against, the same way analysis.team_attack_baselines isolates attack."""
+    totals, counts = {}, {}
+    for (club, _gw), row in proj.items():
+        totals[club] = totals.get(club, 0.0) + float(row.get("cs") or 0)
+        counts[club] = counts.get(club, 0) + 1
+    league_avg = sum(totals.values()) / sum(counts.values()) if counts else 25.0
+    return {c: totals[c] / counts[c] for c in totals if counts[c]}, league_avg
+
+
+def relative_rating(xg, cs_pct, baseline_xg, club_mean_cs):
+    """How good this fixture is *for this club*, against its own season
+    norm - not how good the club is in absolute terms. A fixture exactly at
+    a club's own average scores a flat 5 either half; an 80% swing either
+    way moves that half from end to end, clamped there."""
+    attack = _clamp01((xg / baseline_xg - 0.6) / 0.8) if baseline_xg else 0.5
+    defence = _clamp01((cs_pct / club_mean_cs - 0.6) / 0.8) if club_mean_cs else 0.5
     return 10.0 * (ATTACK_WEIGHT * attack + (1 - ATTACK_WEIGHT) * defence)
 
 
@@ -109,8 +140,12 @@ def _tone(score):
     return SCALE[-1][1], SCALE[-1][2]
 
 
-def _rows_for(club, proj, market, start_gw, weeks):
-    """Fixtures for one club, market first and model behind."""
+def _rows_for(club, proj, market, start_gw, weeks, baseline_xg=None, club_mean_cs=None):
+    """Fixtures for one club, market first and model behind.
+
+    `baseline_xg`/`club_mean_cs` are this club's own season norms (see
+    relative_rating) - required for a fixture-relative score. Omit either
+    to fall back to the absolute, team-ranking score instead."""
     out = []
     mk = (market or {}).get(club)
     for fx in ffs.ticker(proj, club, start_gw, weeks):
@@ -127,12 +162,30 @@ def _rows_for(club, proj, market, start_gw, weeks):
         # postponement putting the two sources out of step.
         if mk and not out and mk.get("opp") == fx["opp"]:
             xg, cs, source = mk["xg"], mk["cs"], "market"
+        if baseline_xg and club_mean_cs:
+            score = relative_rating(xg, cs, baseline_xg, club_mean_cs)
+        else:
+            score = rating(xg, cs)
         out.append({
             "gw": fx["gw"], "opp": fx["opp"], "home": fx["home"],
             "xg": xg, "cs": cs, "source": source,
-            "score": rating(xg, cs),
+            "score": score,
         })
     return out
+
+
+def _club_norms(ctx, proj):
+    """(baseline_xg, club_mean_cs) keyed by club short name, for
+    relative_rating - each club's own season-long attack and defence
+    norms, the same isolation analysis.expected_points already applies."""
+    baseline_xg = {
+        ctx.team_name(tid): v
+        for tid, v in analysis.team_attack_baselines(ctx).items()
+    }
+    club_mean_cs, league_avg_cs = _season_mean_cs(proj)
+    for t in ctx.teams.values():
+        club_mean_cs.setdefault(t["short_name"], league_avg_cs)
+    return baseline_xg, club_mean_cs
 
 
 FIXTURE_PAGE_SIZE = 8
@@ -150,11 +203,13 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=6, market=None):
     owned = {}
     for r in reports:
         owned[r.team] = owned.get(r.team, 0) + 1
+    baseline_xg, club_mean_cs = _club_norms(ctx, proj)
 
     rows = []
     for tid, t in ctx.teams.items():
         club = t["short_name"]
-        cells = _rows_for(club, proj, market, start_gw, weeks)
+        cells = _rows_for(club, proj, market, start_gw, weeks,
+                          baseline_xg.get(club), club_mean_cs.get(club))
         if not cells:
             continue
         avg = sum(c["score"] for c in cells) / len(cells)
@@ -308,8 +363,10 @@ def fixture_run_summary(reports, ctx, proj, market, next_gw, weeks=6, n=3):
         )
 
     parts = (
-        block(model_rows, "Our model",
-              "Attack and defence combined, out of ten - higher is better.",
+        block(model_rows, "Expected output",
+              "Attack and defence combined, out of ten, in absolute terms - "
+              "a genuinely strong side reads as a good run here even against "
+              "tough opponents. Higher is better.",
               True, lambda v: f"{v:.1f}")
         + block(fdr_rows, "FPL's own difficulty",
                 "FPL's 1-5 rating, unadjusted for either side's own quality "

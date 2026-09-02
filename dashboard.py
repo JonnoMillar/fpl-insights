@@ -2283,13 +2283,15 @@ def squad_table(reports, ctx, captain_id, vice_id, proj=None, market=None,
         for label, cls, sortable in SQUAD_HEAD
     )
     maxx = max([r.xgi90 for r in reports] + [0.01])
+    baseline_xg, club_mean_cs = ticker._club_norms(ctx, proj) if proj else ({}, {})
     body = []
     for r in reports:
         el = r.element
         flag, news = r.availability
         fx = "".join(
             ticker.rating_pill(row["opp"], row["home"], row["score"])
-            for row in ticker._rows_for(r.team, proj, market, next_gw, 3)
+            for row in ticker._rows_for(r.team, proj, market, next_gw, 3,
+                                        baseline_xg.get(r.team), club_mean_cs.get(r.team))
         ) or "".join(
             fdr_pill(ctx.team_name(o), h, d)
             for o, h, d, _ev in ctx.next_fixtures(el["team"], 3)
@@ -2673,12 +2675,15 @@ def ep_card(eps, gw):
     )
 
 
-def _next_three(r, ctx, proj, market, next_gw):
+def _next_three(r, ctx, proj, market, next_gw, baseline_xg=None, club_mean_cs=None):
     """Three fixture pills for one player, market-rated where the odds
     priced the game and on FPL's own difficulty rating where they did not."""
+    baseline_xg = baseline_xg or {}
+    club_mean_cs = club_mean_cs or {}
     pills = "".join(
         ticker.rating_pill(row["opp"], row["home"], row["score"])
-        for row in ticker._rows_for(r.team, proj, market, next_gw, 3)
+        for row in ticker._rows_for(r.team, proj, market, next_gw, 3,
+                                    baseline_xg.get(r.team), club_mean_cs.get(r.team))
     )
     return pills or "".join(
         fdr_pill(ctx.team_name(o), h, d)
@@ -2706,6 +2711,7 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
     if not ctx.lineups_known():
         return ""
     xi_ids = xi_ids or set()
+    baseline_xg, club_mean_cs = ticker._club_norms(ctx, proj) if proj else ({}, {})
     views = [
         ("squad", "Full squad", reports),
         ("xi", "Starting XI", [r for r in reports if r.element["id"] in xi_ids]),
@@ -2718,7 +2724,8 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
         items = "".join(
             f'<li><span class="lc-name">{e(r.name)}</span>'
             f'<span class="lc-club">{e(r.team)}</span>'
-            + (f'<span class="lc-fx">{_next_three(r, ctx, proj, market, next_gw)}'
+            + (f'<span class="lc-fx">'
+               f'{_next_three(r, ctx, proj, market, next_gw, baseline_xg, club_mean_cs)}'
                f"</span>" if fixtures else "")
             + "</li>"
             for r in rows
@@ -2878,6 +2885,7 @@ def fixture_swings_card(reports, ctx, proj, market, next_gw):
         return ""
     kind.sort(key=lambda x: x[2])
     hard.sort(key=lambda x: -x[2])
+    baseline_xg, club_mean_cs = ticker._club_norms(ctx, proj) if proj else ({}, {})
 
     def block(rows, cls, label):
         if not rows:
@@ -2889,7 +2897,8 @@ def fixture_swings_card(reports, ctx, proj, market, next_gw):
                 club=e(club), fdr=fdr,
                 pills="".join(
                     ticker.rating_pill(row["opp"], row["home"], row["score"])
-                    for row in ticker._rows_for(club, proj, market, next_gw, 3)
+                    for row in ticker._rows_for(club, proj, market, next_gw, 3,
+                                                baseline_xg.get(club), club_mean_cs.get(club))
                 ),
             )
             for club, _tid, fdr in rows
