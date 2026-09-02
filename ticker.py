@@ -7,20 +7,23 @@ shading by goals, which is not a choice anyone wants to make while reading a
 table - and it painted the good cells almost black, so a run of easy fixtures
 was a wall of dark squares. Both are gone.
 
-There is now one number per fixture. It combines the two things that decide
-whether a fixture is worth owning a player for, in one 0-to-10 rating where
-higher is better:
+There is now one number per fixture: how good it is to own a player from that
+club, 0 to 10, higher is better. It is mostly an absolute read - expected
+goals and clean-sheet chance against fixed league-wide anchors, weighted
+55/45 toward attack, because most of a squad scores its points at the other
+end - because that is what the question actually is: a strong side's floor
+usually beats a weak side's ceiling, so "who should I buy from" needs to stay
+answered in real terms, not just "is this normal for them."
 
-    attack   the club's expected goals in that match, against their own
-             season norm for that venue (home or away)
-    defence  their clean-sheet chance, against that same club-and-venue norm
+A smaller slice (see BLEND_WEIGHT) compares the same fixture against the
+club's own season norm for that venue instead (home and away kept separate,
+since a side's home and away level genuinely differ - see relative_rating).
+That nudges the score for a fixture that is unusually kind or harsh for this
+specific club, without ever letting "better than usual for a weak side"
+outrank "actually good in absolute terms" - see blended_rating.
 
-Weighted 55/45 toward attack, because most of a squad scores its points at the
-other end. Both halves are relative to the club's own level, not the whole
-league's - see relative_rating - and split by venue, since a side's home and
-away form genuinely differ. Where the betting market has priced a fixture its
-numbers are used; beyond that, Fantasy Football Scout's model fills in, and
-the cell says which.
+Where the betting market has priced a fixture its numbers are used; beyond
+that, Fantasy Football Scout's model fills in, and the cell says which.
 
 Colours are light throughout, with dark text - a rating is read from the
 number, and the fill is there to let a run of green or a run of red show up
@@ -37,6 +40,13 @@ import ffs
 XG_LOW, XG_HIGH = 0.65, 2.35
 CS_LOW, CS_HIGH = 0.08, 0.55
 ATTACK_WEIGHT = 0.55
+
+# How much of the final score is the absolute read vs the club-relative one -
+# deliberately lopsided. This is a "who should I buy from" card, and a strong
+# side's ordinary week usually still outscores a weak side's best one, so
+# absolute output has to keep the final say; the relative comparison only
+# nudges it, it never overturns it.
+BLEND_WEIGHT = 0.7
 
 # Five light steps. Deliberately pale: the number carries the value, the fill
 # only has to make a pattern visible down a column.
@@ -101,14 +111,16 @@ def _clamp01(v):
 
 def rating(xg, cs_pct):
     """One 0-10 score for how good a fixture is in absolute terms - how
-    much a side is expected to score and keep out, full stop.
+    much a side is expected to score and keep out, full stop, against
+    fixed league-wide anchors.
 
     This ranks *teams*, not fixtures: a genuinely strong side reads as a
     good fixture even against a tough opponent, because it correctly
-    expects to score and defend well regardless of who it faces. Kept only
-    for fixture_run_summary's "Our model" column, labelled as expected
-    output rather than a fixture rating - see relative_rating for the
-    per-club-isolated version everything else on the page uses."""
+    expects to score and defend well regardless of who it faces - which is
+    exactly right for "who should I buy from", and exactly why it is the
+    dominant term in blended_rating rather than being replaced outright by
+    relative_rating. Also used alone for fixture_run_summary's "Expected
+    output" column and FPL's own difficulty comparison."""
     attack = _clamp01((xg - XG_LOW) / (XG_HIGH - XG_LOW))
     defence = _clamp01((cs_pct / 100.0 - CS_LOW) / (CS_HIGH - CS_LOW))
     return 10.0 * (ATTACK_WEIGHT * attack + (1 - ATTACK_WEIGHT) * defence)
@@ -160,10 +172,27 @@ def relative_rating(xg, cs_pct, baseline_xg, club_mean_cs):
     fixture exactly at a club's own average (for that venue) scores a flat
     5 either half; an 80% swing either way moves that half from end to
     end, clamped there. `baseline_xg`/`club_mean_cs` are the single home
-    or away number already selected by the caller - see _season_norms."""
+    or away number already selected by the caller - see _season_norms.
+    Used alone nowhere on the page any more - see blended_rating."""
     attack = _clamp01((xg / baseline_xg - 0.6) / 0.8) if baseline_xg else 0.5
     defence = _clamp01((cs_pct / club_mean_cs - 0.6) / 0.8) if club_mean_cs else 0.5
     return 10.0 * (ATTACK_WEIGHT * attack + (1 - ATTACK_WEIGHT) * defence)
+
+
+def blended_rating(xg, cs_pct, baseline_xg, club_mean_cs):
+    """The rating actually shown everywhere on the page: mostly rating()
+    (absolute output - who should I buy from), with a BLEND_WEIGHT-sized
+    nudge from relative_rating (is this unusually kind or harsh for this
+    specific club). Doing it this way round - absolute leading, relative
+    nudging - keeps a strong side's ordinary week reading as better than a
+    weak side's best one, which a pure relative score got backwards: Man
+    City at home to a poor side scored below Fulham away to the same side,
+    because 2.8 xG was merely "good for City" while 1.4 xG was "great for
+    Fulham" - true, but not what "which club's players should I buy"
+    needs to hear."""
+    absolute = rating(xg, cs_pct)
+    relative = relative_rating(xg, cs_pct, baseline_xg, club_mean_cs)
+    return BLEND_WEIGHT * absolute + (1 - BLEND_WEIGHT) * relative
 
 
 def _tone(score):
@@ -201,7 +230,7 @@ def _rows_for(club, proj, market, start_gw, weeks, baseline_xg=None, club_mean_c
         bx = (baseline_xg or {}).get(venue)
         cm = (club_mean_cs or {}).get(venue)
         if bx and cm:
-            score = relative_rating(xg, cs, bx, cm)
+            score = blended_rating(xg, cs, bx, cm)
         else:
             score = rating(xg, cs)
         out.append({
