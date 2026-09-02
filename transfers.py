@@ -516,16 +516,20 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
     player the whole game is buying this week. So:
 
     * **Buy** - not owned, projects highest for the coming week, and is
-      actually reachable by selling someone you own in that position.
+      actually reachable: some owned player in that position both funds
+      him and projects meaningfully less. Named, so the claim is
+      checkable - "any forward cheaper than Haaland" is not a shortlist,
+      it is reachable only by selling Haaland.
     * **Sell** - owned, and a specific affordable replacement projects
       meaningfully higher. Named, so the claim is checkable.
     * **Keep** - owned, projects well, and nothing above wants to move
       him. The useful half of a recommendation engine is the part that
       tells you to sit still.
     * **Avoid** - not owned, being bought heavily right now, and a
-      same-position player at the same price or less projects higher.
-      This is the only list here that reads the market rather than the
-      model, and the only one that can disagree with the crowd.
+      same-position player at the same price or less projects
+      meaningfully higher, not just fractionally so. This is the only
+      list here that reads the market rather than the model, and the
+      only one that can disagree with the crowd.
 
     Every figure is a case_score total - points summed across the next
     TRANSFER_HORIZON_WEEKS gameweeks plus a small form/underlying-numbers
@@ -545,12 +549,6 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
     own_pool = [_own_pool_row(r, scores[r.element["id"]]["total"])
                 for r in scored_owned]
     base_xi_value = _xi_value(own_pool)
-
-    # The most expensive man held in each position sets what a purchase
-    # there can cost: you have to sell someone to buy someone.
-    ceiling = {}
-    for r in scored_owned:
-        ceiling[r.pos] = max(ceiling.get(r.pos, 0.0), r.price + bank)
 
     # Three per club, the same rule `suggest` enforces. Without it the Buy
     # column filled with whichever club had the kindest fixture that week -
@@ -648,14 +646,29 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
         if pid in owned:
             continue
         el = ctx.players[pid]
-        pos = ctx.pos(el)
-        if pos not in ceiling or el["now_cost"] / 10.0 > ceiling[pos] + 1e-9:
-            continue
+        pos, price = ctx.pos(el), el["now_cost"] / 10.0
         if not club_ok(el):
             continue
-        buy.append(row(el, s, "{:.1f} across {}gw, next {} {}".format(
+        # Reachable means a specific owned player in this position both
+        # funds him and projects meaningfully less (L10) - not merely
+        # "cheaper than the priciest man you own there", which is
+        # reachable only by selling your best asset in the position.
+        # Named as the weakest-projecting funder that clears the bar, so
+        # the case reads as "sell your worst option here", not your best.
+        funder = None
+        for r in scored_owned:
+            if r.pos != pos or r.price + bank + 1e-9 < price:
+                continue
+            r_total = scores[r.element["id"]]["total"]
+            if s["total"] - r_total < SELL_MARGIN:
+                continue
+            if funder is None or r_total < scores[funder.element["id"]]["total"]:
+                funder = r
+        if not funder:
+            continue
+        buy.append(row(el, s, "{:.1f} across {}gw, next {} {} - sell {}".format(
             s["total"], TRANSFER_HORIZON_WEEKS,
-            "vs" if s["home"] else "at", s["opponent"])))
+            "vs" if s["home"] else "at", s["opponent"], funder.name)))
     buy.sort(key=lambda x: -x["ep"])
 
     # --- Keep: rated well, and nothing wants to move him -------------
@@ -689,19 +702,22 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
             oel = ctx.players[oid]
             if ctx.pos(oel) != pos or oel["now_cost"] / 10.0 > price + 1e-9:
                 continue
-            if os_["total"] <= s["total"] or not club_ok(oel):
+            # A fractional gap is nothing over TRANSFER_HORIZON_WEEKS
+            # weeks - the same meaningful-gain bar every other list here
+            # holds a claim to (L10), not "ranked below by any amount".
+            if os_["total"] - s["total"] < MIN_CASE_GAIN or not club_ok(oel):
                 continue
             if better is None or os_["total"] > better[1]["total"]:
                 better = (oel, os_)
         if not better:
             continue
+        margin = better[1]["total"] - s["total"]
         avoid.append({
             **row(el, s, "{} is {:.1f}m and projects {:+.1f}".format(
-                better[0]["web_name"], better[0]["now_cost"] / 10.0,
-                better[1]["total"] - s["total"])),
-            "net": net,
+                better[0]["web_name"], better[0]["now_cost"] / 10.0, margin)),
+            "net": net, "margin": margin,
         })
-    avoid.sort(key=lambda x: -x["net"])
+    avoid.sort(key=lambda x: -x["margin"])
 
     # Sell and Keep are lists of players already owned, so the club budget
     # does not apply to them - it only constrains who you can sign.
