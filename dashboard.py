@@ -3890,7 +3890,8 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
         body = (
             f'<p class="cp-gw">GW{fh["gw"]}</p>'
             f'<p class="cp-reason">Best possible XI projects {pt["ideal_value"]:.1f} pts '
-            f'against your {pt["ours_value"]:.1f} - a gap of {fh["gap"]:.1f}.</p>'
+            f'against your XI\'s {pt["ours_value"]:.1f} that week - a gap of '
+            f'{fh["gap"]:.1f}.</p>'
             f'{conf_pill(fh["confidence"])}'
         )
         cards.append(_cp_card("Free Hit", used.get("freehit"), body))
@@ -4926,7 +4927,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             print(f"[chips] sell value unavailable, falling back to "
                   f"current price: {ex}")
             total_sell = sum(r.price for r in xi + bench)
-        fh = chips.free_hit(ctx, xi, proj, market, baselines, next_gw)
+        fh = chips.free_hit(ctx, xi, proj, market, baselines, next_gw,
+                            budget=total_sell + bank_m)
         tc = chips.triple_captain(ctx, xi, proj, market, baselines, next_gw)
         bb = chips.bench_boost(ctx, bench, proj, market, baselines, next_gw,
                                bank=bank_m)

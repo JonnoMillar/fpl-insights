@@ -104,10 +104,16 @@ def build_pool(ctx, proj, market, baselines, start_gw, weeks, exclude_ids=(),
     return pool
 
 
-def points_team(ctx, xi_reports, proj, market, baselines, gw):
+def points_team(ctx, xi_reports, proj, market, baselines, gw, budget):
     """The highest-scoring possible team this gameweek, against what the
     manager's own current best XI actually projects to - single week
-    only, since this is also Free Hit's one-week evidence."""
+    only, since this is also Free Hit's one-week evidence.
+
+    `budget` is the whole-squad sell value (15 players) plus the bank - what
+    a Free Hit actually spends (L3). The manager's own current XI price is
+    not that budget: it is roughly the sell value minus a cheap bench,
+    which understates what a Free Hit XI can actually cost by however much
+    the bench is worth, and made the "ideal" team look artificially weak."""
     exclude_ids = {r.element["id"] for r in xi_reports}
     pool = build_pool(ctx, proj, market, baselines, gw, weeks=1,
                       exclude_ids=exclude_ids)
@@ -123,7 +129,6 @@ def points_team(ctx, xi_reports, proj, market, baselines, gw):
         })
     full_pool = pool + own_pool
 
-    budget = sum(r.price for r in xi_reports)  # XI-only budget, bench excluded
     ideal = squadbuilder.best_xi(full_pool, budget)
     ours_value = sum(p["value"] for p in own_pool)
     if ideal is None:
@@ -245,14 +250,17 @@ def literal_best_xi(ctx, xi_reports, proj, market, baselines, gw):
     }
 
 
-def free_hit(ctx, xi_reports, proj, market, baselines, next_gw):
+def free_hit(ctx, xi_reports, proj, market, baselines, next_gw, budget):
     """The gameweek in the current chip window where the manager's own XI
-    is furthest behind the best possible team - the Free Hit case."""
+    is furthest behind the best possible team - the Free Hit case.
+
+    `budget` is the whole squad's sell value plus the bank (L3) - what a
+    Free Hit actually spends, not the current XI's own price."""
     start, weeks = analysis.chip_window(next_gw)
     gaps = {}
     pt_by_gw = {}
     for gw in range(start, start + weeks):
-        pt = points_team(ctx, xi_reports, proj, market, baselines, gw)
+        pt = points_team(ctx, xi_reports, proj, market, baselines, gw, budget)
         gaps[gw] = pt["gap"]
         pt_by_gw[gw] = pt
     if not gaps:
