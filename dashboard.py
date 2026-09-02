@@ -4035,6 +4035,7 @@ def kneejerk_card(kj, gw):
     if not kj:
         return ""
     ep = kj["ep"]
+    next_gw_ep = kj["next_gw_ep"]
     rival = kj["rival"]
     funder = kj["funder"]
 
@@ -4043,7 +4044,8 @@ def kneejerk_card(kj, gw):
         verdict, tone = "No fixture priced for him yet this week.", "warn"
     elif rival and rival["ep"] > ep:
         verdict = (f'{rival["name"]} at {rival["price"]:.1f}m projects '
-                   f'{rival["ep"] - ep:+.2f} more for the same slot.')
+                   f'{rival["ep"] - ep:+.2f} more over the next '
+                   f'{transfers.TRANSFER_HORIZON_WEEKS} gameweeks for the same slot.')
         tone = "bad"
     elif not funder and funder_pair:
         verdict = (
@@ -4068,7 +4070,8 @@ def kneejerk_card(kj, gw):
     if kj["opponent"]:
         fixture = (f'<span class="kj-fx">{"vs" if kj["home"] else "at"} '
                    f'{e(kj["opponent"])}</span>')
-    ep_txt = f"{ep:.1f}" if ep is not None else "&mdash;"
+    ep_txt = f"{next_gw_ep:.1f}" if next_gw_ep is not None else "&mdash;"
+    ep5_txt = f"{ep:.1f}" if ep is not None else "&mdash;"
 
     return (
         f'<section class="card kjcard kj-{tone}">'
@@ -4083,6 +4086,7 @@ def kneejerk_card(kj, gw):
         f'<div><dt>Owned</dt><dd class="num">{kj["owned"]:.1f}%</dd></div>'
         f'<div><dt>Bought this week</dt><dd class="num">{kj["bought"]:,}</dd></div>'
         f'<div><dt>Next GW</dt><dd class="num">{ep_txt}</dd></div>'
+        f'<div><dt>Next {transfers.TRANSFER_HORIZON_WEEKS} GW</dt><dd class="num">{ep5_txt}</dd></div>'
         "</dl>"
         f'<p class="kj-verdict">{verdict} {fixture}</p>'
         "</div></section>"
