@@ -19,20 +19,29 @@ from analysis import f
 
 # Starting guesses, not a validated calibration - there is no data yet on
 # how these gaps are actually distributed across a real season. Revisit
-# once the recommender has run for a few gameweeks.
-CONFIDENCE_STRONG = 0.20
+# once the recommender has run for a few gameweeks. Re-tuned for a
+# runner-up comparison (L9): the mean of a dozen-plus rejected candidates
+# these used to be checked against sits far below any of them, so the
+# maximum was "strong" almost by construction and the pill carried no
+# information. The runner-up is a much harder bar to clear.
+CONFIDENCE_STRONG = 0.15
 CONFIDENCE_WATCH = 0.05
 
 
-def confidence(best_value, other_values):
-    """How much better the recommended week is than the rest of the
-    window, as a plain-language read rather than a bare percentage."""
-    if not other_values:
+def confidence(best_value, runner_up):
+    """How much better the recommended pick is than its closest rival, as
+    a plain-language read rather than a bare percentage.
+
+    Compared against the runner-up, not the mean of every other candidate
+    (L9) - the best of many candidates is, by construction, comfortably
+    above their average, so a mean comparison always read "Strong"
+    regardless of how close the actual second-best pick was. `runner_up`
+    is `None` when there was only one candidate to begin with."""
+    if runner_up is None:
         return "flexible"
-    avg_other = sum(other_values) / len(other_values)
-    if avg_other <= 0:
+    if runner_up <= 0:
         return "strong" if best_value > 0 else "flexible"
-    lift = (best_value - avg_other) / avg_other
+    lift = (best_value - runner_up) / runner_up
     if lift >= CONFIDENCE_STRONG:
         return "strong"
     if lift >= CONFIDENCE_WATCH:
@@ -262,10 +271,10 @@ def free_hit(ctx, xi_reports, proj, market, baselines, next_gw, budget):
     if not gaps:
         return None
     best_gw = max(gaps, key=gaps.get)
-    others = [v for gw, v in gaps.items() if gw != best_gw]
+    runner_up = max((v for gw, v in gaps.items() if gw != best_gw), default=None)
     return {
         "gw": best_gw, "gap": gaps[best_gw],
-        "confidence": confidence(gaps[best_gw], others),
+        "confidence": confidence(gaps[best_gw], runner_up),
         "points_team": pt_by_gw[best_gw],
         # Every week's ideal team, not just the winning one. The dashboard's
         # "highest predicted points XI" card wants the *coming* gameweek
@@ -293,10 +302,10 @@ def triple_captain(ctx, xi_reports, proj, market, baselines, next_gw):
     if not candidates:
         return None
     best = max(candidates, key=lambda c: c[2])
-    others = [c[2] for c in candidates if c is not best]
+    runner_up = max((c[2] for c in candidates if c is not best), default=None)
     return {
         "player": best[0], "gw": best[1], "ep": best[2],
-        "confidence": confidence(best[2], others),
+        "confidence": confidence(best[2], runner_up),
     }
 
 
@@ -322,7 +331,7 @@ def bench_boost(ctx, bench_reports, proj, market, baselines, next_gw, bank=0.0):
     if not totals:
         return None
     best_gw = max(totals, key=totals.get)
-    others = [v for gw, v in totals.items() if gw != best_gw]
+    runner_up = max((v for gw, v in totals.items() if gw != best_gw), default=None)
 
     # transfers.suggest computes its own positional_priors internally -
     # nothing else needed here. xi_based=False: the bench itself is what's
@@ -337,7 +346,7 @@ def bench_boost(ctx, bench_reports, proj, market, baselines, next_gw, bank=0.0):
 
     return {
         "gw": best_gw, "ep": totals[best_gw],
-        "confidence": confidence(totals[best_gw], others),
+        "confidence": confidence(totals[best_gw], runner_up),
         "transfers": suggestions,
     }
 
@@ -483,7 +492,7 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
 
     return {
         "gw_window": (start, weeks), "gap": gap,
-        "confidence": confidence(ideal["value"], [current_value]),
+        "confidence": confidence(ideal["value"], current_value),
         "before": before, "after": after,
         # The proposed fifteen itself (pool-shaped: id/pos/club/price/value),
         # for the dashboard's own mini-pitch view - "before" is just the
