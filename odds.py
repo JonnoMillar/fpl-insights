@@ -111,13 +111,18 @@ def american_to_prob(price):
 
 
 def _fair_line(rows, key_a, key_b):
-    """The line whose two sides are priced closest to even.
+    """The line at which the market is exactly even money, interpolated
+    between the two quoted lines that bracket it.
 
-    A bookmaker quotes many lines; the one where both sides are near even money
-    is the one they actually think is the middle of the distribution. Picking
-    that beats averaging across a ladder that is deliberately skewed at the
-    ends."""
-    best, best_gap = None, 9e9
+    Pinnacle steps their ladder by 0.25, so snapping to whichever single
+    line happens to be closest to even can be off by up to 0.125 before the
+    handicap error is even added - and this feeds fixture_mult directly.
+    `key_a`'s fair probability falls as the line rises (further over, or a
+    bigger handicap, both get harder to clear), so walking the sorted
+    ladder for the adjacent pair whose fair probability brackets 0.5 and
+    interpolating linearly between them finds the crossing point rather
+    than the nearest rung to it."""
+    points = []
     for line, prices in rows.items():
         pa, pb = prices.get(key_a), prices.get(key_b)
         if pa is None or pb is None:
@@ -125,10 +130,27 @@ def _fair_line(rows, key_a, key_b):
         qa, qb = american_to_prob(pa), american_to_prob(pb)
         if not qa or not qb:
             continue
-        gap = abs(qa - qb)
-        if gap < best_gap:
-            best, best_gap = line, gap
-    return best
+        points.append((line, devig(qa, qb)[0]))
+    if not points:
+        return None
+    points.sort(key=lambda x: x[0])
+    for (l1, p1), (l2, p2) in zip(points, points[1:]):
+        if (p1 - 0.5) * (p2 - 0.5) <= 0:
+            if p1 == p2:
+                return (l1 + l2) / 2.0
+            return l1 + (p1 - 0.5) / (p1 - p2) * (l2 - l1)
+    # The whole ladder sits on one side of even money - no crossing to
+    # interpolate, so fall back to the single closest-to-even line.
+    return min(points, key=lambda x: abs(x[1] - 0.5))[0]
+
+
+def _nearest_line(rows, value):
+    """The actual quoted line nearest a (possibly interpolated) value -
+    for reading metadata (like a handicap's favoured side) that only
+    exists on real quoted lines, not the interpolated crossing point."""
+    if not rows or value is None:
+        return None
+    return min(rows, key=lambda line: abs(line - value))
 
 
 def devig(*probs):
@@ -276,7 +298,12 @@ def league_fixtures(ttl=fplapi.DEFAULT_TTL):
         spread = _fair_line(game["spreads"], "home", "away")
         if total is None:
             continue
-        sign = game["spreads"].get(spread, {}).get("sign", 1) if spread else 1
+        # `spread` is now an interpolated value, not necessarily a quoted
+        # key - the favoured side doesn't change between adjacent lines on
+        # the same match, so read it off the nearest line that was actually
+        # quoted.
+        nearest = _nearest_line(game["spreads"], spread)
+        sign = game["spreads"].get(nearest, {}).get("sign", 1) if nearest is not None else 1
         supremacy = (spread or 0.0) * sign
 
         extra = game.get("extra") or {}
