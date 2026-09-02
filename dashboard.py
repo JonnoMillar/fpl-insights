@@ -837,7 +837,7 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .dsub{fill:var(--on-surface-variant); font-size:11px}
 .oname{margin:8px 0 0; font-weight:700; font-size:14px}
 .oteam,.onote{margin:1px 0 0; font-size:11px; color:var(--on-surface-variant)}
-.oyou{margin:4px 0 0; font-size:11px; font-weight:700; color:var(--accent)}
+.oyou{margin:4px 0 0; font-size:11px; font-weight:700; color:var(--good-ink)}
 .tnote{
   margin:18px 0 8px; font-size:13px; font-weight:600;
   color:var(--on-surface-variant);
@@ -928,7 +928,7 @@ table td.tick{border:2px solid var(--surface)}
 .splist li.first .sprank{background:var(--accent); color:#fff}
 .spname{font-weight:600}
 .spteam{margin-left:auto; color:var(--on-surface-variant); font-size:11px}
-.mkt-cs,.mkt-xg{color:var(--accent); font-weight:700}
+.mkt-cs,.mkt-xg{color:var(--good-ink); font-weight:700}
 
 /* --- pick team: the eleven fold into a column, the bars extend beside it ---
    No length is transitioned here, for the reason recorded further down this
@@ -1454,10 +1454,10 @@ table td.tick{border:2px solid var(--surface)}
   text-overflow:ellipsis; white-space:nowrap}
 .pr-arrow{flex:none; width:28px; color:var(--on-surface-variant)}
 .pr-arrow svg{width:28px; height:12px; display:block}
-.pr-gain{flex:none; font-size:12px; font-weight:700; color:var(--success);
+.pr-gain{flex:none; font-size:12px; font-weight:700; color:var(--good-ink);
   font-variant-numeric:tabular-nums}
 .pr-foot{margin:12px 0 0; font-size:11px}
-.pr-yes{color:var(--success); font-weight:700}
+.pr-yes{color:var(--good-ink); font-weight:700}
 .pr-no{color:var(--on-surface-variant)}
 
 /* --- league template pitch + differentials --- */
@@ -1644,14 +1644,14 @@ table td.tick{border:2px solid var(--surface)}
 .tf-ep-in .tf-track{transform:scaleX(-1)}
 .tf-ep-in .tf-track i{background:var(--accent)}
 .tf-gain{
-  font-size:19px; font-weight:700; color:var(--success); text-align:center;
+  font-size:19px; font-weight:700; color:var(--good-ink); text-align:center;
   line-height:1.05; font-variant-numeric:tabular-nums;
 }
 .tf-gain small{display:block; font-size:10px; font-weight:600;
   text-transform:uppercase; letter-spacing:.04em; color:var(--on-surface-variant)}
 .tf-foot{margin:12px 0 0; font-size:11px; color:var(--on-surface-variant);
   text-align:center}
-.tf-elite{font-weight:600; color:var(--accent)}
+.tf-elite{font-weight:600; color:var(--good-ink)}
 
 /* --- expected points, stacked --- */
 .epbar{
