@@ -922,7 +922,10 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
     # start earns close to what he plays when he does start; missing the XI
     # still carries a chance of a late cameo rather than a hard zero.
     start_prob = r.start_probability(ctx)
-    avg_start_minutes = min(90.0, r.minutes / r.starts) if r.starts else 75.0
+    avg_start_minutes = (
+        min(90.0, sum(h["minutes"] for h in r.history if h["starts"]) / r.starts)
+        if r.starts else 75.0
+    )
     minutes = start_prob * avg_start_minutes + (1 - start_prob) * 8.0
     minutes = max(0.0, min(90.0, minutes))
     share = minutes / 90.0
