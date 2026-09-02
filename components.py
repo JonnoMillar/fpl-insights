@@ -399,7 +399,7 @@ def transfer_cards(rows, note):
             '<div class="tf-numbers">'
             '<div class="tf-ep"><span>{oep:.2f}</span>'
             '<span class="tf-track"><i style="width:{opct:.0f}%"></i></span></div>'
-            '<div class="tf-gain">{gain:+.2f}<small>projected points</small></div>'
+            '<div class="tf-gain">{gain:+.2f}<small>over 5 GW</small></div>'
             '<div class="tf-ep tf-ep-in"><span>{iep:.2f}</span>'
             '<span class="tf-track"><i style="width:{ipct:.0f}%"></i></span></div>'
             "</div>"
@@ -459,7 +459,7 @@ def pairing_cards(pairings, note, hit=4):
             '<svg viewBox="0 0 28 12"><path d="M0 6h21M16 1.5l5 4.5-5 4.5" '
             'fill="none" stroke="currentColor" stroke-width="1.8" '
             'stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
-            '{inp}<span class="pr-gain">+{gain:.2f}</span></li>'.format(
+            '{inp}<span class="pr-gain">{gain:+.2f}</span></li>'.format(
                 out=_mini_face(leg["out_photo"], leg["out_shirt"],
                                leg["out"].name, "pr-out"),
                 inp=_mini_face(leg["in_photo"], leg["in_shirt"],
@@ -470,7 +470,9 @@ def pairing_cards(pairings, note, hit=4):
             for leg in p["legs"]
         )
         after = p["gain"] - hit
-        if free:
+        if p["gain"] <= 0:
+            verdict = '<span class="pr-no">Not worth it, even free</span>'
+        elif free:
             verdict = '<span class="pr-yes">Both transfers are free</span>'
         elif after > 0:
             verdict = ('<span class="pr-yes">Still ahead after '
@@ -487,7 +489,7 @@ def pairing_cards(pairings, note, hit=4):
         cards.append(
             '<li class="pr-card">'
             '{tag}'
-            '<div class="pr-head"><span class="pr-total">+{gain:.2f}'
+            '<div class="pr-head"><span class="pr-total">{gain:+.2f}'
             '<small>combined</small></span>'
             '<span class="pr-hit">{after:+.2f}<small>{hitlabel}</small></span>'
             '<span class="pr-bank">{bank:.1f}m<small>bank after</small></span></div>'

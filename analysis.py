@@ -530,12 +530,15 @@ def free_transfers(entry_id, next_gw, ttl=fplapi.DEFAULT_TTL):
         return None
     used = {ev["event"]: ev.get("event_transfers", 0)
             for ev in history.get("current", [])}
+    chips_by_gw = {c["event"]: c["name"] for c in history.get("chips", [])}
     banked = 1  # granted for GW2, the first week a transfer can be saved
     for gw in range(2, next_gw):
         if gw not in used:
             continue
-        banked = min(FREE_TRANSFER_CAP, banked - used[gw] + 1)
-        banked = max(0, banked)
+        used_n = used[gw]
+        if chips_by_gw.get(gw) in ("wildcard", "freehit"):
+            used_n = 0  # a hit never reduces next week's allowance; chip transfers don't count against it
+        banked = min(FREE_TRANSFER_CAP, max(0, banked - used_n) + 1)
     return min(FREE_TRANSFER_CAP, banked)
 
 
@@ -919,7 +922,10 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
     # start earns close to what he plays when he does start; missing the XI
     # still carries a chance of a late cameo rather than a hard zero.
     start_prob = r.start_probability(ctx)
-    avg_start_minutes = min(90.0, r.minutes / r.starts) if r.starts else 75.0
+    avg_start_minutes = (
+        min(90.0, sum(h["minutes"] for h in r.history if h["starts"]) / r.starts)
+        if r.starts else 75.0
+    )
     minutes = start_prob * avg_start_minutes + (1 - start_prob) * 8.0
     minutes = max(0.0, min(90.0, minutes))
     share = minutes / 90.0
@@ -972,7 +978,10 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
     defence = cs_prob * CS_POINTS.get(r.pos, 0) * (1.0 if share > 0.65 else 0.0)
     appearance = 2.0 * share if minutes >= 60 else 1.0 * share
     hit_rate = (r.defcon_hits / r.appearances) if r.appearances else 0.0
-    defcon = hit_rate * DEFCON_POINTS * share
+    # hit_rate is already per appearance (appearances includes short
+    # cameos), so weighting it by share double-counts minutes; weight by
+    # the probability of starting instead.
+    defcon = hit_rate * DEFCON_POINTS * start_prob
     bonus = expected_bonus(r.pos, share, exp_goals, exp_assists, cs_prob,
                            other_bps90, minutes)
 

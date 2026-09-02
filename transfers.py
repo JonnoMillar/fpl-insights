@@ -777,6 +777,7 @@ def kneejerk(ctx, squad_reports, scores, bank=0.0):
         # signal this card is about, so the crowd buying is the number.
         "bought": best.get("transfers_in_event", 0),
         "ep": score["total"] if score else None,
+        "next_gw_ep": score["next_gw_total"] if score else None,
         "opponent": score["opponent"] if score else None,
         "home": score["home"] if score else None,
         "funder": funder,
