@@ -399,7 +399,7 @@ def transfer_cards(rows, note):
             '<div class="tf-numbers">'
             '<div class="tf-ep"><span>{oep:.2f}</span>'
             '<span class="tf-track"><i style="width:{opct:.0f}%"></i></span></div>'
-            '<div class="tf-gain">{gain:+.2f}<small>projected points</small></div>'
+            '<div class="tf-gain">{gain:+.2f}<small>over 5 GW</small></div>'
             '<div class="tf-ep tf-ep-in"><span>{iep:.2f}</span>'
             '<span class="tf-track"><i style="width:{ipct:.0f}%"></i></span></div>'
             "</div>"

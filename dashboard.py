@@ -5028,9 +5028,9 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "transfers": components.transfer_cards(
             swaps,
             f"Same position, affordable on {bank:.1f}m in the bank, ranked by "
-            f"projected gain for gameweek {next_gw}. Selling price is taken as "
-            f"current price. One gameweek of data underneath - read these as "
-            f"prompts, not instructions."),
+            f"projected gain over the next {transfers.TRANSFER_HORIZON_WEEKS} "
+            f"gameweeks (plus a small form/xGI nudge). Selling price is taken as "
+            f"current price - read these as prompts, not instructions."),
         "dialog": player_dialog([
             player_payload(r, ctx, proj, ep, next_gw, photos) for r, ep in eps
         ] + [
