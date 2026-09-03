@@ -1430,18 +1430,19 @@ table td.tick{border:2px solid var(--surface)}
 .fxtable[data-games="5"] th:nth-child(n+9),.fxtable[data-games="5"] td:nth-child(n+9){display:none}
 .fxtable[data-games="6"] th:nth-child(n+10),.fxtable[data-games="6"] td:nth-child(n+10){display:none}
 .fxtable[data-games="7"] th:nth-child(n+11),.fxtable[data-games="7"] td:nth-child(n+11){display:none}
-/* The page's one "top reward" look - green through silver to blue - kept
-   for the rare figure that earns its own treatment rather than blending
-   into the top step of an ordinary scale. A fixture rated above 9 is the
-   current holder; reach for this class again elsewhere only when a stat
-   is genuinely that rare, not as decoration for an everyday good number. */
-.fx-premium{
-  background:linear-gradient(135deg, #0c6e55 0%, #c9d3d9 52%, #1b5ce0 100%);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.5);
-}
+/* The page's one "top reward" look, for the rare figure that earns its own
+   treatment rather than blending into the top step of an ordinary scale.
+   A fixture rated above 9 is the current holder; reach for this class
+   again elsewhere only when a stat is genuinely that rare, not as
+   decoration for an everyday good number. Used to be a three-stop diagonal
+   gradient (green, through silver, to blue) that read as a broken image
+   on the live page rather than as a reward - flat --premium and a star
+   glyph say "special" without looking like a rendering glitch. */
+.fx-premium{background:var(--premium)}
 .fx-premium .fxc-opp,.fx-premium .fxc-score,.rpill.fx-premium,.fxavg.fx-premium{
-  color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.25);
+  color:#fff;
 }
+.fx-star{font-style:normal; margin-right:2px; font-size:.85em; vertical-align:1px}
 .fxown{
   display:inline-flex; align-items:center; justify-content:center;
   min-width:16px; height:16px; padding:0 4px;
