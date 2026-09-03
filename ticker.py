@@ -400,8 +400,9 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=FIXTURE_GAMES_MAX, market
         f"fixtures dims everything below {TARGET_RATING:g} so the genuinely "
         f"good ones stand out. {FIXTURE_PAGE_SIZE} clubs at a time - cycle "
         "through with the arrows, or sort a column to re-rank all twenty - "
-        "click Owned to bring your own squad's clubs to the top.</span></div>"
-        f'{controls}{nav}'
+        "click Owned to bring your own squad's clubs to the top.</span>"
+        f'{controls}</div>'
+        f'{nav}'
         f'<table data-sortable data-paged class="fxtable" '
         f'data-games="{FIXTURE_GAMES_DEFAULT}" data-target="{TARGET_RATING}">'
         '<thead><tr><th scope="col" class="sortable">Club</th>'

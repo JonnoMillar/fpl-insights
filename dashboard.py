@@ -1343,9 +1343,12 @@ table td.tick{border:2px solid var(--surface)}
   font-size:11px; font-weight:600; color:var(--on-surface-variant);
   font-variant-numeric:tabular-nums; min-width:5em; text-align:center;
 }
+/* Top-right of the card head, level with the title - not its own row
+   above the table - the same margin-left:auto used to push .statsel to
+   the far side of its own header row. */
 .fxcontrols{
   display:flex; align-items:center; gap:14px; flex-wrap:wrap;
-  padding:0 16px 12px;
+  margin-left:auto; align-self:center;
 }
 /* A stepper, not a <select> - two round arrow buttons either side of the
    number, the same shape as the club-paging arrows below (.fxnav-btn) so
