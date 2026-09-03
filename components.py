@@ -347,6 +347,24 @@ def duty_badges(el):
     return '<span class="duty-badges">{}</span>'.format(icons) if icons else ""
 
 
+PITCH_MARKS = (
+    '<div class="pmk" aria-hidden="true">'
+    '<i class="pmk-half"></i><i class="pmk-circle"></i><i class="pmk-spot"></i>'
+    '<i class="pmk-box pmk-t"></i><i class="pmk-box pmk-b"></i>'
+    '<i class="pmk-six pmk-t"></i><i class="pmk-six pmk-b"></i>'
+    '<i class="pmk-goal pmk-t"></i><i class="pmk-goal pmk-b"></i>'
+    '<i class="pmk-arc pmk-arc-tl"></i><i class="pmk-arc pmk-arc-tr"></i>'
+    '<i class="pmk-arc pmk-arc-bl"></i><i class="pmk-arc pmk-arc-br"></i>'
+    "</div>"
+)
+"""The lines, as one constant every pitch on the page opens with.
+
+Decoration in the strict sense - it carries nothing a screen reader wants,
+hence aria-hidden - so it is markup rather than CSS only because a dozen
+pseudo-elements are not available on one div. See the .pmk block in CSS
+for why the boxes are sized the way they are."""
+
+
 def _face(photo, shirt, name, club, price, tone_class, duties=""):
     """One side of a swap: portrait, club shirt tucked in the corner, name."""
     if photo:

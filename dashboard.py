@@ -172,6 +172,12 @@ CSS = """
   --p90:#41054b; --p100:#37003c; --p110:#28002b; --p120:#1e0021;
   --ink:#37003c;
 
+  /* --accent is the brand: the green this page is recognised by, spent on
+     structure - the hero's rule, a selected state, the one card in a group
+     that has earned it. --good is a reading: this number went the right
+     way. They are the same green today because FPL's green is both, but
+     they are two jobs and were one token, so recolouring either one
+     silently moved the other. Split, with the same value, deliberately. */
   --accent:#01fc7a; --accent-ink:#046b39; --accent-wash:#e2fdf0;
   --good:#01fc7a; --good-ink:#046b39; --good-wash:#e2fdf0;
   --bad:#e60023; --bad-ink:#c0001d; --bad-wash:#fff2f4;
@@ -314,6 +320,40 @@ a{color:inherit}
 }
 .stamp{font-size:12px;color:rgb(255 255 255 / 65%)}
 
+/* --- the chapter rail ---
+   Planning is four chapters and about fourteen sections deep, and until now
+   the only way to the bottom of it was the scrollbar. The rail is built from
+   whichever chapters the open tab actually has, so it is never a menu of
+   things that are not on screen, and it hides itself on a tab with only one
+   chapter rather than showing a nav of length one. */
+.railwrap{max-width:var(--shell); margin:0 auto; padding:0 16px 8px}
+.railwrap[hidden]{display:none}
+.rail{display:flex; gap:2px; flex-wrap:wrap}
+.railbtn{
+  appearance:none; border:0; background:none; cursor:pointer;
+  font:inherit; font-size:12px; font-weight:600;
+  color:rgb(255 255 255 / 62%); padding:4px 8px; border-radius:var(--radius-xs);
+}
+.railbtn:hover{color:#fff; background:rgb(255 255 255 / 10%)}
+.railbtn[aria-current="true"]{color:var(--ink); background:var(--accent)}
+/* The topbar is sticky, so a chapter scrolled to must clear it. The rail
+   computes its own offset rather than relying on this, but a chapter
+   reached any other way - a fragment link, a find-in-page - wants it too. */
+.chapter{scroll-margin-top:92px}
+/* On a phone the rail wrapped to three lines and took the sticky bar to
+   137px - a sixth of the screen, permanently, to hold a nav. One line that
+   scrolls sideways instead: the chapter names are short and the first two
+   are always in view. */
+@media (max-width:560px){
+  .railwrap{padding:0 12px 6px}
+  .rail{
+    flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+  .rail::-webkit-scrollbar{display:none}
+  .railbtn{font-size:11px; white-space:nowrap; flex:none}
+}
+
 .wrap{max-width:var(--shell);margin:0 auto;padding:16px}
 section{margin-bottom:20px}
 .card{
@@ -452,14 +492,76 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
 /* --- pitch --- */
 .pitch{
   background:
-    repeating-linear-gradient(180deg,var(--pitch-a) 0 60px,var(--pitch-b) 60px 120px);
+    repeating-linear-gradient(180deg,
+      var(--pitch-a) 0 12.5%,var(--pitch-b) 12.5% 25%);
   padding:18px 10px; position:relative;
 }
 .pitch::before{
   content:""; position:absolute; inset:10px; border:2px solid rgb(255 255 255 / 22%);
   border-radius:var(--radius-xs); pointer-events:none;
 }
-.row{display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:14px; position:relative}
+.row{display:flex; justify-content:center; gap:8px; flex-wrap:wrap;
+  margin-bottom:14px; position:relative; z-index:1}
+
+/* --- pitch markings ------------------------------------------------------
+   The pitch was four mown stripes and a rectangle. The lines are what make
+   eleven shirts read as a team sheet rather than as cards on a green panel,
+   and they are the one piece of custom drawing this page had no excuse for
+   not having. Same 22% white as the touchline: furniture, never something
+   competing with a shirt.
+
+   Horizontal extents are percentages, vertical ones are pixels. A pitch
+   here is exactly as tall as its rows make it, so a penalty area measured
+   proportionally in both directions would deform from one squad shape to
+   the next. Fixed depth and proportional width is how the box keeps its
+   shape at any height.
+
+   The stripes moved from a 60px repeat to a 12.5% one for the same reason:
+   at a fixed pitch a mini pitch showed two and a half bands where the full
+   one showed eight. */
+.pmk{
+  position:absolute; inset:10px; pointer-events:none; z-index:0;
+  --mk:rgb(255 255 255 / 22%);
+}
+.pmk i{position:absolute; border:2px solid var(--mk)}
+/* Halfway line, then the centre circle and spot on top of it. */
+.pmk-half{left:0; right:0; top:50%; border-width:2px 0 0}
+.pmk-circle{
+  left:50%; top:50%; width:84px; height:84px; margin:-42px 0 0 -42px;
+  border-radius:50%;
+}
+.pmk-spot{
+  left:50%; top:50%; width:6px; height:6px; margin:-3px 0 0 -3px;
+  border:0; border-radius:50%; background:var(--mk);
+}
+/* Penalty area, the six-yard box inside it, and the goal beyond the line -
+   all three at both ends. The edge that would sit on the goal line is
+   dropped, because the touchline is already drawing it. */
+.pmk-box{left:50%; width:46%; margin-left:-23%; height:46px}
+.pmk-six{left:50%; width:22%; margin-left:-11%; height:20px}
+.pmk-goal{left:50%; width:11%; margin-left:-5.5%; height:7px}
+.pmk-t{top:0; border-top-width:0}
+.pmk-b{bottom:0; border-bottom-width:0}
+.pmk-goal.pmk-t{top:-7px; border-width:2px 2px 0}
+.pmk-goal.pmk-b{bottom:-7px; border-width:0 2px 2px}
+/* Corner arcs: a quarter circle struck from each corner of the touchline. */
+.pmk-arc{width:14px; height:14px}
+.pmk-arc-tl{top:0; left:0; border-width:0 2px 2px 0; border-radius:0 0 100% 0}
+.pmk-arc-tr{top:0; right:0; border-width:0 0 2px 2px; border-radius:0 0 0 100%}
+.pmk-arc-bl{bottom:0; left:0; border-width:2px 2px 0 0; border-radius:0 100% 0 0}
+.pmk-arc-br{bottom:0; right:0; border-width:2px 0 0 2px; border-radius:100% 0 0 0}
+/* A small pitch keeps the same lines at the same relative weight - the
+   point of the mini pitch is that it is recognisably the same object. */
+.pitch.mini .pmk-circle{width:50px; height:50px; margin:-25px 0 0 -25px}
+.pitch.mini .pmk-box{height:26px}
+.pitch.mini .pmk-six{height:11px}
+.pitch.mini .pmk-goal{height:5px}
+.pitch.mini .pmk-goal.pmk-t{top:-5px}
+.pitch.mini .pmk-goal.pmk-b{bottom:-5px}
+.pitch.mini .pmk-arc{width:9px; height:9px}
+.pitch.mini .pmk i{border-width:1px}
+.pitch.mini .pmk-half{border-width:1px 0 0}
+.pitch.mini .pmk-spot{width:4px; height:4px; margin:-2px 0 0 -2px; border:0}
 .row:last-child{margin-bottom:0}
 .pl{position:relative; width:92px; background:var(--surface); border-radius:var(--radius-s); overflow:hidden; box-shadow:0 2px 6px rgb(0 0 0 / 25%)}
 .pl .crest{display:flex; align-items:center; justify-content:center; height:44px; background:var(--surface-variant)}
@@ -1045,7 +1147,8 @@ table td.tick{border:2px solid var(--surface)}
   display:flex; flex-direction:column; gap:6px; padding:12px 10px;
   background:var(--pitch-b);
 }
-.pkstage.ep-on .pitch::before{display:none}
+.pkstage.ep-on .pitch::before,
+.pkstage.ep-on .pmk{display:none}
 .pkstage.ep-on .pitch .row{display:contents}
 .pkstage.ep-on .benchstrip{display:none}
 .pkstage.ep-on .pk{
@@ -1153,7 +1256,7 @@ table td.tick{border:2px solid var(--surface)}
    it was the loudest decoration on the page. The rule now carries the
    confidence the card already states, so the accent is spent on the one
    chip that has actually earned a week. */
-.cp-strong{--cp-tone:var(--accent)}
+.cp-strong{--cp-tone:var(--good)}
 .cp-watch{--cp-tone:var(--p40)}
 .cp-flexible{--cp-tone:var(--outline-variant)}
 .cp.used{opacity:.55}
@@ -2079,8 +2182,73 @@ JS = """
       // at empty background.
       var bar=t.parentNode;
       if(bar.getBoundingClientRect().top < 0) bar.scrollIntoView({block:'start'});
+      buildRail();
     });
   });
+
+  // --- the chapter rail ---------------------------------------------------
+  // Built from whichever chapters the open tab has rather than from a fixed
+  // list, so it can never offer a section that is not on screen. A tab with
+  // one chapter gets no rail at all - a nav of length one is furniture.
+  var railWrap=document.querySelector('.railwrap');
+  var rail=document.querySelector('.rail');
+  var railTargets=[];
+
+  function buildRail(){
+    if(!rail) return;
+    var panel=document.querySelector('.panel:not([hidden])');
+    var chapters=panel ? panel.querySelectorAll('.chapter') : [];
+    rail.textContent='';
+    railTargets=[];
+    if(chapters.length < 2){ railWrap.hidden=true; return; }
+    railWrap.hidden=false;
+    chapters.forEach(function(ch,i){
+      var h=ch.querySelector('h2');
+      if(!h) return;
+      if(!ch.id) ch.id='ch-'+(panel.id||'p')+'-'+i;
+      var b=document.createElement('button');
+      b.type='button';
+      b.className='railbtn';
+      b.textContent=h.textContent.trim();
+      b.addEventListener('click',function(){
+        // An explicit position rather than scrollIntoView, and no smooth:
+        // the sticky bar's height is the offset, and it is measured now
+        // rather than assumed, because the bar grows a second row the
+        // moment this rail exists.
+        var bar=document.querySelector('.topbar');
+        var off=(bar ? bar.getBoundingClientRect().height : 0) + 8;
+        window.scrollTo(0, ch.getBoundingClientRect().top + window.scrollY - off);
+        markRail();
+      });
+      rail.appendChild(b);
+      railTargets.push({el:ch, btn:b});
+    });
+    markRail();
+  }
+
+  // Which chapter you are actually in: the last one whose top has passed
+  // under the bar. Cheaper and steadier than an observer per section, and
+  // it agrees with what is under the heading rather than what is centred.
+  function markRail(){
+    if(!railTargets.length) return;
+    var cut=110, current=railTargets[0];
+    railTargets.forEach(function(t){
+      if(t.el.getBoundingClientRect().top <= cut) current=t;
+    });
+    railTargets.forEach(function(t){
+      t.btn.setAttribute('aria-current', String(t===current));
+    });
+  }
+
+  // Called straight from the scroll event rather than deferred into a frame.
+  // The rAF-throttled version had a real failure mode: it raised a "already
+  // queued" flag before asking for the frame, so anywhere frames are paused -
+  // a background tab, a hidden view - the flag was set, the callback never
+  // ran to clear it, and every later scroll was dropped for the life of the
+  // page. markRail is four getBoundingClientRect calls against a list that
+  // is at most four long; it does not need deferring.
+  window.addEventListener('scroll', markRail, {passive:true});
+  buildRail();
 
   // Starting XI: overview vs pick-team pitch. Same swap as the tabs above,
   // scoped to whichever card the clicked button lives in, since the page
@@ -2278,7 +2446,7 @@ def pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id, gw=None):
     # The stat selector itself lives up in the view-tab row, so this only
     # supplies the wrapper its classes are toggled on.
     out = ['<div class="ovwrap emph-p">']
-    out.append('<div class="pitch">')
+    out.append('<div class="pitch">' + components.PITCH_MARKS)
     for k in (1, 2, 3, 4):
         if not rows[k]:
             continue
@@ -2374,7 +2542,8 @@ def pick_team_pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id,
     # start at the same height - without it the eleven began level with the
     # side panel's title and every bar sat one card low.
     out = ['<div class="pkstage"><div class="pkboard">'
-           '<div class="pkboard-head">Your eleven</div><div class="pitch">']
+           '<div class="pkboard-head">Your eleven</div>'
+           '<div class="pitch">' + components.PITCH_MARKS]
     pitch_order = []
     for k in (1, 2, 3, 4):
         if not rows[k]:
@@ -3411,7 +3580,8 @@ def template_pitch(tpl, ctx, shirts, my_name, known_ids=frozenset()):
         f'<span class="sub" hidden>The most-started legal eleven across {n} managers, '
         f'in a {tpl["shape"]}. You have {owned_by_you} of them &mdash; the rest '
         "is where your rank moves.</span></div>"
-        f'<div class="pitch tplpitch">{"".join(rows)}</div></section>'
+        f'<div class="pitch tplpitch">{components.PITCH_MARKS}'
+        f'{"".join(rows)}</div></section>'
     )
 
 
@@ -3785,10 +3955,10 @@ def leader_groups(ctx, squad_ids, depth=4, min_minutes=45):
             "run", "var(--ink)", "big_chance_created", "total_att_assist",
         ),
         build("Fewest goals expected against", "xGC, defenders and keepers",
-              "shield", "var(--premium)", "expected_goals_conceded", ascending=True,
+              "shield", "var(--accent-ink)", "expected_goals_conceded", ascending=True,
               positions=("GKP", "DEF")),
         build("Defensive contributions", "Tackles, recoveries and blocks banked this season",
-              "shield", "var(--attention)", "defensive_contribution", fmt="{:.0f}"),
+              "shield", "var(--accent-ink)", "defensive_contribution", fmt="{:.0f}"),
     ]
     return [g for g in groups if g["rows"]]
 
@@ -3910,7 +4080,7 @@ def mini_pitch(xi_rows, bench_rows, ctx, badges, shirts, incoming_ids=frozenset(
     by_pos = {1: [], 2: [], 3: [], 4: []}
     for row in xi_rows:
         by_pos[order.get(row[1], 4)].append(row)
-    out = ['<div class="pitch mini">']
+    out = ['<div class="pitch mini">' + components.PITCH_MARKS]
     for k in (1, 2, 3, 4):
         if not by_pos[k]:
             continue
@@ -4711,7 +4881,9 @@ def render(d, standalone=True):
   <span class="wordmark"><span class="dot"></span>FPL Insights</span>
   <span class="gw-chip">Gameweek {d['gw']}</span>
   <span class="stamp">{e(d['generated'])}</span>
-</div></header>
+</div>
+<div class="railwrap" hidden><nav class="rail" aria-label="Sections on this tab"></nav></div>
+</header>
 
 <div class="wrap">
   <section class="hero">
