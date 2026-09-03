@@ -73,7 +73,7 @@ FDR = {
 TONE_COLOR = {
     "good": "var(--good)",
     "bad": "var(--bad)",
-    "warn": "var(--warn)",
+    "warn": "var(--attention)",
     "info": "var(--p60)",
     "neutral": "var(--p60)",
 }
@@ -278,10 +278,11 @@ a{color:inherit}
   border-radius:9999px; font-family:var(--mono); font-size:12px;
   font-weight:600; background:var(--bad-wash); color:var(--bad-ink);
 }
+/* The one surviving warn-ink usage: "borderline", not "needs a look". */
 .warn-pill{
   display:inline-flex; align-items:center; gap:4px; padding:1px 7px;
   border-radius:9999px; font-family:var(--mono); font-size:12px;
-  font-weight:600; background:var(--warn-wash); color:var(--warn-ink);
+  font-weight:600; background:var(--attention-wash); color:var(--warn-ink);
 }
 
 /* --- app chrome --- */
@@ -385,8 +386,8 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
    use, just applied to the whole tile instead of a chip inside it. */
 .tile.tile-good{background:rgb(1 252 122 / 9%); border-color:rgb(1 252 122 / 26%)}
 .tile.tile-good .v{color:#8affc4}
-.tile.tile-warn{background:rgb(255 176 0 / 13%); border-color:rgb(255 176 0 / 34%)}
-.tile.tile-warn .v{color:var(--accent)}
+.tile.tile-warn{background:rgb(255 176 0 / 14%); border-color:rgb(255 176 0 / 34%)}
+.tile.tile-warn .v{color:#ffd166}
 .tile.tile-bad{background:rgb(230 0 35 / 11%); border-color:rgb(230 0 35 / 28%)}
 .tile.tile-bad .v{color:#ff9aa8}
 
@@ -1147,7 +1148,7 @@ table td.tick{border:2px solid var(--surface)}
 }
 .lc-block h4 .ic{width:14px; height:14px; flex:none}
 .lc-out h4{color:var(--bad-ink)}
-.lc-unk h4{color:var(--warn-ink)}
+.lc-unk h4{color:var(--attention-ink)}
 .lc-block ul{list-style:none; margin:0; padding:0; display:grid; gap:5px}
 .lc-block li{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
 .lc-name{font-size:13px; font-weight:600}
@@ -1276,7 +1277,7 @@ table td.tick{border:2px solid var(--surface)}
    The one card arguing with the reader, so the one card on ink. */
 .kjcard{
   background:var(--ink); color:var(--white); border:0;
-  border-left:5px solid var(--warn); overflow:hidden;
+  border-left:5px solid var(--attention); overflow:hidden;
 }
 .kjcard.kj-good{border-left-color:var(--accent)}
 .kjcard.kj-bad{border-left-color:var(--bad)}
@@ -1327,8 +1328,8 @@ table td.tick{border:2px solid var(--surface)}
 .vb-bad{border-top-color:var(--bad); background:var(--bad-wash)}
 .vb-bad .vb-ep{color:var(--bad-ink)}
 .vb-accent{border-top-color:var(--ink)}
-.vb-warn{border-top-color:var(--warn); background:var(--warn-wash)}
-.vb-warn .vb-ep{color:var(--warn-ink)}
+.vb-warn{border-top-color:var(--attention); background:var(--attention-wash)}
+.vb-warn .vb-ep{color:var(--attention-ink)}
 
 /* If the count does not fill the last row, the final card stretches across
    what is left rather than sitting beside a hole. */
@@ -1484,7 +1485,7 @@ table td.tick{border:2px solid var(--surface)}
 .pr-card{background:var(--surface-variant); border-radius:var(--radius-m); padding:14px}
 .pr-tag{
   margin:0 0 8px; font-size:10px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.06em; color:var(--warn-ink);
+  letter-spacing:.06em; color:var(--attention-ink);
 }
 .pr-head{display:flex; gap:14px; align-items:flex-end; margin-bottom:12px}
 .pr-total,.pr-hit,.pr-bank{display:flex; flex-direction:column;
@@ -2806,7 +2807,7 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
         # merely clearing 90% gets.
         tone = ("var(--accent)" if starting == total and total else
                 "var(--good-ink)" if pct >= 90 else
-                "var(--warn-ink)" if pct >= 60 else "var(--bad-ink)")
+                "var(--attention-ink)" if pct >= 60 else "var(--bad-ink)")
         if not total:
             body = '<p class="lc-clear">Nobody in this group.</p>'
         elif not out and not unknown:
