@@ -355,7 +355,10 @@ a{color:inherit}
 }
 
 .wrap{max-width:var(--shell);margin:0 auto;padding:16px}
-section{margin-bottom:20px}
+/* Cards inside a chapter sit closer than the chapter break above them:
+   16 within, and 30+12 at a heading, so the group reads as a group. This
+   was a flat 20 everywhere, from before there were chapters at all. */
+section{margin-bottom:16px}
 .card{
   background:var(--surface); border-radius:var(--radius-m);
   box-shadow:var(--shadow); overflow:hidden;
@@ -444,10 +447,22 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
 .tile .delta-up{background:rgb(1 252 122 / 18%); color:#8affc4}
 .tile .delta-down{background:rgb(230 0 35 / 22%); color:#ff9aa8}
 
-.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:10px; margin-top:18px}
+/* Six numbers along the foot of the hero. They were six separate rounded
+   boxes with their own borders - the KPI row every admin template opens
+   with. One recessed band divided by hairlines instead, the way a score
+   is broken up on a board at a ground: the figures are what should read,
+   and six sets of rounded corners were competing with them. The tiles
+   that carry a tone still stand out, and now they stand out against a
+   quiet band rather than against five equally busy boxes. */
+.tiles{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+  gap:1px; margin-top:18px; border-radius:var(--radius-s); overflow:hidden;
+  background:rgb(255 255 255 / 9%);
+  box-shadow:inset 0 1px 0 rgb(0 0 0 / 18%);
+}
 .tile{
-  background:rgb(255 255 255 / 7%); border-radius:var(--radius-s);
-  padding:10px 12px; border:1px solid rgb(255 255 255 / 9%);
+  background:var(--ink); padding:11px 13px;
+  box-shadow:inset 0 1px 0 rgb(255 255 255 / 5%);
 }
 .tile .k{font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:rgb(255 255 255 / 62%)}
 .tile .v{
@@ -459,11 +474,11 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
 /* Only two of the six tiles ever carry a tone - see render() for which and
    why. Same three-way good/warn/bad vocabulary the delta chips already
    use, just applied to the whole tile instead of a chip inside it. */
-.tile.tile-good{background:rgb(1 252 122 / 9%); border-color:rgb(1 252 122 / 26%)}
+.tile.tile-good{background:#123a2c}
 .tile.tile-good .v{color:#8affc4}
-.tile.tile-warn{background:rgb(255 176 0 / 14%); border-color:rgb(255 176 0 / 34%)}
+.tile.tile-warn{background:#3d2a12}
 .tile.tile-warn .v{color:#ffd166}
-.tile.tile-bad{background:rgb(230 0 35 / 11%); border-color:rgb(230 0 35 / 28%)}
+.tile.tile-bad{background:#43121f}
 .tile.tile-bad .v{color:#ff9aa8}
 
 /* --- tabs --- */
@@ -586,8 +601,13 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
 .ovwrap.emph-p .sc .p,
 .ovwrap.emph-g .sc .g,
 .ovwrap.emph-x .sc .x{
-  color:var(--on-surface); font-weight:700; font-size:15px; flex-grow:1.7;
-  letter-spacing:-0.04em;
+  color:var(--on-surface); font-weight:700; font-size:17px; flex-grow:1.7;
+  /* The one figure in front on a shirt card is set the way a number on a
+     shirt is: tight, heavy and slightly taller than it is wide. Plex Mono
+     has no width axis, so the squeeze is a transform on the cell rather
+     than a face - which also keeps every card's three cells on the same
+     baseline grid, since a scaled glyph takes no extra line box. */
+  letter-spacing:-0.05em; transform:scaleX(.92); transform-origin:center;
 }
 @media (prefers-reduced-motion:reduce){.pl .sc div{transition:none}}
 
