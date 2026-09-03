@@ -3693,27 +3693,29 @@ def leader_groups(ctx, squad_ids, depth=4, min_minutes=45):
             ],
         }
 
+    # Six cards used to carry six unrelated hues, which meant colour never
+    # carried information across this row - a card's tone told you nothing
+    # you couldn't already get from its icon. One hue per role instead: ink
+    # for the four attacking measures, premium teal for the one defensive
+    # card that flips the ranking (xGC), attention amber for DefCon.
     groups = [
-        build("Expected goals", "xG this season", "ball", "#953bff",
+        build("Expected goals", "xG this season", "ball", "var(--ink)",
               "expected_goals"),
-        build("Expected assists", "xA this season", "key", "#00b3d6",
+        build("Expected assists", "xA this season", "key", "var(--ink)",
               "expected_assists"),
-        build("Goal involvement", "xG plus xA", "spark", "#e6007e",
+        build("Goal involvement", "xG plus xA", "spark", "var(--ink)",
               "expected_goal_involvements"),
         build_pair(
             "Big chances/chances",
             "Shown as big chances, chances - a big chance is a clear "
             "opening, a chance is any pass leading to a shot",
-            "run", "#00a35c", "big_chance_created", "total_att_assist",
+            "run", "var(--ink)", "big_chance_created", "total_att_assist",
         ),
-        # Was #7d5980, which is var(--p70) - the secondary-text token. A card
-        # ruled and iconed in the same colour as its own small print looked
-        # switched off next to the other five.
         build("Fewest goals expected against", "xGC, defenders and keepers",
-              "shield", "#1b5ce0", "expected_goals_conceded", ascending=True,
+              "shield", "var(--premium)", "expected_goals_conceded", ascending=True,
               positions=("GKP", "DEF")),
         build("Defensive contributions", "Tackles, recoveries and blocks banked this season",
-              "shield", "#e07b00", "defensive_contribution", fmt="{:.0f}"),
+              "shield", "var(--attention)", "defensive_contribution", fmt="{:.0f}"),
     ]
     return [g for g in groups if g["rows"]]
 
