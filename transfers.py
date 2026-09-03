@@ -71,7 +71,7 @@ EVIDENCE_MINUTES = 180.0
 
 def _acc_new():
     return {"min": 0.0, "xg": 0.0, "xa": 0.0, "bonus": 0.0, "dc": 0.0,
-            "bps": 0.0, "xgi": 0.0}
+            "bps": 0.0, "xgi": 0.0, "saves": 0.0}
 
 
 def _acc_add(a, el, ctx, mins):
@@ -90,6 +90,7 @@ def _acc_add(a, el, ctx, mins):
     # minutes-weighted and price-fitted exactly like every other rate here
     # (L7 - player_case_factors shrinks this rather than using it raw).
     a["xgi"] += f(el.get("expected_goal_involvements_per_90")) * mins / 90.0
+    a["saves"] += el.get("saves", 0)
 
 
 def _rates(a):
@@ -97,10 +98,11 @@ def _rates(a):
     return {"xg90": per90(a["xg"], m), "xa90": per90(a["xa"], m),
             "bonus90": per90(a["bonus"], m), "dc90": per90(a["dc"], m),
             "bps90": per90(a["bps"], m), "xgi90": per90(a["xgi"], m),
+            "saves90": per90(a["saves"], m),
             "minutes": a["min"]}
 
 
-RATE_KEYS = ("xg90", "xa90", "bonus90", "dc90", "bps90", "xgi90")
+RATE_KEYS = ("xg90", "xa90", "bonus90", "dc90", "bps90", "xgi90", "saves90")
 
 
 def _fit_on_price(samples, key):
@@ -157,7 +159,7 @@ def positional_priors(ctx):
 
 
 DEFAULT_PRIOR = {"xg90": 0.1, "xa90": 0.1, "bonus90": 0.25, "dc90": 4.0,
-                 "bps90": 12.0, "xgi90": 0.2}
+                 "bps90": 12.0, "xgi90": 0.2, "saves90": 3.0}
 
 
 def _prior_for(el, pos, priors):
@@ -200,24 +202,34 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
     starts = el.get("starts", 0) or 0
     pred = ctx.is_predicted(el)
     if pred is True:
-        minutes = 85.0
+        p_start, avg_start_minutes = 0.92, 90.0
     elif pred is False:
-        minutes = 15.0
+        p_start, avg_start_minutes = 0.10, 75.0
     elif starts:
-        minutes = min(90.0, minutes_played / max(1, starts))
+        p_start, avg_start_minutes = 0.75, min(90.0, minutes_played / max(1, starts))
     else:
-        minutes = 30.0
+        p_start, avg_start_minutes = 0.5, 75.0
 
     # A predicted-lineup feed naming a man who has not kicked a ball this
     # season is a weaker claim than the same feed naming a regular, but the
     # branch above treats them identically - which is how a zero-minute
-    # player came to be scored as a nailed-on 85-minute starter carrying
-    # league-average rates, and outranked a fit player mid-hot-streak.
-    # Temper toward a squad player's involvement until there is some
-    # football to back the billing up.
+    # player came to be scored as a nailed-on starter carrying league-average
+    # rates, and outranked a fit player mid-hot-streak. Temper the start
+    # probability toward a coin flip until there is some football to back
+    # the billing up.
     if minutes_played < EVIDENCE_MINUTES:
         evidence = minutes_played / EVIDENCE_MINUTES
-        minutes = minutes * evidence + 45.0 * (1 - evidence)
+        p_start = p_start * evidence + 0.5 * (1 - evidence)
+
+    # Branch-wise, not a hard 60-minute cliff on the mixture's mean: p60 is
+    # the probability of reaching the clean-sheet/bonus threshold, p_cameo
+    # the probability of a late run-out when he does not start.
+    cameo_prob = (
+        analysis.CAMEO_PROB_DOUBT if pred is True else analysis.CAMEO_PROB_ROTATION
+    )
+    p_cameo = (1 - p_start) * cameo_prob
+    p60 = p_start * (1.0 if avg_start_minutes >= 60 else avg_start_minutes / 60.0)
+    minutes = p_start * avg_start_minutes + p_cameo * 8.0
     share = minutes / 90.0
 
     baseline = (baselines or {}).get(el["team"], league_avg)
@@ -248,6 +260,18 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
     else:
         cs_prob = 0.0
 
+    # Opponent's own attack, for the goals-conceded penalty and saves.
+    if mk_matches:
+        opp_xg = max(0.15, mk["total"] - team_xg)
+    elif fixture:
+        opp_row = proj.get((fixture.get("opp"), gw))
+        opp_xg = (float(opp_row["g"]) if opp_row and opp_row.get("g") is not None
+                 else league_avg)
+    elif mk:
+        opp_xg = max(0.15, mk["total"] - team_xg)
+    else:
+        opp_xg = league_avg
+
     prior = _prior_for(el, pos, priors)
     # Expected goals carry most of the weight, real ones the rest - a player
     # who keeps converting is telling you something xG alone will not.
@@ -262,8 +286,8 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
 
     goals = xg90 * share * mult * analysis.GOAL_POINTS.get(pos, 4)
     assists = xa90 * share * mult * analysis.ASSIST_POINTS
-    defence = cs_prob * analysis.CS_POINTS.get(pos, 0) * (1.0 if share > 0.65 else 0.0)
-    appearance = 2.0 * share if minutes >= 60 else 1.0 * share
+    defence = p60 * cs_prob * analysis.CS_POINTS.get(pos, 0)
+    appearance = p_start * 2.0 + p_cameo * 1.0
 
     threshold = analysis.DEFCON_THRESHOLD.get(pos)
     defcon = 0.0
@@ -275,12 +299,24 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
         defcon = min(1.0, max(0.0, (rate / threshold) ** 2)) * analysis.DEFCON_POINTS * share
     bonus = analysis.expected_bonus(pos, share, goals / max(1e-9, analysis.GOAL_POINTS.get(pos, 4)),
                                     assists / analysis.ASSIST_POINTS, cs_prob,
-                                    other_bps90, minutes)
+                                    other_bps90, p60)
+
+    # Four scoring events the parts above never touch (L6): goals conceded,
+    # saves, cards. saves90 is shrunk toward the positional prior like the
+    # other bootstrap rates above; yellow cards are not, since the base rate
+    # is already low enough that shrinkage would mostly just erase it.
+    gc = -analysis.expected_gc_penalty(opp_xg) * p60 if pos in analysis.GC_PENALTY_POS else 0.0
+    saves90 = _shrink(per90(el.get("saves", 0), minutes_played), minutes_played, prior["saves90"])
+    save_mult = max(0.6, min(1.6, opp_xg / league_avg)) if league_avg else 1.0
+    saves_pts = (saves90 * share * save_mult) / analysis.SAVE_POINTS_PER if pos == "GKP" else 0.0
+    yellow90 = per90(el.get("yellow_cards", 0), minutes_played)
+    cards = yellow90 * share * analysis.YELLOW_CARD_POINTS
 
     return {
-        "total": goals + assists + defence + appearance + defcon + bonus,
+        "total": goals + assists + defence + appearance + defcon + bonus + gc + saves_pts + cards,
         "goals": goals, "assists": assists, "defence": defence,
         "appearance": appearance, "defcon": defcon, "bonus": bonus,
+        "gc": gc, "saves": saves_pts, "cards": cards,
         "cs": cs_prob * 100,
         "opponent": fixture.get("opp") if fixture else mk["opp"],
         "home": (fixture.get("ven") or "H").upper() == "H" if fixture else mk["home"],

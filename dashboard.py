@@ -1343,11 +1343,35 @@ table td.tick{border:2px solid var(--surface)}
   font-size:11px; font-weight:600; color:var(--on-surface-variant);
   font-variant-numeric:tabular-nums; min-width:5em; text-align:center;
 }
+/* Top-right of the card head, level with the title - not its own row
+   above the table - the same margin-left:auto used to push .statsel to
+   the far side of its own header row. */
+.fxcontrols{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  margin-left:auto; align-self:center;
+}
+/* A stepper, not a <select> - two round arrow buttons either side of the
+   number, the same shape as the club-paging arrows below (.fxnav-btn) so
+   the card doesn't introduce a second way of doing the same kind of thing. */
+.fxgames{display:flex; align-items:center; gap:8px}
+.fxgames-label{font-size:13px; font-weight:600}
+.fxgames-n{
+  min-width:1.4em; text-align:center; font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
 .fxtable td.fxc{
   text-align:center; padding:6px 8px; border:2px solid var(--surface);
   border-radius:var(--radius-xs); min-width:58px; line-height:1.2;
+  transition:opacity .15s, filter .15s;
 }
 .fxc-blank{background:var(--surface-variant); color:var(--on-surface-variant)}
+/* Target fixtures: everything that doesn't clear TARGET_RATING fades out,
+   so the genuinely good match-ups are the only thing that still pops. A
+   fade rather than display:none - removing cells would shift every later
+   column in that row out of alignment with the header above it. */
+.fxtable.target-on .fxc:not(.fxc-target):not(.fxc-blank){
+  opacity:.18; filter:grayscale(.5);
+}
 .fxc-opp{display:block; font-size:11px; font-weight:700}
 .fxc-score{display:block; font-size:13px; font-weight:700;
   font-variant-numeric:tabular-nums}
@@ -1370,6 +1394,18 @@ table td.tick{border:2px solid var(--surface)}
    number of gameweek columns kept visible at each breakpoint as before. */
 @media (max-width:640px){.fxtable th:nth-child(n+8),.fxtable td:nth-child(n+8){display:none}}
 @media (max-width:460px){.fxtable th:nth-child(n+7),.fxtable td:nth-child(n+7){display:none}}
+/* The Games selector: GW columns start at nth-child(4) (after Club, Owned,
+   Rating), so showing only the first N hides from nth-child(4+N) on -
+   ticker.js sets data-games to match the <select>. 8 needs no rule, every
+   column FIXTURE_GAMES_MAX renders is already shown. Composes fine with
+   the responsive rules above - whichever applies hides that column. */
+.fxtable[data-games="1"] th:nth-child(n+5),.fxtable[data-games="1"] td:nth-child(n+5){display:none}
+.fxtable[data-games="2"] th:nth-child(n+6),.fxtable[data-games="2"] td:nth-child(n+6){display:none}
+.fxtable[data-games="3"] th:nth-child(n+7),.fxtable[data-games="3"] td:nth-child(n+7){display:none}
+.fxtable[data-games="4"] th:nth-child(n+8),.fxtable[data-games="4"] td:nth-child(n+8){display:none}
+.fxtable[data-games="5"] th:nth-child(n+9),.fxtable[data-games="5"] td:nth-child(n+9){display:none}
+.fxtable[data-games="6"] th:nth-child(n+10),.fxtable[data-games="6"] td:nth-child(n+10){display:none}
+.fxtable[data-games="7"] th:nth-child(n+11),.fxtable[data-games="7"] td:nth-child(n+11){display:none}
 /* The page's one "top reward" look - green through silver to blue - kept
    for the rare figure that earns its own treatment rather than blending
    into the top step of an ordinary scale. A fixture rated above 9 is the
@@ -2283,13 +2319,15 @@ def squad_table(reports, ctx, captain_id, vice_id, proj=None, market=None,
         for label, cls, sortable in SQUAD_HEAD
     )
     maxx = max([r.xgi90 for r in reports] + [0.01])
+    baseline_xg, club_mean_cs = ticker._club_norms(ctx, proj) if proj else ({}, {})
     body = []
     for r in reports:
         el = r.element
         flag, news = r.availability
         fx = "".join(
             ticker.rating_pill(row["opp"], row["home"], row["score"])
-            for row in ticker._rows_for(r.team, proj, market, next_gw, 3)
+            for row in ticker._rows_for(r.team, proj, market, next_gw, 3,
+                                        baseline_xg.get(r.team), club_mean_cs.get(r.team))
         ) or "".join(
             fdr_pill(ctx.team_name(o), h, d)
             for o, h, d, _ev in ctx.next_fixtures(el["team"], 3)
@@ -2573,14 +2611,21 @@ def ownership_carousel(own, by_name, ctx, my_name):
 
 
 def elite_card(res, ctx):
-    """What the best managers in the world own, against what everyone owns."""
+    """What proven managers own, against what everyone owns."""
     if not res:
         return ""
-    est = res["mode"] == "sampled"
+    if res.get("insufficient"):
+        return (
+            '<section class="card">'
+            f'<div class="card-head"><h2>What proven managers own{components.info_btn()}</h2></div>'
+            '<div class="card-body"><p class="tnote">Elite ownership needs '
+            "~10 gameweeks before the top of the table means anything - too "
+            "few managers with a proven top-100k season are in the current "
+            "top ranks yet.</p></div></section>"
+        )
     caveat = (
-        f" Estimated from a {res['managers']}-manager sample, so each figure "
+        f" Read from {res['managers']} proven managers, so each figure "
         f"carries about &plusmn;{res['moe']:.1f} points at 95% confidence."
-        if est else ""
     )
 
     def table(rows, cols_note):
@@ -2592,10 +2637,10 @@ def elite_card(res, ctx):
                 f"<tr{cls}><td><b>{e(r['name'])}</b></td>"
                 f"<td>{e(r['pos'])}</td><td>{e(r['team'])}</td>"
                 f'<td class="num">{r["price"]:.1f}</td>'
-                f'<td class="num" data-v="{r["elite"]}">{r["elite"]:.1f}%</td>'
-                f'<td class="num" data-v="{r["overall"]}">{r["overall"]:.1f}%</td>'
+                f'<td class="num" data-v="{r["elite"]}">{r["elite"]:.0f}%</td>'
+                f'<td class="num" data-v="{r["overall"]}">{r["overall"]:.0f}%</td>'
                 f'<td class="num" data-v="{r["edge"]}" style="color:{edge_tone}">'
-                f'<b>{r["edge"]:+.1f}</b></td></tr>'
+                f'<b>{r["edge"]:+.0f}</b></td></tr>'
             )
         return (
             f'<p class="tnote">{cols_note}</p>'
@@ -2609,20 +2654,20 @@ def elite_card(res, ctx):
             f"</tr></thead><tbody>{''.join(body)}</tbody></table></div>"
         )
 
-    parts = [table(res["most_owned"], "Most owned by the elite.")]
+    parts = [table(res["most_owned"], "Most owned by proven managers.")]
     if res["elite_edge"]:
         parts.append(table(
             res["elite_edge"],
-            "Owned far more by the elite than by the crowd - and you do not own them.",
+            "Owned far more by proven managers than by the crowd - and you do not own them.",
         ))
     if res["against"]:
         parts.append(table(
             res["against"],
-            "You own these; the elite largely do not.",
+            "You own these; proven managers largely do not.",
         ))
     return (
         '<section class="card">'
-        f'<div class="card-head"><h2>What the best managers own{components.info_btn()}</h2>'
+        f'<div class="card-head"><h2>What proven managers own{components.info_btn()}</h2>'
         f'<span class="sub" hidden>{e(res["label"])}, read from the global FPL league at '
         f"gameweek {res['event']}.{caveat}</span></div>"
         f'<div class="card-body">{"".join(parts)}</div></section>'
@@ -2666,12 +2711,15 @@ def ep_card(eps, gw):
     )
 
 
-def _next_three(r, ctx, proj, market, next_gw):
+def _next_three(r, ctx, proj, market, next_gw, baseline_xg=None, club_mean_cs=None):
     """Three fixture pills for one player, market-rated where the odds
     priced the game and on FPL's own difficulty rating where they did not."""
+    baseline_xg = baseline_xg or {}
+    club_mean_cs = club_mean_cs or {}
     pills = "".join(
         ticker.rating_pill(row["opp"], row["home"], row["score"])
-        for row in ticker._rows_for(r.team, proj, market, next_gw, 3)
+        for row in ticker._rows_for(r.team, proj, market, next_gw, 3,
+                                    baseline_xg.get(r.team), club_mean_cs.get(r.team))
     )
     return pills or "".join(
         fdr_pill(ctx.team_name(o), h, d)
@@ -2699,6 +2747,7 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
     if not ctx.lineups_known():
         return ""
     xi_ids = xi_ids or set()
+    baseline_xg, club_mean_cs = ticker._club_norms(ctx, proj) if proj else ({}, {})
     views = [
         ("squad", "Full squad", reports),
         ("xi", "Starting XI", [r for r in reports if r.element["id"] in xi_ids]),
@@ -2711,7 +2760,8 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
         items = "".join(
             f'<li><span class="lc-name">{e(r.name)}</span>'
             f'<span class="lc-club">{e(r.team)}</span>'
-            + (f'<span class="lc-fx">{_next_three(r, ctx, proj, market, next_gw)}'
+            + (f'<span class="lc-fx">'
+               f'{_next_three(r, ctx, proj, market, next_gw, baseline_xg, club_mean_cs)}'
                f"</span>" if fixtures else "")
             + "</li>"
             for r in rows
@@ -2871,6 +2921,7 @@ def fixture_swings_card(reports, ctx, proj, market, next_gw):
         return ""
     kind.sort(key=lambda x: x[2])
     hard.sort(key=lambda x: -x[2])
+    baseline_xg, club_mean_cs = ticker._club_norms(ctx, proj) if proj else ({}, {})
 
     def block(rows, cls, label):
         if not rows:
@@ -2882,7 +2933,8 @@ def fixture_swings_card(reports, ctx, proj, market, next_gw):
                 club=e(club), fdr=fdr,
                 pills="".join(
                     ticker.rating_pill(row["opp"], row["home"], row["score"])
-                    for row in ticker._rows_for(club, proj, market, next_gw, 3)
+                    for row in ticker._rows_for(club, proj, market, next_gw, 3,
+                                                baseline_xg.get(club), club_mean_cs.get(club))
                 ),
             )
             for club, _tid, fdr in rows
@@ -4170,7 +4222,9 @@ def captaincy_card(cm):
     come from."""
     if not cm:
         return ""
-    top = next(c for c in cm["candidates"] if c["is_top_area"])
+    # candidates are ranked by projected points, highest first - see
+    # captaincy.matrix.
+    top = cm["candidates"][0]
     legend = "".join(
         f'<li class="radar-leg" data-i="{i}" tabindex="0" role="button" '
         f'aria-pressed="false">'
@@ -4197,9 +4251,9 @@ def captaincy_card(cm):
         f'every week: genuinely one of the best fixtures or returns anyone '
         f'gets, not just the best of this shortlist. Two candidates from the '
         f'same club can also share an axis exactly (same team, same '
-        f'fixture), which is a genuine tie, not missing data. The largest '
-        f'shaded shape - <b>{e(top["player"])}</b> this week - is the safest '
-        f'or highest-ceiling pick. Click a name for the full breakdown.</span></div>'
+        f'fixture), which is a genuine tie, not missing data. Ranked by '
+        f'projected points - <b>{e(top["player"])}</b> is on top this week - '
+        f'the shape shows why. Click a name for the full breakdown.</span></div>'
         '<div class="card-body cap-layout">'
         f'<div class="cap-side"><ul class="radar-legend">{legend}</ul>'
         '<p class="radar-readout" aria-live="polite">Hover a shape or a dot for its value.</p></div>'
@@ -4725,7 +4779,7 @@ def _update_price_history(ctx):
 
 
 def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
-          elite_depth=100, elite_sample=None):
+          elite_depth=elite.PROVEN_POOL_SIZE):
     """Gather everything the page needs."""
     ctx = analysis.Ctx.load(ttl=ttl)
     gw = gw or ctx.last_event_with_picks()
@@ -4810,8 +4864,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     elite_res = None
     if elite_depth:
         try:
-            elite_res = elite.compare(ctx, squad_ids, depth=elite_depth,
-                                      sample=elite_sample, ttl=ttl)
+            elite_res = elite.compare(ctx, squad_ids, depth=elite_depth, ttl=ttl)
         except fplapi.FplError as ex:
             print(f"[elite] skipped: {ex}")
 
@@ -5032,7 +5085,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "squad_table": squad_table(xi + bench, ctx, cap, vice,
                                    proj, market, next_gw),
         "ticker": ticker.fixture_ticker(xi + bench, ctx, proj, next_gw,
-                                        weeks=6, market=market),
+                                        market=market),
         "fixture_runs": ticker.fixture_run_summary(xi + bench, ctx, proj,
                                                     market, next_gw, weeks=6),
         "market": ticker.odds_insights(market_fixtures, xi, ctx, proj, next_gw),

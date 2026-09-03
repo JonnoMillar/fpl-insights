@@ -760,6 +760,31 @@ GOAL_POINTS = {"GKP": 10, "DEF": 6, "MID": 5, "FWD": 4}
 CS_POINTS = {"GKP": 4, "DEF": 4, "MID": 1, "FWD": 0}
 ASSIST_POINTS = 3
 DEFCON_POINTS = 2
+GC_PENALTY_POS = ("GKP", "DEF")   # -1 per 2 goals conceded
+SAVE_POINTS_PER = 3.0             # +1 per 3 saves, GKP only
+YELLOW_CARD_POINTS = -1.0
+
+# Chance of a late cameo when a player does not start, given as `pred` from
+# `ctx.is_predicted`. A predicted starter who drops out (True) more often
+# means rested or missing entirely than a genuine late run-out; someone who
+# was never the predicted starter (False/None) is more often a real rotation
+# option who does get thrown on.
+CAMEO_PROB_DOUBT = 0.2
+CAMEO_PROB_ROTATION = 0.5
+
+
+def expected_gc_penalty(opp_xg, max_k=10):
+    """E[floor(goals conceded / 2)] under a Poisson(opp_xg) model - the
+    -1-per-2-conceded penalty for GKP/DEF. The tail beyond max_k goals is
+    folded into the last bucket rather than dropped, since it is a real if
+    tiny slice of probability mass, not zero."""
+    total, remaining = 0.0, 1.0
+    for k in range(max_k):
+        p = math.exp(-opp_xg) * opp_xg ** k / math.factorial(k)
+        remaining -= p
+        total += p * (k // 2)
+    total += remaining * (max_k // 2)
+    return total
 
 
 # --- bonus ---------------------------------------------------------------
@@ -807,7 +832,7 @@ def other_bps_per90(el, ctx, minutes):
 
 
 def expected_bonus(pos, share, exp_goals, exp_assists, cs_prob, other_bps90,
-                   minutes):
+                   p60):
     """Expected bonus points, built from the same parts as the rest of the
     projection.
 
@@ -817,13 +842,16 @@ def expected_bonus(pos, share, exp_goals, exp_assists, cs_prob, other_bps90,
     enumerated - nought, one or two goals, an assist or not, a clean sheet or
     not - each scored for BPS and mapped to bonus, then weighted by how likely
     it is. That is why a forward with a real chance of scoring now carries
-    expected bonus even when he has none on record."""
+    expected bonus even when he has none on record.
+
+    `p60` (probability of reaching 60 minutes) weights the 6-vs-3 appearance
+    BPS split and the clean-sheet BPS, in place of a hard minutes>=60 cliff."""
     if share <= 0:
         return 0.0
-    appearance_bps = 6.0 if minutes >= 60 else 3.0
+    appearance_bps = p60 * 6.0 + (1 - p60) * 3.0
     base = appearance_bps + other_bps90 * share
     goal_bps = GOAL_BPS.get(pos, 12)
-    cs_bps = CS_BPS.get(pos, 0) if minutes >= 60 else 0
+    cs_bps = CS_BPS.get(pos, 0) * p60
 
     # Poisson for goals, Bernoulli for the rest.
     lam = max(0.0, exp_goals)
@@ -926,7 +954,15 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
         min(90.0, sum(h["minutes"] for h in r.history if h["starts"]) / r.starts)
         if r.starts else 75.0
     )
-    minutes = start_prob * avg_start_minutes + (1 - start_prob) * 8.0
+    cameo_prob = (
+        CAMEO_PROB_DOUBT if ctx.is_predicted(el) is True else CAMEO_PROB_ROTATION
+    )
+    p_cameo = (1 - start_prob) * cameo_prob
+    # Probability of reaching the 60-minute clean-sheet/bonus threshold: he
+    # has to start, and then (if his starts themselves run short) actually
+    # last that long within one.
+    p60 = start_prob * (1.0 if avg_start_minutes >= 60 else avg_start_minutes / 60.0)
+    minutes = start_prob * avg_start_minutes + p_cameo * 8.0
     minutes = max(0.0, min(90.0, minutes))
     share = minutes / 90.0
 
@@ -959,6 +995,18 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
     else:
         cs_prob, cs_source = 0.0, "none"
 
+    # --- opponent's attack, for the goals-conceded penalty and saves ---
+    if mk_matches:
+        opp_xg = max(0.15, mk["total"] - team_xg)
+    elif fixture:
+        opp_row = proj.get((fixture.get("opp"), gw))
+        opp_xg = (float(opp_row["g"]) if opp_row and opp_row.get("g") is not None
+                 else league_avg_xg)
+    elif mk:
+        opp_xg = max(0.15, mk["total"] - team_xg)
+    else:
+        opp_xg = league_avg_xg
+
     # --- the player's own rates, blended with last season while thin ---
     xg90, xa90 = per90(r.xg, r.minutes), per90(r.xa, r.minutes)
     other_bps90 = other_bps_per90(el, ctx, r.minutes)
@@ -974,18 +1022,30 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
     assists_pts = exp_assists * ASSIST_POINTS
     attack = goals_pts + assists_pts
 
-    # Clean-sheet points need 60 minutes, so a fringe player earns none.
-    defence = cs_prob * CS_POINTS.get(r.pos, 0) * (1.0 if share > 0.65 else 0.0)
-    appearance = 2.0 * share if minutes >= 60 else 1.0 * share
+    # Branch-wise expectation, not the 60-minute rule applied to the mixture's
+    # mean: a start earns full clean-sheet eligibility and 2 appearance
+    # points, a cameo earns neither CS nor more than 1.
+    defence = p60 * cs_prob * CS_POINTS.get(r.pos, 0)
+    appearance = start_prob * 2.0 + p_cameo * 1.0
     hit_rate = (r.defcon_hits / r.appearances) if r.appearances else 0.0
     # hit_rate is already per appearance (appearances includes short
     # cameos), so weighting it by share double-counts minutes; weight by
     # the probability of starting instead.
     defcon = hit_rate * DEFCON_POINTS * start_prob
     bonus = expected_bonus(r.pos, share, exp_goals, exp_assists, cs_prob,
-                           other_bps90, minutes)
+                           other_bps90, p60)
 
-    total = attack + defence + appearance + defcon + bonus
+    # Four scoring events the parts above never touch - and biased, not
+    # random, omissions: leaving them out under-projects every keeper and
+    # over-projects defenders on leaky sides (see L6).
+    gc = -expected_gc_penalty(opp_xg) * p60 if r.pos in GC_PENALTY_POS else 0.0
+    saves90 = per90(el.get("saves", 0), el.get("minutes", 0))
+    save_mult = max(0.6, min(1.6, opp_xg / league_avg_xg)) if league_avg_xg else 1.0
+    saves_pts = (saves90 * share * save_mult) / SAVE_POINTS_PER if r.pos == "GKP" else 0.0
+    yellow90 = per90(el.get("yellow_cards", 0), el.get("minutes", 0))
+    cards = yellow90 * share * YELLOW_CARD_POINTS
+
+    total = attack + defence + appearance + defcon + bonus + gc + saves_pts + cards
     return {
         "total": total,
         "attack": attack,
@@ -995,6 +1055,9 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
         "appearance": appearance,
         "defcon": defcon,
         "bonus": bonus,
+        "gc": gc,
+        "saves": saves_pts,
+        "cards": cards,
         "exp_goals": exp_goals,
         "exp_assists": exp_assists,
         "minutes": minutes,
@@ -1002,6 +1065,7 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
         "cs_source": cs_source,
         "team_xg": team_xg,
         "xg_source": xg_source,
+        "opp_xg": opp_xg,
         "baseline": baseline,
         "fixture_mult": fixture_mult,
         # The fixture itself - who and where - is always this gameweek's own
