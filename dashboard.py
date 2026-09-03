@@ -952,7 +952,7 @@ table td.tick{border:2px solid var(--surface)}
 .splist li.first .sprank{background:var(--accent); color:#fff}
 .spname{font-weight:600}
 .spteam{margin-left:auto; color:var(--on-surface-variant); font-size:11px}
-.mkt-cs,.mkt-xg{color:var(--good-ink); font-weight:700}
+.mkt-cs,.mkt-xg{color:var(--market); font-weight:700}
 
 /* --- pick team: the eleven fold into a column, the bars extend beside it ---
    No length is transitioned here, for the reason recorded further down this
@@ -1080,12 +1080,12 @@ table td.tick{border:2px solid var(--surface)}
   grid-template-columns:repeat(auto-fit,minmax(168px,1fr)); gap:12px}
 .oi{
   position:relative; padding:14px 14px 12px; border-radius:var(--radius-m);
-  background:var(--surface-variant); border-top:3px solid var(--oi-tone);
+  background:var(--market-wash); border-top:3px solid var(--oi-tone);
 }
 .oi-icon{width:20px; height:20px; color:var(--oi-tone)}
 .oi-good{--oi-tone:var(--success)}
 .oi-bad{--oi-tone:var(--error)}
-.oi-info{--oi-tone:var(--accent)}
+.oi-info{--oi-tone:var(--market)}
 .oi-label{margin:6px 0 0; font-size:10px; font-weight:700; text-transform:uppercase;
   letter-spacing:.05em; color:var(--on-surface-variant)}
 .oi-value{margin:3px 0 0; font-size:27px; font-weight:700; line-height:1;
@@ -1401,7 +1401,7 @@ table td.tick{border:2px solid var(--surface)}
   font-variant-numeric:tabular-nums}
 .fx-mkt{
   display:inline-block; width:4px; height:4px; border-radius:50%;
-  background:currentColor; margin-left:4px; vertical-align:middle; opacity:.75;
+  background:var(--market); margin-left:4px; vertical-align:middle; opacity:.9;
 }
 .fxclub{white-space:nowrap}
 .fxavg{
