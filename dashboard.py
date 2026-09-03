@@ -506,12 +506,12 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
    .pl/.pk shirt card, so the same visual language marks "new" everywhere a
    proposed squad appears on the page. */
 .pl-incoming{
-  outline:2px solid var(--accent); outline-offset:2px;
-  box-shadow:0 2px 6px rgb(0 0 0 / 25%), 0 0 0 5px var(--accent-wash);
+  outline:2px solid var(--mine); outline-offset:2px;
+  box-shadow:0 2px 6px rgb(0 0 0 / 25%), 0 0 0 5px rgb(230 0 126 / 12%);
 }
 .pl-in-tag{
   position:absolute; top:3px; right:3px; z-index:2; padding:1px 5px;
-  border-radius:9999px; background:var(--accent); color:#04331d;
+  border-radius:9999px; background:var(--mine); color:#fff;
   font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.04em;
 }
 
@@ -593,7 +593,7 @@ th.sortable[aria-sort="ascending"]::after{content:"\\2191"; opacity:1}
 th.sortable[aria-sort="descending"]::after{content:"\\2193"; opacity:1}
 tbody tr{border-bottom:1px solid var(--outline-variant)}
 tbody tr:hover{background:var(--surface-variant)}
-tbody tr.me{background:color-mix(in srgb, var(--accent) 12%, transparent)}
+tbody tr.me{background:#fff0f7}
 td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .pos{
   display:inline-block; min-width:34px; text-align:center; font-size:11px; font-weight:700;
@@ -632,7 +632,7 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 }
 
 /* --- scatter --- */
-:root{--mark-mkt:#87668a; --mark-mine:#953bff; --mark-outlier:#e6007e}
+:root{--mark-mkt:#bcae9e; --mark-mine:var(--mine); --mark-outlier:var(--ink)}
 .chartfilter{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px}
 .chip{
   appearance:none; border:1px solid var(--outline); background:var(--surface);
@@ -648,9 +648,10 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .scatter .mkt circle{fill:var(--mark-mkt); opacity:.55}
 .scatter .mine circle{fill:var(--mark-mine); stroke:var(--surface); stroke-width:2}
 /* Furthest from the norm, on whichever two measures are picked right now -
-   a market dot (not yours) gets this instead of the plain market fill. */
+   a market dot (not yours) gets this hollow ring instead of the plain
+   market fill, so it reads as "flagged" rather than as a third colour. */
 .scatter .outlier circle:first-child{
-  fill:var(--mark-outlier); opacity:.85; stroke:var(--surface); stroke-width:1.5;
+  fill:none; opacity:.9; stroke:var(--mark-outlier); stroke-width:2;
 }
 .scatter .pt{cursor:pointer}
 .scatter .pt:hover circle{opacity:1; stroke:var(--on-surface); stroke-width:2}
@@ -1520,7 +1521,7 @@ table td.tick{border:2px solid var(--surface)}
 /* --- league template pitch + differentials --- */
 .tplpitch .pl{width:86px}
 .tplpitch .pl .sc .p{font-size:11px}
-.pl.tpl-mine{outline:2px solid var(--accent); outline-offset:1px}
+.pl.tpl-mine{outline:2px solid var(--mine); outline-offset:1px}
 .dflist{list-style:none; margin:0; padding:0; display:grid;
   grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px}
 .df-card{display:flex; gap:14px; align-items:center;
