@@ -165,6 +165,9 @@ CSS = """
      that lands on text uses the darker cut. */
   --white:#ffffff;
   --p2:#faf9fa; --p5:#f5f2f5; --p10:#ebe5eb; --p20:#d7ccd8; --p30:#c3b2c4;
+  /* --p50 is 3.52:1 on white and must not carry type - it is a border
+     and fill value. --p60 is 4.62:1 and is the lightest ink allowed on
+     a white card. */
   --p40:#af99b1; --p50:#9b809d; --p60:#87668a; --p70:#7d5980; --p80:#541e5d;
   --p90:#41054b; --p100:#37003c; --p110:#28002b; --p120:#1e0021;
   --ink:#37003c;
@@ -203,6 +206,11 @@ CSS = """
      to avoid. */
   --ground:#f4f1ea; --bar:var(--p120); --on-bar:var(--white);
   --pitch-a:#0e7a3c; --pitch-b:#0a6733;
+  /* The content column. It was 1120px, which on a desktop left the page
+     using barely a third of the width while every grid inside it was
+     squeezed to three 322px columns of 10px type. The density problem
+     was never the amount of data - it was the width it had to fit. */
+  --shell:1400px;
   --radius-xs:4px; --radius-s:8px; --radius-m:12px; --radius-l:16px;
   --shadow:0 1px 2px rgb(55 0 60 / 10%), 0 1px 8px rgb(55 0 60 / 6%);
 }
@@ -292,7 +300,7 @@ a{color:inherit}
   position:sticky; top:0; z-index:20;
 }
 .topbar-in{
-  max-width:1120px; margin:0 auto; padding:12px 16px;
+  max-width:var(--shell); margin:0 auto; padding:12px 16px;
   display:flex; align-items:center; gap:12px; flex-wrap:wrap;
 }
 .wordmark{
@@ -306,7 +314,7 @@ a{color:inherit}
 }
 .stamp{font-size:12px;color:rgb(255 255 255 / 65%)}
 
-.wrap{max-width:1120px;margin:0 auto;padding:16px}
+.wrap{max-width:var(--shell);margin:0 auto;padding:16px}
 section{margin-bottom:20px}
 .card{
   background:var(--surface); border-radius:var(--radius-m);
@@ -445,7 +453,7 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
    readable across the room and the other two only when you look for them.
    The chosen cell also takes extra width, since 15px digits do not fit a
    third of a 92px card. */
-.ovwrap .sc div{color:var(--p50); font-weight:500; font-size:10px}
+.ovwrap .sc div{color:var(--p60); font-weight:500; font-size:10px}
 .ovwrap.emph-p .sc .p,
 .ovwrap.emph-g .sc .g,
 .ovwrap.emph-x .sc .x{
@@ -1157,7 +1165,7 @@ table td.tick{border:2px solid var(--surface)}
 .lc-block li{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
 .lc-name{font-size:13px; font-weight:600}
 .lc-club{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
-  color:var(--p50)}
+  color:var(--p60)}
 .lc-fx{margin-left:auto; display:flex; gap:3px}
 
 /* --- fixture swings -------------------------------------------------------
@@ -1267,7 +1275,7 @@ table td.tick{border:2px solid var(--surface)}
 .bxi-name{font-size:13px; font-weight:600; overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap}
 .bxi-club{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
-  color:var(--p50)}
+  color:var(--p60)}
 .bxi-bar{display:block; height:5px; border-radius:3px; background:var(--p10)}
 .bxi-bar i{display:block; height:100%; border-radius:3px; background:var(--p30)}
 .bxi-ep{font-size:12px; text-align:right; color:var(--on-surface-variant)}
@@ -1326,7 +1334,7 @@ table td.tick{border:2px solid var(--surface)}
 .vb-ep{font-size:13px; font-weight:700}
 .vb-sub{display:block; font-size:11px; line-height:1.35;
   color:var(--on-surface-variant)}
-.vb-none{font-size:12px; color:var(--p50)}
+.vb-none{font-size:12px; color:var(--p60)}
 .vb-good{border-top-color:var(--good); background:var(--good-wash)}
 .vb-good .vb-ep{color:var(--good-ink)}
 .vb-bad{border-top-color:var(--bad); background:var(--bad-wash)}
@@ -1508,7 +1516,9 @@ table td.tick{border:2px solid var(--surface)}
 .pr-photo{width:44px; height:56px; border-radius:var(--radius-xs);
   object-fit:cover; background:var(--surface); display:block}
 .pr-blank{display:grid; place-items:center; font-size:19px; font-weight:700;
-  color:var(--on-surface-variant)}
+  background:var(--surface-variant); border:1px solid var(--outline-variant);
+  color:var(--p60)}
+.pr-blank img{width:30px; height:30px; object-fit:contain; display:block}
 .pr-kit{position:absolute; right:-5px; bottom:-4px; width:18px; height:18px;
   border-radius:50%; background:var(--surface); padding:1px}
 .pr-out .pr-photo{filter:grayscale(.75) opacity(.7)}
@@ -1534,7 +1544,8 @@ table td.tick{border:2px solid var(--surface)}
 .df-photo{width:84px; height:106px; border-radius:var(--radius-s);
   object-fit:cover; background:var(--surface); flex:none}
 .df-blank{display:grid; place-items:center; font-size:34px; font-weight:700;
-  color:var(--on-surface-variant)}
+  background:var(--p10); border:1px solid var(--p20);
+  color:var(--p60)}
 .df-body{min-width:0}
 .df-name{margin:0; font-size:18px; font-weight:700}
 .df-meta{margin:2px 0 10px; font-size:12px; color:var(--on-surface-variant)}
@@ -1570,12 +1581,13 @@ table td.tick{border:2px solid var(--surface)}
 .rv-photo{grid-area:face; width:44px; height:56px; border-radius:var(--radius-xs);
   object-fit:cover; background:var(--surface-variant); flex:none}
 .rv-blank{display:grid; place-items:center; font-size:19px; font-weight:700;
-  color:var(--on-surface-variant)}
+  background:var(--surface-variant); border:1px solid var(--outline-variant);
+  color:var(--p60)}
 .rv-who{grid-area:who; min-width:0; display:flex; flex-direction:column}
 .rv-who b{font-size:14px; overflow:hidden; text-overflow:ellipsis;
   white-space:nowrap}
 .rv-who span{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
-  color:var(--p50)}
+  color:var(--p60)}
 .rv-pts{grid-area:pts; font-size:19px; font-weight:700; text-align:right;
   color:var(--bad-ink)}
 .rv-track{grid-area:track; height:9px; border-radius:5px;
@@ -1660,10 +1672,18 @@ table td.tick{border:2px solid var(--surface)}
   width:72px; height:92px; border-radius:var(--radius-s); object-fit:cover;
   background:var(--surface); display:block;
 }
+/* A player with no portrait used to draw as a white box on a white card
+   with a letter floating in it - indistinguishable from an image that had
+   failed to load, and four of them sat in one row of suggested transfers.
+   The club kit is an asset we already have for that player, so a missing
+   face falls back to the shirt on the same warm ground the pitch cards use
+   for a crest, and only a player with neither gets the letter. */
 .tf-blank{
   display:grid; place-items:center; font-size:30px; font-weight:700;
-  color:var(--on-surface-variant);
+  background:var(--surface-variant); border:1px solid var(--outline-variant);
+  color:var(--p60);
 }
+.tf-blank img{width:48px; height:48px; object-fit:contain; display:block}
 .tf-kit{
   position:absolute; right:-8px; bottom:-6px; width:26px; height:26px;
   border-radius:50%; background:var(--surface); padding:2px;
@@ -1894,7 +1914,7 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
 .arr{display:flex; align-items:center; gap:9px; font-size:13px}
 .arr-name{font-weight:600; display:flex; align-items:center; gap:6px}
 .arr-club{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
-  color:var(--p50)}
+  color:var(--p60)}
 .arr-detail{
   margin-left:auto; color:var(--on-surface-variant); font-size:12px;
   font-family:var(--mono);
