@@ -18,9 +18,13 @@
   // A fixed hue rotation rather than a hand-picked palette - a league can
   // have anywhere from a handful of managers to the full standings limit,
   // and a palette sized for one league would run out or repeat on another.
+  // Rotation starts at --rival's own hue (#1b5ce0, ~220deg) rather than at
+  // red, so the first rival on the chart lands on the same blue the rest
+  // of the page already uses for "not you".
+  var RIVAL_HUE = 220;
   function colourFor(i, n, mine) {
     if (mine) { return 'var(--accent-ink)'; }
-    var hue = Math.round((360 / Math.max(1, n)) * i);
+    var hue = (RIVAL_HUE + Math.round((360 / Math.max(1, n)) * i)) % 360;
     return 'hsl(' + hue + ', 55%, 48%)';
   }
 

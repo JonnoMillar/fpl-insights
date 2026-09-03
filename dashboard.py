@@ -1580,7 +1580,7 @@ table td.tick{border:2px solid var(--surface)}
   color:var(--bad-ink)}
 .rv-track{grid-area:track; height:9px; border-radius:5px;
   background:var(--outline-variant); overflow:hidden}
-.rv-track i{display:block; height:100%; border-radius:5px; background:var(--bad)}
+.rv-track i{display:block; height:100%; border-radius:5px; background:var(--rival)}
 .rv-note{grid-area:note; font-size:11px; color:var(--on-surface-variant)}
 @media (max-width:620px){
   .rv-row{grid-template-columns:44px minmax(0,1fr) 34px;
