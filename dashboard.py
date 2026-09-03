@@ -447,22 +447,16 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
 .tile .delta-up{background:rgb(1 252 122 / 18%); color:#8affc4}
 .tile .delta-down{background:rgb(230 0 35 / 22%); color:#ff9aa8}
 
-/* Six numbers along the foot of the hero. They were six separate rounded
-   boxes with their own borders - the KPI row every admin template opens
-   with. One recessed band divided by hairlines instead, the way a score
-   is broken up on a board at a ground: the figures are what should read,
-   and six sets of rounded corners were competing with them. The tiles
-   that carry a tone still stand out, and now they stand out against a
-   quiet band rather than against five equally busy boxes. */
-.tiles{
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
-  gap:1px; margin-top:18px; border-radius:var(--radius-s); overflow:hidden;
-  background:rgb(255 255 255 / 9%);
-  box-shadow:inset 0 1px 0 rgb(0 0 0 / 18%);
-}
+/* Six separate tiles, each with its own edge. This was briefly one
+   recessed band divided by hairlines - a scoreboard read - but at 9% white
+   the dividers were invisible on the four tiles that carry no tone, so the
+   two that did were the only ones that looked like anything. Back to
+   discrete tiles, with the border taken from 9% to 18% so every one of
+   them actually has an edge to see. */
+.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:10px; margin-top:18px}
 .tile{
-  background:var(--ink); padding:11px 13px;
-  box-shadow:inset 0 1px 0 rgb(255 255 255 / 5%);
+  background:rgb(255 255 255 / 7%); border-radius:var(--radius-s);
+  padding:10px 12px; border:1px solid rgb(255 255 255 / 18%);
 }
 .tile .k{font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:rgb(255 255 255 / 62%)}
 .tile .v{
@@ -474,34 +468,62 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
 /* Only two of the six tiles ever carry a tone - see render() for which and
    why. Same three-way good/warn/bad vocabulary the delta chips already
    use, just applied to the whole tile instead of a chip inside it. */
-.tile.tile-good{background:#123a2c}
+.tile.tile-good{background:rgb(1 252 122 / 9%); border-color:rgb(1 252 122 / 40%)}
 .tile.tile-good .v{color:#8affc4}
-.tile.tile-warn{background:#3d2a12}
+.tile.tile-warn{background:rgb(255 176 0 / 14%); border-color:rgb(255 176 0 / 46%)}
 .tile.tile-warn .v{color:#ffd166}
-.tile.tile-bad{background:#43121f}
+.tile.tile-bad{background:rgb(230 0 35 / 11%); border-color:rgb(230 0 35 / 42%)}
 .tile.tile-bad .v{color:#ff9aa8}
 
 /* --- tabs --- */
-.tabs{display:flex; gap:4px; margin:16px 0 12px; flex-wrap:wrap}
-.tab{
-  appearance:none; border:1px solid var(--outline); background:var(--surface);
-  color:var(--on-surface); font:inherit; font-weight:600; font-size:14px;
-  padding:8px 16px; border-radius:9999px; cursor:pointer;
-}
-.tab[aria-selected="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
-.tab:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
-.panel[hidden]{display:none}
+/* --- tab bars ------------------------------------------------------------
+   Every mutually-exclusive switch on this page was its own row of pill
+   buttons - a bordered capsule each, the selected one filled solid ink.
+   Five separate groups of them, all shouting at the volume of the content
+   underneath, and five near-identical blocks of CSS saying so.
 
-/* --- pick-team pitch toggle: a nested, quieter version of .tab/.tabs,
-   scoped inside one card rather than switching the whole page --- */
-.pkview{display:flex; gap:6px; padding:10px 16px; border-bottom:1px solid var(--outline-variant)}
-.pkbtn{
-  appearance:none; border:1px solid var(--outline); background:var(--surface);
-  color:var(--on-surface-variant); font:inherit; font-weight:600; font-size:12px;
-  padding:5px 12px; border-radius:9999px; cursor:pointer;
+   One bar instead. The selected label is simply the dark one, and a single
+   rule slides between them. The indicator is one element per bar driven by
+   two custom properties rather than a border on the selected button,
+   because a border cannot animate from one element to another; and it is a
+   1px block scaled on X rather than a width, so position and size move in
+   the same composited transform. */
+.tabbar{
+  position:relative; display:flex; gap:2px;
+  border-bottom:1px solid var(--outline-variant);
 }
-.pkbtn[aria-selected="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
-.pkbtn:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.tabbar::after{
+  content:""; position:absolute; left:0; bottom:-1px; width:1px; height:2px;
+  background:var(--ink); pointer-events:none;
+  transform:translateX(var(--tab-x,0)) scaleX(var(--tab-w,0));
+  transform-origin:0 0;
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+}
+@media (prefers-reduced-motion:reduce){.tabbar::after{transition:none}}
+.tabbar > button{
+  appearance:none; border:0; background:none; cursor:pointer; font:inherit;
+  font-weight:600; font-size:13px; color:var(--on-surface-variant);
+  padding:9px 14px; white-space:nowrap; flex:none;
+  border-radius:var(--radius-xs) var(--radius-xs) 0 0;
+  transition:color .2s, background-color .2s;
+}
+.tabbar > button:hover{color:var(--on-surface); background:var(--p2)}
+.tabbar > button[aria-selected="true"],
+.tabbar > button[aria-pressed="true"]{color:var(--ink)}
+.tabbar > button:focus-visible{outline:3px solid var(--accent); outline-offset:-3px}
+/* Narrow enough and the bar scrolls sideways rather than wrapping: the
+   indicator is positioned along one axis, so a second line would strand
+   it under the first. */
+.tabbar{overflow-x:auto; scrollbar-width:none}
+.tabbar::-webkit-scrollbar{display:none}
+
+/* The page-level one is the loudest of them and carries the most weight. */
+.tabs{margin:18px 0 14px}
+.tabs > button{font-size:15px; padding:10px 18px}
+/* Scoped inside a card: same bar, quieter, and inset to the card's padding. */
+.pkview{padding:0 16px; gap:0}
+.pkview > button{font-size:12px; padding:9px 12px}
+.panel[hidden]{display:none}
 .pkpanel[hidden]{display:none}
 
 /* --- pitch --- */
@@ -791,13 +813,6 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 /* --- scatter --- */
 :root{--mark-mkt:#bcae9e; --mark-mine:var(--mine); --mark-outlier:var(--ink)}
 .chartfilter{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px}
-.chip{
-  appearance:none; border:1px solid var(--outline); background:var(--surface);
-  color:var(--on-surface); font:inherit; font-size:13px; font-weight:600;
-  padding:5px 12px; border-radius:9999px; cursor:pointer;
-}
-.chip[aria-pressed="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
-.chip:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 /* The viewBox is the chart's own coordinate space, so a container wider
    than it upscales every dot, stroke and label together - at the 1400px
    shell a 760-wide box was being blown up 1.76x and the 11px tick labels
@@ -852,13 +867,6 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
    One line per manager, straight segments between gameweeks - there is
    nothing to smooth between two discrete, already-final scores. */
 .lptoggle{display:flex; gap:6px; margin-bottom:10px}
-.lpbtn{
-  appearance:none; border:1px solid var(--outline); background:var(--surface);
-  color:var(--on-surface-variant); font:inherit; font-weight:600; font-size:12px;
-  padding:5px 12px; border-radius:9999px; cursor:pointer;
-}
-.lpbtn[aria-pressed="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
-.lpbtn:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 /* Capped for the same reason as .scatter - see the note there. */
 .lpchart{width:100%; min-width:520px; max-width:1040px; height:auto;
   display:block; margin:0 auto}
@@ -1300,22 +1308,37 @@ table td.tick{border:2px solid var(--surface)}
    rows of nothing. Full squad, XI and bench cycle through the one donut,
    since a gap in the bench and the same gap in the XI are not the same
    question. */
-.lcnav{
-  display:flex; align-items:center; justify-content:center; gap:10px;
-  margin-bottom:6px;
+.lcnav{margin:0 0 10px}
+.lcnav > button{font-size:12px; padding:7px 10px}
+
+/* A donut sat here, 90px across with two lines of type inside the ring -
+   cramped at that size, and the only chart of its kind on a page that
+   otherwise reads its numbers off flat blocks and mono figures. It is a
+   share of fifteen, so it is now the figure itself and fifteen pips: the
+   number is exact, the pips are countable, and neither asks you to judge
+   an angle. It also matches the language the rest of the page is written
+   in, which the ring never did. */
+.lcstat{
+  margin-bottom:10px; padding:12px 14px;
+  border-radius:var(--radius-m); background:var(--surface-variant);
+  border-left:3px solid var(--lc-tone,var(--p40));
 }
-.lc-navlabel{
-  font-size:11px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.06em; color:var(--on-surface-variant); min-width:7em;
-  text-align:center;
+.lcfig{
+  margin:0; display:flex; align-items:baseline; gap:6px;
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
 }
-/* Boxed the same way the mini-league ownership doughnuts are - a surface
-   tint and real padding round the ring, rather than it floating loose
-   against the card background with only a margin to separate it. */
-.lc-donut-row{
-  display:flex; justify-content:center; margin-bottom:10px;
-  padding:14px 8px; border-radius:var(--radius-m); background:var(--surface-variant);
+.lcfig b{font-size:28px; font-weight:700; line-height:1;
+  letter-spacing:-0.04em; color:var(--lc-tone,var(--on-surface))}
+.lcfig span{font-size:13px; color:var(--on-surface-variant)}
+.lccap{
+  margin:3px 0 0; font-size:11px; font-weight:600; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--on-surface-variant);
 }
+.lcpips{display:flex; gap:3px; margin-top:9px; flex-wrap:wrap}
+.lcpip{width:12px; height:5px; border-radius:2px; flex:none}
+.lcpip-on{background:var(--lc-tone,var(--p60))}
+.lcpip-unk{background:var(--attention)}
+.lcpip-off{background:var(--bad)}
 .lcpanel{
   padding-top:10px; border-top:1px solid var(--outline-variant);
 }
@@ -1731,14 +1754,7 @@ table td.tick{border:2px solid var(--surface)}
    one is a ranking, so it is drawn as a ranking - rows down the page with a
    bar you can compare along, red because the whole point is that these went
    onto somebody else's score. */
-.rvtabs{display:flex; gap:6px; margin-bottom:12px}
-.rvtab{
-  appearance:none; border:1px solid var(--outline); background:var(--surface);
-  color:var(--on-surface-variant); font:inherit; font-weight:600; font-size:12px;
-  padding:5px 12px; border-radius:9999px; cursor:pointer;
-}
-.rvtab[aria-selected="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
-.rvtab:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.rvtabs{margin-bottom:12px}
 .rvlist{list-style:none; margin:0; padding:0; display:flex;
   flex-direction:column; gap:8px}
 .rv-row{
@@ -2158,22 +2174,61 @@ JS = """
     if (btn.closest('summary')) { ev.preventDefault(); ev.stopPropagation(); }
   });
 
+  // --- the tab bar indicator ---------------------------------------------
+  // One rule per bar, positioned from the selected button's own geometry, so
+  // the bars do not each need their own script and a bar added later is
+  // picked up for free. Measured rather than assumed: the labels are words,
+  // and their widths are whatever the font makes them.
+  function markTabbar(bar){
+    // Direct children only, and never the predicted-points toggle: .pkview
+    // holds the three view tabs but also a nested group of figure buttons
+    // and that toggle, all of which carry aria-pressed. A descendant query
+    // would let the rule latch onto one of those.
+    var sel = bar.querySelector(
+      ':scope > button:not(.epbtn)[aria-selected="true"],' +
+      ':scope > button:not(.epbtn)[aria-pressed="true"]');
+    if (!sel) { bar.style.setProperty('--tab-w', '0'); return; }
+    var b = bar.getBoundingClientRect(), r = sel.getBoundingClientRect();
+    // A bar inside a hidden panel measures zero. Leave its last good
+    // position alone rather than collapsing the rule to nothing, so it does
+    // not visibly snap back when the panel is shown again.
+    if (!r.width) return;
+    bar.style.setProperty('--tab-x', (r.left - b.left + bar.scrollLeft) + 'px');
+    bar.style.setProperty('--tab-w', String(r.width));
+  }
+  function markTabbars(){ document.querySelectorAll('.tabbar').forEach(markTabbar); }
+
+  // Delegated, and synchronous: this runs in the bubble phase, after the
+  // button's own handler has moved aria-selected, so the geometry it reads
+  // is already the new one. No frame is requested - a deferred callback does
+  // not run at all where frames are paused.
+  document.addEventListener('click', function(ev){
+    if (ev.target.closest('.tabbar > button')) markTabbars();
+  });
+  window.addEventListener('resize', markTabbars);
+  markTabbars();
+  // Web fonts land after first paint and change every label's width.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(markTabbars);
+  }
+
   // Predicted line-ups: full squad, XI or bench answer different questions
-  // about the same fifteen, so one donut cycles between them rather than
+  // about the same fifteen, so one figure switches between them rather than
   // showing three at once.
   document.querySelectorAll('.lcnav').forEach(function(nav){
     var card = nav.closest('.lccard');
     var panels = Array.from(card.querySelectorAll('.lcpanel'));
-    var label = nav.querySelector('.lc-navlabel');
-    var idx = panels.findIndex(function(p){ return !p.hidden; });
-    if (idx < 0) idx = 0;
-    function show(i){
-      idx = (i + panels.length) % panels.length;
-      panels.forEach(function(p, j){ p.hidden = j !== idx; });
-      label.textContent = panels[idx].dataset.lclabel;
-    }
-    nav.querySelector('.lc-prev').addEventListener('click', function(){ show(idx - 1); });
-    nav.querySelector('.lc-next').addEventListener('click', function(){ show(idx + 1); });
+    var buttons = Array.from(nav.querySelectorAll('.lcbtn'));
+    buttons.forEach(function(b){
+      b.addEventListener('click', function(){
+        buttons.forEach(function(o){
+          o.setAttribute('aria-selected', String(o === b));
+        });
+        panels.forEach(function(p){
+          p.hidden = p.dataset.lcview !== b.dataset.lcview;
+        });
+      });
+    });
   });
 
   // Scoring against you: this week vs the last few weeks summed.
@@ -2811,11 +2866,12 @@ def scatter(points):
         '<label class="axpick">X <select class="axis" data-axis="x">'
         f"{opts('price')}</select></label>"
         '<span class="spacer"></span>'
+        '<div class="tabbar" role="group" aria-label="Position">'
         '<button class="chip" data-pos="ALL" aria-pressed="true">All</button>'
         '<button class="chip" data-pos="DEF" aria-pressed="false">Defenders</button>'
         '<button class="chip" data-pos="MID" aria-pressed="false">Midfielders</button>'
         '<button class="chip" data-pos="FWD" aria-pressed="false">Forwards</button>'
-        "</div>"
+        "</div></div>"
         '<div class="scroll"><svg class="scatter" viewBox="0 0 1040 520" '
         'role="img" aria-label="Scatter plot of player metrics"></svg></div>'
         '<p class="readout" aria-live="polite">Hover or click any dot to identify the player.</p>'
@@ -3088,22 +3144,38 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
             # been named yet.
             body = (block(out, "lc-out", "Not predicted to start:", fixtures=False)
                     + block(unknown, "lc-unk", "No side published yet"))
+        # One pip per player, in the order the three states are worth
+        # reading: named, then unknown, then left out. It is the same
+        # information the donut's angle carried, at a glance and countable,
+        # which an angle never is.
+        pips = "".join(
+            f'<i class="lcpip lcpip-{cls}"></i>'
+            for cls, n in (("on", starting), ("unk", len(unknown)), ("off", len(out)))
+            for _ in range(n)
+        )
         panels.append(
             f'<div class="lcpanel" data-lcview="{key}" data-lclabel="{e(label)}"'
             f'{" hidden" if i else ""}>'
-            '<div class="lc-donut-row">'
-            + donut(pct, f"{label} - {starting} of {total} predicted to start",
-                    f"{starting}/{total}", "starting", tone)
-            + f"</div>{body}</div>"
+            f'<div class="lcstat" style="--lc-tone:{tone}">'
+            f'<p class="lcfig"><b>{starting}</b><span>of {total}</span></p>'
+            f'<p class="lccap">predicted to start</p>'
+            f'<div class="lcpips" role="img" aria-label="'
+            f'{starting} of {total} predicted to start">{pips}</div>'
+            f"</div>{body}</div>"
         )
 
+    # Three named tabs rather than a label between two arrows: there are
+    # only ever three, and an arrow makes you click to find out what is
+    # behind it.
     nav = (
-        '<div class="lcnav" role="group" aria-label="Squad subset">'
-        '<button class="arrow lc-prev" type="button" aria-label="Previous group">'
-        "&#8249;</button>"
-        f'<span class="lc-navlabel">{e(views[0][1])}</span>'
-        '<button class="arrow lc-next" type="button" aria-label="Next group">'
-        "&#8250;</button></div>"
+        '<div class="lcnav tabbar" role="tablist" aria-label="Squad subset">'
+        + "".join(
+            f'<button class="lcbtn" type="button" role="tab" '
+            f'data-lcview="{key}" aria-selected="{"true" if not i else "false"}">'
+            f"{e(label)}</button>"
+            for i, (key, label, _rows) in enumerate(views)
+        )
+        + "</div>"
     )
 
     return (
@@ -3881,7 +3953,7 @@ def rivals_card(rows, window_rows, rivals, photos, weeks=3):
         '<span class="sub" hidden>Players you did not own who returned for the '
         "rest of this league. Ranked by points scored, highest first.</span></div>"
         '<div class="card-body">'
-        '<div class="rvtabs" role="tablist" aria-label="Time range">'
+        '<div class="rvtabs tabbar" role="tablist" aria-label="Time range">'
         '<button class="rvtab" role="tab" aria-selected="true" data-rv="now">'
         "This week</button>"
         f'<button class="rvtab" role="tab" aria-selected="false" data-rv="window">'
@@ -4633,7 +4705,7 @@ def league_position_card(data):
         '<span class="sub" hidden>Every manager\'s rank in this league, gameweek '
         'by gameweek - 1st at the top. Toggle to total points instead.</span></div>'
         '<div class="card-body">'
-        '<div class="lptoggle" role="group" aria-label="Y axis">'
+        '<div class="lptoggle tabbar" role="group" aria-label="Y axis">'
         '<button class="lpbtn" data-y="position" aria-pressed="true">Position</button>'
         '<button class="lpbtn" data-y="points" aria-pressed="false">Points</button>'
         "</div>"
@@ -4913,7 +4985,7 @@ def render(d, standalone=True):
     <div class="tiles">{tile_html}</div>
   </section>
 
-  <div class="tabs" role="tablist">
+  <div class="tabs tabbar" role="tablist">
     <button class="tab" role="tab" aria-selected="true" data-panel="p-squad">Squad</button>
     <button class="tab" role="tab" aria-selected="false" data-panel="p-market">Planning</button>
     <button class="tab" role="tab" aria-selected="false" data-panel="p-league">Mini-league</button>
@@ -4926,7 +4998,7 @@ def render(d, standalone=True):
         <span class="sub" data-pkview="gw" hidden>This gameweek's points on each card, with points per game and season xGI beside them. Faded crest = did not play.</span>
         <span class="sub" data-pkview="pk" hidden>Next fixture and a read on recent form on each card, shaded by clean-sheet odds for keepers and defenders and by expected goals for everyone else.</span>
       </div>
-      <div class="pkview" role="tablist" aria-label="Pitch view">
+      <div class="pkview tabbar" role="tablist" aria-label="Pitch view">
         <button class="pkbtn" role="tab" aria-selected="true" data-view="ov">Overview</button>
         <button class="pkbtn" role="tab" aria-selected="false" data-view="pk">Pick team</button>
         <button class="pkbtn" role="tab" aria-selected="false" data-view="gw">Gameweek {d['gw']}</button>
