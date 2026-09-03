@@ -172,17 +172,36 @@ CSS = """
   --accent:#01fc7a; --accent-ink:#046b39; --accent-wash:#e2fdf0;
   --good:#01fc7a; --good-ink:#046b39; --good-wash:#e2fdf0;
   --bad:#e60023; --bad-ink:#c0001d; --bad-wash:#fff2f4;
-  /* Amber is the third state, and it has to exist separately: "short of the
-     threshold" is not "bad", and with good and accent both being the same
-     green a two-state ramp would have drawn every defensive bar identically
-     whether the player cleared the line or not. */
-  --warn:#e07b00; --warn-ink:#9c5400; --warn-wash:#fff4e2;
+  /* --warn is retired - its role folds into --attention below. --warn-ink
+     stays, on its own, for the one thing that is genuinely "borderline"
+     rather than "needs a look": the .warn-pill text. */
+  --warn-ink:#9c5400;
+  /* The sodium-amber the page always meant to use for "needs a look":
+     knee-jerk's default rule, tile-warn, the Avoid column, a radar
+     candidate. One amber, not two competing oranges. */
+  --attention:#ffb000; --attention-ink:#7a4b00; --attention-wash:#fff4d6;
+  /* Who this number belongs to, everywhere that isn't "the crowd" or "the
+     market": scatter's mine dot, the mini-league "you" row, the template
+     pitch's outline, the wildcard's incoming tag. */
+  --mine:#e6007e; --mine-ink:#a3005a;
+  /* Anything priced by the bookmaker rather than modelled. */
+  --market:#00708a; --market-wash:#e3f4f8;
+  /* Everyone who is not you, on the league chart and the rivals list -
+     replaces --bad red, which made a rival's good gameweek read as an
+     error. */
+  --rival:#1b5ce0;
+  /* The one "top reward" treatment fixture ratings earn past a threshold -
+     see .fx-premium. */
+  --premium:#0b5f4a;
 
   --error:var(--bad); --success:var(--good); --error-container:var(--bad-wash);
-  --surface:var(--white); --surface-variant:var(--p5);
+  --surface:var(--white); --surface-variant:#f8f5ef;
   --on-surface:var(--ink); --on-surface-variant:var(--p70);
   --outline:var(--p30); --outline-variant:var(--p10);
-  --ground:var(--p5); --bar:var(--ink); --on-bar:var(--white);
+  /* Warm chalk, not a purple-tinted grey - programme paper under white
+     cards, not the generic SaaS ground the rest of this sheet is trying
+     to avoid. */
+  --ground:#f4f1ea; --bar:var(--p120); --on-bar:var(--white);
   --pitch-a:#0e7a3c; --pitch-b:#0a6733;
   --radius-xs:4px; --radius-s:8px; --radius-m:12px; --radius-l:16px;
   --shadow:0 1px 2px rgb(55 0 60 / 10%), 0 1px 8px rgb(55 0 60 / 6%);
