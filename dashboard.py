@@ -325,6 +325,33 @@ section{margin-bottom:20px}
   display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
 }
 .card-head h2{font-size:16px; text-transform:uppercase; letter-spacing:0.04em}
+
+/* --- chapter ---
+   A screen section, above the cards it groups.
+
+   There were two levels of heading on this page and they were one pixel
+   apart - a bare 17px `card-head` sitting on the ground meant "everything
+   below me", the same markup inside a card meant "this card", and at 17 vs
+   16 nothing told them apart. Worse, which one a section got was arbitrary.
+
+   So: a card's own title stays 16px uppercase, and the level above it is
+   this - larger, expanded on Archivo's width axis, sentence case rather
+   than a second set of caps, and ruled underneath in ink. The width axis
+   is what separates the two, not weight, because both were already bold.
+   A bare `card-head` on the ground is now always a mistake. */
+.chapter{
+  margin:30px 0 12px; padding-bottom:6px;
+  border-bottom:2px solid var(--ink);
+  display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+}
+.chapter h2{
+  font-size:22px; font-stretch:125%; text-transform:none;
+  letter-spacing:-0.01em; line-height:1.2;
+}
+.chapter .sub{font-size:13px; color:var(--on-surface-variant)}
+/* The first chapter in a panel already has the tab strip above it. */
+.panel > .chapter:first-child{margin-top:6px}
+@media (max-width:560px){.chapter h2{font-size:19px}}
 .card-head .sub{font-size:13px;color:var(--on-surface-variant)}
 /* A card's explanation used to print in full, permanently, under every
    title on the page - a sentence of small print nobody asked to read
@@ -649,7 +676,13 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 }
 .chip[aria-pressed="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
 .chip:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
-.scatter{width:100%; min-width:560px; height:auto; display:block}
+/* The viewBox is the chart's own coordinate space, so a container wider
+   than it upscales every dot, stroke and label together - at the 1400px
+   shell a 760-wide box was being blown up 1.76x and the 11px tick labels
+   were landing at 19px. The box is 1040 wide now, and capped there, so
+   the chart fills the card at 1:1 and only ever scales down. */
+.scatter{width:100%; min-width:560px; max-width:1040px; height:auto;
+  display:block; margin:0 auto}
 .scatter .grid line{stroke:var(--outline-variant); stroke-width:1}
 .scatter .axlab text{fill:var(--on-surface-variant); font-size:11px; font-variant-numeric:tabular-nums}
 .scatter .axtitle{fill:var(--on-surface-variant); font-size:12px; font-weight:600}
@@ -704,7 +737,9 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 }
 .lpbtn[aria-pressed="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
 .lpbtn:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
-.lpchart{width:100%; min-width:520px; height:auto; display:block}
+/* Capped for the same reason as .scatter - see the note there. */
+.lpchart{width:100%; min-width:520px; max-width:1040px; height:auto;
+  display:block; margin:0 auto}
 .lpgrid line{stroke:var(--outline-variant); stroke-width:1}
 .lpgrid text{fill:var(--on-surface-variant); font-size:10px; font-variant-numeric:tabular-nums}
 .lpline{transition:opacity .15s}
@@ -1109,8 +1144,18 @@ table td.tick{border:2px solid var(--surface)}
   align-items:start}
 .cp{
   position:relative; padding:14px 14px 12px; border-radius:var(--radius-m);
-  background:var(--surface-variant); border-top:3px solid var(--accent);
+  background:var(--surface-variant);
+  border-top:3px solid var(--cp-tone,var(--outline-variant));
 }
+/* The rule and the pill below it were disagreeing: every one of the four
+   cards wore the same bright accent along the top while the pill under it
+   said "flexible". Four identical accents in one grid is decoration, and
+   it was the loudest decoration on the page. The rule now carries the
+   confidence the card already states, so the accent is spent on the one
+   chip that has actually earned a week. */
+.cp-strong{--cp-tone:var(--accent)}
+.cp-watch{--cp-tone:var(--p40)}
+.cp-flexible{--cp-tone:var(--outline-variant)}
 .cp.used{opacity:.55}
 .cp-label{margin:0; font-size:11px; font-weight:700; text-transform:uppercase;
   letter-spacing:.05em; color:var(--on-surface-variant)}
@@ -1608,7 +1653,7 @@ table td.tick{border:2px solid var(--surface)}
 }
 .slcard{
   background:var(--surface-variant); border-radius:var(--radius-m);
-  padding:12px 12px 10px; border-top:3px solid var(--accent);
+  padding:12px 12px 10px; border-top:3px solid var(--accent,var(--p30));
 }
 /* Ink, not the card's own tone. Six cards were each colouring their
    heading with an arbitrary hue, and two of those hues - a muted purple
@@ -1872,12 +1917,20 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
    to carry. A grid stretches its items to the tallest in the row by default,
    so one long set-piece list gave every card beside it several hundred pixels
    of nothing. Ragged bottoms are the correct trade: the cards are independent
-   readings, not a table, and nothing about them wants a shared baseline. */
-.finds{column-width:322px; column-gap:12px}
+   readings, not a table, and nothing about them wants a shared baseline.
+
+   This was multi-column for a while, which balanced the nine cards into
+   columns of equal height and so put the reading order down column one and
+   back up to the top of column two. They are nine independent readings of
+   one squad; they should read left to right, in the order they were
+   ranked. */
+.finds{
+  display:grid; gap:12px; align-items:start;
+  grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+}
 .find{
   background:var(--surface); border-radius:var(--radius-m);
-  box-shadow:var(--shadow); overflow:hidden;
-  break-inside:avoid; margin:0 0 12px;
+  box-shadow:var(--shadow); overflow:hidden; margin:0;
 }
 .find h3{
   font-size:12px; text-transform:uppercase; letter-spacing:0.06em;
@@ -2574,7 +2627,7 @@ def scatter(points):
         '<button class="chip" data-pos="MID" aria-pressed="false">Midfielders</button>'
         '<button class="chip" data-pos="FWD" aria-pressed="false">Forwards</button>'
         "</div>"
-        '<div class="scroll"><svg class="scatter" viewBox="0 0 760 400" '
+        '<div class="scroll"><svg class="scatter" viewBox="0 0 1040 520" '
         'role="img" aria-label="Scatter plot of player metrics"></svg></div>'
         '<p class="readout" aria-live="polite">Hover or click any dot to identify the player.</p>'
         '<p class="legend"><span class="key mkt"></span>Every player with 60+ minutes'
@@ -3962,13 +4015,15 @@ def bench_boost_pitch(bb, bench_reports, ctx, badges, shirts, proj, market,
     )
 
 
-def _cp_card(label, used_gw, body_html):
+def _cp_card(label, used_gw, body_html, level=None):
     if used_gw:
         return (
             f'<div class="cp used"><p class="cp-label">{e(label)}</p>'
             f'<p class="cp-used-tag">Already used, GW{used_gw}</p></div>'
         )
-    return f'<div class="cp"><p class="cp-label">{e(label)}</p>{body_html}</div>'
+    tone = f" cp-{level}" if level else ""
+    return (f'<div class="cp{tone}"><p class="cp-label">{e(label)}</p>'
+            f'{body_html}</div>')
 
 
 def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
@@ -3993,7 +4048,8 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
             f'{fh["gap"]:.1f}.</p>'
             f'{conf_pill(fh["confidence"])}'
         )
-        cards.append(_cp_card("Free Hit", used.get("freehit"), body))
+        cards.append(_cp_card("Free Hit", used.get("freehit"), body,
+                              fh["confidence"]))
 
     if tc:
         body = (
@@ -4002,7 +4058,8 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
             f'{tc["ep"]:.1f} pts ({tc["ep"] * 2:.1f} with the armband).</p>'
             f'{conf_pill(tc["confidence"])}'
         )
-        cards.append(_cp_card("Triple Captain", used.get("3xc"), body))
+        cards.append(_cp_card("Triple Captain", used.get("3xc"), body,
+                              tc["confidence"]))
 
     if bb:
         body = (
@@ -4011,7 +4068,8 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
             f'{" - if your bench stays as it is." if not bb["transfers"] else "."}</p>'
             f'{conf_pill(bb["confidence"])}'
         )
-        cards.append(_cp_card("Bench Boost", used.get("bboost"), body))
+        cards.append(_cp_card("Bench Boost", used.get("bboost"), body,
+                              bb["confidence"]))
 
     if wc:
         start, weeks = wc["gw_window"]
@@ -4021,7 +4079,8 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
             f'over the window.</p>'
             f'{conf_pill(wc["confidence"])}'
         )
-        cards.append(_cp_card("Wildcard", used.get("wildcard"), body))
+        cards.append(_cp_card("Wildcard", used.get("wildcard"), body,
+                              wc["confidence"]))
 
     # The grid above is the compact per-chip summary only; each chip's
     # actual squad change is its own collapsed card below it - a rebuild
@@ -4388,7 +4447,7 @@ def league_position_card(data):
         '<button class="lpbtn" data-y="position" aria-pressed="true">Position</button>'
         '<button class="lpbtn" data-y="points" aria-pressed="false">Points</button>'
         "</div>"
-        '<div class="scroll"><svg class="lpchart" viewBox="0 0 720 360" '
+        '<div class="scroll"><svg class="lpchart" viewBox="0 0 1040 460" '
         'role="img" aria-label="League position over time"></svg></div>'
         f'<ul class="lplegend">{legend}</ul>'
         f'<script type="application/json" class="lpchart-data">{json.dumps(data)}</script>'
@@ -4695,23 +4754,33 @@ def render(d, standalone=True):
       </summary>
       {d['squad_table']}
     </details>
-    <section>
-      <div class="card-head"><h2>What the numbers say</h2></div>
-      {d['findings']}
-    </section>
+    <div class="chapter"><h2>What the numbers say</h2>
+      <span class="sub">Nine readings of the same fifteen players.</span></div>
+    <section>{d['findings']}</section>
   </div>
 
   <div class="panel" id="p-market" role="tabpanel" hidden>
+    <div class="chapter"><h2>This week</h2>
+      <span class="sub">What the fixtures are priced at, and what you missed.</span></div>
     {d['market']}
     {d['best_xi']}
     {d['kneejerk']}
+
+    <div class="chapter"><h2>Your moves</h2>
+      <span class="sub">Who to sell, who to buy, and who takes the armband.</span></div>
     {d['verdicts']}
     {d['transfers']}
     {d['pairings']}
     {d['captaincy']}
+
+    <div class="chapter"><h2>Chips and the weeks ahead</h2>
+      <span class="sub">Where the fixtures turn, and which chip that is worth.</span></div>
     {d['chip_planner']}
     {d['ticker']}
     {d['fixture_runs']}
+
+    <div class="chapter"><h2>The wider market</h2>
+      <span class="sub">Everyone else's squad, and what it is doing to prices.</span></div>
     {d['leaders']}
     {d['price_watch']}
     {d['scatter']}
@@ -4729,10 +4798,16 @@ def render(d, standalone=True):
       {d['league_table']}
     </section>
     {d['position_chart']}
+
+    <div class="chapter"><h2>What the league owns</h2>
+      <span class="sub">The squad everyone converges on, and where you leave it.</span></div>
     {d['template']}
     {d['carousel']}
     {d['differentials']}
     {d['watchlist']}
+
+    <div class="chapter"><h2>How they are playing it</h2>
+      <span class="sub">Who is scoring against you, and how the eight of you differ.</span></div>
     {d['rivals']}
     <section>{d['ownership']}</section>
     <section class="card">

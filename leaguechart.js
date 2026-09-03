@@ -6,7 +6,7 @@
 // runs 1-at-the-top, since rank 1 is the thing worth reading as "up".
 (function () {
   var NS = 'http://www.w3.org/2000/svg';
-  var W = 720, H = 360, ML = 40, MR = 16, MT = 16, MB = 34;
+  var W = 1040, H = 460, ML = 40, MR = 16, MT = 16, MB = 34;
 
   function node(tag, attrs, text) {
     var n = document.createElementNS(NS, tag);
