@@ -722,17 +722,20 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 
 /* --- captaincy radar ---
    Three candidate colours, each a fill/stroke pair from the page's own
-   palette: full-strength purple, the bright green accent, and the amber
-   "third state" used for defensive thresholds - each fill uses the vivid
+   palette: full-strength purple, mine-magenta, and the amber "third
+   state" used for defensive thresholds - each fill uses the vivid
    version for real hue separation, each stroke the darker text-safe
-   version so the outline stays legible on white. Capped at three
-   candidates deliberately: a fourth colour pulled from this palette
-   (the mid-purple step) sat too close to the ink purple to tell apart
-   at a glance, and three is what the shape needs to be usefully read. */
+   version so the outline stays legible on white. Green is dropped here on
+   purpose: green means "good" everywhere else on the page, and a green
+   radar shape read as the recommended one regardless of what the numbers
+   said. Capped at three candidates deliberately: a fourth colour pulled
+   from this palette (the mid-purple step) sat too close to the ink purple
+   to tell apart at a glance, and three is what the shape needs to be
+   usefully read. */
 :root{
   --radar-c0-fill:var(--ink); --radar-c0-stroke:var(--ink);
-  --radar-c1-fill:var(--accent); --radar-c1-stroke:var(--accent-ink);
-  --radar-c2-fill:var(--warn); --radar-c2-stroke:var(--warn-ink);
+  --radar-c1-fill:var(--mine); --radar-c1-stroke:var(--mine-ink);
+  --radar-c2-fill:var(--attention); --radar-c2-stroke:var(--attention-ink);
 }
 .cap-layout{display:flex; align-items:center; gap:20px; flex-wrap:wrap}
 /* Fixed width (not max-width) and a fixed-height readout line below - both
