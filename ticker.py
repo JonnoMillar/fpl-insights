@@ -86,6 +86,12 @@ def _cell_style(score):
     return "", "background:{};color:{}".format(bg, fg)
 
 
+def _premium_star(cls):
+    """A small star ahead of a premium-rated score, in place of the old
+    gradient's own claim to being special - see _cell_style."""
+    return '<i class="fx-star">&#9733;</i>' if cls == "fx-premium" else ""
+
+
 def rating_pill(opp, home, score):
     """A fixture chip using the same rating and ramp as the ticker, so a
     fixture looks the same wherever it appears."""
@@ -94,10 +100,10 @@ def rating_pill(opp, home, score):
     return (
         '<span class="rpill {cls}" style="{style}" '
         'title="{opp} {venue} - rating {score:.1f} of 10">'
-        "{label}<b>{score:.1f}</b></span>".format(
+        "{label}<b>{star}{score:.1f}</b></span>".format(
             cls=cls, style=style, opp=e(opp),
             venue="at home" if home else "away",
-            score=score, label=e(label))
+            score=score, label=e(label), star=_premium_star(cls))
     )
 
 
@@ -326,11 +332,11 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=FIXTURE_GAMES_MAX, market
                 'title="GW{gw}, {venue} to {opp} - rating {score:.1f} of 10, '
                 '{xg:.2f} expected goals, {cs:.0f}% clean sheet ({src})">'
                 '<span class="fxc-opp">{label}{mark}</span>'
-                '<span class="fxc-score">{score:.1f}</span></td>'.format(
+                '<span class="fxc-score">{star}{score:.1f}</span></td>'.format(
                     cls=cls, style=style, gw=c["gw"],
                     venue="home" if c["home"] else "away", opp=e(c["opp"]),
                     score=c["score"], xg=c["xg"], cs=c["cs"], src=c["source"],
-                    label=e(label), mark=mark,
+                    label=e(label), mark=mark, star=_premium_star(cls),
                 )
             )
         acls, astyle = _cell_style(avg)
@@ -344,9 +350,10 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=FIXTURE_GAMES_MAX, market
             '<tr><td class="fxclub"><b>{club}</b></td>'
             '<td class="num" data-v="{own_n}">{own}</td>'
             '<td class="num fxavg-cell" data-v="{avg:.2f}">'
-            '<span class="fxavg {acls}" style="{astyle}">{avg:.1f}</span></td>'
+            '<span class="fxavg {acls}" style="{astyle}">{star}{avg:.1f}</span></td>'
             '{chips}</tr>'.format(
                 club=e(club), own_n=own_n, own=own_cell, acls=acls, astyle=astyle,
+                star=_premium_star(acls),
                 avg=avg, chips="".join(chips)),
         ))
     if not rows:

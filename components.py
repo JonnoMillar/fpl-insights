@@ -23,25 +23,25 @@ def e(x):
     return html.escape(str(x), quote=True)
 
 
-# Segment colours for expected points. The original six (goals through
-# bonus) were validated for colour-vision deficiency: worst adjacent pair
-# is dE 12.0 for deuteranopia and 9.4 for tritanopia, both clear of the 8
-# target. The grey for appearance points fails a chroma floor on purpose -
-# turning up is the unremarkable part of a score and should read that way.
-# Cyan and amber sit under 3:1 against white, so every segment also carries
-# a tooltip, a legend entry and a printed number in the player view. saves/
-# gc/cards (L6) are additions, not yet re-validated against that palette;
-# gc and cards are deductions and so never render as a positive-width
-# segment, only as a legend entry and a signed number in the itemised list.
+# Segment colours for expected points, ordered as the scoring order a
+# manager thinks in. One family (the purples) for the "who scores" terms -
+# goals in full ink, assists a step lighter - then three role hues for the
+# rest: premium teal for the clean sheet, market teal for saves and the
+# goals-conceded deduction (the same "priced event" the market card uses),
+# attention amber for DefCon, mine magenta for bonus. The grey for
+# appearance points fails a chroma floor on purpose - turning up is the
+# unremarkable part of a score and should read that way. gc and cards are
+# deductions and so never render as a positive-width segment, only as a
+# legend entry and a signed number in the itemised list.
 EP_PARTS = (
-    ("goals", "Goals", "#953bff"),
-    ("assists", "Assists", "#00b3d6"),
-    ("defence", "Clean sheet", "#00a35c"),
-    ("saves", "Saves", "#1b5ce0"),
-    ("appearance", "Appearance", "#87668a"),
-    ("defcon", "DefCon", "#e07b00"),
-    ("bonus", "Bonus", "#d81b8c"),
-    ("gc", "Goals conceded", "var(--bad)"),
+    ("goals", "Goals", "var(--ink)"),
+    ("assists", "Assists", "var(--p70)"),
+    ("defence", "Clean sheet", "var(--premium)"),
+    ("saves", "Saves", "var(--market)"),
+    ("appearance", "Appearance", "var(--p20)"),
+    ("defcon", "DefCon", "var(--attention)"),
+    ("bonus", "Bonus", "var(--mine)"),
+    ("gc", "Goals conceded", "var(--market)"),
     ("cards", "Cards", "var(--bad)"),
 )
 

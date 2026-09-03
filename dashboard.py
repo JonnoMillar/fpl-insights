@@ -73,7 +73,7 @@ FDR = {
 TONE_COLOR = {
     "good": "var(--good)",
     "bad": "var(--bad)",
-    "warn": "var(--warn)",
+    "warn": "var(--attention)",
     "info": "var(--p60)",
     "neutral": "var(--p60)",
 }
@@ -172,17 +172,36 @@ CSS = """
   --accent:#01fc7a; --accent-ink:#046b39; --accent-wash:#e2fdf0;
   --good:#01fc7a; --good-ink:#046b39; --good-wash:#e2fdf0;
   --bad:#e60023; --bad-ink:#c0001d; --bad-wash:#fff2f4;
-  /* Amber is the third state, and it has to exist separately: "short of the
-     threshold" is not "bad", and with good and accent both being the same
-     green a two-state ramp would have drawn every defensive bar identically
-     whether the player cleared the line or not. */
-  --warn:#e07b00; --warn-ink:#9c5400; --warn-wash:#fff4e2;
+  /* --warn is retired - its role folds into --attention below. --warn-ink
+     stays, on its own, for the one thing that is genuinely "borderline"
+     rather than "needs a look": the .warn-pill text. */
+  --warn-ink:#9c5400;
+  /* The sodium-amber the page always meant to use for "needs a look":
+     knee-jerk's default rule, tile-warn, the Avoid column, a radar
+     candidate. One amber, not two competing oranges. */
+  --attention:#ffb000; --attention-ink:#7a4b00; --attention-wash:#fff4d6;
+  /* Who this number belongs to, everywhere that isn't "the crowd" or "the
+     market": scatter's mine dot, the mini-league "you" row, the template
+     pitch's outline, the wildcard's incoming tag. */
+  --mine:#e6007e; --mine-ink:#a3005a;
+  /* Anything priced by the bookmaker rather than modelled. */
+  --market:#00708a; --market-wash:#e3f4f8;
+  /* Everyone who is not you, on the league chart and the rivals list -
+     replaces --bad red, which made a rival's good gameweek read as an
+     error. */
+  --rival:#1b5ce0;
+  /* The one "top reward" treatment fixture ratings earn past a threshold -
+     see .fx-premium. */
+  --premium:#0b5f4a;
 
   --error:var(--bad); --success:var(--good); --error-container:var(--bad-wash);
-  --surface:var(--white); --surface-variant:var(--p5);
+  --surface:var(--white); --surface-variant:#f8f5ef;
   --on-surface:var(--ink); --on-surface-variant:var(--p70);
   --outline:var(--p30); --outline-variant:var(--p10);
-  --ground:var(--p5); --bar:var(--ink); --on-bar:var(--white);
+  /* Warm chalk, not a purple-tinted grey - programme paper under white
+     cards, not the generic SaaS ground the rest of this sheet is trying
+     to avoid. */
+  --ground:#f4f1ea; --bar:var(--p120); --on-bar:var(--white);
   --pitch-a:#0e7a3c; --pitch-b:#0a6733;
   --radius-xs:4px; --radius-s:8px; --radius-m:12px; --radius-l:16px;
   --shadow:0 1px 2px rgb(55 0 60 / 10%), 0 1px 8px rgb(55 0 60 / 6%);
@@ -259,10 +278,11 @@ a{color:inherit}
   border-radius:9999px; font-family:var(--mono); font-size:12px;
   font-weight:600; background:var(--bad-wash); color:var(--bad-ink);
 }
+/* The one surviving warn-ink usage: "borderline", not "needs a look". */
 .warn-pill{
   display:inline-flex; align-items:center; gap:4px; padding:1px 7px;
   border-radius:9999px; font-family:var(--mono); font-size:12px;
-  font-weight:600; background:var(--warn-wash); color:var(--warn-ink);
+  font-weight:600; background:var(--attention-wash); color:var(--warn-ink);
 }
 
 /* --- app chrome --- */
@@ -366,8 +386,8 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
    use, just applied to the whole tile instead of a chip inside it. */
 .tile.tile-good{background:rgb(1 252 122 / 9%); border-color:rgb(1 252 122 / 26%)}
 .tile.tile-good .v{color:#8affc4}
-.tile.tile-warn{background:rgb(255 176 0 / 13%); border-color:rgb(255 176 0 / 34%)}
-.tile.tile-warn .v{color:var(--accent)}
+.tile.tile-warn{background:rgb(255 176 0 / 14%); border-color:rgb(255 176 0 / 34%)}
+.tile.tile-warn .v{color:#ffd166}
 .tile.tile-bad{background:rgb(230 0 35 / 11%); border-color:rgb(230 0 35 / 28%)}
 .tile.tile-bad .v{color:#ff9aa8}
 
@@ -486,12 +506,12 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
    .pl/.pk shirt card, so the same visual language marks "new" everywhere a
    proposed squad appears on the page. */
 .pl-incoming{
-  outline:2px solid var(--accent); outline-offset:2px;
-  box-shadow:0 2px 6px rgb(0 0 0 / 25%), 0 0 0 5px var(--accent-wash);
+  outline:2px solid var(--mine); outline-offset:2px;
+  box-shadow:0 2px 6px rgb(0 0 0 / 25%), 0 0 0 5px rgb(230 0 126 / 12%);
 }
 .pl-in-tag{
   position:absolute; top:3px; right:3px; z-index:2; padding:1px 5px;
-  border-radius:9999px; background:var(--accent); color:#04331d;
+  border-radius:9999px; background:var(--mine); color:#fff;
   font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.04em;
 }
 
@@ -573,7 +593,7 @@ th.sortable[aria-sort="ascending"]::after{content:"\\2191"; opacity:1}
 th.sortable[aria-sort="descending"]::after{content:"\\2193"; opacity:1}
 tbody tr{border-bottom:1px solid var(--outline-variant)}
 tbody tr:hover{background:var(--surface-variant)}
-tbody tr.me{background:color-mix(in srgb, var(--accent) 12%, transparent)}
+tbody tr.me{background:#fff0f7}
 td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .pos{
   display:inline-block; min-width:34px; text-align:center; font-size:11px; font-weight:700;
@@ -612,7 +632,7 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 }
 
 /* --- scatter --- */
-:root{--mark-mkt:#87668a; --mark-mine:#953bff; --mark-outlier:#e6007e}
+:root{--mark-mkt:#bcae9e; --mark-mine:var(--mine); --mark-outlier:var(--ink)}
 .chartfilter{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px}
 .chip{
   appearance:none; border:1px solid var(--outline); background:var(--surface);
@@ -628,9 +648,10 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .scatter .mkt circle{fill:var(--mark-mkt); opacity:.55}
 .scatter .mine circle{fill:var(--mark-mine); stroke:var(--surface); stroke-width:2}
 /* Furthest from the norm, on whichever two measures are picked right now -
-   a market dot (not yours) gets this instead of the plain market fill. */
+   a market dot (not yours) gets this hollow ring instead of the plain
+   market fill, so it reads as "flagged" rather than as a third colour. */
 .scatter .outlier circle:first-child{
-  fill:var(--mark-outlier); opacity:.85; stroke:var(--surface); stroke-width:1.5;
+  fill:none; opacity:.9; stroke:var(--mark-outlier); stroke-width:2;
 }
 .scatter .pt{cursor:pointer}
 .scatter .pt:hover circle{opacity:1; stroke:var(--on-surface); stroke-width:2}
@@ -701,17 +722,20 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 
 /* --- captaincy radar ---
    Three candidate colours, each a fill/stroke pair from the page's own
-   palette: full-strength purple, the bright green accent, and the amber
-   "third state" used for defensive thresholds - each fill uses the vivid
+   palette: full-strength purple, mine-magenta, and the amber "third
+   state" used for defensive thresholds - each fill uses the vivid
    version for real hue separation, each stroke the darker text-safe
-   version so the outline stays legible on white. Capped at three
-   candidates deliberately: a fourth colour pulled from this palette
-   (the mid-purple step) sat too close to the ink purple to tell apart
-   at a glance, and three is what the shape needs to be usefully read. */
+   version so the outline stays legible on white. Green is dropped here on
+   purpose: green means "good" everywhere else on the page, and a green
+   radar shape read as the recommended one regardless of what the numbers
+   said. Capped at three candidates deliberately: a fourth colour pulled
+   from this palette (the mid-purple step) sat too close to the ink purple
+   to tell apart at a glance, and three is what the shape needs to be
+   usefully read. */
 :root{
   --radar-c0-fill:var(--ink); --radar-c0-stroke:var(--ink);
-  --radar-c1-fill:var(--accent); --radar-c1-stroke:var(--accent-ink);
-  --radar-c2-fill:var(--warn); --radar-c2-stroke:var(--warn-ink);
+  --radar-c1-fill:var(--mine); --radar-c1-stroke:var(--mine-ink);
+  --radar-c2-fill:var(--attention); --radar-c2-stroke:var(--attention-ink);
 }
 .cap-layout{display:flex; align-items:center; gap:20px; flex-wrap:wrap}
 /* Fixed width (not max-width) and a fixed-height readout line below - both
@@ -928,7 +952,7 @@ table td.tick{border:2px solid var(--surface)}
 .splist li.first .sprank{background:var(--accent); color:#fff}
 .spname{font-weight:600}
 .spteam{margin-left:auto; color:var(--on-surface-variant); font-size:11px}
-.mkt-cs,.mkt-xg{color:var(--good-ink); font-weight:700}
+.mkt-cs,.mkt-xg{color:var(--market); font-weight:700}
 
 /* --- pick team: the eleven fold into a column, the bars extend beside it ---
    No length is transitioned here, for the reason recorded further down this
@@ -1056,12 +1080,12 @@ table td.tick{border:2px solid var(--surface)}
   grid-template-columns:repeat(auto-fit,minmax(168px,1fr)); gap:12px}
 .oi{
   position:relative; padding:14px 14px 12px; border-radius:var(--radius-m);
-  background:var(--surface-variant); border-top:3px solid var(--oi-tone);
+  background:var(--market-wash); border-top:3px solid var(--oi-tone);
 }
 .oi-icon{width:20px; height:20px; color:var(--oi-tone)}
 .oi-good{--oi-tone:var(--success)}
 .oi-bad{--oi-tone:var(--error)}
-.oi-info{--oi-tone:var(--accent)}
+.oi-info{--oi-tone:var(--market)}
 .oi-label{margin:6px 0 0; font-size:10px; font-weight:700; text-transform:uppercase;
   letter-spacing:.05em; color:var(--on-surface-variant)}
 .oi-value{margin:3px 0 0; font-size:27px; font-weight:700; line-height:1;
@@ -1128,7 +1152,7 @@ table td.tick{border:2px solid var(--surface)}
 }
 .lc-block h4 .ic{width:14px; height:14px; flex:none}
 .lc-out h4{color:var(--bad-ink)}
-.lc-unk h4{color:var(--warn-ink)}
+.lc-unk h4{color:var(--attention-ink)}
 .lc-block ul{list-style:none; margin:0; padding:0; display:grid; gap:5px}
 .lc-block li{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
 .lc-name{font-size:13px; font-weight:600}
@@ -1257,7 +1281,7 @@ table td.tick{border:2px solid var(--surface)}
    The one card arguing with the reader, so the one card on ink. */
 .kjcard{
   background:var(--ink); color:var(--white); border:0;
-  border-left:5px solid var(--warn); overflow:hidden;
+  border-left:5px solid var(--attention); overflow:hidden;
 }
 .kjcard.kj-good{border-left-color:var(--accent)}
 .kjcard.kj-bad{border-left-color:var(--bad)}
@@ -1308,8 +1332,8 @@ table td.tick{border:2px solid var(--surface)}
 .vb-bad{border-top-color:var(--bad); background:var(--bad-wash)}
 .vb-bad .vb-ep{color:var(--bad-ink)}
 .vb-accent{border-top-color:var(--ink)}
-.vb-warn{border-top-color:var(--warn); background:var(--warn-wash)}
-.vb-warn .vb-ep{color:var(--warn-ink)}
+.vb-warn{border-top-color:var(--attention); background:var(--attention-wash)}
+.vb-warn .vb-ep{color:var(--attention-ink)}
 
 /* If the count does not fill the last row, the final card stretches across
    what is left rather than sitting beside a hole. */
@@ -1377,7 +1401,7 @@ table td.tick{border:2px solid var(--surface)}
   font-variant-numeric:tabular-nums}
 .fx-mkt{
   display:inline-block; width:4px; height:4px; border-radius:50%;
-  background:currentColor; margin-left:4px; vertical-align:middle; opacity:.75;
+  background:var(--market); margin-left:4px; vertical-align:middle; opacity:.9;
 }
 .fxclub{white-space:nowrap}
 .fxavg{
@@ -1406,18 +1430,19 @@ table td.tick{border:2px solid var(--surface)}
 .fxtable[data-games="5"] th:nth-child(n+9),.fxtable[data-games="5"] td:nth-child(n+9){display:none}
 .fxtable[data-games="6"] th:nth-child(n+10),.fxtable[data-games="6"] td:nth-child(n+10){display:none}
 .fxtable[data-games="7"] th:nth-child(n+11),.fxtable[data-games="7"] td:nth-child(n+11){display:none}
-/* The page's one "top reward" look - green through silver to blue - kept
-   for the rare figure that earns its own treatment rather than blending
-   into the top step of an ordinary scale. A fixture rated above 9 is the
-   current holder; reach for this class again elsewhere only when a stat
-   is genuinely that rare, not as decoration for an everyday good number. */
-.fx-premium{
-  background:linear-gradient(135deg, #0c6e55 0%, #c9d3d9 52%, #1b5ce0 100%);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.5);
-}
+/* The page's one "top reward" look, for the rare figure that earns its own
+   treatment rather than blending into the top step of an ordinary scale.
+   A fixture rated above 9 is the current holder; reach for this class
+   again elsewhere only when a stat is genuinely that rare, not as
+   decoration for an everyday good number. Used to be a three-stop diagonal
+   gradient (green, through silver, to blue) that read as a broken image
+   on the live page rather than as a reward - flat --premium and a star
+   glyph say "special" without looking like a rendering glitch. */
+.fx-premium{background:var(--premium)}
 .fx-premium .fxc-opp,.fx-premium .fxc-score,.rpill.fx-premium,.fxavg.fx-premium{
-  color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.25);
+  color:#fff;
 }
+.fx-star{font-style:normal; margin-right:2px; font-size:.85em; vertical-align:1px}
 .fxown{
   display:inline-flex; align-items:center; justify-content:center;
   min-width:16px; height:16px; padding:0 4px;
@@ -1465,7 +1490,7 @@ table td.tick{border:2px solid var(--surface)}
 .pr-card{background:var(--surface-variant); border-radius:var(--radius-m); padding:14px}
 .pr-tag{
   margin:0 0 8px; font-size:10px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.06em; color:var(--warn-ink);
+  letter-spacing:.06em; color:var(--attention-ink);
 }
 .pr-head{display:flex; gap:14px; align-items:flex-end; margin-bottom:12px}
 .pr-total,.pr-hit,.pr-bank{display:flex; flex-direction:column;
@@ -1500,7 +1525,7 @@ table td.tick{border:2px solid var(--surface)}
 /* --- league template pitch + differentials --- */
 .tplpitch .pl{width:86px}
 .tplpitch .pl .sc .p{font-size:11px}
-.pl.tpl-mine{outline:2px solid var(--accent); outline-offset:1px}
+.pl.tpl-mine{outline:2px solid var(--mine); outline-offset:1px}
 .dflist{list-style:none; margin:0; padding:0; display:grid;
   grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px}
 .df-card{display:flex; gap:14px; align-items:center;
@@ -1555,7 +1580,7 @@ table td.tick{border:2px solid var(--surface)}
   color:var(--bad-ink)}
 .rv-track{grid-area:track; height:9px; border-radius:5px;
   background:var(--outline-variant); overflow:hidden}
-.rv-track i{display:block; height:100%; border-radius:5px; background:var(--bad)}
+.rv-track i{display:block; height:100%; border-radius:5px; background:var(--rival)}
 .rv-note{grid-area:note; font-size:11px; color:var(--on-surface-variant)}
 @media (max-width:620px){
   .rv-row{grid-template-columns:44px minmax(0,1fr) 34px;
@@ -2787,7 +2812,7 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
         # merely clearing 90% gets.
         tone = ("var(--accent)" if starting == total and total else
                 "var(--good-ink)" if pct >= 90 else
-                "var(--warn-ink)" if pct >= 60 else "var(--bad-ink)")
+                "var(--attention-ink)" if pct >= 60 else "var(--bad-ink)")
         if not total:
             body = '<p class="lc-clear">Nobody in this group.</p>'
         elif not out and not unknown:
@@ -3668,27 +3693,29 @@ def leader_groups(ctx, squad_ids, depth=4, min_minutes=45):
             ],
         }
 
+    # Six cards used to carry six unrelated hues, which meant colour never
+    # carried information across this row - a card's tone told you nothing
+    # you couldn't already get from its icon. One hue per role instead: ink
+    # for the four attacking measures, premium teal for the one defensive
+    # card that flips the ranking (xGC), attention amber for DefCon.
     groups = [
-        build("Expected goals", "xG this season", "ball", "#953bff",
+        build("Expected goals", "xG this season", "ball", "var(--ink)",
               "expected_goals"),
-        build("Expected assists", "xA this season", "key", "#00b3d6",
+        build("Expected assists", "xA this season", "key", "var(--ink)",
               "expected_assists"),
-        build("Goal involvement", "xG plus xA", "spark", "#e6007e",
+        build("Goal involvement", "xG plus xA", "spark", "var(--ink)",
               "expected_goal_involvements"),
         build_pair(
             "Big chances/chances",
             "Shown as big chances, chances - a big chance is a clear "
             "opening, a chance is any pass leading to a shot",
-            "run", "#00a35c", "big_chance_created", "total_att_assist",
+            "run", "var(--ink)", "big_chance_created", "total_att_assist",
         ),
-        # Was #7d5980, which is var(--p70) - the secondary-text token. A card
-        # ruled and iconed in the same colour as its own small print looked
-        # switched off next to the other five.
         build("Fewest goals expected against", "xGC, defenders and keepers",
-              "shield", "#1b5ce0", "expected_goals_conceded", ascending=True,
+              "shield", "var(--premium)", "expected_goals_conceded", ascending=True,
               positions=("GKP", "DEF")),
         build("Defensive contributions", "Tackles, recoveries and blocks banked this season",
-              "shield", "#e07b00", "defensive_contribution", fmt="{:.0f}"),
+              "shield", "var(--attention)", "defensive_contribution", fmt="{:.0f}"),
     ]
     return [g for g in groups if g["rows"]]
 
