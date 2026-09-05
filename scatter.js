@@ -6,7 +6,7 @@
 // every possible axis pairing up front.
 (function () {
   var NS = 'http://www.w3.org/2000/svg';
-  var W = 760, H = 400, ML = 62, MR = 18, MT = 18, MB = 48;
+  var W = 1040, H = 520, ML = 62, MR = 18, MT = 18, MB = 48;
 
   document.querySelectorAll('.card').forEach(function (card) {
     var holder = card.querySelector('.scatter-data');

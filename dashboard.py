@@ -165,10 +165,19 @@ CSS = """
      that lands on text uses the darker cut. */
   --white:#ffffff;
   --p2:#faf9fa; --p5:#f5f2f5; --p10:#ebe5eb; --p20:#d7ccd8; --p30:#c3b2c4;
+  /* --p50 is 3.52:1 on white and must not carry type - it is a border
+     and fill value. --p60 is 4.62:1 and is the lightest ink allowed on
+     a white card. */
   --p40:#af99b1; --p50:#9b809d; --p60:#87668a; --p70:#7d5980; --p80:#541e5d;
   --p90:#41054b; --p100:#37003c; --p110:#28002b; --p120:#1e0021;
   --ink:#37003c;
 
+  /* --accent is the brand: the green this page is recognised by, spent on
+     structure - the hero's rule, a selected state, the one card in a group
+     that has earned it. --good is a reading: this number went the right
+     way. They are the same green today because FPL's green is both, but
+     they are two jobs and were one token, so recolouring either one
+     silently moved the other. Split, with the same value, deliberately. */
   --accent:#01fc7a; --accent-ink:#046b39; --accent-wash:#e2fdf0;
   --good:#01fc7a; --good-ink:#046b39; --good-wash:#e2fdf0;
   --bad:#e60023; --bad-ink:#c0001d; --bad-wash:#fff2f4;
@@ -203,6 +212,11 @@ CSS = """
      to avoid. */
   --ground:#f4f1ea; --bar:var(--p120); --on-bar:var(--white);
   --pitch-a:#0e7a3c; --pitch-b:#0a6733;
+  /* The content column. It was 1120px, which on a desktop left the page
+     using barely a third of the width while every grid inside it was
+     squeezed to three 322px columns of 10px type. The density problem
+     was never the amount of data - it was the width it had to fit. */
+  --shell:1400px;
   --radius-xs:4px; --radius-s:8px; --radius-m:12px; --radius-l:16px;
   --shadow:0 1px 2px rgb(55 0 60 / 10%), 0 1px 8px rgb(55 0 60 / 6%);
 }
@@ -292,7 +306,7 @@ a{color:inherit}
   position:sticky; top:0; z-index:20;
 }
 .topbar-in{
-  max-width:1120px; margin:0 auto; padding:12px 16px;
+  max-width:var(--shell); margin:0 auto; padding:12px 16px;
   display:flex; align-items:center; gap:12px; flex-wrap:wrap;
 }
 .wordmark{
@@ -306,8 +320,45 @@ a{color:inherit}
 }
 .stamp{font-size:12px;color:rgb(255 255 255 / 65%)}
 
-.wrap{max-width:1120px;margin:0 auto;padding:16px}
-section{margin-bottom:20px}
+/* --- the chapter rail ---
+   Planning is four chapters and about fourteen sections deep, and until now
+   the only way to the bottom of it was the scrollbar. The rail is built from
+   whichever chapters the open tab actually has, so it is never a menu of
+   things that are not on screen, and it hides itself on a tab with only one
+   chapter rather than showing a nav of length one. */
+.railwrap{max-width:var(--shell); margin:0 auto; padding:0 16px 8px}
+.railwrap[hidden]{display:none}
+.rail{display:flex; gap:2px; flex-wrap:wrap}
+.railbtn{
+  appearance:none; border:0; background:none; cursor:pointer;
+  font:inherit; font-size:12px; font-weight:600;
+  color:rgb(255 255 255 / 62%); padding:4px 8px; border-radius:var(--radius-xs);
+}
+.railbtn:hover{color:#fff; background:rgb(255 255 255 / 10%)}
+.railbtn[aria-current="true"]{color:var(--ink); background:var(--accent)}
+/* The topbar is sticky, so a chapter scrolled to must clear it. The rail
+   computes its own offset rather than relying on this, but a chapter
+   reached any other way - a fragment link, a find-in-page - wants it too. */
+.chapter{scroll-margin-top:92px}
+/* On a phone the rail wrapped to three lines and took the sticky bar to
+   137px - a sixth of the screen, permanently, to hold a nav. One line that
+   scrolls sideways instead: the chapter names are short and the first two
+   are always in view. */
+@media (max-width:560px){
+  .railwrap{padding:0 12px 6px}
+  .rail{
+    flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+  .rail::-webkit-scrollbar{display:none}
+  .railbtn{font-size:11px; white-space:nowrap; flex:none}
+}
+
+.wrap{max-width:var(--shell);margin:0 auto;padding:16px}
+/* Cards inside a chapter sit closer than the chapter break above them:
+   16 within, and 30+12 at a heading, so the group reads as a group. This
+   was a flat 20 everywhere, from before there were chapters at all. */
+section{margin-bottom:16px}
 .card{
   background:var(--surface); border-radius:var(--radius-m);
   box-shadow:var(--shadow); overflow:hidden;
@@ -317,6 +368,33 @@ section{margin-bottom:20px}
   display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
 }
 .card-head h2{font-size:16px; text-transform:uppercase; letter-spacing:0.04em}
+
+/* --- chapter ---
+   A screen section, above the cards it groups.
+
+   There were two levels of heading on this page and they were one pixel
+   apart - a bare 17px `card-head` sitting on the ground meant "everything
+   below me", the same markup inside a card meant "this card", and at 17 vs
+   16 nothing told them apart. Worse, which one a section got was arbitrary.
+
+   So: a card's own title stays 16px uppercase, and the level above it is
+   this - larger, expanded on Archivo's width axis, sentence case rather
+   than a second set of caps, and ruled underneath in ink. The width axis
+   is what separates the two, not weight, because both were already bold.
+   A bare `card-head` on the ground is now always a mistake. */
+.chapter{
+  margin:30px 0 12px; padding-bottom:6px;
+  border-bottom:2px solid var(--ink);
+  display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+}
+.chapter h2{
+  font-size:22px; font-stretch:125%; text-transform:none;
+  letter-spacing:-0.01em; line-height:1.2;
+}
+.chapter .sub{font-size:13px; color:var(--on-surface-variant)}
+/* The first chapter in a panel already has the tab strip above it. */
+.panel > .chapter:first-child{margin-top:6px}
+@media (max-width:560px){.chapter h2{font-size:19px}}
 .card-head .sub{font-size:13px;color:var(--on-surface-variant)}
 /* A card's explanation used to print in full, permanently, under every
    title on the page - a sentence of small print nobody asked to read
@@ -369,10 +447,16 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
 .tile .delta-up{background:rgb(1 252 122 / 18%); color:#8affc4}
 .tile .delta-down{background:rgb(230 0 35 / 22%); color:#ff9aa8}
 
+/* Six separate tiles, each with its own edge. This was briefly one
+   recessed band divided by hairlines - a scoreboard read - but at 9% white
+   the dividers were invisible on the four tiles that carry no tone, so the
+   two that did were the only ones that looked like anything. Back to
+   discrete tiles, with the border taken from 9% to 18% so every one of
+   them actually has an edge to see. */
 .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:10px; margin-top:18px}
 .tile{
   background:rgb(255 255 255 / 7%); border-radius:var(--radius-s);
-  padding:10px 12px; border:1px solid rgb(255 255 255 / 9%);
+  padding:10px 12px; border:1px solid rgb(255 255 255 / 18%);
 }
 .tile .k{font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:rgb(255 255 255 / 62%)}
 .tile .v{
@@ -384,47 +468,137 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
 /* Only two of the six tiles ever carry a tone - see render() for which and
    why. Same three-way good/warn/bad vocabulary the delta chips already
    use, just applied to the whole tile instead of a chip inside it. */
-.tile.tile-good{background:rgb(1 252 122 / 9%); border-color:rgb(1 252 122 / 26%)}
+.tile.tile-good{background:rgb(1 252 122 / 9%); border-color:rgb(1 252 122 / 40%)}
 .tile.tile-good .v{color:#8affc4}
-.tile.tile-warn{background:rgb(255 176 0 / 14%); border-color:rgb(255 176 0 / 34%)}
+.tile.tile-warn{background:rgb(255 176 0 / 14%); border-color:rgb(255 176 0 / 46%)}
 .tile.tile-warn .v{color:#ffd166}
-.tile.tile-bad{background:rgb(230 0 35 / 11%); border-color:rgb(230 0 35 / 28%)}
+.tile.tile-bad{background:rgb(230 0 35 / 11%); border-color:rgb(230 0 35 / 42%)}
 .tile.tile-bad .v{color:#ff9aa8}
 
 /* --- tabs --- */
-.tabs{display:flex; gap:4px; margin:16px 0 12px; flex-wrap:wrap}
-.tab{
-  appearance:none; border:1px solid var(--outline); background:var(--surface);
-  color:var(--on-surface); font:inherit; font-weight:600; font-size:14px;
-  padding:8px 16px; border-radius:9999px; cursor:pointer;
-}
-.tab[aria-selected="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
-.tab:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
-.panel[hidden]{display:none}
+/* --- tab bars ------------------------------------------------------------
+   Every mutually-exclusive switch on this page was its own row of pill
+   buttons - a bordered capsule each, the selected one filled solid ink.
+   Five separate groups of them, all shouting at the volume of the content
+   underneath, and five near-identical blocks of CSS saying so.
 
-/* --- pick-team pitch toggle: a nested, quieter version of .tab/.tabs,
-   scoped inside one card rather than switching the whole page --- */
-.pkview{display:flex; gap:6px; padding:10px 16px; border-bottom:1px solid var(--outline-variant)}
-.pkbtn{
-  appearance:none; border:1px solid var(--outline); background:var(--surface);
-  color:var(--on-surface-variant); font:inherit; font-weight:600; font-size:12px;
-  padding:5px 12px; border-radius:9999px; cursor:pointer;
+   One bar instead. The selected label is simply the dark one, and a single
+   rule slides between them. The indicator is one element per bar driven by
+   two custom properties rather than a border on the selected button,
+   because a border cannot animate from one element to another; and it is a
+   1px block scaled on X rather than a width, so position and size move in
+   the same composited transform. */
+.tabbar{
+  position:relative; display:flex; gap:2px;
+  border-bottom:1px solid var(--outline-variant);
 }
-.pkbtn[aria-selected="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
-.pkbtn:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.tabbar::after{
+  content:""; position:absolute; left:0; bottom:-1px; width:1px; height:2px;
+  background:var(--ink); pointer-events:none;
+  transform:translateX(var(--tab-x,0)) scaleX(var(--tab-w,0));
+  transform-origin:0 0;
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+}
+@media (prefers-reduced-motion:reduce){.tabbar::after{transition:none}}
+.tabbar > button{
+  appearance:none; border:0; background:none; cursor:pointer; font:inherit;
+  font-weight:600; font-size:13px; color:var(--on-surface-variant);
+  padding:9px 14px; white-space:nowrap; flex:none;
+  border-radius:var(--radius-xs) var(--radius-xs) 0 0;
+  transition:color .2s, background-color .2s;
+}
+.tabbar > button:hover{color:var(--on-surface); background:var(--p2)}
+.tabbar > button[aria-selected="true"],
+.tabbar > button[aria-pressed="true"]{color:var(--ink)}
+.tabbar > button:focus-visible{outline:3px solid var(--accent); outline-offset:-3px}
+/* Narrow enough and the bar scrolls sideways rather than wrapping: the
+   indicator is positioned along one axis, so a second line would strand
+   it under the first. */
+.tabbar{overflow-x:auto; scrollbar-width:none}
+.tabbar::-webkit-scrollbar{display:none}
+
+/* The page-level one is the loudest of them and carries the most weight. */
+.tabs{margin:18px 0 14px}
+.tabs > button{font-size:15px; padding:10px 18px}
+/* Scoped inside a card: same bar, quieter, and inset to the card's padding. */
+.pkview{padding:0 16px; gap:0}
+.pkview > button{font-size:12px; padding:9px 12px}
+.panel[hidden]{display:none}
 .pkpanel[hidden]{display:none}
 
 /* --- pitch --- */
 .pitch{
   background:
-    repeating-linear-gradient(180deg,var(--pitch-a) 0 60px,var(--pitch-b) 60px 120px);
+    repeating-linear-gradient(180deg,
+      var(--pitch-a) 0 12.5%,var(--pitch-b) 12.5% 25%);
   padding:18px 10px; position:relative;
 }
 .pitch::before{
   content:""; position:absolute; inset:10px; border:2px solid rgb(255 255 255 / 22%);
   border-radius:var(--radius-xs); pointer-events:none;
 }
-.row{display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:14px; position:relative}
+.row{display:flex; justify-content:center; gap:8px; flex-wrap:wrap;
+  margin-bottom:14px; position:relative; z-index:1}
+
+/* --- pitch markings ------------------------------------------------------
+   The pitch was four mown stripes and a rectangle. The lines are what make
+   eleven shirts read as a team sheet rather than as cards on a green panel,
+   and they are the one piece of custom drawing this page had no excuse for
+   not having. Same 22% white as the touchline: furniture, never something
+   competing with a shirt.
+
+   Horizontal extents are percentages, vertical ones are pixels. A pitch
+   here is exactly as tall as its rows make it, so a penalty area measured
+   proportionally in both directions would deform from one squad shape to
+   the next. Fixed depth and proportional width is how the box keeps its
+   shape at any height.
+
+   The stripes moved from a 60px repeat to a 12.5% one for the same reason:
+   at a fixed pitch a mini pitch showed two and a half bands where the full
+   one showed eight. */
+.pmk{
+  position:absolute; inset:10px; pointer-events:none; z-index:0;
+  --mk:rgb(255 255 255 / 22%);
+}
+.pmk i{position:absolute; border:2px solid var(--mk)}
+/* Halfway line, then the centre circle and spot on top of it. */
+.pmk-half{left:0; right:0; top:50%; border-width:2px 0 0}
+.pmk-circle{
+  left:50%; top:50%; width:84px; height:84px; margin:-42px 0 0 -42px;
+  border-radius:50%;
+}
+.pmk-spot{
+  left:50%; top:50%; width:6px; height:6px; margin:-3px 0 0 -3px;
+  border:0; border-radius:50%; background:var(--mk);
+}
+/* Penalty area, the six-yard box inside it, and the goal beyond the line -
+   all three at both ends. The edge that would sit on the goal line is
+   dropped, because the touchline is already drawing it. */
+.pmk-box{left:50%; width:46%; margin-left:-23%; height:46px}
+.pmk-six{left:50%; width:22%; margin-left:-11%; height:20px}
+.pmk-goal{left:50%; width:11%; margin-left:-5.5%; height:7px}
+.pmk-t{top:0; border-top-width:0}
+.pmk-b{bottom:0; border-bottom-width:0}
+.pmk-goal.pmk-t{top:-7px; border-width:2px 2px 0}
+.pmk-goal.pmk-b{bottom:-7px; border-width:0 2px 2px}
+/* Corner arcs: a quarter circle struck from each corner of the touchline. */
+.pmk-arc{width:14px; height:14px}
+.pmk-arc-tl{top:0; left:0; border-width:0 2px 2px 0; border-radius:0 0 100% 0}
+.pmk-arc-tr{top:0; right:0; border-width:0 0 2px 2px; border-radius:0 0 0 100%}
+.pmk-arc-bl{bottom:0; left:0; border-width:2px 2px 0 0; border-radius:0 100% 0 0}
+.pmk-arc-br{bottom:0; right:0; border-width:2px 0 0 2px; border-radius:100% 0 0 0}
+/* A small pitch keeps the same lines at the same relative weight - the
+   point of the mini pitch is that it is recognisably the same object. */
+.pitch.mini .pmk-circle{width:50px; height:50px; margin:-25px 0 0 -25px}
+.pitch.mini .pmk-box{height:26px}
+.pitch.mini .pmk-six{height:11px}
+.pitch.mini .pmk-goal{height:5px}
+.pitch.mini .pmk-goal.pmk-t{top:-5px}
+.pitch.mini .pmk-goal.pmk-b{bottom:-5px}
+.pitch.mini .pmk-arc{width:9px; height:9px}
+.pitch.mini .pmk i{border-width:1px}
+.pitch.mini .pmk-half{border-width:1px 0 0}
+.pitch.mini .pmk-spot{width:4px; height:4px; margin:-2px 0 0 -2px; border:0}
 .row:last-child{margin-bottom:0}
 .pl{position:relative; width:92px; background:var(--surface); border-radius:var(--radius-s); overflow:hidden; box-shadow:0 2px 6px rgb(0 0 0 / 25%)}
 .pl .crest{display:flex; align-items:center; justify-content:center; height:44px; background:var(--surface-variant)}
@@ -445,12 +619,17 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
    readable across the room and the other two only when you look for them.
    The chosen cell also takes extra width, since 15px digits do not fit a
    third of a 92px card. */
-.ovwrap .sc div{color:var(--p50); font-weight:500; font-size:10px}
+.ovwrap .sc div{color:var(--p60); font-weight:500; font-size:10px}
 .ovwrap.emph-p .sc .p,
 .ovwrap.emph-g .sc .g,
 .ovwrap.emph-x .sc .x{
-  color:var(--on-surface); font-weight:700; font-size:15px; flex-grow:1.7;
-  letter-spacing:-0.04em;
+  color:var(--on-surface); font-weight:700; font-size:17px; flex-grow:1.7;
+  /* The one figure in front on a shirt card is set the way a number on a
+     shirt is: tight, heavy and slightly taller than it is wide. Plex Mono
+     has no width axis, so the squeeze is a transform on the cell rather
+     than a face - which also keeps every card's three cells on the same
+     baseline grid, since a scaled glyph takes no extra line box. */
+  letter-spacing:-0.05em; transform:scaleX(.92); transform-origin:center;
 }
 @media (prefers-reduced-motion:reduce){.pl .sc div{transition:none}}
 
@@ -634,14 +813,13 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 /* --- scatter --- */
 :root{--mark-mkt:#bcae9e; --mark-mine:var(--mine); --mark-outlier:var(--ink)}
 .chartfilter{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px}
-.chip{
-  appearance:none; border:1px solid var(--outline); background:var(--surface);
-  color:var(--on-surface); font:inherit; font-size:13px; font-weight:600;
-  padding:5px 12px; border-radius:9999px; cursor:pointer;
-}
-.chip[aria-pressed="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
-.chip:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
-.scatter{width:100%; min-width:560px; height:auto; display:block}
+/* The viewBox is the chart's own coordinate space, so a container wider
+   than it upscales every dot, stroke and label together - at the 1400px
+   shell a 760-wide box was being blown up 1.76x and the 11px tick labels
+   were landing at 19px. The box is 1040 wide now, and capped there, so
+   the chart fills the card at 1:1 and only ever scales down. */
+.scatter{width:100%; min-width:560px; max-width:1040px; height:auto;
+  display:block; margin:0 auto}
 .scatter .grid line{stroke:var(--outline-variant); stroke-width:1}
 .scatter .axlab text{fill:var(--on-surface-variant); font-size:11px; font-variant-numeric:tabular-nums}
 .scatter .axtitle{fill:var(--on-surface-variant); font-size:12px; font-weight:600}
@@ -689,14 +867,9 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
    One line per manager, straight segments between gameweeks - there is
    nothing to smooth between two discrete, already-final scores. */
 .lptoggle{display:flex; gap:6px; margin-bottom:10px}
-.lpbtn{
-  appearance:none; border:1px solid var(--outline); background:var(--surface);
-  color:var(--on-surface-variant); font:inherit; font-weight:600; font-size:12px;
-  padding:5px 12px; border-radius:9999px; cursor:pointer;
-}
-.lpbtn[aria-pressed="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
-.lpbtn:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
-.lpchart{width:100%; min-width:520px; height:auto; display:block}
+/* Capped for the same reason as .scatter - see the note there. */
+.lpchart{width:100%; min-width:520px; max-width:1040px; height:auto;
+  display:block; margin:0 auto}
 .lpgrid line{stroke:var(--outline-variant); stroke-width:1}
 .lpgrid text{fill:var(--on-surface-variant); font-size:10px; font-variant-numeric:tabular-nums}
 .lpline{transition:opacity .15s}
@@ -1002,7 +1175,8 @@ table td.tick{border:2px solid var(--surface)}
   display:flex; flex-direction:column; gap:6px; padding:12px 10px;
   background:var(--pitch-b);
 }
-.pkstage.ep-on .pitch::before{display:none}
+.pkstage.ep-on .pitch::before,
+.pkstage.ep-on .pmk{display:none}
 .pkstage.ep-on .pitch .row{display:contents}
 .pkstage.ep-on .benchstrip{display:none}
 .pkstage.ep-on .pk{
@@ -1101,8 +1275,18 @@ table td.tick{border:2px solid var(--surface)}
   align-items:start}
 .cp{
   position:relative; padding:14px 14px 12px; border-radius:var(--radius-m);
-  background:var(--surface-variant); border-top:3px solid var(--accent);
+  background:var(--surface-variant);
+  border-top:3px solid var(--cp-tone,var(--outline-variant));
 }
+/* The rule and the pill below it were disagreeing: every one of the four
+   cards wore the same bright accent along the top while the pill under it
+   said "flexible". Four identical accents in one grid is decoration, and
+   it was the loudest decoration on the page. The rule now carries the
+   confidence the card already states, so the accent is spent on the one
+   chip that has actually earned a week. */
+.cp-strong{--cp-tone:var(--good)}
+.cp-watch{--cp-tone:var(--p40)}
+.cp-flexible{--cp-tone:var(--outline-variant)}
 .cp.used{opacity:.55}
 .cp-label{margin:0; font-size:11px; font-weight:700; text-transform:uppercase;
   letter-spacing:.05em; color:var(--on-surface-variant)}
@@ -1124,22 +1308,37 @@ table td.tick{border:2px solid var(--surface)}
    rows of nothing. Full squad, XI and bench cycle through the one donut,
    since a gap in the bench and the same gap in the XI are not the same
    question. */
-.lcnav{
-  display:flex; align-items:center; justify-content:center; gap:10px;
-  margin-bottom:6px;
+.lcnav{margin:0 0 10px}
+.lcnav > button{font-size:12px; padding:7px 10px}
+
+/* A donut sat here, 90px across with two lines of type inside the ring -
+   cramped at that size, and the only chart of its kind on a page that
+   otherwise reads its numbers off flat blocks and mono figures. It is a
+   share of fifteen, so it is now the figure itself and fifteen pips: the
+   number is exact, the pips are countable, and neither asks you to judge
+   an angle. It also matches the language the rest of the page is written
+   in, which the ring never did. */
+.lcstat{
+  margin-bottom:10px; padding:12px 14px;
+  border-radius:var(--radius-m); background:var(--surface-variant);
+  border-left:3px solid var(--lc-tone,var(--p40));
 }
-.lc-navlabel{
-  font-size:11px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.06em; color:var(--on-surface-variant); min-width:7em;
-  text-align:center;
+.lcfig{
+  margin:0; display:flex; align-items:baseline; gap:6px;
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
 }
-/* Boxed the same way the mini-league ownership doughnuts are - a surface
-   tint and real padding round the ring, rather than it floating loose
-   against the card background with only a margin to separate it. */
-.lc-donut-row{
-  display:flex; justify-content:center; margin-bottom:10px;
-  padding:14px 8px; border-radius:var(--radius-m); background:var(--surface-variant);
+.lcfig b{font-size:28px; font-weight:700; line-height:1;
+  letter-spacing:-0.04em; color:var(--lc-tone,var(--on-surface))}
+.lcfig span{font-size:13px; color:var(--on-surface-variant)}
+.lccap{
+  margin:3px 0 0; font-size:11px; font-weight:600; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--on-surface-variant);
 }
+.lcpips{display:flex; gap:3px; margin-top:9px; flex-wrap:wrap}
+.lcpip{width:12px; height:5px; border-radius:2px; flex:none}
+.lcpip-on{background:var(--lc-tone,var(--p60))}
+.lcpip-unk{background:var(--attention)}
+.lcpip-off{background:var(--bad)}
 .lcpanel{
   padding-top:10px; border-top:1px solid var(--outline-variant);
 }
@@ -1157,7 +1356,7 @@ table td.tick{border:2px solid var(--surface)}
 .lc-block li{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
 .lc-name{font-size:13px; font-weight:600}
 .lc-club{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
-  color:var(--p50)}
+  color:var(--p60)}
 .lc-fx{margin-left:auto; display:flex; gap:3px}
 
 /* --- fixture swings -------------------------------------------------------
@@ -1267,7 +1466,7 @@ table td.tick{border:2px solid var(--surface)}
 .bxi-name{font-size:13px; font-weight:600; overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap}
 .bxi-club{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
-  color:var(--p50)}
+  color:var(--p60)}
 .bxi-bar{display:block; height:5px; border-radius:3px; background:var(--p10)}
 .bxi-bar i{display:block; height:100%; border-radius:3px; background:var(--p30)}
 .bxi-ep{font-size:12px; text-align:right; color:var(--on-surface-variant)}
@@ -1326,7 +1525,7 @@ table td.tick{border:2px solid var(--surface)}
 .vb-ep{font-size:13px; font-weight:700}
 .vb-sub{display:block; font-size:11px; line-height:1.35;
   color:var(--on-surface-variant)}
-.vb-none{font-size:12px; color:var(--p50)}
+.vb-none{font-size:12px; color:var(--p60)}
 .vb-good{border-top-color:var(--good); background:var(--good-wash)}
 .vb-good .vb-ep{color:var(--good-ink)}
 .vb-bad{border-top-color:var(--bad); background:var(--bad-wash)}
@@ -1508,7 +1707,9 @@ table td.tick{border:2px solid var(--surface)}
 .pr-photo{width:44px; height:56px; border-radius:var(--radius-xs);
   object-fit:cover; background:var(--surface); display:block}
 .pr-blank{display:grid; place-items:center; font-size:19px; font-weight:700;
-  color:var(--on-surface-variant)}
+  background:var(--surface-variant); border:1px solid var(--outline-variant);
+  color:var(--p60)}
+.pr-blank img{width:30px; height:30px; object-fit:contain; display:block}
 .pr-kit{position:absolute; right:-5px; bottom:-4px; width:18px; height:18px;
   border-radius:50%; background:var(--surface); padding:1px}
 .pr-out .pr-photo{filter:grayscale(.75) opacity(.7)}
@@ -1534,7 +1735,8 @@ table td.tick{border:2px solid var(--surface)}
 .df-photo{width:84px; height:106px; border-radius:var(--radius-s);
   object-fit:cover; background:var(--surface); flex:none}
 .df-blank{display:grid; place-items:center; font-size:34px; font-weight:700;
-  color:var(--on-surface-variant)}
+  background:var(--p10); border:1px solid var(--p20);
+  color:var(--p60)}
 .df-body{min-width:0}
 .df-name{margin:0; font-size:18px; font-weight:700}
 .df-meta{margin:2px 0 10px; font-size:12px; color:var(--on-surface-variant)}
@@ -1552,14 +1754,7 @@ table td.tick{border:2px solid var(--surface)}
    one is a ranking, so it is drawn as a ranking - rows down the page with a
    bar you can compare along, red because the whole point is that these went
    onto somebody else's score. */
-.rvtabs{display:flex; gap:6px; margin-bottom:12px}
-.rvtab{
-  appearance:none; border:1px solid var(--outline); background:var(--surface);
-  color:var(--on-surface-variant); font:inherit; font-weight:600; font-size:12px;
-  padding:5px 12px; border-radius:9999px; cursor:pointer;
-}
-.rvtab[aria-selected="true"]{background:var(--ink); color:#fff; border-color:var(--ink)}
-.rvtab:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.rvtabs{margin-bottom:12px}
 .rvlist{list-style:none; margin:0; padding:0; display:flex;
   flex-direction:column; gap:8px}
 .rv-row{
@@ -1570,12 +1765,13 @@ table td.tick{border:2px solid var(--surface)}
 .rv-photo{grid-area:face; width:44px; height:56px; border-radius:var(--radius-xs);
   object-fit:cover; background:var(--surface-variant); flex:none}
 .rv-blank{display:grid; place-items:center; font-size:19px; font-weight:700;
-  color:var(--on-surface-variant)}
+  background:var(--surface-variant); border:1px solid var(--outline-variant);
+  color:var(--p60)}
 .rv-who{grid-area:who; min-width:0; display:flex; flex-direction:column}
 .rv-who b{font-size:14px; overflow:hidden; text-overflow:ellipsis;
   white-space:nowrap}
 .rv-who span{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
-  color:var(--p50)}
+  color:var(--p60)}
 .rv-pts{grid-area:pts; font-size:19px; font-weight:700; text-align:right;
   color:var(--bad-ink)}
 .rv-track{grid-area:track; height:9px; border-radius:5px;
@@ -1596,7 +1792,7 @@ table td.tick{border:2px solid var(--surface)}
 }
 .slcard{
   background:var(--surface-variant); border-radius:var(--radius-m);
-  padding:12px 12px 10px; border-top:3px solid var(--accent);
+  padding:12px 12px 10px; border-top:3px solid var(--accent,var(--p30));
 }
 /* Ink, not the card's own tone. Six cards were each colouring their
    heading with an arbitrary hue, and two of those hues - a muted purple
@@ -1660,10 +1856,18 @@ table td.tick{border:2px solid var(--surface)}
   width:72px; height:92px; border-radius:var(--radius-s); object-fit:cover;
   background:var(--surface); display:block;
 }
+/* A player with no portrait used to draw as a white box on a white card
+   with a letter floating in it - indistinguishable from an image that had
+   failed to load, and four of them sat in one row of suggested transfers.
+   The club kit is an asset we already have for that player, so a missing
+   face falls back to the shirt on the same warm ground the pitch cards use
+   for a crest, and only a player with neither gets the letter. */
 .tf-blank{
   display:grid; place-items:center; font-size:30px; font-weight:700;
-  color:var(--on-surface-variant);
+  background:var(--surface-variant); border:1px solid var(--outline-variant);
+  color:var(--p60);
 }
+.tf-blank img{width:48px; height:48px; object-fit:contain; display:block}
 .tf-kit{
   position:absolute; right:-8px; bottom:-6px; width:26px; height:26px;
   border-radius:50%; background:var(--surface); padding:2px;
@@ -1852,12 +2056,20 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
    to carry. A grid stretches its items to the tallest in the row by default,
    so one long set-piece list gave every card beside it several hundred pixels
    of nothing. Ragged bottoms are the correct trade: the cards are independent
-   readings, not a table, and nothing about them wants a shared baseline. */
-.finds{column-width:322px; column-gap:12px}
+   readings, not a table, and nothing about them wants a shared baseline.
+
+   This was multi-column for a while, which balanced the nine cards into
+   columns of equal height and so put the reading order down column one and
+   back up to the top of column two. They are nine independent readings of
+   one squad; they should read left to right, in the order they were
+   ranked. */
+.finds{
+  display:grid; gap:12px; align-items:start;
+  grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+}
 .find{
   background:var(--surface); border-radius:var(--radius-m);
-  box-shadow:var(--shadow); overflow:hidden;
-  break-inside:avoid; margin:0 0 12px;
+  box-shadow:var(--shadow); overflow:hidden; margin:0;
 }
 .find h3{
   font-size:12px; text-transform:uppercase; letter-spacing:0.06em;
@@ -1894,7 +2106,7 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
 .arr{display:flex; align-items:center; gap:9px; font-size:13px}
 .arr-name{font-weight:600; display:flex; align-items:center; gap:6px}
 .arr-club{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
-  color:var(--p50)}
+  color:var(--p60)}
 .arr-detail{
   margin-left:auto; color:var(--on-surface-variant); font-size:12px;
   font-family:var(--mono);
@@ -1962,22 +2174,61 @@ JS = """
     if (btn.closest('summary')) { ev.preventDefault(); ev.stopPropagation(); }
   });
 
+  // --- the tab bar indicator ---------------------------------------------
+  // One rule per bar, positioned from the selected button's own geometry, so
+  // the bars do not each need their own script and a bar added later is
+  // picked up for free. Measured rather than assumed: the labels are words,
+  // and their widths are whatever the font makes them.
+  function markTabbar(bar){
+    // Direct children only, and never the predicted-points toggle: .pkview
+    // holds the three view tabs but also a nested group of figure buttons
+    // and that toggle, all of which carry aria-pressed. A descendant query
+    // would let the rule latch onto one of those.
+    var sel = bar.querySelector(
+      ':scope > button:not(.epbtn)[aria-selected="true"],' +
+      ':scope > button:not(.epbtn)[aria-pressed="true"]');
+    if (!sel) { bar.style.setProperty('--tab-w', '0'); return; }
+    var b = bar.getBoundingClientRect(), r = sel.getBoundingClientRect();
+    // A bar inside a hidden panel measures zero. Leave its last good
+    // position alone rather than collapsing the rule to nothing, so it does
+    // not visibly snap back when the panel is shown again.
+    if (!r.width) return;
+    bar.style.setProperty('--tab-x', (r.left - b.left + bar.scrollLeft) + 'px');
+    bar.style.setProperty('--tab-w', String(r.width));
+  }
+  function markTabbars(){ document.querySelectorAll('.tabbar').forEach(markTabbar); }
+
+  // Delegated, and synchronous: this runs in the bubble phase, after the
+  // button's own handler has moved aria-selected, so the geometry it reads
+  // is already the new one. No frame is requested - a deferred callback does
+  // not run at all where frames are paused.
+  document.addEventListener('click', function(ev){
+    if (ev.target.closest('.tabbar > button')) markTabbars();
+  });
+  window.addEventListener('resize', markTabbars);
+  markTabbars();
+  // Web fonts land after first paint and change every label's width.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(markTabbars);
+  }
+
   // Predicted line-ups: full squad, XI or bench answer different questions
-  // about the same fifteen, so one donut cycles between them rather than
+  // about the same fifteen, so one figure switches between them rather than
   // showing three at once.
   document.querySelectorAll('.lcnav').forEach(function(nav){
     var card = nav.closest('.lccard');
     var panels = Array.from(card.querySelectorAll('.lcpanel'));
-    var label = nav.querySelector('.lc-navlabel');
-    var idx = panels.findIndex(function(p){ return !p.hidden; });
-    if (idx < 0) idx = 0;
-    function show(i){
-      idx = (i + panels.length) % panels.length;
-      panels.forEach(function(p, j){ p.hidden = j !== idx; });
-      label.textContent = panels[idx].dataset.lclabel;
-    }
-    nav.querySelector('.lc-prev').addEventListener('click', function(){ show(idx - 1); });
-    nav.querySelector('.lc-next').addEventListener('click', function(){ show(idx + 1); });
+    var buttons = Array.from(nav.querySelectorAll('.lcbtn'));
+    buttons.forEach(function(b){
+      b.addEventListener('click', function(){
+        buttons.forEach(function(o){
+          o.setAttribute('aria-selected', String(o === b));
+        });
+        panels.forEach(function(p){
+          p.hidden = p.dataset.lcview !== b.dataset.lcview;
+        });
+      });
+    });
   });
 
   // Scoring against you: this week vs the last few weeks summed.
@@ -2006,8 +2257,73 @@ JS = """
       // at empty background.
       var bar=t.parentNode;
       if(bar.getBoundingClientRect().top < 0) bar.scrollIntoView({block:'start'});
+      buildRail();
     });
   });
+
+  // --- the chapter rail ---------------------------------------------------
+  // Built from whichever chapters the open tab has rather than from a fixed
+  // list, so it can never offer a section that is not on screen. A tab with
+  // one chapter gets no rail at all - a nav of length one is furniture.
+  var railWrap=document.querySelector('.railwrap');
+  var rail=document.querySelector('.rail');
+  var railTargets=[];
+
+  function buildRail(){
+    if(!rail) return;
+    var panel=document.querySelector('.panel:not([hidden])');
+    var chapters=panel ? panel.querySelectorAll('.chapter') : [];
+    rail.textContent='';
+    railTargets=[];
+    if(chapters.length < 2){ railWrap.hidden=true; return; }
+    railWrap.hidden=false;
+    chapters.forEach(function(ch,i){
+      var h=ch.querySelector('h2');
+      if(!h) return;
+      if(!ch.id) ch.id='ch-'+(panel.id||'p')+'-'+i;
+      var b=document.createElement('button');
+      b.type='button';
+      b.className='railbtn';
+      b.textContent=h.textContent.trim();
+      b.addEventListener('click',function(){
+        // An explicit position rather than scrollIntoView, and no smooth:
+        // the sticky bar's height is the offset, and it is measured now
+        // rather than assumed, because the bar grows a second row the
+        // moment this rail exists.
+        var bar=document.querySelector('.topbar');
+        var off=(bar ? bar.getBoundingClientRect().height : 0) + 8;
+        window.scrollTo(0, ch.getBoundingClientRect().top + window.scrollY - off);
+        markRail();
+      });
+      rail.appendChild(b);
+      railTargets.push({el:ch, btn:b});
+    });
+    markRail();
+  }
+
+  // Which chapter you are actually in: the last one whose top has passed
+  // under the bar. Cheaper and steadier than an observer per section, and
+  // it agrees with what is under the heading rather than what is centred.
+  function markRail(){
+    if(!railTargets.length) return;
+    var cut=110, current=railTargets[0];
+    railTargets.forEach(function(t){
+      if(t.el.getBoundingClientRect().top <= cut) current=t;
+    });
+    railTargets.forEach(function(t){
+      t.btn.setAttribute('aria-current', String(t===current));
+    });
+  }
+
+  // Called straight from the scroll event rather than deferred into a frame.
+  // The rAF-throttled version had a real failure mode: it raised a "already
+  // queued" flag before asking for the frame, so anywhere frames are paused -
+  // a background tab, a hidden view - the flag was set, the callback never
+  // ran to clear it, and every later scroll was dropped for the life of the
+  // page. markRail is four getBoundingClientRect calls against a list that
+  // is at most four long; it does not need deferring.
+  window.addEventListener('scroll', markRail, {passive:true});
+  buildRail();
 
   // Starting XI: overview vs pick-team pitch. Same swap as the tabs above,
   // scoped to whichever card the clicked button lives in, since the page
@@ -2205,7 +2521,7 @@ def pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id, gw=None):
     # The stat selector itself lives up in the view-tab row, so this only
     # supplies the wrapper its classes are toggled on.
     out = ['<div class="ovwrap emph-p">']
-    out.append('<div class="pitch">')
+    out.append('<div class="pitch">' + components.PITCH_MARKS)
     for k in (1, 2, 3, 4):
         if not rows[k]:
             continue
@@ -2301,7 +2617,8 @@ def pick_team_pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id,
     # start at the same height - without it the eleven began level with the
     # side panel's title and every bar sat one card low.
     out = ['<div class="pkstage"><div class="pkboard">'
-           '<div class="pkboard-head">Your eleven</div><div class="pitch">']
+           '<div class="pkboard-head">Your eleven</div>'
+           '<div class="pitch">' + components.PITCH_MARKS]
     pitch_order = []
     for k in (1, 2, 3, 4):
         if not rows[k]:
@@ -2549,12 +2866,13 @@ def scatter(points):
         '<label class="axpick">X <select class="axis" data-axis="x">'
         f"{opts('price')}</select></label>"
         '<span class="spacer"></span>'
+        '<div class="tabbar" role="group" aria-label="Position">'
         '<button class="chip" data-pos="ALL" aria-pressed="true">All</button>'
         '<button class="chip" data-pos="DEF" aria-pressed="false">Defenders</button>'
         '<button class="chip" data-pos="MID" aria-pressed="false">Midfielders</button>'
         '<button class="chip" data-pos="FWD" aria-pressed="false">Forwards</button>'
-        "</div>"
-        '<div class="scroll"><svg class="scatter" viewBox="0 0 760 400" '
+        "</div></div>"
+        '<div class="scroll"><svg class="scatter" viewBox="0 0 1040 520" '
         'role="img" aria-label="Scatter plot of player metrics"></svg></div>'
         '<p class="readout" aria-live="polite">Hover or click any dot to identify the player.</p>'
         '<p class="legend"><span class="key mkt"></span>Every player with 60+ minutes'
@@ -2826,22 +3144,38 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
             # been named yet.
             body = (block(out, "lc-out", "Not predicted to start:", fixtures=False)
                     + block(unknown, "lc-unk", "No side published yet"))
+        # One pip per player, in the order the three states are worth
+        # reading: named, then unknown, then left out. It is the same
+        # information the donut's angle carried, at a glance and countable,
+        # which an angle never is.
+        pips = "".join(
+            f'<i class="lcpip lcpip-{cls}"></i>'
+            for cls, n in (("on", starting), ("unk", len(unknown)), ("off", len(out)))
+            for _ in range(n)
+        )
         panels.append(
             f'<div class="lcpanel" data-lcview="{key}" data-lclabel="{e(label)}"'
             f'{" hidden" if i else ""}>'
-            '<div class="lc-donut-row">'
-            + donut(pct, f"{label} - {starting} of {total} predicted to start",
-                    f"{starting}/{total}", "starting", tone)
-            + f"</div>{body}</div>"
+            f'<div class="lcstat" style="--lc-tone:{tone}">'
+            f'<p class="lcfig"><b>{starting}</b><span>of {total}</span></p>'
+            f'<p class="lccap">predicted to start</p>'
+            f'<div class="lcpips" role="img" aria-label="'
+            f'{starting} of {total} predicted to start">{pips}</div>'
+            f"</div>{body}</div>"
         )
 
+    # Three named tabs rather than a label between two arrows: there are
+    # only ever three, and an arrow makes you click to find out what is
+    # behind it.
     nav = (
-        '<div class="lcnav" role="group" aria-label="Squad subset">'
-        '<button class="arrow lc-prev" type="button" aria-label="Previous group">'
-        "&#8249;</button>"
-        f'<span class="lc-navlabel">{e(views[0][1])}</span>'
-        '<button class="arrow lc-next" type="button" aria-label="Next group">'
-        "&#8250;</button></div>"
+        '<div class="lcnav tabbar" role="tablist" aria-label="Squad subset">'
+        + "".join(
+            f'<button class="lcbtn" type="button" role="tab" '
+            f'data-lcview="{key}" aria-selected="{"true" if not i else "false"}">'
+            f"{e(label)}</button>"
+            for i, (key, label, _rows) in enumerate(views)
+        )
+        + "</div>"
     )
 
     return (
@@ -3338,7 +3672,8 @@ def template_pitch(tpl, ctx, shirts, my_name, known_ids=frozenset()):
         f'<span class="sub" hidden>The most-started legal eleven across {n} managers, '
         f'in a {tpl["shape"]}. You have {owned_by_you} of them &mdash; the rest '
         "is where your rank moves.</span></div>"
-        f'<div class="pitch tplpitch">{"".join(rows)}</div></section>'
+        f'<div class="pitch tplpitch">{components.PITCH_MARKS}'
+        f'{"".join(rows)}</div></section>'
     )
 
 
@@ -3618,7 +3953,7 @@ def rivals_card(rows, window_rows, rivals, photos, weeks=3):
         '<span class="sub" hidden>Players you did not own who returned for the '
         "rest of this league. Ranked by points scored, highest first.</span></div>"
         '<div class="card-body">'
-        '<div class="rvtabs" role="tablist" aria-label="Time range">'
+        '<div class="rvtabs tabbar" role="tablist" aria-label="Time range">'
         '<button class="rvtab" role="tab" aria-selected="true" data-rv="now">'
         "This week</button>"
         f'<button class="rvtab" role="tab" aria-selected="false" data-rv="window">'
@@ -3712,10 +4047,10 @@ def leader_groups(ctx, squad_ids, depth=4, min_minutes=45):
             "run", "var(--ink)", "big_chance_created", "total_att_assist",
         ),
         build("Fewest goals expected against", "xGC, defenders and keepers",
-              "shield", "var(--premium)", "expected_goals_conceded", ascending=True,
+              "shield", "var(--accent-ink)", "expected_goals_conceded", ascending=True,
               positions=("GKP", "DEF")),
         build("Defensive contributions", "Tackles, recoveries and blocks banked this season",
-              "shield", "var(--attention)", "defensive_contribution", fmt="{:.0f}"),
+              "shield", "var(--accent-ink)", "defensive_contribution", fmt="{:.0f}"),
     ]
     return [g for g in groups if g["rows"]]
 
@@ -3837,7 +4172,7 @@ def mini_pitch(xi_rows, bench_rows, ctx, badges, shirts, incoming_ids=frozenset(
     by_pos = {1: [], 2: [], 3: [], 4: []}
     for row in xi_rows:
         by_pos[order.get(row[1], 4)].append(row)
-    out = ['<div class="pitch mini">']
+    out = ['<div class="pitch mini">' + components.PITCH_MARKS]
     for k in (1, 2, 3, 4):
         if not by_pos[k]:
             continue
@@ -3942,13 +4277,15 @@ def bench_boost_pitch(bb, bench_reports, ctx, badges, shirts, proj, market,
     )
 
 
-def _cp_card(label, used_gw, body_html):
+def _cp_card(label, used_gw, body_html, level=None):
     if used_gw:
         return (
             f'<div class="cp used"><p class="cp-label">{e(label)}</p>'
             f'<p class="cp-used-tag">Already used, GW{used_gw}</p></div>'
         )
-    return f'<div class="cp"><p class="cp-label">{e(label)}</p>{body_html}</div>'
+    tone = f" cp-{level}" if level else ""
+    return (f'<div class="cp{tone}"><p class="cp-label">{e(label)}</p>'
+            f'{body_html}</div>')
 
 
 def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
@@ -3973,7 +4310,8 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
             f'{fh["gap"]:.1f}.</p>'
             f'{conf_pill(fh["confidence"])}'
         )
-        cards.append(_cp_card("Free Hit", used.get("freehit"), body))
+        cards.append(_cp_card("Free Hit", used.get("freehit"), body,
+                              fh["confidence"]))
 
     if tc:
         body = (
@@ -3982,7 +4320,8 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
             f'{tc["ep"]:.1f} pts ({tc["ep"] * 2:.1f} with the armband).</p>'
             f'{conf_pill(tc["confidence"])}'
         )
-        cards.append(_cp_card("Triple Captain", used.get("3xc"), body))
+        cards.append(_cp_card("Triple Captain", used.get("3xc"), body,
+                              tc["confidence"]))
 
     if bb:
         body = (
@@ -3991,7 +4330,8 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
             f'{" - if your bench stays as it is." if not bb["transfers"] else "."}</p>'
             f'{conf_pill(bb["confidence"])}'
         )
-        cards.append(_cp_card("Bench Boost", used.get("bboost"), body))
+        cards.append(_cp_card("Bench Boost", used.get("bboost"), body,
+                              bb["confidence"]))
 
     if wc:
         start, weeks = wc["gw_window"]
@@ -4001,7 +4341,8 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
             f'over the window.</p>'
             f'{conf_pill(wc["confidence"])}'
         )
-        cards.append(_cp_card("Wildcard", used.get("wildcard"), body))
+        cards.append(_cp_card("Wildcard", used.get("wildcard"), body,
+                              wc["confidence"]))
 
     # The grid above is the compact per-chip summary only; each chip's
     # actual squad change is its own collapsed card below it - a rebuild
@@ -4364,11 +4705,11 @@ def league_position_card(data):
         '<span class="sub" hidden>Every manager\'s rank in this league, gameweek '
         'by gameweek - 1st at the top. Toggle to total points instead.</span></div>'
         '<div class="card-body">'
-        '<div class="lptoggle" role="group" aria-label="Y axis">'
+        '<div class="lptoggle tabbar" role="group" aria-label="Y axis">'
         '<button class="lpbtn" data-y="position" aria-pressed="true">Position</button>'
         '<button class="lpbtn" data-y="points" aria-pressed="false">Points</button>'
         "</div>"
-        '<div class="scroll"><svg class="lpchart" viewBox="0 0 720 360" '
+        '<div class="scroll"><svg class="lpchart" viewBox="0 0 1040 460" '
         'role="img" aria-label="League position over time"></svg></div>'
         f'<ul class="lplegend">{legend}</ul>'
         f'<script type="application/json" class="lpchart-data">{json.dumps(data)}</script>'
@@ -4632,7 +4973,9 @@ def render(d, standalone=True):
   <span class="wordmark"><span class="dot"></span>FPL Insights</span>
   <span class="gw-chip">Gameweek {d['gw']}</span>
   <span class="stamp">{e(d['generated'])}</span>
-</div></header>
+</div>
+<div class="railwrap" hidden><nav class="rail" aria-label="Sections on this tab"></nav></div>
+</header>
 
 <div class="wrap">
   <section class="hero">
@@ -4642,7 +4985,7 @@ def render(d, standalone=True):
     <div class="tiles">{tile_html}</div>
   </section>
 
-  <div class="tabs" role="tablist">
+  <div class="tabs tabbar" role="tablist">
     <button class="tab" role="tab" aria-selected="true" data-panel="p-squad">Squad</button>
     <button class="tab" role="tab" aria-selected="false" data-panel="p-market">Planning</button>
     <button class="tab" role="tab" aria-selected="false" data-panel="p-league">Mini-league</button>
@@ -4655,7 +4998,7 @@ def render(d, standalone=True):
         <span class="sub" data-pkview="gw" hidden>This gameweek's points on each card, with points per game and season xGI beside them. Faded crest = did not play.</span>
         <span class="sub" data-pkview="pk" hidden>Next fixture and a read on recent form on each card, shaded by clean-sheet odds for keepers and defenders and by expected goals for everyone else.</span>
       </div>
-      <div class="pkview" role="tablist" aria-label="Pitch view">
+      <div class="pkview tabbar" role="tablist" aria-label="Pitch view">
         <button class="pkbtn" role="tab" aria-selected="true" data-view="ov">Overview</button>
         <button class="pkbtn" role="tab" aria-selected="false" data-view="pk">Pick team</button>
         <button class="pkbtn" role="tab" aria-selected="false" data-view="gw">Gameweek {d['gw']}</button>
@@ -4675,23 +5018,33 @@ def render(d, standalone=True):
       </summary>
       {d['squad_table']}
     </details>
-    <section>
-      <div class="card-head"><h2>What the numbers say</h2></div>
-      {d['findings']}
-    </section>
+    <div class="chapter"><h2>What the numbers say</h2>
+      <span class="sub">Nine readings of the same fifteen players.</span></div>
+    <section>{d['findings']}</section>
   </div>
 
   <div class="panel" id="p-market" role="tabpanel" hidden>
+    <div class="chapter"><h2>This week</h2>
+      <span class="sub">What the fixtures are priced at, and what you missed.</span></div>
     {d['market']}
     {d['best_xi']}
     {d['kneejerk']}
+
+    <div class="chapter"><h2>Your moves</h2>
+      <span class="sub">Who to sell, who to buy, and who takes the armband.</span></div>
     {d['verdicts']}
     {d['transfers']}
     {d['pairings']}
     {d['captaincy']}
+
+    <div class="chapter"><h2>Chips and the weeks ahead</h2>
+      <span class="sub">Where the fixtures turn, and which chip that is worth.</span></div>
     {d['chip_planner']}
     {d['ticker']}
     {d['fixture_runs']}
+
+    <div class="chapter"><h2>The wider market</h2>
+      <span class="sub">Everyone else's squad, and what it is doing to prices.</span></div>
     {d['leaders']}
     {d['price_watch']}
     {d['scatter']}
@@ -4709,10 +5062,16 @@ def render(d, standalone=True):
       {d['league_table']}
     </section>
     {d['position_chart']}
+
+    <div class="chapter"><h2>What the league owns</h2>
+      <span class="sub">The squad everyone converges on, and where you leave it.</span></div>
     {d['template']}
     {d['carousel']}
     {d['differentials']}
     {d['watchlist']}
+
+    <div class="chapter"><h2>How they are playing it</h2>
+      <span class="sub">Who is scoring against you, and how the eight of you differ.</span></div>
     {d['rivals']}
     <section>{d['ownership']}</section>
     <section class="card">

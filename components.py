@@ -347,14 +347,36 @@ def duty_badges(el):
     return '<span class="duty-badges">{}</span>'.format(icons) if icons else ""
 
 
+PITCH_MARKS = (
+    '<div class="pmk" aria-hidden="true">'
+    '<i class="pmk-half"></i><i class="pmk-circle"></i><i class="pmk-spot"></i>'
+    '<i class="pmk-box pmk-t"></i><i class="pmk-box pmk-b"></i>'
+    '<i class="pmk-six pmk-t"></i><i class="pmk-six pmk-b"></i>'
+    '<i class="pmk-goal pmk-t"></i><i class="pmk-goal pmk-b"></i>'
+    '<i class="pmk-arc pmk-arc-tl"></i><i class="pmk-arc pmk-arc-tr"></i>'
+    '<i class="pmk-arc pmk-arc-bl"></i><i class="pmk-arc pmk-arc-br"></i>'
+    "</div>"
+)
+"""The lines, as one constant every pitch on the page opens with.
+
+Decoration in the strict sense - it carries nothing a screen reader wants,
+hence aria-hidden - so it is markup rather than CSS only because a dozen
+pseudo-elements are not available on one div. See the .pmk block in CSS
+for why the boxes are sized the way they are."""
+
+
 def _face(photo, shirt, name, club, price, tone_class, duties=""):
     """One side of a swap: portrait, club shirt tucked in the corner, name."""
     if photo:
         img = '<img class="tf-photo" src="{}" alt="" width="72" height="92">'.format(photo)
+    elif shirt:
+        img = ('<div class="tf-photo tf-blank">'
+               '<img src="{}" alt="" width="48" height="48"></div>').format(shirt)
     else:
         img = '<div class="tf-photo tf-blank">{}</div>'.format(e(name[:1]))
+    # Redundant once the kit is the portrait itself.
     kit = ('<img class="tf-kit" src="{}" alt="" width="26" height="26">'.format(shirt)
-           if shirt else "")
+           if shirt and photo else "")
     return (
         '<div class="tf-face {tone}">'
         '<div class="tf-frame">{img}{kit}{duties}</div>'
@@ -436,10 +458,13 @@ def transfer_cards(rows, note):
 def _mini_face(photo, shirt, name, tone_class, duties=""):
     if photo:
         img = '<img class="pr-photo" src="{}" alt="" width="44" height="56">'.format(photo)
+    elif shirt:
+        img = ('<div class="pr-photo pr-blank">'
+               '<img src="{}" alt="" width="30" height="30"></div>').format(shirt)
     else:
         img = '<div class="pr-photo pr-blank">{}</div>'.format(e(name[:1]))
     kit = ('<img class="pr-kit" src="{}" alt="" width="18" height="18">'.format(shirt)
-           if shirt else "")
+           if shirt and photo else "")
     return ('<span class="pr-face {tone}"><span class="pr-frame">{img}{kit}{duties}</span>'
             '<span class="pr-name">{name}</span></span>').format(
         tone=tone_class, img=img, kit=kit, duties=duties, name=e(name))
