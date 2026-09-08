@@ -2158,6 +2158,81 @@ details .scroll{padding:0 14px 14px}
   .hero h1{font-size:20px}
   body{font-size:14px}
 }
+
+/* --- scout section ---------------------------------------------------
+   Scoped accessibility primitives (Okabe-Ito, blue-orange diverging, the
+   percentile-to-radius mapper) live in scout.py/scout.js as the numeric
+   source of truth - plan §2.4/§2.5. These rules are the visual shell only:
+   fixture difficulty keeps the page's existing rose-teal ramp rather than
+   a second diverging scale, so nothing scout-specific is defined for it
+   here. */
+.scoutfilters{
+  display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px 20px;
+  padding:12px 16px; margin-bottom:14px; background:var(--surface-variant);
+  border-radius:var(--radius-m); position:sticky; top:52px; z-index:2;
+}
+.sf{display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:600;
+  color:var(--on-surface-variant); text-transform:uppercase; letter-spacing:.04em}
+.sf input, .sf select{
+  font:inherit; font-size:14px; font-weight:400; text-transform:none;
+  letter-spacing:normal; color:var(--on-surface); background:var(--surface);
+  border:1px solid var(--outline); border-radius:var(--radius-xs); padding:5px 8px;
+}
+.sf-range{display:flex; align-items:center; gap:6px}
+.sf-range input[type="number"]{width:64px}
+.sf-price-min, .sf-price-max{width:56px}
+.sf-start-rate{width:110px}
+.sf-start-rate-val{font-weight:600; color:var(--on-surface); min-width:2.4em}
+.sf-mins-per-start{width:70px}
+.sf-categorical{align-self:flex-end; margin-bottom:1px}
+.sf-count{margin-left:auto; align-self:center; font-size:12px; color:var(--on-surface-variant)}
+
+.scouthero .card-body{padding-top:16px}
+.scoutscatter{width:100%; min-width:560px; max-width:1040px; height:auto;
+  display:block; margin:0 auto}
+.scoutscatter .grid line{stroke:var(--outline-variant); stroke-width:1}
+.scoutscatter .axlab text{fill:var(--on-surface-variant); font-size:11px; font-variant-numeric:tabular-nums}
+.scoutscatter .axtitle{fill:var(--on-surface-variant); font-size:12px; font-weight:600}
+.scoutscatter .crosshair{stroke:var(--outline); stroke-width:1; stroke-dasharray:3 3}
+.scoutscatter .quadlabel{fill:var(--on-surface-variant); font-size:10px; font-style:italic}
+.scoutscatter .threshline{stroke:var(--attention); stroke-width:1.5; stroke-dasharray:4 3}
+.scoutscatter .threshlabel{fill:var(--attention-ink); font-size:10px; font-weight:600}
+/* Fill style is the accessible channel (spec §1): solid clears the
+   minutes floor, hollow has not - never colour alone, and the categorical
+   toggle backs its own colour with marker shape (circle/square/triangle/
+   diamond) on top of this. */
+.scoutpt.solid > :first-child{fill:var(--ink); opacity:.55}
+.scoutpt.thin > :first-child{fill:none; stroke:var(--ink); stroke-width:1.5; opacity:.7}
+.scoutpt:hover > :first-child, .scoutpt:focus-visible > :first-child{opacity:1; stroke:var(--on-surface); stroke-width:2}
+.scoutpt.dimmed{opacity:.15}
+.scoutpt .hit{fill:transparent; stroke:none}
+.scoutpt:focus{outline:none}
+.scoutscatter .ptlabel{
+  fill:var(--on-surface); font-size:11px; font-weight:600; pointer-events:none;
+  paint-order:stroke; stroke:var(--surface); stroke-width:3px; stroke-linejoin:round;
+}
+.scoutscatter .sel .selring{fill:none; stroke:var(--accent-ink); stroke-width:2}
+.scoutscatter .brushcatch{fill:transparent; cursor:crosshair}
+.scoutscatter .brushrect{fill:rgb(55 0 60 / 8%); stroke:var(--ink); stroke-width:1; stroke-dasharray:4 3}
+
+.scoutheat table{border-collapse:collapse; width:100%; font-size:13px}
+.scoutheat th, .scoutheat td{padding:7px 10px; text-align:left; white-space:nowrap}
+.scoutheat td.num, .scoutheat th[data-sort]{text-align:right}
+.scoutheat td.num{font-variant-numeric:tabular-nums; font-family:var(--mono)}
+.scoutheat th{
+  font-size:11px; text-transform:uppercase; letter-spacing:.04em;
+  color:var(--on-surface-variant); border-bottom:1px solid var(--outline);
+  cursor:pointer; user-select:none;
+}
+.scoutheat th:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+.scoutheat tbody tr:hover{background:var(--surface-variant)}
+.scoutheat tr.scout-highlight{background:var(--accent-wash)}
+.scoutheat .teamtag{color:var(--on-surface-variant); font-size:11px; margin-left:3px}
+.archbadge{
+  display:inline-block; margin-right:4px; padding:1px 7px; border-radius:9999px;
+  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+  background:var(--p10); color:var(--ink);
+}
 """
 
 SCATTER_JS = (Path(__file__).with_name("scatter.js")).read_text(encoding="utf-8")
@@ -4981,10 +5056,72 @@ def chips_table(histories):
 # docs/superpowers/plans/2026-09-08-scout-section-plan.md.
 
 
+def _scout_filter_bar(data):
+    """Sticky, single-row, five controls (spec §4.1) - price range, minimum
+    start rate, minimum minutes per start (in place of role - see plan
+    §2.3, cut for lacking any FPL data source), team, fixture horizon.
+    Structurally static regardless of position, so it is server-rendered
+    like the rest of the page's controls; scout.js owns the listeners and
+    every recompute that follows a change."""
+    teams = sorted(
+        {(r["teamId"], r["teamShort"]) for r in data["rows"]}, key=lambda t: t[1]
+    )
+    team_opts = "".join(
+        f'<option value="{tid}">{e(short)}</option>' for tid, short in teams
+    )
+    horizon_opts = "".join(
+        f'<option value="{n}"{" selected" if n == 6 else ""}>{n}</option>'
+        for n in range(1, scout.MAX_FIXTURE_HORIZON + 1)
+    )
+    return (
+        '<div class="scoutfilters" role="group" aria-label="Filters">'
+        '<label class="sf">Price'
+        '<span class="sf-range"><input type="number" class="sf-price-min" '
+        'step="0.5" min="3.5" max="15" placeholder="min">'
+        '<input type="number" class="sf-price-max" step="0.5" min="3.5" '
+        'max="15" placeholder="max"></span></label>'
+        '<label class="sf">Min start rate'
+        '<span class="sf-range"><input type="range" class="sf-start-rate" '
+        'min="0" max="1" step="0.05" value="0.6">'
+        '<span class="sf-start-rate-val tnum">60%</span></span></label>'
+        '<label class="sf">Min minutes/start'
+        '<input type="number" class="sf-mins-per-start" step="5" min="0" '
+        'placeholder="any"></label>'
+        f'<label class="sf">Team<select class="sf-team">'
+        f'<option value="">All</option>{team_opts}</select></label>'
+        f'<label class="sf">Fixture horizon<select class="sf-horizon">'
+        f"{horizon_opts}</select></label>"
+        '<button type="button" class="sf-categorical chip" aria-pressed="false">'
+        "Colour by price</button>"
+        '<span class="sf-count tnum" aria-live="polite"></span>'
+        "</div>"
+    )
+
+
+def _scout_heatmap_shell(data):
+    """`<table>` shell with the header row rendered server-side - column
+    order is fixed by PositionConfig.metrics, so nothing about it depends
+    on the current filter. scout.js only ever touches `<tbody>`."""
+    head_cells = "".join(
+        f'<th data-sort="{e(key)}" role="button" tabindex="0">'
+        f'{e(scout.METRICS[key][0])}</th>'
+        for key in data["metrics"]
+    )
+    return (
+        '<div class="scroll"><table class="scoutheatmap">'
+        '<thead><tr><th data-sort="webName" role="button" tabindex="0">Player</th>'
+        '<th data-sort="price" role="button" tabindex="0">Price</th>'
+        f"{head_cells}"
+        "<th>Archetype</th></tr></thead>"
+        '<tbody></tbody></table></div>'
+    )
+
+
 def scout_section(scout_pools):
     """One lab per position in `scout_pools` ({pos: scout.pool(...) dict}).
-    Charts render lazily in the browser from the JSON data island - see
-    scout.js - so this only has to emit the shell and the data itself."""
+    The hero scatter and heatmap rows render lazily in the browser from the
+    JSON data island - see scout.js - so this only has to emit the shell,
+    the static controls and the data itself."""
     if not scout_pools:
         return ""
     parts = []
@@ -4997,6 +5134,19 @@ def scout_section(scout_pools):
             f'<div class="scoutlab" data-pos="{e(pos)}">'
             f'<script type="application/json" class="scout-data" '
             f'data-pos="{e(pos)}">{json.dumps(data)}</script>'
+            f"{_scout_filter_bar(data)}"
+            '<div class="card scouthero"><div class="card-body">'
+            '<svg class="scoutscatter" viewBox="0 0 1040 560" role="img" '
+            f'aria-label="{e(data["label"])} comparison scatter"></svg>'
+            '<p class="scoutreadout" aria-live="polite">Hover or click a '
+            "bubble to identify the player.</p>"
+            '<p class="legend"><span class="key mkt"></span>Below the '
+            "minutes floor (hollow)<span class=\"key mine\"></span>Solid "
+            "fill (enough minutes to trust the rate)</p>"
+            "</div></div>"
+            f'<div class="card scoutheat"><div class="card-body">'
+            f"{_scout_heatmap_shell(data)}"
+            "</div></div>"
             "</div>"
         )
     return "".join(parts)
