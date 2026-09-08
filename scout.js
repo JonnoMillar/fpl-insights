@@ -232,6 +232,159 @@
 
   var drawn = false;
 
+  // -- Level 3: player card -------------------------------------------
+  //
+  // Its own dialog rather than an extension of the existing player
+  // dialog (playerview.js's dialog.pv): that dialog's payload assumes a
+  // full match history from fplapi.element_summary, fetched per player -
+  // fine for the owned fifteen, but this pool is 130+ defenders and
+  // fetching each one's history individually is exactly the N+1 request
+  // problem scout.py's season_live was built to avoid (plan §1). This
+  // card is built entirely from what is already sitting on the row.
+
+  var cardRowsById = {};   // updated by every lab's draw() - see initLab
+
+  var AVAILABILITY_LABEL = {
+    injured: 'Injured', suspended: 'Suspended', doubtful: 'Doubtful', available: 'Available',
+  };
+
+  function bulletBar(pct, label, value, note) {
+    return '<div class="scpv-tile"><div class="scpv-tile-label">' + esc(label) + '</div>' +
+      '<div class="scpv-tile-num tnum">' + esc(value) + '</div>' +
+      '<div class="scpv-bullet"><span class="scpv-bullet-fill" style="width:' +
+      Math.max(0, Math.min(100, pct)).toFixed(0) + '%"></span>' +
+      '<span class="scpv-bullet-tick"></span></div>' +
+      (note ? '<div class="scpv-tile-note">' + esc(note) + '</div>' : '') +
+      '</div>';
+  }
+
+  function sparkline(values, w, h) {
+    if (!values.length) { return ''; }
+    var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+    if (min === max) { min -= 1; max += 1; }
+    var pts = values.map(function (v, i) {
+      var x = (i / Math.max(1, values.length - 1)) * w;
+      var y = h - ((v - min) / (max - min)) * h;
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" class="scpv-spark" preserveAspectRatio="none">' +
+      '<polyline points="' + pts + '" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
+  }
+
+  // Shape and vertical position carry the status marker; colour is
+  // supplementary only (spec §6.3). FPL's public API has no "benched"
+  // concept outside one manager's own picks, so a player who did not
+  // feature reads as one 'unplayed' state rather than the spec's
+  // separate benched/unavailable (see scout.py season_live docstring).
+  function statusMarker(status) {
+    if (status === 'started') { return '<circle class="mk-started" r="3"/>'; }
+    if (status === 'subbedOn') { return '<path class="mk-sub" d="M-3,3 L0,-3 L3,3 Z"/>'; }
+    return '<circle class="mk-unplayed" r="3" fill="none" stroke-width="1.2"/>';
+  }
+
+  function renderMatchStrip(matches, hasThreshold) {
+    var n = matches.length;
+    if (!n) { return '<p class="scpv-note">No matches played yet this season.</p>'; }
+    var colW = 22, barTop = 6, barH = 60, markY = barH + 18, w = n * colW, h = markY + 10;
+    var maxPts = Math.max(3, Math.max.apply(null, matches.map(function (m) { return m.points; })));
+    var cols = matches.map(function (m, i) {
+      var cx = i * colW + colW / 2;
+      var bh = Math.max(1, (Math.max(0, m.points) / maxPts) * barH);
+      var by = barTop + (barH - bh);
+      var title = 'GW' + m.gw + (m.opp ? (m.home ? ' v ' : ' @ ') + m.opp : '') +
+        ' - ' + m.minutes + ' min, ' + m.points + ' pts' +
+        (hasThreshold ? ', ' + m.defcon + ' contributions' : '');
+      var markers = '<g transform="translate(' + cx + ',' + markY + ')">' + statusMarker(m.status) + '</g>';
+      if (hasThreshold && m.status !== 'unplayed') {
+        markers += '<text class="mk-defcon' + (m.defconHit ? ' hit' : ' miss') + '" x="' + cx +
+          '" y="' + (markY + 13) + '" text-anchor="middle">' + (m.defconHit ? '+' : '–') + '</text>';
+      }
+      if (m.cleanSheet) {
+        markers += '<rect class="mk-cs" x="' + (cx - colW / 2 + 2) + '" y="' + (by - 2) +
+          '" width="' + (colW - 4) + '" height="' + (bh + 4) + '" rx="2"/>';
+      }
+      if (m.card !== 'none') {
+        markers += '<path class="mk-card mk-card-' + m.card + '" d="M' + (cx - 3) + ',' + (by - 5) +
+          ' L' + (cx + 3) + ',' + (by - 5) + ' L' + cx + ',' + (by - 10) + ' Z"/>';
+      }
+      return '<g class="scpv-col"><title>' + esc(title) + '</title>' +
+        '<rect class="scpv-bar" x="' + (cx - colW / 2 + 3) + '" y="' + by +
+        '" width="' + (colW - 6) + '" height="' + bh + '"/>' + markers + '</g>';
+    }).join('');
+    return '<svg class="scpv-strip" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="xMinYMid meet">' +
+      cols + '</svg>';
+  }
+
+  function renderCard(row) {
+    var dlg = document.querySelector('dialog.scoutpv');
+    if (!dlg || !row) { return; }
+    var body = dlg.querySelector('.scpv-body');
+    var pct = row.percentiles || {};
+    var hasThreshold = true;   // every position in scout has a DefCon threshold today
+
+    var flags = [];
+    if (row.onCorners) { flags.push('Corners'); }
+    if (row.onFreeKicks) { flags.push('Free kicks'); }
+    if (row.onPens) { flags.push('Pens'); }
+    if (row.availability !== 'available') {
+      flags.push((AVAILABILITY_LABEL[row.availability] || row.availability) +
+        (row.news ? ': ' + row.news : ''));
+    }
+    flags.push((row.priceChangeMomentum >= 0 ? '+' : '') + row.priceChangeMomentum + ' transfers this GW');
+    flags.push(row.ownership.toFixed(1) + '% owned');
+
+    var archBadges = (row.archetypes || []).map(function (a) {
+      return '<span class="archbadge archbadge-' + esc(a) + '">' + esc(ARCHETYPE_LABELS[a] || a) + '</span>';
+    }).join('');
+
+    var tiles = [
+      bulletBar(pct.defcon_hit_rate || 0, 'DefCon hit rate',
+        Math.round(row.defconHitRate * 100) + '%', row.defconHitN + ' starts'),
+      bulletBar(pct.xgi90 || 0, 'xGI per 90', row.xgi90.toFixed(2)),
+      bulletBar(pct.xgc90 || 0, 'xGC per 90', row.xgc90.toFixed(2)),
+      bulletBar(pct.start_rate || 0, 'Start rate', Math.round(row.startRate * 100) + '%'),
+      bulletBar(pct.bonus90 || 0, 'Bonus per 90', row.bonus90.toFixed(2)),
+    ].join('');
+
+    var last10 = row.matches.slice(-10);
+    var sparks = [
+      ['DefCon count', last10.map(function (m) { return m.defcon; })],
+      ['xGI', last10.map(function (m) { return m.xgi; })],
+      ['xGC', last10.map(function (m) { return m.xgc; })],
+    ].map(function (s) {
+      return '<div class="scpv-sparkwrap"><div class="scpv-spark-label">' + esc(s[0]) + '</div>' +
+        sparkline(s[1], 100, 24) + '</div>';
+    }).join('');
+
+    body.innerHTML =
+      '<div class="scpv-head"><h2>' + esc(row.webName) +
+      ' <span class="scpv-team">' + esc(row.teamShort) + '</span></h2>' +
+      '<p class="scpv-sub">£' + row.price.toFixed(1) + 'm' + (archBadges ? ' &middot; ' + archBadges : '') + '</p></div>' +
+      '<p class="scpv-flags">' + flags.map(function (f) { return '<span class="scpv-flag">' + esc(f) + '</span>'; }).join('') + '</p>' +
+      '<div class="scpv-block"><h3>This season, per 90</h3><div class="scpv-grid">' + tiles + '</div></div>' +
+      '<div class="scpv-block"><h3>Match by match' +
+      (hasThreshold ? ' <span class="scpv-key"><span class="mk-defcon hit">+</span> hit &middot; ' +
+        '<span class="mk-defcon miss">–</span> miss &middot; outline = clean sheet</span>' : '') +
+      '</h3>' + renderMatchStrip(row.matches, hasThreshold) + '</div>' +
+      '<div class="scpv-block"><h3>Last 10 gameweeks</h3><div class="scpv-sparks">' + sparks + '</div></div>';
+
+    if (typeof dlg.showModal === 'function') { dlg.showModal(); }
+    else { dlg.setAttribute('open', ''); }
+    body.scrollTop = 0;
+  }
+
+  document.addEventListener('click', function (ev) {
+    var trigger = ev.target.closest && ev.target.closest('[data-scout-open]');
+    if (trigger) {
+      ev.preventDefault();
+      renderCard(cardRowsById[parseInt(trigger.dataset.scoutOpen, 10)]);
+      return;
+    }
+    var dlg = document.querySelector('dialog.scoutpv');
+    if (dlg && ev.target === dlg) { dlg.close(); }
+    if (ev.target.closest && ev.target.closest('.scpv-close')) { dlg.close(); }
+  });
+
   function initLab(lab) {
     var pos = lab.dataset.pos;
     var holder = lab.querySelector('.scout-data[data-pos="' + pos + '"]');
@@ -562,7 +715,8 @@
         var cells = '<td><input type="checkbox" class="scoutpick" data-pid="' + r.id + '"' +
           (checked ? ' checked' : '') + (disabled ? ' disabled' : '') +
           ' aria-label="Add ' + esc(r.webName) + ' to shortlist"></td>' +
-          '<td><b>' + esc(r.webName) + '</b> <span class="teamtag">' +
+          '<td><button type="button" class="rowlink" data-scout-open="' + r.id + '">' +
+          esc(r.webName) + '</button> <span class="teamtag">' +
           esc(r.teamShort) + '</span>' + flag + '</td>' +
           '<td class="num tnum">£' + r.price.toFixed(1) + 'm</td>';
         data.metrics.forEach(function (key) {
@@ -700,6 +854,7 @@
       brush = null;
       currentRows = applyFilters(data.rows, filters);
       applyDerivations(currentRows, data.archetypes);
+      currentRows.forEach(function (r) { cardRowsById[r.id] = r; });
       var heroX = heroXKey(currentRows);
       drawScatter(currentRows, heroX);
       renderHeatmap(currentRows);

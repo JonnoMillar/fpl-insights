@@ -2271,6 +2271,66 @@ details .scroll{padding:0 14px 14px}
 }
 .scouttickertable td.tick-blank{color:var(--on-surface-variant); background:var(--surface-variant)}
 .scouttickertable td.tnum{font-variant-numeric:tabular-nums}
+
+/* --- Level 3: player card ---
+   A separate dialog from dialog.pv (see scout_section's comment on why) -
+   same visual language, deliberately not the same class names, so a
+   change to one can never silently reach into the other. */
+dialog.scoutpv{
+  width:min(680px,94vw); max-height:88vh; padding:0; border:0;
+  border-radius:var(--radius-l); background:var(--surface);
+  color:var(--on-surface); box-shadow:0 18px 60px rgb(0 0 0 / 35%);
+}
+dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
+.scpv-close{
+  position:absolute; top:10px; right:12px; z-index:2;
+  appearance:none; border:0; background:var(--surface-variant);
+  color:var(--on-surface); width:32px; height:32px; border-radius:50%;
+  font-size:20px; line-height:1; cursor:pointer; font-family:inherit;
+}
+.scpv-close:hover{background:var(--outline-variant)}
+.scpv-body{padding:20px 20px 24px; overflow-y:auto; max-height:88vh; position:relative}
+.scpv-head{padding-right:38px}
+.scpv-head h2{font-size:22px; margin:0}
+.scpv-team{font-size:14px; font-weight:400; color:var(--on-surface-variant)}
+.scpv-sub{margin:4px 0 0; font-size:13px; color:var(--on-surface-variant)}
+.scpv-flags{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 0; padding:0; list-style:none}
+.scpv-flag{
+  background:var(--surface-variant); border-radius:9999px; padding:3px 10px;
+  font-size:11px; color:var(--on-surface-variant);
+}
+.scpv-block{margin-top:20px}
+.scpv-block h3{
+  font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--on-surface-variant); margin-bottom:8px;
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+.scpv-key{font-size:10px; text-transform:none; letter-spacing:normal; font-weight:400}
+.scpv-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:10px}
+.scpv-tile{background:var(--surface-variant); border-radius:var(--radius-s); padding:9px 11px}
+.scpv-tile-label{font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--on-surface-variant)}
+.scpv-tile-num{font-size:19px; font-weight:700; margin-top:2px}
+.scpv-tile-note{font-size:11px; color:var(--on-surface-variant); margin-top:2px}
+.scpv-bullet{position:relative; height:6px; border-radius:9999px; background:var(--outline-variant); margin-top:6px; overflow:visible}
+.scpv-bullet-fill{display:block; height:100%; border-radius:9999px; background:var(--accent-ink)}
+.scpv-bullet-tick{position:absolute; left:50%; top:-2px; bottom:-2px; width:1.5px; background:var(--on-surface)}
+.scpv-strip{width:100%; height:auto; display:block}
+.scpv-bar{fill:var(--ink); opacity:.7}
+.scpv-col:hover .scpv-bar{opacity:1}
+.mk-started{fill:var(--ink)}
+.mk-sub{fill:var(--p40)}
+.mk-unplayed{stroke:var(--outline)}
+.mk-cs{fill:none; stroke:var(--accent-ink); stroke-width:1.5}
+.mk-defcon{font-size:9px; font-weight:700; text-anchor:middle}
+.mk-defcon.hit{fill:var(--accent-ink)}
+.mk-defcon.miss{fill:var(--on-surface-variant)}
+.mk-card-yellow{fill:#c99a00}
+.mk-card-red{fill:var(--bad)}
+.scpv-note{font-size:13px; color:var(--on-surface-variant)}
+.scpv-sparks{display:flex; flex-wrap:wrap; gap:16px}
+.scpv-sparkwrap{color:var(--ink)}
+.scpv-spark-label{font-size:11px; color:var(--on-surface-variant); margin-bottom:2px}
+.scpv-spark{width:100px; height:24px; display:block}
 """
 
 SCATTER_JS = (Path(__file__).with_name("scatter.js")).read_text(encoding="utf-8")
@@ -5208,6 +5268,21 @@ def scout_section(scout_pools):
             "</div></div>"
             "</div>"
         )
+    # One shared card for every position and every player in every pool -
+    # filled on demand from whichever row was clicked, the same "one dialog,
+    # many payloads" shape as dialog.pv (dashboard.py:player_dialog), but a
+    # separate element and a separate JSON path rather than an extension of
+    # it. Reusing that dialog verbatim would mean giving it match-history
+    # data for the whole pool - 130+ defenders, not just the owned fifteen -
+    # which only exists today via one element_summary call per player.
+    # scout.py's season_live already covers the same ground in one call per
+    # gameweek for the entire league (see plan §1), so this card is built
+    # entirely from data already sitting in each pool row.
+    parts.append(
+        '<dialog class="scoutpv" aria-label="Player detail">'
+        '<button class="scpv-close" aria-label="Close player detail">&times;</button>'
+        '<div class="scpv-body"></div></dialog>'
+    )
     return "".join(parts)
 
 
