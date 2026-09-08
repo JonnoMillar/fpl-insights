@@ -48,6 +48,24 @@
 
   var ARCHETYPE_LABELS = { volume: 'Volume', cleanSheet: 'Clean sheet', attacking: 'Attacking' };
 
+  var MAX_SHORTLIST = 6;   // spec §5: "Max six players"
+  var Z_CLAMP = 3;         // plan §2.7: bars clamp at +/-3, outliers labelled
+
+  // Fixture difficulty reuses the page's own rose-teal ramp (ticker.py's
+  // SCALE) rather than a second diverging scale (plan §2.5) - a fixture
+  // must read the same number and colour wherever it appears. Difficulty
+  // here is 1..5 with higher meaning harder, the reverse of ticker.py's
+  // 0..10 "higher is better" rating, so the five steps are ticker.SCALE's
+  // own five (bg, fg) pairs in reverse: 1 (easiest) is teal, 5 (hardest)
+  // is rose. If ticker.SCALE ever changes, update this to match.
+  var FIXTURE_TONES = [
+    ['#17876a', '#ffffff'],
+    ['#7ac9a0', '#0d3b26'],
+    ['#eae7ec', '#37003c'],
+    ['#f4845f', '#40190e'],
+    ['#a4133c', '#ffffff'],
+  ];
+
   // White->blue (good) / white->orange (bad), matching scout.py's
   // DIVERGING_SCALE - never used for fixture difficulty, which keeps the
   // ticker's own rose-teal ramp (plan §2.5).
@@ -224,6 +242,13 @@
 
     var filters = Object.assign({}, data.defaultFilters);
     var brush = null;   // Set of player ids, or null when no brush is active
+    var selected = new Set();  // Level 2 shortlist, insertion order = display order
+
+    var compareBar = lab.querySelector('.scoutcomparebar');
+    var compareCard = lab.querySelector('.scoutcompare');
+    var zbarsEl = lab.querySelector('.scoutzbars');
+    var tickerEl = lab.querySelector('.scoutticker');
+    var clearShortlistBtn = lab.querySelector('.scb-clear');
 
     var svg = lab.querySelector('svg.scoutscatter');
     var readout = lab.querySelector('.scoutreadout');
@@ -532,7 +557,12 @@
           ? ' <span class="flag" title="' + esc(r.news || r.availability) + '">' +
             esc(r.availability.slice(0, 3).toUpperCase()) + '</span>'
           : '';
-        var cells = '<td><b>' + esc(r.webName) + '</b> <span class="teamtag">' +
+        var checked = selected.has(r.id);
+        var disabled = !checked && selected.size >= MAX_SHORTLIST;
+        var cells = '<td><input type="checkbox" class="scoutpick" data-pid="' + r.id + '"' +
+          (checked ? ' checked' : '') + (disabled ? ' disabled' : '') +
+          ' aria-label="Add ' + esc(r.webName) + ' to shortlist"></td>' +
+          '<td><b>' + esc(r.webName) + '</b> <span class="teamtag">' +
           esc(r.teamShort) + '</span>' + flag + '</td>' +
           '<td class="num tnum">£' + r.price.toFixed(1) + 'm</td>';
         data.metrics.forEach(function (key) {
@@ -547,12 +577,117 @@
           var g = svg.querySelector('.scoutpt[data-pid="' + r.id + '"]');
           if (g) { pick(g); }
         });
+        var pick2 = tr.querySelector('.scoutpick');
+        if (pick2) {
+          pick2.addEventListener('change', function () {
+            if (this.checked) { selected.add(r.id); } else { selected.delete(r.id); }
+            updateCompareUI();
+            renderHeatmap(currentRows);
+          });
+        }
         tbody.appendChild(tr);
       });
       if (countEl) {
         countEl.textContent = visible.length + ' of ' + rows.length + ' shown' +
           (brush ? ' (brushed - click empty space to clear)' : '');
       }
+    }
+
+    function clampZ(z) { return Math.max(-Z_CLAMP, Math.min(Z_CLAMP, z)); }
+
+    function fmtRaw(key, val) {
+      if (key === 'defcon_hit_rate' || key === 'start_rate') { return Math.round(val * 100) + '%'; }
+      if (key === 'minutes_per_start') { return Math.round(val) + ' min'; }
+      return val.toFixed(2);
+    }
+
+    function renderZBars(rows) {
+      if (!zbarsEl) { return; }
+      zbarsEl.textContent = '';
+      data.zbars.forEach(function (key) {
+        var m = METRICS[key];
+        var band = document.createElement('div');
+        band.className = 'zband';
+        var title = m.label + (m.invert ? ' (inverted - right is better)' : '');
+        var rowsHtml = rows.map(function (r) {
+          var z = clampZ(r.z[key] || 0);
+          var pct = (z / Z_CLAMP) * 50;   // percent of the half-track width
+          var barStyle = z >= 0
+            ? 'left:50%;width:' + pct.toFixed(1) + '%'
+            : 'left:' + (50 + pct).toFixed(1) + '%;width:' + (-pct).toFixed(1) + '%';
+          var raw = r[m.field];
+          var outlier = Math.abs(r.z[key] || 0) > Z_CLAMP;
+          return '<div class="zrow">' +
+            '<span class="zrow-name">' + esc(r.webName) + '</span>' +
+            '<span class="zrow-track"><span class="zrow-center"></span>' +
+            '<span class="zrow-bar' + (z >= 0 ? ' zrow-bar-pos' : ' zrow-bar-neg') + '" style="' + barStyle + '"></span>' +
+            '</span>' +
+            '<span class="zrow-val tnum">' + fmtRaw(key, raw) + (outlier ? '*' : '') + '</span>' +
+            '</div>';
+        }).join('');
+        band.innerHTML = '<div class="zband-title">' + esc(title) + '</div>' +
+          '<div class="zband-rows">' + rowsHtml + '</div>';
+        zbarsEl.appendChild(band);
+      });
+    }
+
+    function renderTicker(rows) {
+      if (!tickerEl) { return; }
+      var horizon = filters.fixtureHorizon || 6;
+      var gwHeaders = rows.length
+        ? rows[0].fixtures.slice(0, horizon).map(function (fx) {
+            return '<th>GW' + fx.gw + (fx.blank ? '' : '<br>' + (fx.home ? 'v' : '@') + esc(fx.opp)) + '</th>';
+          }).join('')
+        : '';
+      var body = rows.map(function (r) {
+        var fx = r.fixtures.slice(0, horizon);
+        function cells(field) {
+          return fx.map(function (f) {
+            if (f.blank) { return '<td class="tick-blank">-</td>'; }
+            var tone = FIXTURE_TONES[f[field] - 1] || FIXTURE_TONES[2];
+            return '<td style="background:' + tone[0] + ';color:' + tone[1] + '">' + f[field] + '</td>';
+          }).join('');
+        }
+        return '<tr class="tick-name"><td colspan="' + (horizon + 1) + '"><b>' + esc(r.webName) + '</b></td></tr>' +
+          '<tr><td class="tick-label">Clean sheet</td>' + cells('cleanSheetDifficulty') + '</tr>' +
+          '<tr><td class="tick-label">DefCon</td>' + cells('defconDifficulty') + '</tr>';
+      }).join('');
+      tickerEl.innerHTML = '<div class="scroll"><table class="scouttickertable">' +
+        '<thead><tr><th></th>' + gwHeaders + '</tr></thead>' +
+        '<tbody>' + body + '</tbody></table></div>';
+    }
+
+    function renderCompare() {
+      var rows = Array.from(selected).map(function (id) {
+        return currentRows.find(function (r) { return r.id === id; });
+      }).filter(Boolean);
+      renderZBars(rows);
+      renderTicker(rows);
+    }
+
+    function updateCompareUI() {
+      // A player dropped by a filter change no longer has a valid z-score
+      // against the current pool (spec §2.1 - percentiles are always
+      // relative to whichever pool is filtered in), so the shortlist is
+      // pruned to whoever actually survives the current filter.
+      var survivors = new Set(currentRows.map(function (r) { return r.id; }));
+      Array.from(selected).forEach(function (id) { if (!survivors.has(id)) { selected.delete(id); } });
+      var n = selected.size;
+      if (compareBar) {
+        compareBar.hidden = n === 0;
+        var countSpan = compareBar.querySelector('.scb-count');
+        if (countSpan) { countSpan.textContent = n + ' of ' + MAX_SHORTLIST + ' selected'; }
+      }
+      if (compareCard) { compareCard.hidden = n < 2; }
+      if (n >= 2) { renderCompare(); }
+    }
+
+    if (clearShortlistBtn) {
+      clearShortlistBtn.addEventListener('click', function () {
+        selected.clear();
+        updateCompareUI();
+        renderHeatmap(currentRows);
+      });
     }
 
     var currentRows = [];
@@ -568,6 +703,7 @@
       var heroX = heroXKey(currentRows);
       drawScatter(currentRows, heroX);
       renderHeatmap(currentRows);
+      updateCompareUI();
     }
 
     // -- filter bar wiring --------------------------------------------
@@ -596,7 +732,7 @@
     if (horizonSel) {
       horizonSel.addEventListener('change', function () {
         filters.fixtureHorizon = parseInt(this.value, 10);
-        renderHeatmap(currentRows);
+        if (!compareCard || !compareCard.hidden) { renderCompare(); }
       });
     }
     if (toggleBtn) {

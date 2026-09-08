@@ -79,7 +79,8 @@ class PositionConfig:
     defcon_threshold: int      # analysis.DEFCON_THRESHOLD[key]
     hero_y: str                # y-axis metric key, see METRIC_LABELS
     archetypes: dict           # {archetype: driving metric key}
-    metrics: list              # heatmap / z-bar column order, metric keys
+    metrics: list              # heatmap column order, metric keys
+    zbars: list                # Level 2 z-score band order, spec §5.1
 
 
 # Metric keys shared across positions, with the direction each is "good" in
@@ -113,6 +114,12 @@ POSITIONS = {
         },
         metrics=["defcon_hit_rate", "xgi90", "xgc90", "start_rate",
                  "minutes_per_start", "bps90", "cards90", "xp"],
+        # Exact order from spec §5.1 - xgc90 and cards90 are inverted
+        # (METRICS[...][1] / METRICS[...].invert), so their z is already
+        # sign-flipped by apply_derivations: right is always good here
+        # without scout.js doing anything extra, only labelling it as such.
+        zbars=["defcon_hit_rate", "xgi90", "xgc90", "start_rate",
+               "minutes_per_start", "bps90", "cards90"],
     ),
 }
 
@@ -573,6 +580,7 @@ def pool(ctx, pos, live, proj, min_minutes=1, next_gw=None, market=None,
         "heroY": cfg.hero_y,
         "defconThreshold": cfg.defcon_threshold,
         "metrics": cfg.metrics,
+        "zbars": cfg.zbars,
         "archetypes": cfg.archetypes,
         "defaultFilters": DEFAULT_FILTERS,
         "rows": rows,

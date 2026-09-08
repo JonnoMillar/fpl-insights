@@ -2233,6 +2233,44 @@ details .scroll{padding:0 14px 14px}
   font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
   background:var(--p10); color:var(--ink);
 }
+.scoutpick-h{width:1px}
+.scoutcomparebar{
+  display:flex; align-items:center; gap:12px; margin:12px 0 0; padding:8px 12px;
+  background:var(--accent-wash); border-radius:var(--radius-s); font-size:13px;
+}
+.scoutcomparebar .scb-count{font-weight:600; color:var(--accent-ink)}
+.scb-clear{
+  font:inherit; font-size:12px; background:none; border:1px solid var(--outline);
+  border-radius:var(--radius-xs); padding:3px 9px; cursor:pointer; color:var(--on-surface-variant);
+}
+
+/* --- Level 2: shortlist compare --- */
+.zband{margin-bottom:18px}
+.zband-title{font-size:12px; font-weight:600; color:var(--on-surface-variant); margin-bottom:6px}
+.zband-rows{display:flex; flex-direction:column; gap:3px}
+.zrow{display:grid; grid-template-columns:90px 1fr 64px; align-items:center; gap:8px; font-size:12px}
+.zrow-name{font-weight:600; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.zrow-track{position:relative; height:14px; background:var(--surface-variant); border-radius:3px}
+.zrow-center{position:absolute; left:50%; top:0; bottom:0; width:1px; background:var(--outline)}
+.zrow-bar{position:absolute; top:2px; bottom:2px; border-radius:2px}
+.zrow-bar-pos{background:#6baed6}
+.zrow-bar-neg{background:#fdae6b}
+.zrow-val{font-variant-numeric:tabular-nums; color:var(--on-surface-variant)}
+
+.scouttickertable{border-collapse:collapse; width:100%; font-size:12px}
+.scouttickertable th, .scouttickertable td{padding:4px 8px; text-align:center}
+.scouttickertable thead th{
+  font-size:10px; text-transform:uppercase; letter-spacing:.03em;
+  color:var(--on-surface-variant); font-weight:600;
+}
+.scouttickertable tr.tick-name td{
+  text-align:left; padding-top:12px; border-bottom:1px solid var(--outline-variant);
+}
+.scouttickertable .tick-label{
+  text-align:left; font-size:11px; color:var(--on-surface-variant); white-space:nowrap;
+}
+.scouttickertable td.tick-blank{color:var(--on-surface-variant); background:var(--surface-variant)}
+.scouttickertable td.tnum{font-variant-numeric:tabular-nums}
 """
 
 SCATTER_JS = (Path(__file__).with_name("scatter.js")).read_text(encoding="utf-8")
@@ -5101,7 +5139,9 @@ def _scout_filter_bar(data):
 def _scout_heatmap_shell(data):
     """`<table>` shell with the header row rendered server-side - column
     order is fixed by PositionConfig.metrics, so nothing about it depends
-    on the current filter. scout.js only ever touches `<tbody>`."""
+    on the current filter. scout.js only ever touches `<tbody>`. The
+    leftmost column is a shortlist checkbox, capped at six (spec §5) - the
+    Level 2 compare view below appears once two or more are ticked."""
     head_cells = "".join(
         f'<th data-sort="{e(key)}" role="button" tabindex="0">'
         f'{e(scout.METRICS[key][0])}</th>'
@@ -5109,7 +5149,8 @@ def _scout_heatmap_shell(data):
     )
     return (
         '<div class="scroll"><table class="scoutheatmap">'
-        '<thead><tr><th data-sort="webName" role="button" tabindex="0">Player</th>'
+        '<thead><tr><th class="scoutpick-h" aria-label="Shortlist"></th>'
+        '<th data-sort="webName" role="button" tabindex="0">Player</th>'
         '<th data-sort="price" role="button" tabindex="0">Price</th>'
         f"{head_cells}"
         "<th>Archetype</th></tr></thead>"
@@ -5146,6 +5187,24 @@ def scout_section(scout_pools):
             "</div></div>"
             f'<div class="card scoutheat"><div class="card-body">'
             f"{_scout_heatmap_shell(data)}"
+            '<p class="scoutcomparebar" hidden>'
+            '<span class="scb-count"></span> '
+            '<button type="button" class="scb-clear">Clear shortlist</button>'
+            "</p>"
+            "</div></div>"
+            '<div class="card scoutcompare" hidden><div class="card-body">'
+            '<div class="chapter"><h2>Shortlist compare</h2>'
+            '<span class="sub">Every band centred on the filtered pool\'s '
+            "own mean, one shared scale - right is always good, inverted "
+            "metrics say so.</span></div>"
+            '<div class="scoutzbars"></div>'
+            '<div class="chapter"><h2>Fixtures</h2>'
+            '<span class="sub">Clean sheet difficulty and DEFCON difficulty '
+            "move in opposite directions for the same fixture - a stronger "
+            "opponent suppresses clean sheets but creates more to defend "
+            "against. DEFCON difficulty is modelled from the opponent's own "
+            "expected goals, not a measured stat.</span></div>"
+            '<div class="scoutticker"></div>'
             "</div></div>"
             "</div>"
         )
