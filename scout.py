@@ -269,8 +269,8 @@ def season_live(ctx, upto_gw, ttl=fplapi.DEFAULT_TTL):
                 "bps": stats.get("bps", 0),
                 "card": "red" if stats.get("red_cards") else (
                     "yellow" if stats.get("yellow_cards") else "none"),
-                "xgc": analysis.f(stats.get("expected_goals_conceded")),
-                "xgi": analysis.f(stats.get("expected_goal_involvements")),
+                "xgc": round(analysis.f(stats.get("expected_goals_conceded")), 2),
+                "xgi": round(analysis.f(stats.get("expected_goal_involvements")), 2),
             })
     return by_player
 
@@ -330,20 +330,23 @@ def raw_rows(ctx, pos, live, min_minutes=1):
             # in minus out, signed net pressure rather than either alone.
             "priceChangeMomentum": (
                 el.get("transfers_in_event", 0) - el.get("transfers_out_event", 0)),
-            "ownership": analysis.f(el.get("selected_by_percent")),
+            "ownership": round(analysis.f(el.get("selected_by_percent")), 1),
             "starts": starts,
             "teamMatchesSinceFirstStart": team_matches,
             "minutes": minutes,
-            "minutesPerStart": (minutes / starts) if starts else 0.0,
-            "startRate": (starts / team_matches) if team_matches else 0.0,
-            "defcon90": analysis.per90(el.get("defensive_contribution", 0), minutes),
-            "xgi90": el.get("expected_goal_involvements_per_90", 0.0) or 0.0,
-            "xgc90": el.get("expected_goals_conceded_per_90", 0.0) or 0.0,
-            "bps90": analysis.per90(el.get("bps", 0), minutes),
-            "bonus90": analysis.per90(el.get("bonus", 0), minutes),
-            "cards90": analysis.per90(
-                el.get("yellow_cards", 0) + el.get("red_cards", 0), minutes),
-            "defconHitRate": (hits / hit_n) if hit_n else 0.0,
+            "minutesPerStart": round((minutes / starts) if starts else 0.0, 1),
+            "startRate": round((starts / team_matches) if team_matches else 0.0, 3),
+            # Bootstrap already carries this per-90, unlike bps/bonus/cards
+            # below - reading it straight off avoids quietly disagreeing
+            # with FPL's own rounding of the same figure.
+            "defcon90": round(el.get("defensive_contribution_per_90", 0.0) or 0.0, 2),
+            "xgi90": round(el.get("expected_goal_involvements_per_90", 0.0) or 0.0, 2),
+            "xgc90": round(el.get("expected_goals_conceded_per_90", 0.0) or 0.0, 2),
+            "bps90": round(analysis.per90(el.get("bps", 0), minutes), 2),
+            "bonus90": round(analysis.per90(el.get("bonus", 0), minutes), 2),
+            "cards90": round(analysis.per90(
+                el.get("yellow_cards", 0) + el.get("red_cards", 0), minutes), 2),
+            "defconHitRate": round((hits / hit_n) if hit_n else 0.0, 3),
             "defconHitN": hit_n,
             "defconHits": hits,
             "onCorners": bool(el.get("corners_and_indirect_freekicks_order")),
@@ -431,7 +434,7 @@ def apply_derivations(rows, archetypes):
         # Inverted: a low xGC is a *high* solidity percentile. This is the
         # bubble-size metric, and raw xGC spans roughly 0.8-1.6 - invisible
         # as area without the inversion and the percentile mapping (spec §4.2).
-        r["solidityPct"] = 100.0 - percentile_rank(xgc_values, r["xgc90"])
+        r["solidityPct"] = round(100.0 - percentile_rank(xgc_values, r["xgc90"]), 1)
 
     metric_keys = [k for k in METRICS if k != "xp"]  # xp: see plan §2.8
     pool_values = {key: [r[_field(key)] for r in rows] for key in metric_keys}
@@ -443,9 +446,9 @@ def apply_derivations(rows, archetypes):
             val = r[_field(key)]
             vals = pool_values[key]
             p = percentile_rank(vals, val)
-            pct[key] = (100.0 - p) if invert else p
+            pct[key] = round((100.0 - p) if invert else p, 1)
             zz = zscore(vals, val)
-            z[key] = -zz if invert else zz
+            z[key] = round(-zz if invert else zz, 2)
         pct["solidity_pct"] = r["solidityPct"]
         r["percentiles"] = pct
         r["z"] = z

@@ -52,6 +52,7 @@ import elite
 import ffs
 import components
 import odds
+import scout
 import ticker
 import transfers
 from analysis import f
@@ -2164,6 +2165,7 @@ PLAYERVIEW_JS = (Path(__file__).with_name("playerview.js")).read_text(encoding="
 CAPTAINCY_JS = (Path(__file__).with_name("captaincy.js")).read_text(encoding="utf-8")
 LEAGUECHART_JS = (Path(__file__).with_name("leaguechart.js")).read_text(encoding="utf-8")
 TICKER_JS = (Path(__file__).with_name("ticker.js")).read_text(encoding="utf-8")
+SCOUT_JS = (Path(__file__).with_name("scout.js")).read_text(encoding="utf-8")
 
 JS = """
 (function(){
@@ -2270,6 +2272,13 @@ JS = """
       var bar=t.parentNode;
       if(bar.getBoundingClientRect().top < 0) bar.scrollIntoView({block:'start'});
       buildRail();
+      // A tab's own panel may have deferred its first render until it is
+      // actually looked at - the Scout tab's per-match history for the
+      // whole league is not worth laying out before anyone opens it. This
+      // fires every time the tab is selected; a listener that only wants
+      // the first look removes itself after drawing.
+      var shown=document.getElementById(t.dataset.panel);
+      if(shown) shown.dispatchEvent(new Event('panel:shown'));
     });
   });
 
@@ -4964,6 +4973,35 @@ def chips_table(histories):
     )
 
 
+# --- scout section ----------------------------------------------------------
+#
+# "Which defender do I actually buy" - a position comparison lab, built
+# position-agnostic from the start (scout.py POSITIONS) so a second position
+# is a config entry rather than a second implementation. See
+# docs/superpowers/plans/2026-09-08-scout-section-plan.md.
+
+
+def scout_section(scout_pools):
+    """One lab per position in `scout_pools` ({pos: scout.pool(...) dict}).
+    Charts render lazily in the browser from the JSON data island - see
+    scout.js - so this only has to emit the shell and the data itself."""
+    if not scout_pools:
+        return ""
+    parts = []
+    for pos, data in scout_pools.items():
+        parts.append(
+            f'<div class="chapter"><h2>{e(data["label"])}</h2>'
+            '<span class="sub">Who to buy, by defensive contribution, '
+            "attacking threat and fixtures - not a single blended rating "
+            "(see the section notes for why).</span></div>"
+            f'<div class="scoutlab" data-pos="{e(pos)}">'
+            f'<script type="application/json" class="scout-data" '
+            f'data-pos="{e(pos)}">{json.dumps(data)}</script>'
+            "</div>"
+        )
+    return "".join(parts)
+
+
 # --- page -----------------------------------------------------------------
 
 def render(d, standalone=True):
@@ -5067,6 +5105,7 @@ def render(d, standalone=True):
     <button class="tab" role="tab" aria-selected="true" data-panel="p-squad">Squad</button>
     <button class="tab" role="tab" aria-selected="false" data-panel="p-market">Planning</button>
     <button class="tab" role="tab" aria-selected="false" data-panel="p-league">Mini-league</button>
+    <button class="tab" role="tab" aria-selected="false" data-panel="p-scout">Scout</button>
   </div>
 
   <div class="panel" id="p-squad" role="tabpanel">
@@ -5160,6 +5199,9 @@ def render(d, standalone=True):
     </section>
   </div>
 
+  <div class="panel" id="p-scout" role="tabpanel" hidden>
+    {d['scout']}
+  </div>
 
 
   {d['dialog']}
@@ -5182,6 +5224,7 @@ def render(d, standalone=True):
         f"{head}{body}<script>{JS}</script><script>{SCATTER_JS}</script>"
         f"<script>{PLAYERVIEW_JS}</script><script>{CAPTAINCY_JS}</script>"
         f"<script>{LEAGUECHART_JS}</script><script>{TICKER_JS}</script>"
+        f"<script>{SCOUT_JS}</script>"
     )
     if not standalone:
         return page
@@ -5193,7 +5236,8 @@ def render(d, standalone=True):
         f"<script>{PLAYERVIEW_JS}</script>"
         f"<script>{CAPTAINCY_JS}</script>"
         f"<script>{LEAGUECHART_JS}</script>"
-        f"<script>{TICKER_JS}</script></body></html>"
+        f"<script>{TICKER_JS}</script>"
+        f"<script>{SCOUT_JS}</script></body></html>"
     )
 
 
@@ -5315,6 +5359,16 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         print(f"[odds] skipped: {ex}")
         market, market_fixtures = {}, []
     next_gw = min(38, (ctx.current_event() or 1) + 1)
+    # One event_live call per gameweek so far, shared across every position -
+    # see scout.season_live. Fails soft like the other optional sections
+    # (odds, elite) rather than taking the whole page down with it.
+    try:
+        scout_live = scout.season_live(ctx, ctx.current_event() or 1, ttl=ttl)
+        scout_pools = {pos: scout.pool(ctx, pos, scout_live, proj)
+                       for pos in scout.POSITIONS}
+    except fplapi.FplError as ex:
+        print(f"[scout] skipped: {ex}")
+        scout_pools = {}
     baselines = analysis.team_attack_baselines(ctx)
     eps = []
     for r in xi + bench:
@@ -5597,6 +5651,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                               weeks=RIVALS_WINDOW_WEEKS),
         "elite": elite_card(elite_res, ctx),
         "chips": chips_table(histories) if histories else "",
+        "scout": scout_section(scout_pools),
         "next_gw": next_gw,
         "overall_rank": meta.get("summary_overall_rank"),
         "gw_average": gw_average,
