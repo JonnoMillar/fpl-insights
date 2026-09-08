@@ -25,6 +25,7 @@ import analysis
 import ffs
 import fplapi
 import ticker
+import transfers
 
 # A played gameweek's stats never change once FPL has settled it, so it is
 # cached far longer than the live default - the whole point of a season
@@ -44,6 +45,27 @@ RATE_MIN_MINUTES = analysis.DEFCON_MIN_MINUTES
 # is currently filtered in - early enough in a run of matches to still be
 # informative, late enough that the rate is not three-valued.
 HERO_GATE_MINUTES = RATE_MIN_MINUTES * 2
+
+# Fixtures are always fetched out to this many gameweeks and embedded in
+# full - the filter bar's own horizon control just shows or hides columns
+# client-side, the same pattern ticker.py already uses for its own 1-8 game
+# selector (see FIXTURE_GAMES_DEFAULT in ticker.py) - so narrowing or
+# widening the horizon never needs a server rebuild.
+MAX_FIXTURE_HORIZON = 8
+
+# Filter bar defaults (spec §4.1). Applied client-side, in scout.js, against
+# the full pool this module sends - never baked into which rows are sent in
+# the first place, or loosening a filter in the browser would have nothing
+# left to reveal. Python's own _apply_filters/apply_derivations below exist
+# to be ported 1:1 into scout.js, and as the reference the tests check.
+DEFAULT_FILTERS = {
+    "priceMin": None,
+    "priceMax": None,
+    "minStartRate": 0.6,
+    "minMinutesPerStart": None,
+    "team": None,
+    "fixtureHorizon": 6,
+}
 
 
 def _clamp01(v):
@@ -289,12 +311,25 @@ def _team_played_since(ctx, team_id, from_gw):
     )
 
 
-def raw_rows(ctx, pos, live, min_minutes=1):
+def raw_rows(ctx, pos, live, min_minutes=1, proj=None, next_gw=None,
+             market=None, baselines=None, priors=None):
     """One row per player at `pos` with at least `min_minutes`, carrying
     every directly observed field. No percentile, z-score, hit rate or
     archetype yet - see `apply_derivations`, since all four depend on
     whichever subset of the pool is currently filtered in, not on the full
-    league."""
+    league.
+
+    `proj`/`next_gw`/`market`/`baselines`/`priors` are optional and only
+    feed the `xp` column (plan §2.8: the dashboard's one shared expected-
+    points model, transfers.candidate_score, appears here as a column
+    never an axis or a sort default - a second scorer is not being
+    introduced). Deliberately called *without* per-player match history,
+    the same choice chips.py already makes for market-wide candidate pools
+    rather than one manager's owned fifteen (see shared-scorer-architecture
+    memory) - Scout compares many players symmetrically, none of them the
+    "owned squad" that history-backed scoring exists to protect. Omit any
+    of the five and every row's xp is 0.0, which is the honest value for
+    "no fixture is priced for this gameweek" rather than a placeholder."""
     rows = []
     for el in ctx.players.values():
         if ctx.pos(el) != pos:
@@ -320,6 +355,12 @@ def raw_rows(ctx, pos, live, min_minutes=1):
             flag, news = "suspended", el.get("news", "")
         elif chance is not None and chance < 100:
             flag, news = "doubtful", el.get("news", "")
+        xp_val = 0.0
+        if proj is not None and next_gw is not None and market is not None and baselines is not None:
+            xp_result = transfers.candidate_score(
+                el, ctx, proj, next_gw, market, baselines, priors)
+            if xp_result:
+                xp_val = xp_result["total"]
         rows.append({
             "id": pid,
             "webName": el["web_name"],
@@ -349,6 +390,7 @@ def raw_rows(ctx, pos, live, min_minutes=1):
             "defconHitRate": round((hits / hit_n) if hit_n else 0.0, 3),
             "defconHitN": hit_n,
             "defconHits": hits,
+            "xp": round(xp_val, 2),
             "onCorners": bool(el.get("corners_and_indirect_freekicks_order")),
             "onFreeKicks": bool(el.get("direct_freekicks_order")),
             "onPens": bool(el.get("penalties_order")),
@@ -436,7 +478,11 @@ def apply_derivations(rows, archetypes):
         # as area without the inversion and the percentile mapping (spec §4.2).
         r["solidityPct"] = round(100.0 - percentile_rank(xgc_values, r["xgc90"]), 1)
 
-    metric_keys = [k for k in METRICS if k != "xp"]  # xp: see plan §2.8
+    # xp is included here so its heatmap cell shades like every other
+    # column - plan §2.8 only bars it from being an axis, a z-bar band or
+    # a default sort, not from a percentile it is entitled to like anything
+    # else in the table.
+    metric_keys = list(METRICS)
     pool_values = {key: [r[_field(key)] for r in rows] for key in metric_keys}
 
     for r in rows:
@@ -496,28 +542,38 @@ def fixture_rows(team_short, proj, start_gw, weeks=6):
     return out
 
 
-def pool(ctx, pos, live, proj, filters=None, min_minutes=1):
-    """The full pipeline for one position: raw rows, filtered, derived,
-    with the hero axis and fixture horizon attached. This is what the
-    section renderer and the initial JSON island both call; `scout.js` re-
-    runs the filter+derive half of this in the browser on every filter
-    change (percentile_rank/zscore/apply_derivations above are written to
-    be trivial to port 1:1 - keep them that way)."""
+def pool(ctx, pos, live, proj, min_minutes=1, next_gw=None, market=None,
+         baselines=None, priors=None):
+    """Everything scout.js needs for one position: the full raw pool (only
+    gated on `min_minutes`, never on the *adjustable* filters - see
+    DEFAULT_FILTERS), fixtures out to MAX_FIXTURE_HORIZON, and the config
+    the client-side filter bar and archetype badges need.
+
+    Deliberately un-filtered and un-derived beyond that gate: percentiles,
+    z-scores, archetypes and the hero axis are all relative to whichever
+    pool is currently filtered in (spec §2.1), so baking today's default
+    filter into the payload would leave the browser with nothing to reveal
+    the moment someone loosens a filter. scout.js runs _apply_filters,
+    apply_derivations and hero_x_key itself, starting from `defaultFilters`
+    on first draw and again on every change - those three Python functions
+    exist to be the reference those JS ports are checked against.
+
+    `next_gw`/`market`/`baselines`/`priors` are optional and only feed the
+    `xp` column (see raw_rows) - omit them and every row's xp is 0.0."""
     cfg = POSITIONS[pos]
-    filters = filters or {}
-    rows = raw_rows(ctx, pos, live, min_minutes=min_minutes)
-    rows = _apply_filters(rows, filters)
-    apply_derivations(rows, cfg.archetypes)
-    horizon = filters.get("fixtureHorizon", 6)
+    rows = raw_rows(ctx, pos, live, min_minutes=min_minutes, proj=proj,
+                    next_gw=next_gw, market=market, baselines=baselines,
+                    priors=priors)
     start_gw = (ctx.current_event() or 1) + 1
     for r in rows:
-        r["fixtures"] = fixture_rows(r["teamShort"], proj, start_gw, horizon)
+        r["fixtures"] = fixture_rows(r["teamShort"], proj, start_gw, MAX_FIXTURE_HORIZON)
     return {
         "pos": pos,
         "label": cfg.label,
-        "heroX": hero_x_key(rows),
         "heroY": cfg.hero_y,
         "metrics": cfg.metrics,
+        "archetypes": cfg.archetypes,
+        "defaultFilters": DEFAULT_FILTERS,
         "rows": rows,
     }
 

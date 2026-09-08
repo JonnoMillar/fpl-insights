@@ -5359,17 +5359,24 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         print(f"[odds] skipped: {ex}")
         market, market_fixtures = {}, []
     next_gw = min(38, (ctx.current_event() or 1) + 1)
+    baselines = analysis.team_attack_baselines(ctx)
     # One event_live call per gameweek so far, shared across every position -
     # see scout.season_live. Fails soft like the other optional sections
-    # (odds, elite) rather than taking the whole page down with it.
+    # (odds, elite) rather than taking the whole page down with it. xp uses
+    # transfers.candidate_score, the same bootstrap-only scorer chips.py
+    # uses for market-wide candidate pools (see shared-scorer-architecture
+    # memory) - priors computed once here, never inside the per-position loop.
     try:
         scout_live = scout.season_live(ctx, ctx.current_event() or 1, ttl=ttl)
-        scout_pools = {pos: scout.pool(ctx, pos, scout_live, proj)
-                       for pos in scout.POSITIONS}
+        scout_priors = transfers.positional_priors(ctx)
+        scout_pools = {
+            pos: scout.pool(ctx, pos, scout_live, proj, next_gw=next_gw,
+                            market=market, baselines=baselines, priors=scout_priors)
+            for pos in scout.POSITIONS
+        }
     except fplapi.FplError as ex:
         print(f"[scout] skipped: {ex}")
         scout_pools = {}
-    baselines = analysis.team_attack_baselines(ctx)
     eps = []
     for r in xi + bench:
         ep = analysis.expected_points(r, ctx, proj, next_gw,

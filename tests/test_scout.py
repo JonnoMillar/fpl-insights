@@ -87,13 +87,13 @@ class ApplyDerivationsTests(unittest.TestCase):
 
     def _row(self, pid, xgc90, xgi90=0.1, defcon_hit_rate=0.5, start_rate=0.8,
               minutes=300, minutes_per_start=90.0, bps90=20.0, cards90=0.0,
-              defcon90=8.0, bonus90=0.0):
+              defcon90=8.0, bonus90=0.0, xp=0.0):
         return {
             "id": pid, "xgc90": xgc90, "xgi90": xgi90,
             "defconHitRate": defcon_hit_rate, "startRate": start_rate,
             "minutes": minutes, "minutesPerStart": minutes_per_start,
             "bps90": bps90, "cards90": cards90, "defcon90": defcon90,
-            "bonus90": bonus90,
+            "bonus90": bonus90, "xp": xp,
         }
 
     def test_solidity_is_inverted_low_xgc_scores_high(self):
