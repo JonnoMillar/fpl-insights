@@ -194,22 +194,49 @@ FFS_URL = "https://www.fantasyfootballscout.co.uk/team-news"
 MIN_EXPECTED_FFS = 150
 
 
+def _parse_ffs_predicted(html):
+    """{photo_id: FFS club name} for every predicted starter on the page.
+
+    Each club's block is `<li class="team-news-item" ...><h2>Club Name</h2>
+    ...<div class="scout-picks-pitch">...player photos...</div>...</li>` -
+    split on those blocks first so every photo id is attributed to the club
+    heading it actually appeared under, then pull ids out of each block."""
+    out = {}
+    blocks = re.split(r'(?=<li class="team-news-item")', html)
+    for block in blocks:
+        heading = re.search(r'<h2[^>]*>\s*(.*?)\s*</h2>', block, re.S)
+        if not heading:
+            continue
+        club = re.sub(r"\s+", " ", heading.group(1)).strip()
+        if not club:
+            continue
+        for pid in re.findall(r"photos/players/110x140/(\d+)\.png", block):
+            out[pid] = club
+    return out
+
+
 def ffs_predicted_photo_ids(ttl=DEFAULT_TTL):
-    """Premier League photo ids of every player Fantasy Football Scout expects
-    to start the next round.
+    """{photo id: FFS club name} for every player Fantasy Football Scout
+    expects to start the next round.
 
     FPL's own API says nothing about who will actually be on the pitch, which
     makes this the most valuable thing it does not have. FFS renders each
     predicted starter with a player photo whose filename is the same id FPL
     exposes in element['photo'], so the two join on a number rather than on a
-    name - accents, initials and transfers cannot produce a bad match.
+    name. That join alone is not enough, though: a player who has transferred
+    since FFS last refreshed the page still carries his old photo id, and
+    would silently join under his former club. The caller must compare the
+    returned club name against the player's *current* FPL club before trusting
+    the match - see analysis.Ctx.is_predicted.
 
-    Returns an empty set on any failure. Callers must treat empty as "unknown",
-    never as "nobody is starting"."""
+    Returns an empty dict on any failure. Callers must treat empty as
+    "unknown", never as "nobody is starting"."""
     path = _cache_path(FFS_URL)
     try:
         if path.exists() and time.time() - path.stat().st_mtime < ttl:
-            return set(json.loads(path.read_text(encoding="utf-8")))
+            cached = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(cached, dict):
+                return cached
     except (ValueError, OSError):
         pass
     try:
@@ -217,16 +244,16 @@ def ffs_predicted_photo_ids(ttl=DEFAULT_TTL):
     except FplError as e:
         print(f"[ffs] predicted line-ups unavailable: {e}")
         note("predicted line-ups", False, str(e)[:60])
-        return set()
-    ids = set(re.findall(r"photos/players/110x140/(\d+)\.png", html))
-    if len(ids) < MIN_EXPECTED_FFS:
-        print(f"[ffs] only parsed {len(ids)} players - markup may have changed, ignoring")
-        note("predicted line-ups", False, f"only {len(ids)} parsed, expected {MIN_EXPECTED_FFS}+")
-        return set()
+        return {}
+    mapping = _parse_ffs_predicted(html)
+    if len(mapping) < MIN_EXPECTED_FFS:
+        print(f"[ffs] only parsed {len(mapping)} players - markup may have changed, ignoring")
+        note("predicted line-ups", False, f"only {len(mapping)} parsed, expected {MIN_EXPECTED_FFS}+")
+        return {}
     CACHE_DIR.mkdir(exist_ok=True)
-    path.write_text(json.dumps(sorted(ids)), encoding="utf-8")
-    note("predicted line-ups", True, f"{len(ids)} starters")
-    return ids
+    path.write_text(json.dumps(mapping), encoding="utf-8")
+    note("predicted line-ups", True, f"{len(mapping)} starters")
+    return mapping
 
 
 # --- club badges ----------------------------------------------------------

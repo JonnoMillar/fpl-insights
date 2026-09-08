@@ -161,8 +161,16 @@
       stat('xGI per 90', p.xgi90.toFixed(2), p.xgi.toFixed(2) + ' total')
     ];
     if (p.threshold) {
-      tiles.push(stat('DefCon per 90', p.defcon90.toFixed(1),
-        'threshold ' + p.threshold + ', hit ' + p.defconHits + 'x'));
+      // Under the minutes floor a per-90 rate is just a small number
+      // divided by a smaller one, so the drawer shows what he actually
+      // racked up instead of extrapolating it to a full match.
+      if (p.minutes < p.defconMin) {
+        tiles.push(stat('DefCon', p.defcon,
+          p.minutes + ' min - too few for a per-90 rate'));
+      } else {
+        tiles.push(stat('DefCon per 90', p.defcon90.toFixed(1),
+          'threshold ' + p.threshold + ', hit ' + p.defconHits + 'x'));
+      }
     }
     var opta = p.opta || {};
     Object.keys(opta).forEach(function (k) {

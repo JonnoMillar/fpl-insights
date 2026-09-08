@@ -1311,18 +1311,26 @@ table td.tick{border:2px solid var(--surface)}
 .lcnav{margin:0 0 10px}
 .lcnav > button{font-size:12px; padding:7px 10px}
 
-/* A donut sat here, 90px across with two lines of type inside the ring -
-   cramped at that size, and the only chart of its kind on a page that
-   otherwise reads its numbers off flat blocks and mono figures. It is a
-   share of fifteen, so it is now the figure itself and fifteen pips: the
-   number is exact, the pips are countable, and neither asks you to judge
-   an angle. It also matches the language the rest of the page is written
-   in, which the ring never did. */
+/* The ring came back, with the cramping fixed rather than the ring
+   removed. What was wrong before was the size: 90px across with two lines
+   of type stacked inside the hole, so neither the share nor the caption had
+   room. Now the ring is 104px with a single line inside it, the count and
+   caption sit beside it instead of within it, and the ring carries all
+   three states - named, unknown, left out - which the old single-arc one
+   could not. */
 .lcstat{
-  margin-bottom:10px; padding:12px 14px;
+  margin-bottom:10px; padding:14px;
   border-radius:var(--radius-m); background:var(--surface-variant);
   border-left:3px solid var(--lc-tone,var(--p40));
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
 }
+.lcring{width:104px; height:104px; flex:none; display:block}
+.lcring .dtrack{stroke-width:11}
+.lcring .dseg{fill:none; stroke-width:11; stroke-linecap:butt}
+.lcring-n{fill:var(--on-surface); font-size:23px; font-weight:700;
+  font-family:var(--mono); letter-spacing:-0.03em}
+.lcring-s{fill:var(--on-surface-variant); font-size:11px}
+.lcread{min-width:0; flex:1 1 130px}
 .lcfig{
   margin:0; display:flex; align-items:baseline; gap:6px;
   font-family:var(--mono); font-variant-numeric:tabular-nums;
@@ -1334,11 +1342,15 @@ table td.tick{border:2px solid var(--surface)}
   margin:3px 0 0; font-size:11px; font-weight:600; text-transform:uppercase;
   letter-spacing:.06em; color:var(--on-surface-variant);
 }
-.lcpips{display:flex; gap:3px; margin-top:9px; flex-wrap:wrap}
-.lcpip{width:12px; height:5px; border-radius:2px; flex:none}
-.lcpip-on{background:var(--lc-tone,var(--p60))}
-.lcpip-unk{background:var(--attention)}
-.lcpip-off{background:var(--bad)}
+/* Only the two exception states get a key. "Named" needs no explaining -
+   it is the rest of the ring, and the count next to it already says how
+   many. */
+.lcleg{margin:8px 0 0; display:flex; flex-wrap:wrap; gap:4px 10px;
+  font-size:11px; color:var(--on-surface-variant)}
+.lckey{display:inline-flex; align-items:center; gap:5px; white-space:nowrap}
+.lck{width:8px; height:8px; border-radius:2px; flex:none}
+.lck-unk{background:var(--attention)}
+.lck-off{background:var(--bad)}
 .lcpanel{
   padding-top:10px; border-top:1px solid var(--outline-variant);
 }
@@ -2676,10 +2688,18 @@ def squad_table(reports, ctx, captain_id, vice_id, proj=None, market=None,
         )
         suffix = " (C)" if el["id"] == captain_id else (" (V)" if el["id"] == vice_id else "")
         flag_html = f' <span class="flag" title="{e(news)}">{e(flag)}</span>' if flag else ""
-        # Goalkeepers have no defensive-contribution threshold, and a player
-        # with no minutes has no rate worth printing.
+        # Goalkeepers have no defensive-contribution threshold, and a rate
+        # off a cameo is arithmetic, not evidence: three contributions in
+        # sixteen minutes reads as 16.9 per 90 and would sort above every
+        # regular starter. Below the floor the cell says so instead, and
+        # carries no sort value - the minutes column is two across if you
+        # want to know why.
+        thin = r.minutes < analysis.DEFCON_MIN_MINUTES
         dc_cell = (
             f'<td class="num" data-v="{r.defcon90}">{r.defcon90:.1f}</td>'
+            if not thin and r.pos != "GKP"
+            else f'<td class="num" title="{r.minutes} minutes - too few for a '
+                 f'per-90 rate">-</td>'
             if r.minutes and r.pos != "GKP"
             else '<td class="num">-</td>'
         )
@@ -2903,6 +2923,50 @@ def donut(pct, label, center, sub, tone="var(--accent)"):
         f'<text class="dnum" x="45" y="43" text-anchor="middle">{e(center)}</text>'
         f'<text class="dsub" x="45" y="57" text-anchor="middle">{e(sub)}</text>'
         "</svg>"
+    )
+
+
+def split_donut(parts, label, center, sub):
+    """A part-of-whole ring with more than one part.
+
+    `parts` is [(count, css_var)] in reading order. The single-part `donut`
+    above cannot say "eleven named, one unknown, one left out" - it would
+    have to fold the last two together, and those two are not the same news.
+
+    Sized off a 120-unit box rather than 90: at 90 the ring left about 50
+    units of clear space for two lines of type, which is what made the old
+    one feel cramped. Here the caption lives outside the ring and only the
+    share sits inside it."""
+    total = sum(n for n, _ in parts)
+    r, gap = 46, 2.0
+    circ = 2 * math.pi * r
+    segs, offset = [], 0.0
+    for n, tone in parts:
+        if not n or not total:
+            continue
+        length = circ * n / total
+        # A hairline gap between segments so two adjacent colours read as
+        # two facts rather than one gradient. Never wider than the segment.
+        draw = max(1.0, length - min(gap, length / 2))
+        segs.append(
+            f'<circle class="dseg" cx="60" cy="60" r="{r}" stroke="var({tone})" '
+            f'stroke-dasharray="{draw:.2f} {circ - draw:.2f}" '
+            f'stroke-dashoffset="{-offset:.2f}" '
+            f'transform="rotate(-90 60 60)"/>'
+        )
+        offset += length
+    return (
+        f'<svg class="lcring" viewBox="0 0 120 120" role="img" '
+        f'aria-label="{e(label)}">'
+        f'<circle class="dtrack" cx="60" cy="60" r="{r}"/>'
+        + "".join(segs)
+        # Baseline, not centre: y is where the glyphs sit, so a single line
+        # centres at 60 plus roughly a third of its size.
+        + f'<text class="lcring-n" x="60" y="{68 if not sub else 57}" '
+        f'text-anchor="middle">{e(center)}</text>'
+        + (f'<text class="lcring-s" x="60" y="74" text-anchor="middle">{e(sub)}</text>'
+           if sub else "")
+        + "</svg>"
     )
 
 
@@ -3144,24 +3208,34 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
             # been named yet.
             body = (block(out, "lc-out", "Not predicted to start:", fixtures=False)
                     + block(unknown, "lc-unk", "No side published yet"))
-        # One pip per player, in the order the three states are worth
-        # reading: named, then unknown, then left out. It is the same
-        # information the donut's angle carried, at a glance and countable,
-        # which an angle never is.
-        pips = "".join(
-            f'<i class="lcpip lcpip-{cls}"></i>'
-            for cls, n in (("on", starting), ("unk", len(unknown)), ("off", len(out)))
-            for _ in range(n)
+        # The ring carries all three states in one shape, in the order they
+        # are worth reading: named, then unknown, then left out. The count
+        # is printed beside it rather than inside, so the angle is never the
+        # only way to read the number and the ring has room to breathe.
+        aria = (f"{starting} of {total} predicted to start"
+                + (f", {len(unknown)} with no side published" if unknown else "")
+                + (f", {len(out)} left out" if out else ""))
+        ring = split_donut(
+            [(starting, "--lc-tone"), (len(unknown), "--attention"),
+             (len(out), "--bad")],
+            aria, f"{pct:.0f}%", "",
+        ) if total else ""
+        legend = "".join(
+            f'<span class="lckey"><i class="lck lck-{cls}"></i>{n} {word}</span>'
+            for cls, n, word in (("unk", len(unknown), "no side yet"),
+                                 ("off", len(out), "left out"))
+            if n
         )
         panels.append(
             f'<div class="lcpanel" data-lcview="{key}" data-lclabel="{e(label)}"'
             f'{" hidden" if i else ""}>'
             f'<div class="lcstat" style="--lc-tone:{tone}">'
+            f"{ring}"
+            f'<div class="lcread">'
             f'<p class="lcfig"><b>{starting}</b><span>of {total}</span></p>'
             f'<p class="lccap">predicted to start</p>'
-            f'<div class="lcpips" role="img" aria-label="'
-            f'{starting} of {total} predicted to start">{pips}</div>'
-            f"</div>{body}</div>"
+            + (f'<p class="lcleg">{legend}</p>' if legend else "")
+            + f"</div></div>{body}</div>"
         )
 
     # Three named tabs rather than a label between two arrows: there are
@@ -3330,7 +3404,8 @@ def findings_section(finds, reports, ctx, proj=None, market=None, next_gw=None,
     dc_rows = []
     for r in reports:
         threshold = analysis.DEFCON_THRESHOLD.get(r.pos)
-        if not threshold or not r.minutes:
+        # Minutes floor, not just "played at all": see DEFCON_MIN_MINUTES.
+        if not threshold or r.minutes < analysis.DEFCON_MIN_MINUTES:
             continue
         if r.defcon90 >= threshold * 0.55:
             dc_rows.append(
@@ -4090,8 +4165,11 @@ def player_payload(r, ctx, proj, ep, next_gw, photos):
         "bonus": r.bonus,
         "xg": round(r.xg, 2), "xa": round(r.xa, 2), "xgi": round(r.xgi, 2),
         "xgi90": round(r.xgi90, 2), "defcon90": round(r.defcon90, 1),
-        "defconHits": r.defcon_hits,
+        "defconHits": r.defcon_hits, "defcon": r.defcon,
         "threshold": analysis.DEFCON_THRESHOLD.get(r.pos, 0),
+        # The drawer needs the same floor the cards use, so a cameo is not
+        # quoted as a per-90 rate in one place and withheld in another.
+        "defconMin": analysis.DEFCON_MIN_MINUTES,
         "setpieces": r.set_pieces(),
         "opta": el.get("_pulse") or {},
         "ep": ep,

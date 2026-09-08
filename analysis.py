@@ -23,6 +23,13 @@ import fplapi
 # recoveries (Haaland: 48 + 15 + 41 = 104). So the field is already composed
 # correctly per position and only the threshold differs.
 DEFCON_THRESHOLD = {"DEF": 10, "MID": 12, "FWD": 12}
+# A per-90 rate needs minutes behind it before it means anything. Three
+# defensive contributions in a 16-minute cameo is 16.9 per 90 - a number
+# that says nothing about the player and everything about dividing by 16.
+# Two full matches is the floor for quoting the rate at all; below it the
+# hit count is the only honest read, and one appearance does not make a
+# card worth showing.
+DEFCON_MIN_MINUTES = 180
 
 POS_SHORT = {1: "GKP", 2: "DEF", 3: "MID", 4: "FWD"}
 
@@ -616,7 +623,7 @@ def build_findings(reports, ctx):
     dc = []
     for r in reports:
         t = DEFCON_THRESHOLD.get(r.pos)
-        if not t or not r.minutes:
+        if not t or r.minutes < DEFCON_MIN_MINUTES:
             continue
         rate = r.defcon90
         if rate >= t:
