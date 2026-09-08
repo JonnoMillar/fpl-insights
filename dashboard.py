@@ -2160,105 +2160,150 @@ details .scroll{padding:0 14px 14px}
 }
 
 /* --- scout section ---------------------------------------------------
-   Scoped accessibility primitives (Okabe-Ito, blue-orange diverging, the
-   percentile-to-radius mapper) live in scout.py/scout.js as the numeric
-   source of truth - plan §2.4/§2.5. These rules are the visual shell only:
-   fixture difficulty keeps the page's existing rose-teal ramp rather than
-   a second diverging scale, so nothing scout-specific is defined for it
-   here. */
+   The section introduces no new hues. Percentile shading uses the page's
+   own purple ramp (scout.py PERCENTILE_SCALE - a percentile is sequential
+   data, and a single hue with real luminance variation is both the right
+   shape for it and the one that keeps this section inside the palette
+   everything else already uses). Fixture difficulty reuses ticker.py's
+   rose-teal. Direction on the compare bars is carried by which side of
+   centre a bar sits, which needs no colour at all. */
 .scoutfilters{
-  display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px 20px;
-  padding:12px 16px; margin-bottom:14px; background:var(--surface-variant);
-  border-radius:var(--radius-m); position:sticky; top:52px; z-index:2;
+  display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px 18px;
+  padding:12px 14px; margin-bottom:16px; background:var(--surface-variant);
+  border-radius:var(--radius-m);
 }
-.sf{display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:600;
-  color:var(--on-surface-variant); text-transform:uppercase; letter-spacing:.04em}
+.sf{display:flex; flex-direction:column; gap:4px; font-size:11px; font-weight:600;
+  color:var(--on-surface-variant); text-transform:uppercase; letter-spacing:.05em}
 .sf input, .sf select{
-  font:inherit; font-size:14px; font-weight:400; text-transform:none;
+  font:inherit; font-size:13px; font-weight:400; text-transform:none;
   letter-spacing:normal; color:var(--on-surface); background:var(--surface);
   border:1px solid var(--outline); border-radius:var(--radius-xs); padding:5px 8px;
 }
+.sf input:focus-visible, .sf select:focus-visible{
+  outline:2px solid var(--accent); outline-offset:1px;
+}
+.sf-inline{flex-direction:row; align-items:center; gap:7px; margin-left:auto}
 .sf-range{display:flex; align-items:center; gap:6px}
-.sf-range input[type="number"]{width:64px}
-.sf-price-min, .sf-price-max{width:56px}
-.sf-start-rate{width:110px}
-.sf-start-rate-val{font-weight:600; color:var(--on-surface); min-width:2.4em}
-.sf-mins-per-start{width:70px}
-.sf-categorical{align-self:flex-end; margin-bottom:1px}
-.sf-count{margin-left:auto; align-self:center; font-size:12px; color:var(--on-surface-variant)}
+.sf-price-min, .sf-price-max{width:58px}
+.sf-start-rate{width:104px}
+.sf-start-rate-val{font-weight:700; color:var(--on-surface); min-width:2.6em;
+  font-variant-numeric:tabular-nums}
+.sf-mins-per-start{width:72px}
+.sf-count{margin-left:auto; align-self:center; font-size:12px;
+  color:var(--on-surface-variant); font-variant-numeric:tabular-nums}
 
-.scouthero .card-body{padding-top:16px}
-.scoutscatter{width:100%; min-width:560px; max-width:1040px; height:auto;
-  display:block; margin:0 auto}
+/* --- fixture runs --- */
+.fxruns{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:22px}
+.fxrun-col h4{
+  font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--on-surface-variant); margin:0 0 8px;
+}
+.fxrun-tag{
+  text-transform:none; letter-spacing:normal; font-weight:400; font-size:10px;
+  background:var(--surface-variant); border-radius:9999px; padding:1px 7px;
+  margin-left:4px; color:var(--on-surface-variant);
+}
+.fxrun-list{list-style:none; margin:0; padding:0; display:flex;
+  flex-direction:column; gap:8px}
+.fxrun-list li{display:flex; align-items:center; gap:9px; font-size:13px}
+.fxrun-club{font-weight:700; min-width:38px}
+.fxrun-chips{display:flex; flex-wrap:wrap; gap:3px; margin-left:auto}
+.fxrun-chips .rpill{margin-right:0}
+.rpill.fxr-blank{background:var(--surface-variant); color:var(--on-surface-variant)}
+
+/* --- pool explorer --- */
+.scoutexplorer > summary{cursor:pointer}
+.scoutscatter{width:100%; min-width:520px; max-width:1040px; height:auto;
+  display:block; margin:4px auto 0}
 .scoutscatter .grid line{stroke:var(--outline-variant); stroke-width:1}
-.scoutscatter .axlab text{fill:var(--on-surface-variant); font-size:11px; font-variant-numeric:tabular-nums}
+.scoutscatter .axlab text{fill:var(--on-surface-variant); font-size:11px;
+  font-variant-numeric:tabular-nums}
 .scoutscatter .axtitle{fill:var(--on-surface-variant); font-size:12px; font-weight:600}
-.scoutscatter .crosshair{stroke:var(--outline); stroke-width:1; stroke-dasharray:3 3}
+.scoutscatter .crosshair{stroke:var(--outline-variant); stroke-width:1; stroke-dasharray:3 4}
 .scoutscatter .quadlabel{fill:var(--on-surface-variant); font-size:10px; font-style:italic}
 .scoutscatter .threshline{stroke:var(--attention); stroke-width:1.5; stroke-dasharray:4 3}
 .scoutscatter .threshlabel{fill:var(--attention-ink); font-size:10px; font-weight:600}
-/* Fill style is the accessible channel (spec §1): solid clears the
-   minutes floor, hollow has not - never colour alone, and the categorical
-   toggle backs its own colour with marker shape (circle/square/triangle/
-   diamond) on top of this. */
-.scoutpt.solid > :first-child{fill:var(--ink); opacity:.55}
-.scoutpt.thin > :first-child{fill:none; stroke:var(--ink); stroke-width:1.5; opacity:.7}
-.scoutpt:hover > :first-child, .scoutpt:focus-visible > :first-child{opacity:1; stroke:var(--on-surface); stroke-width:2}
-.scoutpt.dimmed{opacity:.15}
+/* Fill style is the accessible channel, not hue: solid clears the minutes
+   floor, hollow does not. Both are the same ink, so the plot reads the
+   same in greyscale as in colour. */
+.scoutpt{cursor:pointer}
+.scoutpt.solid > circle:first-child{fill:var(--p70); opacity:.42}
+.scoutpt.thin > circle:first-child{fill:none; stroke:var(--p50); stroke-width:1.4}
+.scoutpt:hover > circle:first-child,
+.scoutpt:focus-visible > circle:first-child{
+  opacity:.85; stroke:var(--ink); stroke-width:2;
+}
 .scoutpt .hit{fill:transparent; stroke:none}
 .scoutpt:focus{outline:none}
 .scoutscatter .ptlabel{
   fill:var(--on-surface); font-size:11px; font-weight:600; pointer-events:none;
   paint-order:stroke; stroke:var(--surface); stroke-width:3px; stroke-linejoin:round;
 }
-.scoutscatter .sel .selring{fill:none; stroke:var(--accent-ink); stroke-width:2}
-.scoutscatter .brushcatch{fill:transparent; cursor:crosshair}
-.scoutscatter .brushrect{fill:rgb(55 0 60 / 8%); stroke:var(--ink); stroke-width:1; stroke-dasharray:4 3}
+.scoutscatter .sel .selring{fill:none; stroke:var(--ink); stroke-width:2}
+.key-solid{background:var(--p70); opacity:.42}
+.key-thin{background:transparent; border:1.4px solid var(--p50)}
+.key-size{background:var(--p70); opacity:.42; width:14px; height:14px}
 
-.scoutheat table{border-collapse:collapse; width:100%; font-size:13px}
-.scoutheat th, .scoutheat td{padding:7px 10px; text-align:left; white-space:nowrap}
-.scoutheat td.num, .scoutheat th[data-sort]{text-align:right}
-.scoutheat td.num{font-variant-numeric:tabular-nums; font-family:var(--mono)}
-.scoutheat th{
+/* --- pool table --- */
+.scoutheat{margin-top:18px}
+.scoutheatmap{border-collapse:collapse; width:100%; font-size:13px}
+.scoutheatmap th, .scoutheatmap td{padding:6px 9px; text-align:left; white-space:nowrap}
+.scoutheatmap td.num, .scoutheatmap th[data-sort]{text-align:right}
+.scoutheatmap td.num{font-variant-numeric:tabular-nums; font-family:var(--mono)}
+.scoutheatmap thead th{
   font-size:11px; text-transform:uppercase; letter-spacing:.04em;
   color:var(--on-surface-variant); border-bottom:1px solid var(--outline);
-  cursor:pointer; user-select:none;
+  cursor:pointer; user-select:none; position:sticky; top:0;
+  background:var(--surface); z-index:1;
 }
-.scoutheat th:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
-.scoutheat tbody tr:hover{background:var(--surface-variant)}
-.scoutheat tr.scout-highlight{background:var(--accent-wash)}
-.scoutheat .teamtag{color:var(--on-surface-variant); font-size:11px; margin-left:3px}
+.scoutheatmap th[data-sort]:hover{color:var(--ink)}
+.scoutheatmap th:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+.scoutheatmap tbody tr:hover{outline:1px solid var(--outline)}
+.scoutheatmap tr.scout-highlight{outline:2px solid var(--ink)}
+.scoutheatmap .teamtag{color:var(--on-surface-variant); font-size:11px; margin-left:3px}
+.scoutpick-h{width:1px}
+.scoutpick{accent-color:var(--p80); cursor:pointer}
 .archbadge{
   display:inline-block; margin-right:4px; padding:1px 7px; border-radius:9999px;
-  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
-  background:var(--p10); color:var(--ink);
+  font-size:10px; font-weight:700; background:var(--p5); color:var(--p80);
 }
-.scoutpick-h{width:1px}
 .scoutcomparebar{
-  display:flex; align-items:center; gap:12px; margin:12px 0 0; padding:8px 12px;
-  background:var(--accent-wash); border-radius:var(--radius-s); font-size:13px;
+  display:flex; align-items:center; gap:12px; margin:14px 0 0; padding:9px 12px;
+  background:var(--p5); border-radius:var(--radius-s); font-size:13px;
 }
-.scoutcomparebar .scb-count{font-weight:600; color:var(--accent-ink)}
+.scoutcomparebar .scb-count{font-weight:600}
 .scb-clear{
-  font:inherit; font-size:12px; background:none; border:1px solid var(--outline);
-  border-radius:var(--radius-xs); padding:3px 9px; cursor:pointer; color:var(--on-surface-variant);
+  font:inherit; font-size:12px; background:var(--surface);
+  border:1px solid var(--outline); border-radius:var(--radius-xs);
+  padding:3px 10px; cursor:pointer; color:var(--on-surface-variant);
 }
+.scb-clear:hover{color:var(--ink); border-color:var(--p50)}
 
-/* --- Level 2: shortlist compare --- */
-.zband{margin-bottom:18px}
-.zband-title{font-size:12px; font-weight:600; color:var(--on-surface-variant); margin-bottom:6px}
+/* --- shortlist compare --- */
+.scoutsub{
+  font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--on-surface-variant); margin:22px 0 10px;
+}
+.zband{margin-bottom:16px}
+.zband-title{font-size:12px; font-weight:600; margin-bottom:6px}
 .zband-rows{display:flex; flex-direction:column; gap:3px}
-.zrow{display:grid; grid-template-columns:90px 1fr 64px; align-items:center; gap:8px; font-size:12px}
-.zrow-name{font-weight:600; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-.zrow-track{position:relative; height:14px; background:var(--surface-variant); border-radius:3px}
+.zrow{display:grid; grid-template-columns:92px 1fr 68px; align-items:center;
+  gap:10px; font-size:12px}
+.zrow-name{font-weight:600; text-align:right; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis}
+.zrow-track{position:relative; height:13px; background:var(--p2);
+  border-radius:3px; box-shadow:inset 0 0 0 1px var(--outline-variant)}
 .zrow-center{position:absolute; left:50%; top:0; bottom:0; width:1px; background:var(--outline)}
-.zrow-bar{position:absolute; top:2px; bottom:2px; border-radius:2px}
-.zrow-bar-pos{background:#6baed6}
-.zrow-bar-neg{background:#fdae6b}
-.zrow-val{font-variant-numeric:tabular-nums; color:var(--on-surface-variant)}
+/* Which side of centre the bar sits on already says better or worse, so
+   both directions are the same ink - a second hue here would be colour
+   repeating what position has already said. */
+.zrow-bar{position:absolute; top:2px; bottom:2px; border-radius:2px; background:var(--p60)}
+.zrow-bar-neg{background:var(--p30)}
+.zrow-val{font-variant-numeric:tabular-nums; color:var(--on-surface-variant);
+  font-family:var(--mono); font-size:11px}
 
 .scouttickertable{border-collapse:collapse; width:100%; font-size:12px}
-.scouttickertable th, .scouttickertable td{padding:4px 8px; text-align:center}
+.scouttickertable th, .scouttickertable td{padding:4px 7px; text-align:center}
 .scouttickertable thead th{
   font-size:10px; text-transform:uppercase; letter-spacing:.03em;
   color:var(--on-surface-variant); font-weight:600;
@@ -2270,12 +2315,11 @@ details .scroll{padding:0 14px 14px}
   text-align:left; font-size:11px; color:var(--on-surface-variant); white-space:nowrap;
 }
 .scouttickertable td.tick-blank{color:var(--on-surface-variant); background:var(--surface-variant)}
-.scouttickertable td.tnum{font-variant-numeric:tabular-nums}
 
-/* --- Level 3: player card ---
-   A separate dialog from dialog.pv (see scout_section's comment on why) -
-   same visual language, deliberately not the same class names, so a
-   change to one can never silently reach into the other. */
+/* --- player card ---
+   A separate dialog from dialog.pv (see scout_section's comment on why),
+   same visual language, deliberately not the same class names so a change
+   to one can never silently reach into the other. */
 dialog.scoutpv{
   width:min(680px,94vw); max-height:88vh; padding:0; border:0;
   border-radius:var(--radius-l); background:var(--surface);
@@ -2306,29 +2350,33 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   display:flex; align-items:center; gap:10px; flex-wrap:wrap;
 }
 .scpv-key{font-size:10px; text-transform:none; letter-spacing:normal; font-weight:400}
-.scpv-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:10px}
+.scpv-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(108px,1fr)); gap:10px}
 .scpv-tile{background:var(--surface-variant); border-radius:var(--radius-s); padding:9px 11px}
-.scpv-tile-label{font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--on-surface-variant)}
-.scpv-tile-num{font-size:19px; font-weight:700; margin-top:2px}
+.scpv-tile-label{font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+  color:var(--on-surface-variant)}
+.scpv-tile-num{font-size:19px; font-weight:700; margin-top:2px;
+  font-variant-numeric:tabular-nums}
 .scpv-tile-note{font-size:11px; color:var(--on-surface-variant); margin-top:2px}
-.scpv-bullet{position:relative; height:6px; border-radius:9999px; background:var(--outline-variant); margin-top:6px; overflow:visible}
-.scpv-bullet-fill{display:block; height:100%; border-radius:9999px; background:var(--accent-ink)}
-.scpv-bullet-tick{position:absolute; left:50%; top:-2px; bottom:-2px; width:1.5px; background:var(--on-surface)}
+.scpv-bullet{position:relative; height:6px; border-radius:9999px;
+  background:var(--outline-variant); margin-top:6px; overflow:visible}
+.scpv-bullet-fill{display:block; height:100%; border-radius:9999px; background:var(--p70)}
+.scpv-bullet-tick{position:absolute; left:50%; top:-2px; bottom:-2px; width:1.5px;
+  background:var(--on-surface)}
 .scpv-strip{width:100%; height:auto; display:block}
-.scpv-bar{fill:var(--ink); opacity:.7}
-.scpv-col:hover .scpv-bar{opacity:1}
+.scpv-bar{fill:var(--p60)}
+.scpv-col:hover .scpv-bar{fill:var(--ink)}
 .mk-started{fill:var(--ink)}
 .mk-sub{fill:var(--p40)}
 .mk-unplayed{stroke:var(--outline)}
-.mk-cs{fill:none; stroke:var(--accent-ink); stroke-width:1.5}
+.mk-cs{fill:none; stroke:var(--p80); stroke-width:1.5}
 .mk-defcon{font-size:9px; font-weight:700; text-anchor:middle}
-.mk-defcon.hit{fill:var(--accent-ink)}
-.mk-defcon.miss{fill:var(--on-surface-variant)}
+.mk-defcon.hit{fill:var(--ink)}
+.mk-defcon.miss{fill:var(--outline)}
 .mk-card-yellow{fill:#c99a00}
 .mk-card-red{fill:var(--bad)}
 .scpv-note{font-size:13px; color:var(--on-surface-variant)}
 .scpv-sparks{display:flex; flex-wrap:wrap; gap:16px}
-.scpv-sparkwrap{color:var(--ink)}
+.scpv-sparkwrap{color:var(--p70)}
 .scpv-spark-label{font-size:11px; color:var(--on-surface-variant); margin-bottom:2px}
 .scpv-spark{width:100px; height:24px; display:block}
 """
@@ -5155,21 +5203,20 @@ def chips_table(histories):
 
 
 def _scout_filter_bar(data):
-    """Sticky, single-row, five controls (spec §4.1) - price range, minimum
-    start rate, minimum minutes per start (in place of role - see plan
-    §2.3, cut for lacking any FPL data source), team, fixture horizon.
-    Structurally static regardless of position, so it is server-rendered
-    like the rest of the page's controls; scout.js owns the listeners and
-    every recompute that follows a change."""
+    """Four controls for the pool explorer: price range, minimum start
+    rate, minimum minutes per start (in place of role - see plan §2.3, cut
+    for lacking any FPL data source), and team. Server-rendered like the
+    rest of the page's controls; scout.js owns the listeners and every
+    recompute that follows a change.
+
+    The fixture horizon used to live here and did nothing visible, because
+    nothing on this view shows a fixture. It now sits on the fixture-runs
+    card, next to the thing it actually changes."""
     teams = sorted(
         {(r["teamId"], r["teamShort"]) for r in data["rows"]}, key=lambda t: t[1]
     )
     team_opts = "".join(
         f'<option value="{tid}">{e(short)}</option>' for tid, short in teams
-    )
-    horizon_opts = "".join(
-        f'<option value="{n}"{" selected" if n == 6 else ""}>{n}</option>'
-        for n in range(1, scout.MAX_FIXTURE_HORIZON + 1)
     )
     return (
         '<div class="scoutfilters" role="group" aria-label="Filters">'
@@ -5187,12 +5234,50 @@ def _scout_filter_bar(data):
         'placeholder="any"></label>'
         f'<label class="sf">Team<select class="sf-team">'
         f'<option value="">All</option>{team_opts}</select></label>'
-        f'<label class="sf">Fixture horizon<select class="sf-horizon">'
-        f"{horizon_opts}</select></label>"
-        '<button type="button" class="sf-categorical chip" aria-pressed="false">'
-        "Colour by price</button>"
         '<span class="sf-count tnum" aria-live="polite"></span>'
         "</div>"
+    )
+
+
+def _scout_fixture_card(runs):
+    """Two ranked club lists: kindest clean-sheet run, kindest run for
+    defensive contributions, over a horizon the reader picks.
+
+    Two lists rather than one blended column because the two genuinely
+    point in opposite directions (spec §3.2) - the clubs whose defenders
+    are likeliest to keep a clean sheet are usually the clubs whose
+    defenders will have least to do. A club sitting near the top of one
+    list and the bottom of the other is the useful thing to notice, and a
+    single combined number would erase it.
+
+    Ranked in the browser so the horizon selector re-ranks immediately,
+    the same shape as ticker.js's own games-count control."""
+    if not runs:
+        return ""
+    horizon_opts = "".join(
+        f'<option value="{n}"{" selected" if n == 6 else ""}>next {n}</option>'
+        for n in range(1, scout.MAX_FIXTURE_HORIZON + 1)
+    )
+    return (
+        '<section class="card scoutfx">'
+        f'<div class="card-head"><h2>Fixture runs{components.info_btn()}</h2>'
+        '<span class="sub" hidden>Difficulty runs 1 to 5, lower is kinder, '
+        "and the number is printed in every cell. Contribution difficulty is "
+        "modelled from the opponent's expected goals rather than measured, "
+        'so read it as a steer, not a stat.</span>'
+        f'<label class="sf sf-inline">Horizon<select class="sf-horizon">'
+        f"{horizon_opts}</select></label>"
+        "</div>"
+        '<div class="card-body"><div class="fxruns">'
+        '<div class="fxrun-col"><h4>Kindest for clean sheets</h4>'
+        '<ol class="fxrun-list" data-metric="cs"></ol></div>'
+        '<div class="fxrun-col"><h4>Most to defend against'
+        ' <span class="fxrun-tag">modelled</span></h4>'
+        '<ol class="fxrun-list" data-metric="dc"></ol></div>'
+        "</div>"
+        f'<script type="application/json" class="scout-fixtures">'
+        f"{json.dumps(runs)}</script>"
+        "</div></section>"
     )
 
 
@@ -5208,7 +5293,7 @@ def _scout_heatmap_shell(data):
         for key in data["metrics"]
     )
     return (
-        '<div class="scroll"><table class="scoutheatmap">'
+        '<div class="scroll scoutheat"><table class="scoutheatmap">'
         '<thead><tr><th class="scoutpick-h" aria-label="Shortlist"></th>'
         '<th data-sort="webName" role="button" tabindex="0">Player</th>'
         '<th data-sort="price" role="button" tabindex="0">Price</th>'
@@ -5218,54 +5303,81 @@ def _scout_heatmap_shell(data):
     )
 
 
-def scout_section(scout_pools):
+def scout_section(scout_pools, fixture_runs=None, owned_ids=frozenset()):
     """One lab per position in `scout_pools` ({pos: scout.pool(...) dict}).
-    The hero scatter and heatmap rows render lazily in the browser from the
-    JSON data island - see scout.js - so this only has to emit the shell,
-    the static controls and the data itself."""
+
+    Three chapters rather than one wall. The leaderboards and the fixture
+    runs answer the questions someone opens this tab with and are readable
+    at a glance; the full pool - scatter, heatmap, shortlist compare - sits
+    behind a disclosure for when the summary is not enough. That is the
+    same split the Squad tab already makes with its own Squad detail table,
+    and the leaderboards borrow the League leaders card outright, because
+    these are four separate questions rather than four columns of one."""
     if not scout_pools:
         return ""
     parts = []
     for pos, data in scout_pools.items():
+        label = data["label"]
+        singular = label.lower().rstrip("s")
+        groups = scout.leader_groups(data["rows"], owned_ids=owned_ids)
         parts.append(
-            f'<div class="chapter"><h2>{e(data["label"])}</h2>'
-            '<span class="sub">Who to buy, by defensive contribution, '
-            "attacking threat and fixtures - not a single blended rating "
-            "(see the section notes for why).</span></div>"
+            f'<div class="chapter"><h2>{e(label)}</h2>'
+            '<span class="sub">Four questions kept separate rather than '
+            "blended into one rating: contributions, threat, solidity and "
+            "minutes pull against each other, and averaging them hides the "
+            "trade-off you are choosing between.</span></div>"
+            + components.stat_leaders(
+                groups,
+                title=f"{label} worth a look",
+                sub=("Ranked on each measure on its own, over "
+                     f"{scout.RATE_MIN_MINUTES} minutes so a cameo cannot top "
+                     "a column. Players you already own are marked."),
+            )
+            + '<div class="chapter"><h2>Fixture runs</h2>'
+            '<span class="sub">Which defences have the kind run, and which '
+            "have the run that actually generates defensive "
+            "contributions.</span></div>"
+            + _scout_fixture_card(fixture_runs)
+            + '<div class="chapter"><h2>Explore the pool</h2>'
+            f'<span class="sub">Every {e(singular)} with a minute played, '
+            "filtered how you like. Click any name for his match-by-match "
+            "card, or pick up to six to compare side by side.</span></div>"
             f'<div class="scoutlab" data-pos="{e(pos)}">'
             f'<script type="application/json" class="scout-data" '
             f'data-pos="{e(pos)}">{json.dumps(data)}</script>'
-            f"{_scout_filter_bar(data)}"
-            '<div class="card scouthero"><div class="card-body">'
-            '<svg class="scoutscatter" viewBox="0 0 1040 560" role="img" '
-            f'aria-label="{e(data["label"])} comparison scatter"></svg>'
-            '<p class="scoutreadout" aria-live="polite">Hover or click a '
-            "bubble to identify the player.</p>"
-            '<p class="legend"><span class="key mkt"></span>Below the '
-            "minutes floor (hollow)<span class=\"key mine\"></span>Solid "
-            "fill (enough minutes to trust the rate)</p>"
-            "</div></div>"
-            f'<div class="card scoutheat"><div class="card-body">'
-            f"{_scout_heatmap_shell(data)}"
-            '<p class="scoutcomparebar" hidden>'
-            '<span class="scb-count"></span> '
+            '<details class="card collapsible scoutexplorer">'
+            f'<summary class="card-head"><h2>All {e(label.lower())}'
+            f"{components.info_btn()}</h2>"
+            '<span class="sub" hidden>The scatter puts defensive '
+            "contribution against attacking threat, with bubble size for how "
+            "little the club concedes. Everyone else is one row of the table "
+            "below it.</span></summary>"
+            '<div class="card-body">'
+            + _scout_filter_bar(data)
+            + '<svg class="scoutscatter" viewBox="0 0 1040 520" role="img" '
+            f'aria-label="{e(label)} comparison scatter"></svg>'
+            '<p class="legend">'
+            '<span class="key key-solid"></span>Enough minutes to trust the rate'
+            '<span class="key key-thin"></span>Below the minutes floor'
+            '<span class="key key-size"></span>Bigger bubble concedes less'
+            "</p>"
+            + _scout_heatmap_shell(data)
+            + '<p class="scoutcomparebar" hidden>'
+            '<span class="scb-count"></span>'
             '<button type="button" class="scb-clear">Clear shortlist</button>'
             "</p>"
-            "</div></div>"
-            '<div class="card scoutcompare" hidden><div class="card-body">'
-            '<div class="chapter"><h2>Shortlist compare</h2>'
-            '<span class="sub">Every band centred on the filtered pool\'s '
-            "own mean, one shared scale - right is always good, inverted "
-            "metrics say so.</span></div>"
+            "</div></details>"
+            '<section class="card scoutcompare" hidden>'
+            f'<div class="card-head"><h2>Shortlist{components.info_btn()}</h2>'
+            '<span class="sub" hidden>Each bar is distance from the filtered '
+            "pool's own average on one shared scale. Right is always better, "
+            "including for the two measures where a lower raw number is the "
+            'good one.</span></div>'
+            '<div class="card-body">'
             '<div class="scoutzbars"></div>'
-            '<div class="chapter"><h2>Fixtures</h2>'
-            '<span class="sub">Clean sheet difficulty and DEFCON difficulty '
-            "move in opposite directions for the same fixture - a stronger "
-            "opponent suppresses clean sheets but creates more to defend "
-            "against. DEFCON difficulty is modelled from the opponent's own "
-            "expected goals, not a measured stat.</span></div>"
+            '<h4 class="scoutsub">Fixtures, both directions</h4>'
             '<div class="scoutticker"></div>'
-            "</div></div>"
+            "</div></section>"
             "</div>"
         )
     # One shared card for every position and every player in every pool -
@@ -5658,9 +5770,10 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                             market=market, baselines=baselines, priors=scout_priors)
             for pos in scout.POSITIONS
         }
+        scout_fixtures = scout.club_fixture_runs(ctx, proj, next_gw)
     except fplapi.FplError as ex:
         print(f"[scout] skipped: {ex}")
-        scout_pools = {}
+        scout_pools, scout_fixtures = {}, []
     eps = []
     for r in xi + bench:
         ep = analysis.expected_points(r, ctx, proj, next_gw,
@@ -5942,7 +6055,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                               weeks=RIVALS_WINDOW_WEEKS),
         "elite": elite_card(elite_res, ctx),
         "chips": chips_table(histories) if histories else "",
-        "scout": scout_section(scout_pools),
+        "scout": scout_section(scout_pools, scout_fixtures, set(squad_ids)),
         "next_gw": next_gw,
         "overall_rank": meta.get("summary_overall_rank"),
         "gw_average": gw_average,

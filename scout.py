@@ -126,58 +126,38 @@ POSITIONS = {
 
 # --- colour and accessibility primitives -----------------------------------
 #
-# Scoped to this section, not the dashboard (plan §2.4): most of the rest of
-# the page is already CVD-conscious for documented reasons (the fixture
-# ticker's rose-teal ramp, size+ring+label on the value scatter, a triangle
-# on every delta chip), and a global rewrite to Okabe-Ito would fight the
-# standing FPL-purple-and-green brand constraint rather than serve it. These
-# constants are for the new concepts this section introduces that have no
-# existing scale to reuse: the percentile heatmap, the z-score bars, and an
-# optional categorical toggle on the hero scatter. Fixture difficulty
-# deliberately reuses ticker.py's own rose-teal ramp instead of a second
-# diverging scale - see fixture_rows below and plan §2.5.
-
-OKABE_ITO = {
-    "blue": "#0072B2", "orange": "#E69F00", "sky": "#56B4E9",
-    "yellow": "#F0E442", "green": "#009E73", "vermillion": "#D55E00",
-    "purple": "#CC79A7",
-}
-
-# Okabe-Ito is built for hue separation under red-green and blue-yellow
-# colourblindness, not for luminance separation under full greyscale -
-# 'orange' and 'sky' differ by a relative luminance of 0.01, and
-# 'green'/'vermillion'/'purple' sit within 0.04 of each other (measured
-# below, see GREYSCALE_MIN_STEP). Picking straight from OKABE_ITO for an
-# n-way categorical toggle can silently fail the dashboard's own greyscale
-# acceptance test even though every colour is individually CVD-correct.
-# This is the widest ordered subset - by relative luminance - that clears
-# GREYSCALE_MIN_STEP against every other entry in it, for whenever the
-# categorical toggle needs more than two colours. Marker shape still carries
-# the distinction regardless (spec §1) - this only keeps the colour channel
-# honest as a second one.
-CATEGORICAL_ORDER = ["blue", "green", "sky", "yellow"]
-
-# White->blue for a good percentile, white->orange for a bad one (spec
-# §4.3) - the two ends of Okabe-Ito's blue and orange, shaped like the
-# ticker's own five-step ramp (a genuine neutral middle, solid bands rather
-# than a wash) so a new scale still feels native to the page. Never used for
-# fixture difficulty - see the module docstring above.
-DIVERGING_SCALE = [
-    (20.0, "#08306b", "#ffffff"),
-    (40.0, "#6baed6", "#0b3053"),
-    (60.0, "#f4f2ee", "#37003c"),
-    (80.0, "#fdae6b", "#5c2c00"),
-    (100.1, "#e6550d", "#ffffff"),
+# A percentile is *sequential* data, not diverging: 0 to 100 with no
+# meaningful midpoint to diverge around. It was originally shaded on a
+# blue-to-orange diverging ramp, which was wrong twice over - wrong shape
+# for the data, and a second saturated palette bolted onto a page that
+# already has a settled one. Spec §1 allows "a single-hue ramp with real
+# luminance variation" for sequential scales, and the page's own purple
+# ramp (--p2 through --p70) is exactly that: five steps spanning 0.95 to
+# 0.13 relative luminance, every adjacent pair clearing GREYSCALE_MIN_STEP
+# roughly two and a half times over, every text pairing above 5.8:1.
+#
+# So the section introduces no new hues at all now. Percentiles use the
+# page's purple; fixture difficulty uses ticker.py's rose-teal (plan §2.5);
+# direction on the compare bars is carried by which side of centre the bar
+# sits, which needs no colour at all.
+PERCENTILE_SCALE = [
+    (20.0, "#faf9fa", "#37003c"),
+    (40.0, "#ebe5eb", "#37003c"),
+    (60.0, "#d7ccd8", "#37003c"),
+    (80.0, "#af99b1", "#37003c"),
+    (100.1, "#7d5980", "#ffffff"),
 ]
 
 
-def diverging_tone(percentile):
-    """(bg, fg) for a 0..100 percentile against DIVERGING_SCALE - the
-    heatmap and z-bar equivalent of ticker._tone."""
-    for edge, bg, fg in DIVERGING_SCALE:
+def percentile_tone(percentile):
+    """(bg, fg) for a 0..100 percentile - the heatmap's equivalent of
+    ticker._tone, and deliberately as pale at the bottom end. The number in
+    the cell carries the value; the fill only has to make a run of strong
+    or weak figures visible down a column."""
+    for edge, bg, fg in PERCENTILE_SCALE:
         if percentile < edge:
             return bg, fg
-    return DIVERGING_SCALE[-1][1], DIVERGING_SCALE[-1][2]
+    return PERCENTILE_SCALE[-1][1], PERCENTILE_SCALE[-1][2]
 
 
 def radius_for_percentile(pct, r_min=5.0, r_max=22.0):
@@ -222,18 +202,6 @@ def greyscale_readable(hex_colours, min_step=GREYSCALE_MIN_STEP):
     apart at a glance down a column."""
     lums = [relative_luminance(c) for c in hex_colours]
     return all(abs(b - a) >= min_step for a, b in zip(lums, lums[1:]))
-
-
-def greyscale_distinguishable(hex_colours, min_step=GREYSCALE_MIN_STEP):
-    """True if *every pair* of colours, not just adjacent ones, clears
-    `min_step`. Use this for a categorical set such as CATEGORICAL_ORDER,
-    where any two members can end up next to each other in the same chart -
-    unlike a ramp, there is no fixed reading order to rely on."""
-    lums = [relative_luminance(c) for c in hex_colours]
-    return all(
-        abs(lums[i] - lums[j]) >= min_step
-        for i in range(len(lums)) for j in range(i + 1, len(lums))
-    )
 
 
 def season_live(ctx, upto_gw, ttl=fplapi.DEFAULT_TTL):
@@ -606,4 +574,111 @@ def _apply_filters(rows, filters):
         if team is not None and r["teamId"] != team:
             continue
         out.append(r)
+    return out
+
+
+# --- server-rendered insight cards -----------------------------------------
+#
+# The pool explorer below (scatter + heatmap, drawn by scout.js) answers
+# "show me everything". These answer the four questions someone actually
+# opens this tab with, one card each, in the same grammar as the League
+# leaders card - because they are the same shape of question, and the rest
+# of the page already established that a narrow list beats a wide table for
+# it (see components.stat_leaders).
+
+
+def _eligible(rows, min_minutes=None):
+    """Rows with enough football behind them to rank honestly. Ranking a
+    16-minute cameo against a 270-minute starter is how a leaderboard ends
+    up being a list of people who happened to touch the ball once."""
+    floor = RATE_MIN_MINUTES if min_minutes is None else min_minutes
+    return [r for r in rows if r["minutes"] >= floor]
+
+
+def leader_groups(rows, owned_ids=frozenset(), depth=6):
+    """The four leaderboards, as components.stat_leaders group dicts.
+
+    DefCon's sort key follows the same sample gate as the hero axis
+    (hero_x_key): the hit rate is the metric that matters, but until the
+    pool has enough matches behind it the rate resolves into two or three
+    values and ranks nothing, so the per-90 leads and the hit count rides
+    along as the evidence."""
+    pool = _eligible(rows)
+    if not pool:
+        return []
+    by_hit_rate = hero_x_key(pool) == "defcon_hit_rate"
+
+    def rank(key, reverse=True):
+        return sorted(pool, key=key, reverse=reverse)[:depth]
+
+    def row(r, val):
+        return (r["webName"], r["teamShort"], val, r["id"] in owned_ids)
+
+    defcon = rank(lambda r: (r["defconHitRate"], r["defcon90"]) if by_hit_rate
+                  else (r["defcon90"], r["defconHitRate"]))
+    attack = rank(lambda r: r["xgi90"])
+    solid = sorted(pool, key=lambda r: r["xgc90"])[:depth]
+    nailed = rank(lambda r: (r["startRate"], r["minutesPerStart"]))
+
+    return [
+        {
+            "title": "Defensive contribution",
+            "note": ("Hit rate, with the per-90 behind it."
+                     if by_hit_rate else
+                     "Per 90, with hits out of starts beside it."),
+            "tone": "var(--p70)", "icon": "shield",
+            # components.stat_leaders escapes the value, so this is a plain
+            # character rather than an HTML entity - an &middot; here comes
+            # out as the literal text "&middot;".
+            "rows": [row(r, f"{r['defcon90']:.1f} ({r['defconHits']}/{r['defconHitN']})")
+                     for r in defcon],
+        },
+        {
+            "title": "Threat going forward",
+            "note": "Expected goal involvement per 90.",
+            "tone": "var(--mine)", "icon": "boot",
+            "rows": [row(r, f"{r['xgi90']:.2f}") for r in attack],
+        },
+        {
+            "title": "Concede the least",
+            "note": "Expected goals conceded per 90, lowest first.",
+            "tone": "var(--premium)", "icon": "key",
+            "rows": [row(r, f"{r['xgc90']:.2f}") for r in solid],
+        },
+        {
+            "title": "Nailed on",
+            "note": "Matches started, and how long he lasts in them.",
+            "tone": "var(--market)", "icon": "run",
+            # Start rate alone is a column of identical 100%s this early in
+            # a season, which ranks nothing. Minutes per start is the other
+            # half of the minutes question anyway (spec §3.3: selection
+            # security and hook risk are not the same thing), and it is what
+            # actually separates these six.
+            "rows": [row(r, f"{r['startRate'] * 100:.0f}% ({r['minutesPerStart']:.0f} min)")
+                     for r in nailed],
+        },
+    ]
+
+
+def club_fixture_runs(ctx, proj, start_gw, weeks=MAX_FIXTURE_HORIZON):
+    """Per club: the two difficulty rows across the horizon, plus their
+    means, so a club can be ranked on either question separately.
+
+    Two questions, not one - a club with kind clean-sheet fixtures is
+    usually a club whose defenders will have little to do, which is exactly
+    the trade-off spec §3.2 exists to keep visible."""
+    out = []
+    for tid, t in ctx.teams.items():
+        club = t["short_name"]
+        cells = fixture_rows(club, proj, start_gw, weeks)
+        real = [c for c in cells if not c.get("blank")]
+        if not real:
+            continue
+        out.append({
+            "club": club,
+            "teamId": tid,
+            "cells": cells,
+            "csMean": sum(c["cleanSheetDifficulty"] for c in real) / len(real),
+            "dcMean": sum(c["defconDifficulty"] for c in real) / len(real),
+        })
     return out

@@ -379,9 +379,30 @@ class GreyscaleAccessibilityTests(unittest.TestCase):
     """Mechanical form of spec §1's acceptance test: "render each chart in
     greyscale; if it is still readable, it passes." """
 
-    def test_diverging_scale_passes_greyscale(self):
-        bgs = [bg for _, bg, _ in scout.DIVERGING_SCALE]
+    def test_percentile_scale_passes_greyscale(self):
+        bgs = [bg for _, bg, _ in scout.PERCENTILE_SCALE]
         self.assertTrue(scout.greyscale_readable(bgs))
+
+    def test_percentile_scale_luminance_is_monotonic(self):
+        # A sequential scale has to *read* as sequential without colour:
+        # each step strictly darker than the last, so "further down the
+        # column is a bigger number" survives a greyscale render.
+        lums = [scout.relative_luminance(bg) for _, bg, _ in scout.PERCENTILE_SCALE]
+        self.assertEqual(lums, sorted(lums, reverse=True))
+
+    def test_percentile_scale_text_contrast(self):
+        # Every (bg, fg) pairing has to clear WCAG AA for body text. The
+        # dark end of a single-hue ramp is exactly where a ramp designed
+        # by eye tends to fail this.
+        for _edge, bg, fg in scout.PERCENTILE_SCALE:
+            lb, lf = scout.relative_luminance(bg), scout.relative_luminance(fg)
+            hi, lo = max(lb, lf), min(lb, lf)
+            self.assertGreaterEqual((hi + 0.05) / (lo + 0.05), 4.5, bg + " on " + fg)
+
+    def test_percentile_tone_covers_the_whole_range(self):
+        for pct in (0, 19.9, 20, 55, 80, 99.9, 100):
+            bg, fg = scout.percentile_tone(pct)
+            self.assertTrue(bg.startswith("#") and fg.startswith("#"))
 
     def test_ticker_scale_still_passes_greyscale(self):
         # The shipped rose-teal ramp this section deliberately reuses for
@@ -391,19 +412,6 @@ class GreyscaleAccessibilityTests(unittest.TestCase):
         import ticker
         bgs = [bg for _, bg, _ in ticker.SCALE]
         self.assertTrue(scout.greyscale_readable(bgs))
-
-    def test_categorical_order_is_pairwise_distinguishable(self):
-        colours = [scout.OKABE_ITO[k] for k in scout.CATEGORICAL_ORDER]
-        self.assertTrue(scout.greyscale_distinguishable(colours))
-
-    def test_full_okabe_ito_set_is_not_pairwise_distinguishable(self):
-        # Documents *why* CATEGORICAL_ORDER exists as a curated subset:
-        # Okabe-Ito guarantees hue separation for red-green and blue-yellow
-        # colourblindness, not luminance separation under full greyscale -
-        # taking all seven colours straight would fail this section's own
-        # accessibility bar even though every colour is individually
-        # CVD-correct.
-        self.assertFalse(scout.greyscale_distinguishable(list(scout.OKABE_ITO.values())))
 
     def test_radius_mapping_spans_the_documented_range(self):
         self.assertEqual(scout.radius_for_percentile(0), 5.0)

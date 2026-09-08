@@ -597,12 +597,17 @@ STAT_ICONS = {
 }
 
 
-def stat_leaders(groups):
+def stat_leaders(groups, title="League leaders",
+                 sub="Who is topping each measure so far. Your players are marked."):
     """Who leads the league on each measure, a few names deep.
 
     Narrow columns rather than one wide table: these are six separate
     questions, not six columns of one, and side by side they take a fraction
-    of the height a table of the same content would."""
+    of the height a table of the same content would.
+
+    `title`/`sub` are parameters so the Scout section can borrow the same
+    grammar for its own questions rather than growing a second, nearly
+    identical list component."""
     def _items(rows, pair):
         if pair:
             return "".join(
@@ -644,9 +649,9 @@ def stat_leaders(groups):
     if not cards:
         return ""
     return (
-        '<section class="card"><div class="card-head"><h2>League leaders{}</h2>'
-        '<span class="sub" hidden>Who is topping each measure so far. Your players are '
-        "marked.</span></div>".format(info_btn())
+        '<section class="card"><div class="card-head"><h2>{}{}</h2>'
+        '<span class="sub" hidden>{}</span></div>'.format(
+            e(title), info_btn(), e(sub))
         + '<div class="card-body"><ul class="slwrap">{}</ul></div></section>'.format(
             "".join(cards)
         )

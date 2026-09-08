@@ -37,15 +37,6 @@
   var HERO_GATE_MINUTES = RATE_MIN_MINUTES * 2;  // scout.HERO_GATE_MINUTES
   var ARCHETYPE_PERCENTILE_FLOOR = 200.0 / 3.0;  // scout.ARCHETYPE_PERCENTILE_FLOOR
 
-  var OKABE_ITO = {
-    blue: '#0072B2', orange: '#E69F00', sky: '#56B4E9', yellow: '#F0E442',
-    green: '#009E73', vermillion: '#D55E00', purple: '#CC79A7',
-  };
-  // Widest subset of OKABE_ITO that is also pairwise distinguishable in
-  // greyscale - see scout.py's CATEGORICAL_ORDER for why the full set
-  // cannot be used straight for an n-way categorical toggle.
-  var CATEGORICAL_ORDER = ['blue', 'green', 'sky', 'yellow'];
-
   var ARCHETYPE_LABELS = { volume: 'Volume', cleanSheet: 'Clean sheet', attacking: 'Attacking' };
 
   var MAX_SHORTLIST = 6;   // spec §5: "Max six players"
@@ -66,22 +57,24 @@
     ['#a4133c', '#ffffff'],
   ];
 
-  // White->blue (good) / white->orange (bad), matching scout.py's
-  // DIVERGING_SCALE - never used for fixture difficulty, which keeps the
-  // ticker's own rose-teal ramp (plan §2.5).
-  var DIVERGING_SCALE = [
-    [20.0, '#08306b', '#ffffff'],
-    [40.0, '#6baed6', '#0b3053'],
-    [60.0, '#f4f2ee', '#37003c'],
-    [80.0, '#fdae6b', '#5c2c00'],
-    [100.1, '#e6550d', '#ffffff'],
+  // The page's own purple ramp, matching scout.py's PERCENTILE_SCALE. A
+  // percentile is sequential data with no midpoint to diverge around, so
+  // a single hue with real luminance variation is both the correct shape
+  // and the one that keeps this section inside the palette the rest of
+  // the dashboard already uses.
+  var PERCENTILE_SCALE = [
+    [20.0, '#faf9fa', '#37003c'],
+    [40.0, '#ebe5eb', '#37003c'],
+    [60.0, '#d7ccd8', '#37003c'],
+    [80.0, '#af99b1', '#37003c'],
+    [100.1, '#7d5980', '#ffffff'],
   ];
 
-  function divergingTone(pct) {
-    for (var i = 0; i < DIVERGING_SCALE.length; i++) {
-      if (pct < DIVERGING_SCALE[i][0]) { return DIVERGING_SCALE[i]; }
+  function percentileTone(pct) {
+    for (var i = 0; i < PERCENTILE_SCALE.length; i++) {
+      if (pct < PERCENTILE_SCALE[i][0]) { return PERCENTILE_SCALE[i]; }
     }
-    return DIVERGING_SCALE[DIVERGING_SCALE.length - 1];
+    return PERCENTILE_SCALE[PERCENTILE_SCALE.length - 1];
   }
 
   function radiusForPercentile(pct, rMin, rMax) {
@@ -394,7 +387,6 @@
     catch (e) { return; }
 
     var filters = Object.assign({}, data.defaultFilters);
-    var brush = null;   // Set of player ids, or null when no brush is active
     var selected = new Set();  // Level 2 shortlist, insertion order = display order
 
     var compareBar = lab.querySelector('.scoutcomparebar');
@@ -423,40 +415,6 @@
     function fmtHeroX(key, val) {
       return key === 'defcon_hit_rate' ? Math.round(val * 100) + '%' : val.toFixed(1);
     }
-
-    function shapeNode(bucket, cx, cy, r) {
-      // Shape backs the categorical colour toggle (spec §1: never colour
-      // alone) - circle/square/triangle/diamond for the four
-      // CATEGORICAL_ORDER buckets.
-      if (bucket === 1) {
-        return node('rect', { x: cx - r * 0.85, y: cy - r * 0.85, width: r * 1.7, height: r * 1.7 });
-      }
-      if (bucket === 2) {
-        var h = r * 1.15;
-        return node('polygon', {
-          points: [cx, cy - h, cx - h, cy + h * 0.85, cx + h, cy + h * 0.85].join(' '),
-        });
-      }
-      if (bucket === 3) {
-        return node('polygon', {
-          points: [cx, cy - r, cx + r, cy, cx, cy + r, cx - r, cy].join(' '),
-        });
-      }
-      return node('circle', { cx: cx, cy: cy, r: r });
-    }
-
-    function priceBucket(rows, price) {
-      var sorted = rows.map(function (r) { return r.price; }).sort(function (a, b) { return a - b; });
-      var n = sorted.length;
-      var q = [sorted[Math.floor(n * 0.25)], sorted[Math.floor(n * 0.5)], sorted[Math.floor(n * 0.75)]];
-      if (price <= q[0]) { return 0; }
-      if (price <= q[1]) { return 1; }
-      if (price <= q[2]) { return 2; }
-      return 3;
-    }
-
-    var categorical = false;
-    var toggleBtn = lab.querySelector('.sf-categorical');
 
     function drawScatter(rows, heroX) {
       while (svg.firstChild) { svg.removeChild(svg.firstChild); }
@@ -530,18 +488,13 @@
       var mx = sx(medX), my = sy(medY);
       svg.appendChild(node('line', { 'class': 'crosshair', x1: mx, y1: MT, x2: mx, y2: H - MB }));
       svg.appendChild(node('line', { 'class': 'crosshair', x1: ML, y1: my, x2: W - MR, y2: my }));
-      var xLabel = METRICS[heroX].label.toLowerCase();
       var yLabel = (METRICS[yKey] ? METRICS[yKey].label : yKey).toLowerCase();
-      [
-        [W - MR - 6, MT + 12, 'end', 'high ' + xLabel + ', high ' + yLabel],
-        [ML + 6, MT + 12, 'start', 'low ' + xLabel + ', high ' + yLabel],
-        [W - MR - 6, H - MB - 6, 'end', 'high ' + xLabel + ', low ' + yLabel],
-        [ML + 6, H - MB - 6, 'start', 'low ' + xLabel + ', low ' + yLabel],
-      ].forEach(function (q) {
-        svg.appendChild(node('text', {
-          'class': 'quadlabel', x: q[0], y: q[1], 'text-anchor': q[2],
-        }, q[3]));
-      });
+      // One corner tag, not four. The top-right quadrant is the only one
+      // anyone is shopping in; labelling the other three restated the axis
+      // titles in smaller type and turned the plot into a wall of words.
+      svg.appendChild(node('text', {
+        'class': 'quadlabel', x: W - MR - 6, y: MT + 13, 'text-anchor': 'end',
+      }, 'better on both, this corner'));
 
       var pts = [];
       rows.forEach(function (r) {
@@ -557,33 +510,33 @@
             : '');
         var g = node('g', {
           'class': 'scoutpt ' + (thin ? 'thin' : 'solid'),
-          'data-pid': r.id, tabindex: '0', role: 'button', 'aria-label': detail,
+          'data-pid': r.id, 'data-scout-open': r.id,
+          tabindex: '0', role: 'button', 'aria-label': detail,
         });
-        var mark;
-        if (categorical) {
-          var bucket = priceBucket(rows, r.price);
-          mark = shapeNode(bucket, cx, cy, radius);
-          mark.setAttribute('fill', thin ? 'none' : OKABE_ITO[CATEGORICAL_ORDER[bucket]]);
-          mark.setAttribute('stroke', OKABE_ITO[CATEGORICAL_ORDER[bucket]]);
-        } else {
-          mark = node('circle', { cx: cx, cy: cy, r: radius });
-        }
-        g.appendChild(mark);
-        g.appendChild(node('circle', { 'class': 'hit', cx: cx, cy: cy, r: Math.max(radius, 11) }));
+        g.appendChild(node('circle', { cx: cx, cy: cy, r: radius }));
+        // Hit target never smaller than the mark, never so much larger
+        // that it swallows its neighbours in the dense middle of the plot.
+        g.appendChild(node('circle', { 'class': 'hit', cx: cx, cy: cy, r: Math.max(radius, 8) }));
         g.appendChild(node('title', {}, detail));
         g._r = r; g._cx = cx; g._cy = cy; g._detail = detail;
-        g.addEventListener('click', function () { pinnedG = this; pick(this); });
-        g.addEventListener('focus', function () { pinnedG = this; pick(this); });
         g.addEventListener('mouseenter', function () { pick(this); });
-        g.addEventListener('mouseleave', unpick);
+        g.addEventListener('focus', function () { pick(this); });
         svg.appendChild(g);
         pts.push({ r: r, cx: cx, cy: cy, g: g });
       });
 
-      // Top-quadrant players (better than the pool median on both axes)
-      // get a permanent label with collision avoidance; everyone else is
-      // read on hover (spec §4.2).
-      var topQuadrant = pts.filter(function (p) { return p.r[xField] >= medX && p.r[yField] >= medY; });
+      // Labels go to the handful of players furthest into the top-right
+      // quadrant, not to everyone in it. Labelling the whole quadrant put
+      // forty names on the plot, most of them overlapping, which is how
+      // the chart ended up unreadable: a label nobody can read is worse
+      // than no label, because it also hides the dot underneath it.
+      var LABEL_MAX = 8;
+      var topQuadrant = pts
+        .filter(function (p) { return p.r[xField] >= medX && p.r[yField] >= medY; })
+        .sort(function (a, b) {
+          return Math.hypot(b.cx - mx, my - b.cy) - Math.hypot(a.cx - mx, my - a.cy);
+        })
+        .slice(0, LABEL_MAX);
       var placed = [];
       topQuadrant.forEach(function (m) {
         var halfw = m.r.webName.length * 3.2 + 4;
@@ -611,54 +564,6 @@
       selGroup.appendChild(node('circle', { 'class': 'selring', r: 10 }));
       svg.appendChild(selGroup);
 
-      // Brush rectangle (drag to select). A click with no drag clears it.
-      var brushRect = null, dragStart = null;
-      var overlay = node('rect', {
-        'class': 'brushcatch', x: ML, y: MT, width: W - ML - MR, height: H - MT - MB,
-      });
-      overlay.addEventListener('mousedown', function (ev) {
-        var box = svg.getBoundingClientRect();
-        var scale = W / box.width;
-        dragStart = { x: (ev.clientX - box.left) * scale, y: (ev.clientY - box.top) * scale };
-        brushRect = node('rect', { 'class': 'brushrect', x: dragStart.x, y: dragStart.y, width: 0, height: 0 });
-        svg.appendChild(brushRect);
-      });
-      svg.addEventListener('mousemove', function (ev) {
-        if (!dragStart) { return; }
-        var box = svg.getBoundingClientRect();
-        var scale = W / box.width;
-        var cx2 = (ev.clientX - box.left) * scale, cy2 = (ev.clientY - box.top) * scale;
-        var x = Math.min(dragStart.x, cx2), y = Math.min(dragStart.y, cy2);
-        brushRect.setAttribute('x', x); brushRect.setAttribute('y', y);
-        brushRect.setAttribute('width', Math.abs(cx2 - dragStart.x));
-        brushRect.setAttribute('height', Math.abs(cy2 - dragStart.y));
-      });
-      window.addEventListener('mouseup', function (ev) {
-        if (!dragStart) { return; }
-        var x = parseFloat(brushRect.getAttribute('x')), y = parseFloat(brushRect.getAttribute('y'));
-        var w = parseFloat(brushRect.getAttribute('width')), h = parseFloat(brushRect.getAttribute('height'));
-        dragStart = null;
-        if (w < 4 && h < 4) {
-          // A click, not a drag - clears any existing brush.
-          if (brushRect && brushRect.parentNode) { brushRect.parentNode.removeChild(brushRect); }
-          if (brush) { brush = null; renderHeatmap(currentRows); updateBrushDimming(); }
-          return;
-        }
-        var picked = pts.filter(function (p) {
-          return p.cx >= x && p.cx <= x + w && p.cy >= y && p.cy <= y + h;
-        });
-        brush = new Set(picked.map(function (p) { return p.r.id; }));
-        renderHeatmap(currentRows);
-        updateBrushDimming();
-      });
-      svg.appendChild(overlay);
-      updateBrushDimming();
-
-      function updateBrushDimming() {
-        pts.forEach(function (p) {
-          p.g.classList.toggle('dimmed', !!(brush && !brush.has(p.r.id)));
-        });
-      }
     }
 
     function pick(g) {
@@ -691,7 +596,7 @@
 
     function renderHeatmap(rows) {
       if (!tbody) { return; }
-      var visible = brush ? rows.filter(function (r) { return brush.has(r.id); }) : rows;
+      var visible = rows;
       if (sortState.key) {
         var key = sortState.key, dir = sortState.dir;
         visible = visible.slice().sort(function (a, b) {
@@ -721,7 +626,7 @@
           '<td class="num tnum">£' + r.price.toFixed(1) + 'm</td>';
         data.metrics.forEach(function (key) {
           var pct = r.percentiles[key];
-          var tone = divergingTone(pct);
+          var tone = percentileTone(pct);
           cells += '<td class="num tnum" style="background:' + tone[1] + ';color:' + tone[2] + '">' +
             fmtMetric(key, r[METRICS[key].field]) + '</td>';
         });
@@ -742,8 +647,7 @@
         tbody.appendChild(tr);
       });
       if (countEl) {
-        countEl.textContent = visible.length + ' of ' + rows.length + ' shown' +
-          (brush ? ' (brushed - click empty space to clear)' : '');
+        countEl.textContent = visible.length + ' of ' + data.rows.length + ' shown';
       }
     }
 
@@ -847,11 +751,6 @@
     var currentRows = [];
 
     function draw() {
-      // A brush is a selection of specific player ids drawn against the
-      // last scatter render - a filter change redraws that scatter from
-      // scratch, so an old brush would otherwise silently read as "0 of 0
-      // shown" the moment none of its ids survive the new filter.
-      brush = null;
       currentRows = applyFilters(data.rows, filters);
       applyDerivations(currentRows, data.archetypes);
       currentRows.forEach(function (r) { cardRowsById[r.id] = r; });
@@ -869,7 +768,6 @@
     var startRateVal = lab.querySelector('.sf-start-rate-val');
     var minsPerStart = lab.querySelector('.sf-mins-per-start');
     var teamSel = lab.querySelector('.sf-team');
-    var horizonSel = lab.querySelector('.sf-horizon');
 
     if (priceMin) { priceMin.addEventListener('change', function () { filters.priceMin = this.value ? parseFloat(this.value) : null; draw(); }); }
     if (priceMax) { priceMax.addEventListener('change', function () { filters.priceMax = this.value ? parseFloat(this.value) : null; draw(); }); }
@@ -884,19 +782,13 @@
     }
     if (minsPerStart) { minsPerStart.addEventListener('change', function () { filters.minMinutesPerStart = this.value ? parseFloat(this.value) : null; draw(); }); }
     if (teamSel) { teamSel.addEventListener('change', function () { filters.team = this.value ? parseInt(this.value, 10) : null; draw(); }); }
-    if (horizonSel) {
-      horizonSel.addEventListener('change', function () {
-        filters.fixtureHorizon = parseInt(this.value, 10);
-        if (!compareCard || !compareCard.hidden) { renderCompare(); }
-      });
-    }
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', function () {
-        categorical = !categorical;
-        this.setAttribute('aria-pressed', String(categorical));
-        drawScatter(currentRows, heroXKey(currentRows));
-      });
-    }
+    // The horizon control lives on the fixture-runs card, not here, but
+    // the shortlist's own fixture strip has to follow it - one horizon for
+    // the whole section, whichever card the reader changed it on.
+    document.addEventListener('scout:horizon', function (ev) {
+      filters.fixtureHorizon = ev.detail;
+      if (compareCard && !compareCard.hidden) { renderCompare(); }
+    });
     lab.querySelectorAll('.scoutheat th[data-sort]').forEach(function (th) {
       function doSort() {
         var key = th.dataset.sort;
@@ -913,9 +805,69 @@
     draw();
   }
 
+  // -- fixture runs ----------------------------------------------------
+  //
+  // Two ranked club lists over a horizon the reader picks. Ranked here
+  // rather than server-side because changing the horizon changes the
+  // ranking, and a control that reorders nothing is the reason the old
+  // horizon selector felt broken.
+
+  function initFixtureRuns() {
+    var card = panel.querySelector('.scoutfx');
+    if (!card) { return; }
+    var holder = card.querySelector('.scout-fixtures');
+    var sel = card.querySelector('.sf-horizon');
+    if (!holder || !sel) { return; }
+    var runs;
+    try { runs = JSON.parse(holder.textContent); }
+    catch (e) { return; }
+
+    var DEPTH = 6;
+
+    function chips(cells, field, horizon) {
+      return cells.slice(0, horizon).map(function (c) {
+        if (c.blank) { return '<span class="rpill fxr-blank">&mdash;</span>'; }
+        var tone = FIXTURE_TONES[c[field] - 1] || FIXTURE_TONES[2];
+        var label = c.home ? c.opp.toUpperCase() : c.opp.toLowerCase();
+        return '<span class="rpill" style="background:' + tone[0] + ';color:' + tone[1] +
+          '" title="GW' + c.gw + ', ' + (c.home ? 'at home to ' : 'away to ') + esc(c.opp) +
+          ' - difficulty ' + c[field] + ' of 5">' + esc(label) + '<b>' + c[field] + '</b></span>';
+      }).join('');
+    }
+
+    function meanOver(run, field, horizon) {
+      var real = run.cells.slice(0, horizon).filter(function (c) { return !c.blank; });
+      if (!real.length) { return 99; }
+      return real.reduce(function (s, c) { return s + c[field]; }, 0) / real.length;
+    }
+
+    function render() {
+      var horizon = parseInt(sel.value, 10) || 6;
+      [['cs', 'cleanSheetDifficulty'], ['dc', 'defconDifficulty']].forEach(function (pair) {
+        var list = card.querySelector('.fxrun-list[data-metric="' + pair[0] + '"]');
+        if (!list) { return; }
+        var ranked = runs.slice().sort(function (a, b) {
+          return meanOver(a, pair[1], horizon) - meanOver(b, pair[1], horizon);
+        }).slice(0, DEPTH);
+        list.innerHTML = ranked.map(function (run, i) {
+          return '<li><span class="slrank">' + (i + 1) + '</span>' +
+            '<span class="fxrun-club">' + esc(run.club) + '</span>' +
+            '<span class="fxrun-chips">' + chips(run.cells, pair[1], horizon) + '</span></li>';
+        }).join('');
+      });
+      // One horizon for the whole section: the shortlist's fixture strip
+      // listens for this rather than keeping its own copy.
+      document.dispatchEvent(new CustomEvent('scout:horizon', { detail: horizon }));
+    }
+
+    sel.addEventListener('change', render);
+    render();
+  }
+
   function draw() {
     if (drawn) { return; }
     drawn = true;
+    initFixtureRuns();
     panel.querySelectorAll('.scoutlab').forEach(initLab);
   }
 
