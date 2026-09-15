@@ -97,13 +97,17 @@ def rating_pill(opp, home, score):
     fixture looks the same wherever it appears."""
     cls, style = _cell_style(score)
     label = opp.upper() if home else opp.lower()
+    # The star is the one glyph on the page with no legend beside it, so it
+    # says what it means in its own tooltip rather than only in the CSS.
+    star = _premium_star(cls)
     return (
         '<span class="rpill {cls}" style="{style}" '
-        'title="{opp} {venue} - rating {score:.1f} of 10">'
+        'title="{opp} {venue} - rating {score:.1f} of 10{starnote}">'
         "{label}<b>{star}{score:.1f}</b></span>".format(
             cls=cls, style=style, opp=e(opp),
-            venue="at home" if home else "away",
-            score=score, label=e(label), star=_premium_star(cls))
+            venue="at home (capitals)" if home else "away (lower case)",
+            score=score, label=e(label), star=star,
+            starnote=(", one of the very best on the board" if star else ""))
     )
 
 
@@ -398,6 +402,10 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=FIXTURE_GAMES_MAX, market
     return (
         '<section class="card"><div class="card-head">'
         f'<h2>Fixture outlook{components.info_btn()}</h2>'
+        '<span class="subvis">Rated out of ten for how good a fixture is to '
+        'own a player for &mdash; <b>higher is better</b>, the opposite way '
+        "round to FPL's own 1-5. <b>CAPITALS are home, lower case away.</b>"
+        "</span>"
         '<span class="sub" hidden>Every club in the league, rated out of ten '
         "for how good the fixture is to own a player for - "
         "<b>higher is better</b>, the opposite way round to FPL's 1-5 "

@@ -151,12 +151,22 @@ def gap_chart(rows, title, note, left_label, right_label):
                 actual, expected,
             )
         )
+    # The line's colour carries the direction, so the direction belongs in
+    # the visible legend rather than in a collapsed note - a single green
+    # key over a list that runs both ways explains half of it and quietly
+    # mislabels the rest.
+    both = (any(a < x for _n, a, x in rows) and any(a > x for _n, a, x in rows))
+    dirkey = (
+        '<span class="epkey"><i class="k-under"></i>owed goals</span>'
+        '<span class="epkey"><i class="k-over"></i>running hot</span>'
+        if both else "")
     return (
         '<div class="find gapcard"><h3>{}{}</h3><p class="note" hidden>{}</p>'
         '<ul class="gaplist">{}</ul>'
         '<p class="eplegend"><span class="epkey"><i class="k-a"></i>{}</span>'
-        '<span class="epkey"><i class="k-x"></i>{}</span></p></div>'.format(
-            e(title), info_btn(), e(note), "".join(items), e(left_label), e(right_label)
+        '<span class="epkey"><i class="k-x"></i>{}</span>{}</p></div>'.format(
+            e(title), info_btn(), e(note), "".join(items),
+            e(left_label), e(right_label), dirkey
         )
     )
 
@@ -387,16 +397,34 @@ def _face(photo, shirt, name, club, price, tone_class, duties=""):
              club=e(club), price=price)
 
 
-def transfer_cards(rows, note):
+def transfer_cards(rows, note, lede=""):
     """Suggested swaps, drawn as transfers rather than listed as a table.
 
     A transfer is two faces and a price, so it is drawn as two faces and a
     price. The outgoing player is dimmed and the incoming one is not, the
     money sits on the arrow between them, and the projected gain is the one
-    number given any size - everything else is there to justify it."""
+    number given any size - everything else is there to justify it.
+
+    The three numbers are three different quantities and the middle one is
+    deliberately not the difference of the other two, so all three are
+    labelled. Left and right are each player's own projection over the
+    window; the middle is what the swap does to your best XI, which is the
+    number that actually decides anything - a benched player replaced by a
+    starter shows a raw gap of twenty and an XI gain of nine, and nine is the
+    truth. Unlabelled, the row read as broken arithmetic."""
     if not rows:
         return ""
     top_gain = max(r["gain"] for r in rows) or 1.0
+    # Which names appear more than once across the list. Six rows read as six
+    # things you could do; in practice several of them spend the same player
+    # or sign the same one, and you cannot take both. Marked on the row rather
+    # than filtered out, because the second-best use of a player is still
+    # worth seeing next to the best one.
+    seen_out, seen_in, clash = {}, {}, set()
+    for r in rows:
+        oid, iid = r["out"].element["id"], r["in"]["id"]
+        seen_out[oid] = seen_out.get(oid, 0) + 1
+        seen_in[iid] = seen_in.get(iid, 0) + 1
     cards = []
     for r in rows:
         out_ep = r["out_score"]["total"]
@@ -414,6 +442,15 @@ def transfer_cards(rows, note):
                      .format(r["elite"]["elite"]))
         fixture = "{} ({})".format(
             r["in_score"]["opponent"], "H" if r["in_score"]["home"] else "A")
+        shared = []
+        if seen_out[r["out"].element["id"]] > 1:
+            shared.append(r["out"].name)
+        if seen_in[r["in"]["id"]] > 1:
+            shared.append(r["in"]["web_name"])
+        exclusive = (
+            '<p class="tf-excl">Shares {} with another row - you can take one '
+            'of them, not both.</p>'.format(e(" and ".join(shared)))
+            if shared else "")
         cards.append((
             '<li class="tf-card" style="--gain:{gainpct:.0f}%">'
             '<div class="tf-swap">{out}'
@@ -426,14 +463,19 @@ def transfer_cards(rows, note):
             "{inp}</div>"
             '<div class="tf-numbers">'
             '<div class="tf-ep"><span>{oep:.2f}</span>'
-            '<span class="tf-track"><i style="width:{opct:.0f}%"></i></span></div>'
-            '<div class="tf-gain">{gain:+.2f}<small>over 5 GW</small></div>'
+            '<span class="tf-track"><i style="width:{opct:.0f}%"></i></span>'
+            '<small>his own 5 GW</small></div>'
+            '<div class="tf-gain">{gain:+.2f}'
+            '<small>to your XI, 5 GW</small></div>'
             '<div class="tf-ep tf-ep-in"><span>{iep:.2f}</span>'
-            '<span class="tf-track"><i style="width:{ipct:.0f}%"></i></span></div>'
+            '<span class="tf-track"><i style="width:{ipct:.0f}%"></i></span>'
+            '<small>his own 5 GW</small></div>'
             "</div>"
             '<p class="tf-foot">{fixture} next &middot; {elite}</p>'
+            "{exclusive}"
             "</li>"
         ).format(
+            exclusive=exclusive,
             gainpct=r["gain"] / top_gain * 100,
             out=_face(r["out_photo"], r["out_shirt"], r["out"].name,
                       r["out"].team, r["out"].price, "tf-out"),
@@ -449,8 +491,10 @@ def transfer_cards(rows, note):
     return (
         '<section class="card"><div class="card-head"><h2>Suggested transfers{}</h2>'
         '<span class="sub" hidden>{}</span></div>'
-        '<div class="card-body"><ul class="tflist">{}</ul></div></section>'.format(
-            info_btn(), e(note), "".join(cards)
+        '<div class="card-body">{}<ul class="tflist">{}</ul></div></section>'.format(
+            info_btn(), e(note),
+            '<p class="tf-lede">{}</p>'.format(e(lede)) if lede else "",
+            "".join(cards)
         )
     )
 
@@ -531,8 +575,17 @@ def pairing_cards(pairings, note, hit=4):
                 legs=legs, verdict=verdict,
             )
         )
+    # Why the biggest number on the whole tab can appear here and nowhere
+    # else. A pair reaches players a single transfer cannot afford, so the
+    # top pairing routinely beats every row of Suggested transfers - which
+    # reads as the two cards contradicting each other until you know that
+    # one sale is funding the other.
     return (
         '<section class="card"><div class="card-head"><h2>Transfer pairings{}</h2>'
+        '<span class="subvis">Moves a single transfer cannot reach, because '
+        'one sale funds the other. That is why a name here can beat '
+        'everything in Suggested transfers above &mdash; those are priced on '
+        'your bank alone.</span>'
         '<span class="sub" hidden>{}</span></div>'
         '<div class="card-body"><ul class="prlist">{}</ul></div></section>'.format(
             info_btn(), e(note), "".join(cards)
@@ -598,7 +651,8 @@ STAT_ICONS = {
 
 
 def stat_leaders(groups, title="League leaders",
-                 sub="Who is topping each measure so far. Your players are marked."):
+                 sub="Who is topping each measure so far. Your players are marked.",
+                 lede=""):
     """Who leads the league on each measure, a few names deep.
 
     Narrow columns rather than one wide table: these are six separate
@@ -614,10 +668,11 @@ def stat_leaders(groups, title="League leaders",
                 '<li{cls}><span class="slrank">{i}</span>'
                 '<span class="slname">{name}</span>'
                 '<span class="slteam">{team}</span>'
-                '<span class="slval"><b>{p:g}</b>'
-                '<span class="pairsub">, {s:g}</span></span></li>'.format(
+                '<span class="slval"><b>{p:g}</b>{sub}</span></li>'.format(
                     cls=' class="mine"' if mine else "",
-                    i=i, name=e(name), team=e(team), p=p, s=s)
+                    i=i, name=e(name), team=e(team), p=p,
+                    sub=('<span class="pairsub">, {:g}</span>'.format(s)
+                         if s is not None else ""))
                 for i, (name, team, p, s, mine) in enumerate(rows, 1)
             )
         return "".join(
@@ -652,7 +707,12 @@ def stat_leaders(groups, title="League leaders",
         '<section class="card"><div class="card-head"><h2>{}{}</h2>'
         '<span class="sub" hidden>{}</span></div>'.format(
             e(title), info_btn(), e(sub))
-        + '<div class="card-body"><ul class="slwrap">{}</ul></div></section>'.format(
+        # Four cards in a three-wide grid is 3 + 1, with the odd one beside a
+        # hole; four questions belong in a 2x2. Six stay 3x2.
+        + ('<div class="card-body">{}<ul class="slwrap'
+           + (' slwrap-4' if len(cards) == 4 else '')
+           + '">{}</ul></div></section>').format(
+            '<p class="sllede">{}</p>'.format(e(lede)) if lede else "",
             "".join(cards)
         )
     )

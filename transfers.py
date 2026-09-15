@@ -447,7 +447,7 @@ def _eligible(el, ctx):
     return True
 
 
-def league_scores(ctx, proj, gw, market, baselines, priors=None):
+def league_scores(ctx, proj, gw, market, baselines, priors=None, always=()):
     """Every eligible player in the game scored for one gameweek,
     {player_id: score}. Includes players already owned - the caller decides
     what "owned" means for its own purposes, and the Buy/Sell/Keep/Avoid
@@ -459,11 +459,20 @@ def league_scores(ctx, proj, gw, market, baselines, priors=None):
     this one would be comparing two different yardsticks and calling the
     difference a recommendation. Scored with case_score, not
     candidate_score directly - a few weeks and each player's own numbers,
-    not one gameweek of fixture-adjusted points alone."""
+    not one gameweek of fixture-adjusted points alone.
+
+    `always` is a set of ids scored whatever `_eligible` says. Eligibility is
+    a rule about who is worth *signing*; applying it to a squad you already
+    own silently deletes your own players from the board. It cost more than a
+    missing row: a squad missing its flagged reserve keeper is fourteen
+    players, squadbuilder.best_xi cannot fill a bench from it, and every
+    XI-based comparison the board makes collapsed to zero (see `_xi_value`).
+    Pass your own fifteen here."""
     priors = priors or positional_priors(ctx)
+    always = set(always)
     out = {}
     for el in ctx.players.values():
-        if not _eligible(el, ctx):
+        if not _eligible(el, ctx) and el["id"] not in always:
             continue
         s = case_score(el, ctx, proj, gw, market, baselines, priors)
         if s:
@@ -515,8 +524,19 @@ def _candidate_pool_row(el, ctx, value):
 
 
 def _xi_value(pool):
+    """The best legal XI's projected value, or None if the pool cannot field
+    one at all.
+
+    None rather than 0.0, and the difference is not cosmetic. best_xi needs a
+    full fifteen - it fills a bench first, and that bench wants a second
+    goalkeeper - so a pool one keeper short returns None. Reported as 0.0,
+    that made *every* `_xi_swap_gain` come out as 0.0 - 0.0 = 0, silently, and
+    the Buy/Sell/Keep/Avoid board lost its entire XI-based half without
+    anything on the page looking broken: Sell could never clear its margin, so
+    it read "nothing this week" every week while Suggested transfers listed
+    six. A caller that cannot build an XI has to know it cannot."""
     result = squadbuilder.best_xi(pool, budget=1e9)
-    return result["value"] if result else 0.0
+    return result["value"] if result else None
 
 
 def _xi_swap_gain(own_pool, base_xi_value, out_id, in_row):
@@ -524,9 +544,15 @@ def _xi_swap_gain(own_pool, base_xi_value, out_id, in_row):
     projection, not the raw difference between the two players' own scores
     (L2). A bench-for-bench swap that never touches the best XI scores
     (near) zero here even when the incoming player's own total is much
-    higher - which is the whole point."""
+    higher - which is the whole point.
+
+    None when either side cannot field an XI - see `_xi_value`. Callers fall
+    back to the raw comparison rather than treating "unknown" as "no gain"."""
+    if base_xi_value is None:
+        return None
     new_pool = [row for row in own_pool if row["id"] != out_id] + [in_row]
-    return _xi_value(new_pool) - base_xi_value
+    after = _xi_value(new_pool)
+    return None if after is None else after - base_xi_value
 
 
 def _rank_swap_options(own_pool, base_xi_value, out_id, options, limit):
@@ -537,7 +563,8 @@ def _rank_swap_options(own_pool, base_xi_value, out_id, options, limit):
     top = sorted(options, key=lambda o: -o["raw_gain"])[:limit]
     for opt in top:
         xi_gain = _xi_swap_gain(own_pool, base_xi_value, out_id, opt["row"])
-        opt["gain"] = xi_gain + BENCH_AUTOSUB_ALLOWANCE * opt["raw_gain"]
+        opt["gain"] = (opt["raw_gain"] if xi_gain is None
+                       else xi_gain + BENCH_AUTOSUB_ALLOWANCE * opt["raw_gain"])
     top.sort(key=lambda o: -o["gain"])
     return top
 
@@ -639,7 +666,7 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
     for r in scored_owned:
         mine = scores[r.element["id"]]["total"]
         budget = r.price + bank
-        best = None
+        options = []
         for pid, s in scores.items():
             if pid in owned:
                 continue
@@ -650,18 +677,31 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
                 continue
             if not club_ok(el, selling=r):
                 continue
-            if best is None or s["total"] > best[1]["total"]:
-                best = (el, s)
-        if not best:
+            options.append({
+                "element": el, "score": s, "raw_gain": s["total"] - mine,
+                "row": _candidate_pool_row(el, ctx, s["total"]),
+            })
+        if not options:
             continue
-        # The gap that matters is what the swap does to the squad's best
-        # XI, not the raw difference between the two players' own totals
-        # (L2) - a bench player's replacement can print a large raw gap
-        # while changing nothing about what actually gets selected each
-        # week.
-        in_row = _candidate_pool_row(best[0], ctx, best[1]["total"])
-        gap = (_xi_swap_gain(own_pool, base_xi_value, r.element["id"], in_row)
-               + BENCH_AUTOSUB_ALLOWANCE * (best[1]["total"] - mine))
+        # Ranked on what the swap does to the squad's best XI, not on the raw
+        # difference between the two players' own totals (L2) - a bench
+        # player's replacement can print a large raw gap while changing
+        # nothing about what actually gets selected each week.
+        #
+        # Searched the same way `suggest` searches, over the top candidates
+        # by raw gain, rather than committing to the single highest-scoring
+        # affordable name and measuring only him. Committing was how this
+        # column disagreed with Suggested transfers about the same player: the
+        # best raw total is not always the best thing to do to your XI, and if
+        # that one name missed the margin the whole sell was dropped.
+        options = _rank_swap_options(
+            own_pool, base_xi_value, r.element["id"], options,
+            XI_GAIN_CANDIDATES)
+        if not options:
+            continue
+        pick = options[0]
+        best = (pick["element"], pick["score"])
+        gap = pick["gain"]
         if gap < SELL_MARGIN:
             continue
         sell_ids.add(r.element["id"])

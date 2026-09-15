@@ -646,12 +646,27 @@ def build_findings(reports, ctx):
     if sp:
         out.append(_finding("setpieces", "Set-piece duties", "neutral", sp))
 
-    rot = [
-        f"{r.name} - started {r.starts} of {r.appearances} appearances, "
-        f"{r.minutes / r.appearances:.0f} minutes per appearance"
-        for r in reports
-        if r.appearances >= 2 and r.start_rate < 0.75
-    ]
+    # Two ways a player is a rotation risk, and the second one was missing:
+    # a man who has started most of the games he appeared in but has barely
+    # appeared at all. Requiring two appearances excluded exactly the players
+    # with the worst minutes in the squad - a 16-minute season passed the
+    # filter as "not enough evidence" and was never flagged anywhere.
+    played = [r for r in reports if r.minutes]
+    team_games = max((r.appearances for r in played), default=0)
+    rot = []
+    for r in reports:
+        if r.appearances >= 2 and r.start_rate < 0.75:
+            rot.append(
+                f"{r.name} - started {r.starts} of {r.appearances} "
+                f"appearances, {r.minutes / r.appearances:.0f} minutes per "
+                f"appearance")
+        elif (team_games >= 2 and r.minutes
+              and r.minutes < DEFCON_MIN_MINUTES
+              and r.appearances < team_games):
+            rot.append(
+                f"{r.name} - {r.minutes} minutes all season across "
+                f"{r.appearances} appearance"
+                f"{'s' if r.appearances != 1 else ''}; barely on the pitch")
     if rot:
         out.append(_finding("rotation", "Rotation risk", "warn", rot))
 
@@ -707,10 +722,21 @@ def build_findings(reports, ctx):
             extra = (f", {shots:g} shots ({sot:g} on target)"
                      if shots and sot is not None else
                      f", {shots:g} shots" if shots else "")
-            missed.append(f"{r.name} - {bcm:g} big {'chance' if bcm == 1 else 'chances'} missed{extra}")
+            # A count with nothing to measure it against is not a reading.
+            # Two players with two misses each are not in the same position if
+            # one took fourteen shots to get there and the other took three;
+            # the rate is what says whether the openings are arriving faster
+            # than he is wasting them.
+            rate = (f" - one every {shots / bcm:.0f} shots" if shots and bcm else "")
+            missed.append(
+                f"{r.name} - {bcm:g} big {'chance' if bcm == 1 else 'chances'} "
+                f"missed{extra}{rate}")
     if missed:
-        out.append(_finding("bcm", "Big chances missed", "good", missed,
-                            note="Clear openings not taken. The chances are arriving."))
+        out.append(_finding(
+            "bcm", "Big chances missed", "good", missed,
+            note="Clear openings not taken. Read it as volume, not as waste: "
+                 "getting into these positions at all is the repeatable part, "
+                 "and the finishing is the part that regresses towards it."))
 
     moves = []
     for r in reports:

@@ -275,6 +275,11 @@ def free_hit(ctx, xi_reports, proj, market, baselines, next_gw, budget):
     return {
         "gw": best_gw, "gap": gaps[best_gw],
         "confidence": confidence(gaps[best_gw], runner_up),
+        # The whole window, so the card can show whether the recommended week
+        # is a spike worth waiting for or the flat top of a plateau. One
+        # number and one gameweek cannot tell those apart, and they call for
+        # opposite decisions.
+        "series": sorted(gaps.items()),
         "points_team": pt_by_gw[best_gw],
         # Every week's ideal team, not just the winning one. The dashboard's
         # "highest predicted points XI" card wants the *coming* gameweek
@@ -303,9 +308,14 @@ def triple_captain(ctx, xi_reports, proj, market, baselines, next_gw):
         return None
     best = max(candidates, key=lambda c: c[2])
     runner_up = max((c[2] for c in candidates if c is not best), default=None)
+    per_gw = {}
+    for _r, gw, total in candidates:
+        if total > per_gw.get(gw, 0.0):
+            per_gw[gw] = total
     return {
         "player": best[0], "gw": best[1], "ep": best[2],
         "confidence": confidence(best[2], runner_up),
+        "series": sorted(per_gw.items()),
     }
 
 
@@ -347,6 +357,7 @@ def bench_boost(ctx, bench_reports, proj, market, baselines, next_gw, bank=0.0):
     return {
         "gw": best_gw, "ep": totals[best_gw],
         "confidence": confidence(totals[best_gw], runner_up),
+        "series": sorted(totals.items()),
         "transfers": suggestions,
     }
 

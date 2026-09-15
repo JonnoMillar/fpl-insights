@@ -349,9 +349,32 @@ def raw_rows(ctx, pos, live, min_minutes=1, proj=None, next_gw=None,
             "ownership": round(analysis.f(el.get("selected_by_percent")), 1),
             "starts": starts,
             "teamMatchesSinceFirstStart": team_matches,
+            "teamMatches": team_matches_total,
             "minutes": minutes,
-            "minutesPerStart": round((minutes / starts) if starts else 0.0, 1),
-            "startRate": round((starts / team_matches) if team_matches else 0.0, 3),
+            # Capped at 90. FPL counts stoppage time, so a full match can
+            # bank 95-101 minutes, and an uncapped average made a two-start
+            # cameo read as more durable than an ever-present who happened to
+            # play calmer games. The question this column answers is "does he
+            # last the match", and the answer tops out at yes.
+            "minutesPerStart": round(
+                min(90.0, minutes / starts) if starts else 0.0, 1),
+            # Share of the club's whole season, not of the matches since his
+            # own first start. The since-first-start denominator is the right
+            # idea for a January signing and a disaster in September: a man
+            # who has started one of his club's three reads 1/1 = "starts
+            # every week", which is how a rotation risk ends up top of a
+            # leaderboard called Nailed on. The kinder denominator is kept
+            # alongside as context, never as the headline rate.
+            "startRate": round(
+                (starts / team_matches_total) if team_matches_total else 0.0, 3),
+            "startRateSinceFirst": round(
+                (starts / team_matches) if team_matches else 0.0, 3),
+            # Too little football behind every rate on this row. The
+            # leaderboards drop these outright (see `_eligible`); the full
+            # pool table keeps them, because "who exists at this price" is a
+            # fair question, but marks them so a 100% off one start never
+            # reads like a 100% off ten.
+            "thin": minutes < RATE_MIN_MINUTES,
             # Bootstrap already carries this per-90, unlike bps/bonus/cards
             # below - reading it straight off avoids quietly disagreeing
             # with FPL's own rounding of the same figure.
@@ -567,7 +590,15 @@ def _apply_filters(rows, filters):
             continue
         if price_max is not None and r["price"] > price_max:
             continue
-        if min_start_rate is not None and r["startRate"] < min_start_rate:
+        # Whichever of the two rates is kinder. The displayed rate is his
+        # share of the club's whole season, which is the honest headline; the
+        # since-first-start rate is what stops a January signing being
+        # filtered out of a pool he has actually started every match of.
+        # Filtering excludes people, so it uses the generous one, and the
+        # column still shows the strict one.
+        if (min_start_rate is not None
+                and max(r["startRate"], r.get("startRateSinceFirst", 0.0))
+                < min_start_rate):
             continue
         if min_mins_per_start is not None and r["minutesPerStart"] < min_mins_per_start:
             continue
@@ -647,14 +678,18 @@ def leader_groups(rows, owned_ids=frozenset(), depth=6):
         },
         {
             "title": "Nailed on",
-            "note": "Matches started, and how long he lasts in them.",
+            "note": ("Starts out of his club's matches, and how long he "
+                     "lasts in them."),
             "tone": "var(--market)", "icon": "run",
             # Start rate alone is a column of identical 100%s this early in
             # a season, which ranks nothing. Minutes per start is the other
             # half of the minutes question anyway (spec §3.3: selection
             # security and hook risk are not the same thing), and it is what
-            # actually separates these six.
-            "rows": [row(r, f"{r['startRate'] * 100:.0f}% ({r['minutesPerStart']:.0f} min)")
+            # actually separates these six. The raw fraction rides along
+            # because a percentage with no denominator is exactly how a man
+            # who has started two of three came to be called nailed on.
+            "rows": [row(r, f"{r['starts']}/{r['teamMatches']} · "
+                            f"{r['minutesPerStart']:.0f} min")
                      for r in nailed],
         },
     ]

@@ -212,11 +212,21 @@ class RawRowsTests(unittest.TestCase):
         self.assertEqual(row["minutesPerStart"], 0.0)
         self.assertEqual(row["startRate"], 0.0)
 
-    def test_first_start_mid_season_narrows_the_denominator(self):
+    def test_first_start_mid_season_keeps_both_denominators(self):
         # The club has three played fixtures (gw1-3); this player's first
-        # start is gw2, so his denominator must be 2 (gw2, gw3), not 3 -
-        # spec §2.1's startRate is meant to protect a January signing from
-        # being judged against matches before he existed at the club.
+        # start is gw2. Two rates come out of that and they answer different
+        # questions, so both are kept.
+        #
+        # `startRate` is his share of the club's whole season, because that is
+        # the one a manager is actually asking about ("does he start?") and
+        # the since-first-start figure answers it wrongly in September: a man
+        # who has started one of his club's three reads 1/1 = 100%, which put
+        # rotation risks at the top of a leaderboard called "Nailed on".
+        #
+        # `startRateSinceFirst` keeps spec §2.1's protection for a January
+        # signing, and `_apply_filters` filters on whichever is kinder - so
+        # nobody is excluded from the pool for matches played before he
+        # arrived, while the column still shows the strict number.
         ctx = self._ctx()
         live = {1: [
             {"gw": 1, "status": "unplayed", "defconHit": False, "minutes": 0},
@@ -228,7 +238,33 @@ class RawRowsTests(unittest.TestCase):
         rows = scout.raw_rows(ctx, "DEF", live)
         row = rows[0]
         self.assertEqual(row["teamMatchesSinceFirstStart"], 2)
-        self.assertEqual(row["startRate"], 1.0)
+        self.assertEqual(row["teamMatches"], 3)
+        self.assertEqual(row["startRate"], 0.667)
+        self.assertEqual(row["startRateSinceFirst"], 1.0)
+        # Generous denominator, so he survives a filter his strict rate fails.
+        self.assertEqual(
+            [r["id"] for r in scout._apply_filters(rows, {"minStartRate": 0.9})],
+            [1],
+        )
+
+    def test_thin_sample_is_flagged(self):
+        # A single start is arithmetic, not evidence: every rate on the row is
+        # off one match. The leaderboards drop him outright; the pool table
+        # keeps him and marks him, so a 100% off one start never renders the
+        # same as a 100% off ten.
+        ctx = self._ctx()
+        live = {1: [{"gw": 3, "status": "started", "defconHit": True,
+                     "minutes": 101}]}
+        ctx.players[1]["starts"] = 1
+        ctx.players[1]["minutes"] = 101
+        row = scout.raw_rows(ctx, "DEF", live, min_minutes=1)[0]
+        self.assertTrue(row["thin"])
+        self.assertEqual(row["startRate"], 0.333)
+        self.assertEqual(row["defconHitRate"], 1.0)
+        # Minutes per start caps at 90: FPL counts stoppage, and an uncapped
+        # average made a cameo read as more durable than an ever-present.
+        self.assertEqual(row["minutesPerStart"], 90.0)
+        self.assertEqual(scout._eligible([row]), [])
 
     def test_min_minutes_filters_out_unplayed_players(self):
         ctx = self._ctx()

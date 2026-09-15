@@ -126,7 +126,9 @@
     return rows.filter(function (r) {
       if (filters.priceMin != null && r.price < filters.priceMin) { return false; }
       if (filters.priceMax != null && r.price > filters.priceMax) { return false; }
-      if (filters.minStartRate != null && r.startRate < filters.minStartRate) { return false; }
+      // Kinder of the two rates - see scout._apply_filters for why.
+      if (filters.minStartRate != null &&
+          Math.max(r.startRate, r.startRateSinceFirst || 0) < filters.minStartRate) { return false; }
       if (filters.minMinutesPerStart != null && r.minutesPerStart < filters.minMinutesPerStart) { return false; }
       if (filters.team != null && filters.team !== '' && r.teamId !== filters.team) { return false; }
       return true;
@@ -400,7 +402,10 @@
     var defaultReadout = readout ? readout.innerHTML : '';
     var tbody = lab.querySelector('.scoutheat tbody');
     var countEl = lab.querySelector('.sf-count');
-    var sortState = { key: null, dir: 1 };
+    // Ranked on the one column that answers "who should I buy", not left
+    // in the server's club-alphabetical order - a 97-row pool opening on
+    // five Arsenal names is a directory, not a shortlist.
+    var sortState = { key: 'xp', dir: -1 };
     var pinnedG = null, selGroup = null;
 
     var W = 1040, H = 520, ML = 62, MR = 18, MT = 18, MB = 48;
@@ -617,17 +622,34 @@
           : '';
         var checked = selected.has(r.id);
         var disabled = !checked && selected.size >= MAX_SHORTLIST;
+        // Under the minutes floor every per-90 and every rate on this row is
+        // arithmetic rather than evidence (one start makes a 100% hit rate).
+        // The leaderboards drop these; the pool keeps them and says so.
+        if (r.thin) { tr.className = 'scout-thin'; }
+        var thinMark = r.thin
+          ? ' <abbr class="thinmark" title="' + r.minutes + ' minutes - too few for' +
+            ' a reliable rate. Every per-90 and percentage on this row is off a' +
+            ' small sample.">low sample</abbr>'
+          : '';
         var cells = '<td><input type="checkbox" class="scoutpick" data-pid="' + r.id + '"' +
           (checked ? ' checked' : '') + (disabled ? ' disabled' : '') +
           ' aria-label="Add ' + esc(r.webName) + ' to shortlist"></td>' +
           '<td><button type="button" class="rowlink" data-scout-open="' + r.id + '">' +
           esc(r.webName) + '</button> <span class="teamtag">' +
-          esc(r.teamShort) + '</span>' + flag + '</td>' +
+          esc(r.teamShort) + '</span>' + flag + thinMark + '</td>' +
           '<td class="num tnum">£' + r.price.toFixed(1) + 'm</td>';
         data.metrics.forEach(function (key) {
           var pct = r.percentiles[key];
           var tone = percentileTone(pct);
-          cells += '<td class="num tnum" style="background:' + tone[1] + ';color:' + tone[2] + '">' +
+          // A percentage with no denominator is the whole problem: 100% off
+          // one start and 100% off ten render identically otherwise.
+          var title = key === 'defcon_hit_rate'
+            ? r.defconHits + ' of ' + r.defconHitN + ' starts'
+            : key === 'start_rate'
+              ? r.starts + ' of ' + r.teamMatches + " of his club's matches"
+              : '';
+          cells += '<td class="num tnum"' + (title ? ' title="' + esc(title) + '"' : '') +
+            ' style="background:' + tone[1] + ';color:' + tone[2] + '">' +
             fmtMetric(key, r[METRICS[key].field]) + '</td>';
         });
         cells += '<td>' + archetypeBadges(r.archetypes) + '</td>';
