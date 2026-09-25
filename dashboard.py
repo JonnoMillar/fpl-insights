@@ -44,6 +44,7 @@ new colour had to be drawn twice and kept in step.
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 import analysis
 import captaincy
@@ -82,6 +83,17 @@ TICKER_JS = (Path(__file__).with_name("ticker.js")).read_text(encoding="utf-8")
 SCOUT_JS = (Path(__file__).with_name("scout.js")).read_text(encoding="utf-8")
 
 JS = (Path(__file__).with_name("dashboard.js")).read_text(encoding="utf-8")
+
+# Inline rather than a file so the page stays self-contained: it works opened
+# from disk, and the body-only artifact the live site serves carries it too.
+FAVICON = (
+    '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,' + quote(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+        '<rect width="32" height="32" rx="7" fill="#37003c"/>'
+        '<path d="M7 22l6-7 5 4 7-10" fill="none" stroke="#01fc7a" '
+        'stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>'
+        '</svg>') + '">'
+)
 
 
 def compact_rank(n):
@@ -415,7 +427,7 @@ def render(d, standalone=True):
         "family=Archivo:wdth,wght@62..125,400..700&"
         "family=IBM+Plex+Mono:wght@400;500;600&display=swap\">"
     )
-    head = f"<title>{e(title)}</title>{fonts}<style>{CSS}</style>"
+    head = f"<title>{e(title)}</title>{FAVICON}{fonts}<style>{CSS}</style>"
     page = (
         f"{head}{body}<script>{JS}</script><script>{SCATTER_JS}</script>"
         f"<script>{PLAYERVIEW_JS}</script><script>{CAPTAINCY_JS}</script>"
