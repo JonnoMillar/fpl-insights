@@ -124,7 +124,11 @@
   function buildRail(){
     if(!rail) return;
     var panel=document.querySelector('.panel:not([hidden])');
-    var chapters=panel ? panel.querySelectorAll('.chapter') : [];
+    // Chapters inside a hidden view (the Scout tab's other positions) are
+    // not on screen, so they are not offered either.
+    var chapters=panel ? Array.prototype.filter.call(
+      panel.querySelectorAll('.chapter'),
+      function(ch){ return !ch.closest('[hidden]'); }) : [];
     rail.textContent='';
     railTargets=[];
     if(chapters.length < 2){ railWrap.hidden=true; return; }
@@ -175,6 +179,9 @@
   // page. markRail is four getBoundingClientRect calls against a list that
   // is at most four long; it does not need deferring.
   window.addEventListener('scroll', markRail, {passive:true});
+  // A view switch inside a tab (Scout's position control) swaps which
+  // chapters exist without a tab change, so it asks for a rebuild.
+  document.addEventListener('rail:rebuild', buildRail);
   buildRail();
 
   // Starting XI: overview vs pick-team pitch. Same swap as the tabs above,

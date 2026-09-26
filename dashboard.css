@@ -2089,6 +2089,49 @@ details .scroll{padding:0 14px 14px}
    everything else already uses). Fixture difficulty reuses ticker.py's
    rose-teal. Direction on the compare bars is carried by which side of
    centre a bar sits, which needs no colour at all. */
+
+/* --- position switch ---
+   A segmented control rather than a second row of tabs under the page's
+   own: this changes what the whole tab is about, and should look like a
+   choice between three things rather than three more places to go. Flat
+   ink for the selected position, the brand green spent once on its code. */
+.scoutpos{
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px;
+  padding:5px; margin:6px 0 4px; background:var(--surface);
+  border-radius:var(--radius-l); box-shadow:var(--shadow);
+}
+.scoutpos > button{
+  appearance:none; border:0; background:none; font:inherit; cursor:pointer;
+  display:flex; align-items:center; gap:11px; min-width:0;
+  padding:11px 16px; border-radius:var(--radius-m); text-align:left;
+  color:var(--on-surface); transition:background-color .2s, color .2s;
+}
+.scoutpos > button:hover{background:var(--p5)}
+.scoutpos > button:focus-visible{outline:3px solid var(--accent); outline-offset:-3px}
+.scoutpos > button[aria-selected="true"]{background:var(--ink); color:var(--white)}
+.scoutpos-code{
+  flex:none; font-family:var(--mono); font-size:11px; font-weight:700;
+  letter-spacing:.04em; padding:3px 7px; border-radius:var(--radius-xs);
+  background:var(--p10); color:var(--ink);
+}
+.scoutpos > button[aria-selected="true"] .scoutpos-code{background:var(--accent)}
+.scoutpos-label{
+  font-weight:700; font-size:16px; font-stretch:118%; letter-spacing:-0.005em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.scoutpos-n{
+  margin-left:auto; font-family:var(--mono); font-size:12px;
+  color:var(--on-surface-variant);
+}
+.scoutpos > button[aria-selected="true"] .scoutpos-n{color:var(--p30)}
+.scoutview[hidden]{display:none}
+.scoutview > .chapter:first-child{margin-top:18px}
+@media (max-width:560px){
+  .scoutpos > button{padding:10px 8px; gap:7px; flex-direction:column; align-items:flex-start}
+  .scoutpos-label{font-size:14px}
+  .scoutpos-code, .scoutpos-n{display:none}
+}
+
 .scoutfilters{
   display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px 18px;
   padding:12px 14px; margin-bottom:16px; background:var(--surface-variant);
@@ -2129,6 +2172,7 @@ details .scroll{padding:0 14px 14px}
   flex-direction:column; gap:8px}
 .fxrun-list li{display:flex; align-items:center; gap:9px; font-size:13px}
 .fxrun-club{font-weight:700; min-width:38px}
+.fxrun-avg{font-family:var(--mono); font-size:11px; color:var(--on-surface-variant)}
 .fxrun-chips{display:flex; flex-wrap:wrap; gap:3px; margin-left:auto}
 .fxrun-chips .rpill{margin-right:0}
 .rpill.fxr-blank{background:var(--surface-variant); color:var(--on-surface-variant)}
@@ -2142,6 +2186,8 @@ details .scroll{padding:0 14px 14px}
   font-variant-numeric:tabular-nums}
 .scoutscatter .axtitle{fill:var(--on-surface-variant); font-size:12px; font-weight:600}
 .scoutscatter .crosshair{stroke:var(--outline-variant); stroke-width:1; stroke-dasharray:3 4}
+.scoutscatter .isoxgi line{stroke:var(--p20); stroke-width:1; stroke-dasharray:1 5; stroke-linecap:round}
+.scoutscatter .isoxgi text{fill:var(--p60); font-size:10px; font-family:var(--mono)}
 .scoutscatter .quadlabel{fill:var(--on-surface-variant); font-size:10px; font-style:italic}
 .scoutscatter .threshline{stroke:var(--attention); stroke-width:1.5; stroke-dasharray:4 3}
 .scoutscatter .threshlabel{fill:var(--attention-ink); font-size:10px; font-weight:600}
@@ -2248,6 +2294,7 @@ details .scroll{padding:0 14px 14px}
 .scouttickertable .tick-label{
   text-align:left; font-size:11px; color:var(--on-surface-variant); white-space:nowrap;
 }
+.scouttickertable .tick-opp{font-size:10px; opacity:.85}
 .scouttickertable td.tick-blank{color:var(--on-surface-variant); background:var(--surface-variant)}
 
 /* --- player card ---
@@ -2296,7 +2343,12 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .scpv-bullet-fill{display:block; height:100%; border-radius:9999px; background:var(--p70)}
 .scpv-bullet-tick{position:absolute; left:50%; top:-2px; bottom:-2px; width:1.5px;
   background:var(--on-surface)}
-.scpv-strip{width:100%; height:auto; display:block}
+.scpv-strip{max-width:100%; height:auto; display:block}
+.mk-ga{font-family:var(--mono); font-size:9px; font-weight:700; fill:var(--mine-ink); color:var(--mine-ink)}
+.mk-key-dot, .mk-key-tri{display:inline-block; vertical-align:middle}
+.mk-key-dot{width:6px; height:6px; border-radius:50%; background:var(--ink)}
+.mk-key-tri{width:0; height:0; border-left:3.5px solid transparent;
+  border-right:3.5px solid transparent; border-bottom:6px solid var(--p40)}
 .scpv-bar{fill:var(--p60)}
 .scpv-col:hover .scpv-bar{fill:var(--ink)}
 .mk-started{fill:var(--ink)}

@@ -87,9 +87,10 @@ class ApplyDerivationsTests(unittest.TestCase):
 
     def _row(self, pid, xgc90, xgi90=0.1, defcon_hit_rate=0.5, start_rate=0.8,
               minutes=300, minutes_per_start=90.0, bps90=20.0, cards90=0.0,
-              defcon90=8.0, bonus90=0.0, xp=0.0):
+              defcon90=8.0, bonus90=0.0, xp=0.0, xg90=0.05, xa90=0.05):
         return {
             "id": pid, "xgc90": xgc90, "xgi90": xgi90,
+            "xg90": xg90, "xa90": xa90,
             "defconHitRate": defcon_hit_rate, "startRate": start_rate,
             "minutes": minutes, "minutesPerStart": minutes_per_start,
             "bps90": bps90, "cards90": cards90, "defcon90": defcon90,
@@ -457,6 +458,117 @@ class GreyscaleAccessibilityTests(unittest.TestCase):
     def test_radius_mapping_clamps_out_of_range_input(self):
         self.assertEqual(scout.radius_for_percentile(-10), 5.0)
         self.assertEqual(scout.radius_for_percentile(150), 22.0)
+
+
+class PositionConfigTests(unittest.TestCase):
+    """Every lab is driven by its POSITIONS entry, and scout.js trusts the
+    keys it is sent. A typo here is a blank column or a NaN axis in the
+    browser, not an exception, so it is caught here instead."""
+
+    PERCENTILE_KEYS = set(scout.METRICS) | {"solidity_pct"}
+    FIXTURE_FIELDS = {"cleanSheetDifficulty", "defconDifficulty", "attackDifficulty"}
+
+    def test_every_outfield_position_has_a_lab(self):
+        self.assertEqual(set(scout.POSITIONS), {"DEF", "MID", "FWD"})
+
+    def test_config_keys_are_real_metrics(self):
+        for pos, cfg in scout.POSITIONS.items():
+            with self.subTest(pos=pos):
+                for key in cfg.metrics + cfg.zbars + cfg.card_tiles + [cfg.hero_y]:
+                    self.assertIn(key, scout.METRICS)
+                self.assertIn(cfg.size_metric, self.PERCENTILE_KEYS)
+                for metric in cfg.archetypes.values():
+                    self.assertIn(metric, self.PERCENTILE_KEYS)
+                self.assertEqual(set(cfg.archetypes), set(cfg.archetype_labels))
+                if cfg.hero_x != scout.HERO_X_DEFCON:
+                    self.assertIn(cfg.hero_x, scout.METRICS)
+
+    def test_fixture_config_names_real_difficulty_fields(self):
+        for pos, cfg in scout.POSITIONS.items():
+            with self.subTest(pos=pos):
+                self.assertEqual(len(cfg.fixture_lists), 2)
+                for fl in cfg.fixture_lists:
+                    self.assertIn(fl["fx"], self.FIXTURE_FIELDS)
+                for field_name, _ in cfg.ticker_rows:
+                    self.assertIn(field_name, self.FIXTURE_FIELDS)
+
+    def test_fixed_hero_axis_is_not_gated(self):
+        # Only the DefCon axis swaps with sample size; an attacking lab's
+        # x-axis is xG however little football has been played.
+        rows = [{"minutes": 10}, {"minutes": 20}]
+        self.assertEqual(scout.hero_x_key(rows, "xg90"), "xg90")
+        self.assertEqual(scout.hero_x_key(rows), "defcon90")
+
+
+class AttackingRowsTests(unittest.TestCase):
+    def _ctx(self):
+        mid = make_defender(1, team=10, web_name="Mid", minutes=270, starts=3)
+        mid["element_type"] = 3
+        mid.update({"expected_goals_per_90": 0.42, "expected_assists_per_90": 0.21,
+                    "goals_scored": 2, "assists": 1})
+        fixtures = [{"id": 1, "event": 1, "team_h": 10, "team_a": 20,
+                     "finished": True, "finished_provisional": True, "started": True}]
+        return make_ctx(players={1: mid},
+                        teams={10: {"short_name": "AAA"}, 20: {"short_name": "BBB"}},
+                        fixtures=fixtures)
+
+    def test_midfielder_row_carries_attacking_fields(self):
+        row = scout.raw_rows(self._ctx(), "MID", {})[0]
+        self.assertEqual((row["xg90"], row["xa90"]), (0.42, 0.21))
+        self.assertEqual((row["goals"], row["assists"]), (2, 1))
+
+    def test_pool_payload_carries_the_position_config(self):
+        data = scout.pool(self._ctx(), "MID", {}, proj={})
+        self.assertEqual(data["heroX"], "xg90")
+        self.assertEqual(data["sizeMetric"], "defcon90")
+        self.assertIn("finisher", data["archetypeLabels"])
+        self.assertEqual(len(data["rows"]), 1)
+
+
+class AttackDifficultyTests(unittest.TestCase):
+    def test_attack_difficulty_follows_the_clubs_own_xg(self):
+        proj = {
+            ("AAA", 4): {"cs": 30.0, "g": 2.3, "opp": "BBB", "ven": "H"},
+            ("AAA", 5): {"cs": 30.0, "g": 0.6, "opp": "CCC", "ven": "A"},
+            ("BBB", 4): {"cs": 30.0, "g": 1.0, "opp": "AAA", "ven": "A"},
+            ("CCC", 5): {"cs": 30.0, "g": 1.0, "opp": "AAA", "ven": "H"},
+        }
+        easy, hard = scout.fixture_rows("AAA", proj, start_gw=4, weeks=2)
+        self.assertEqual(easy["attackDifficulty"], 1)
+        self.assertEqual(hard["attackDifficulty"], 5)
+
+
+class LeaderGroupsTests(unittest.TestCase):
+    def _row(self, pid, xg90, xa90=0.1, minutes=300, bps90=20.0):
+        return {
+            "id": pid, "webName": f"P{pid}", "teamShort": "AAA",
+            "minutes": minutes, "xg90": xg90, "xa90": xa90, "xgi90": xg90 + xa90,
+            "xgc90": 1.0, "goals": 1, "assists": 0, "bonus": 2, "bps90": bps90,
+            "defcon90": 5.0, "defconHitRate": 0.0, "defconHits": 0,
+            "defconHitN": 3, "startRate": 1.0, "starts": 3, "teamMatches": 3,
+            "minutesPerStart": 90.0,
+        }
+
+    def test_each_position_gets_four_boards(self):
+        rows = [self._row(i, xg90=i / 10) for i in range(1, 8)]
+        for pos, titles in {
+            "DEF": ["Defensive contribution", "Threat going forward",
+                    "Concede the least", "Nailed on"],
+            "MID": ["Goal threat", "Chance creation",
+                    "Defensive contribution", "Nailed on"],
+            "FWD": ["Goal threat", "Chance creation", "Bonus magnet", "Nailed on"],
+        }.items():
+            with self.subTest(pos=pos):
+                groups = scout.leader_groups(rows, pos=pos)
+                self.assertEqual([g["title"] for g in groups], titles)
+
+    def test_goal_threat_ranks_on_xg_and_drops_cameos(self):
+        rows = [self._row(1, xg90=0.3), self._row(2, xg90=0.9),
+                self._row(3, xg90=2.0, minutes=40)]
+        goals = scout.leader_groups(rows, pos="FWD", owned_ids={1})[0]
+        self.assertEqual([r[0] for r in goals["rows"]], ["P2", "P1"])
+        self.assertEqual(goals["rows"][0][2], "0.90 · 1G")
+        self.assertTrue(goals["rows"][1][3])  # owned flag rides along
 
 
 if __name__ == "__main__":

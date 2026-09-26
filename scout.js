@@ -1,8 +1,10 @@
-// Scout section - position comparison labs (defenders first).
+// Scout section - position comparison labs for defenders, midfielders and
+// forwards, one on screen at a time behind a position switch.
 //
 // Position-agnostic on purpose: one data island per position, one renderer.
-// Adding midfielders later is a POSITIONS entry in scout.py plus a second
-// <script type="application/json" class="scout-data" data-pos="MID">, not
+// Everything that differs between labs - scatter axes, bubble channel,
+// archetypes, card tiles, match-strip markers, fixture lists - arrives in
+// the island from scout.py's POSITIONS entry, so a position is config, not
 // a second copy of this file. See docs/superpowers/plans/
 // 2026-09-08-scout-section-plan.md for the design this implements.
 //
@@ -23,6 +25,8 @@
   var METRICS = {
     defcon_hit_rate: { label: 'DefCon hit rate', invert: false, field: 'defconHitRate' },
     defcon90: { label: 'DefCon per 90', invert: false, field: 'defcon90' },
+    xg90: { label: 'xG per 90', invert: false, field: 'xg90' },
+    xa90: { label: 'xA per 90', invert: false, field: 'xa90' },
     xgi90: { label: 'xGI per 90', invert: false, field: 'xgi90' },
     xgc90: { label: 'xGC per 90', invert: true, field: 'xgc90' },
     start_rate: { label: 'Start rate', invert: false, field: 'startRate' },
@@ -37,7 +41,7 @@
   var HERO_GATE_MINUTES = RATE_MIN_MINUTES * 2;  // scout.HERO_GATE_MINUTES
   var ARCHETYPE_PERCENTILE_FLOOR = 200.0 / 3.0;  // scout.ARCHETYPE_PERCENTILE_FLOOR
 
-  var ARCHETYPE_LABELS = { volume: 'Volume', cleanSheet: 'Clean sheet', attacking: 'Attacking' };
+  var HERO_X_DEFCON = 'defcon';                   // scout.HERO_X_DEFCON
 
   var MAX_SHORTLIST = 6;   // spec §5: "Max six players"
   var Z_CLAMP = 3;         // plan §2.7: bars clamp at +/-3, outliers labelled
@@ -178,7 +182,8 @@
     return rows;
   }
 
-  function heroXKey(rows) {
+  function heroXKey(rows, heroX) {
+    if (heroX && heroX !== HERO_X_DEFCON) { return heroX; }
     if (!rows.length) { return 'defcon90'; }
     var med = median(rows.map(function (r) { return r.minutes; }));
     return med >= HERO_GATE_MINUTES ? 'defcon_hit_rate' : 'defcon90';
@@ -237,7 +242,32 @@
   // problem scout.py's season_live was built to avoid (plan §1). This
   // card is built entirely from what is already sitting on the row.
 
-  var cardRowsById = {};   // updated by every lab's draw() - see initLab
+  // {id: {row, data}} - the row and the position payload it came from, so
+  // the card knows which tiles, sparklines and markers its position uses.
+  // Updated by every lab's draw() - see initLab.
+  var cardRowsById = {};
+
+  // One number format per metric, shared by the table, the compare bars
+  // and the card, so a figure never reads 27.6 in one place and 27.60 in
+  // the next.
+  function fmtValue(key, val) {
+    if (key === 'defcon_hit_rate' || key === 'start_rate') { return Math.round(val * 100) + '%'; }
+    if (key === 'minutes_per_start') { return String(Math.round(val)); }
+    if (key === 'xp' || key === 'defcon90' || key === 'bps90') { return val.toFixed(1); }
+    return val.toFixed(2);
+  }
+
+  function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
+
+  // The small print under a card tile: the count a rate was made from.
+  function tileNote(key, row) {
+    if (key === 'defcon_hit_rate') { return row.defconHits + ' of ' + plural(row.defconHitN, 'start'); }
+    if (key === 'start_rate') { return row.starts + ' of ' + row.teamMatches + ' matches'; }
+    if (key === 'xg90') { return plural(row.goals, 'goal'); }
+    if (key === 'xa90') { return plural(row.assists, 'assist'); }
+    if (key === 'bonus90') { return row.bonus + ' bonus'; }
+    return '';
+  }
 
   var AVAILABILITY_LABEL = {
     injured: 'Injured', suspended: 'Suspended', doubtful: 'Doubtful', available: 'Available',
@@ -277,10 +307,22 @@
     return '<circle class="mk-unplayed" r="3" fill="none" stroke-width="1.2"/>';
   }
 
-  function renderMatchStrip(matches, hasThreshold) {
+  // Goals and assists as one short tag: "G", "2G", "GA", "G2A".
+  function gaTag(m) {
+    var s = '';
+    if (m.goals) { s += (m.goals > 1 ? m.goals : '') + 'G'; }
+    if (m.assists) { s += (m.assists > 1 ? m.assists : '') + 'A'; }
+    return s;
+  }
+
+  // `marks` is the position's stripMarks: which rows of markers sit under
+  // the status marker - 'ga' (goals and assists) and/or 'defcon' (hit or
+  // miss). `csOutline` draws the clean-sheet box round the bar.
+  function renderMatchStrip(matches, marks, csOutline) {
     var n = matches.length;
     if (!n) { return '<p class="scpv-note">No matches played yet this season.</p>'; }
-    var colW = 22, barTop = 6, barH = 60, markY = barH + 18, w = n * colW, h = markY + 10;
+    var colW = 22, barTop = 12, barH = 60, markY = barTop + barH + 12;
+    var w = n * colW, h = markY + 8 + marks.length * 13;
     var maxPts = Math.max(3, Math.max.apply(null, matches.map(function (m) { return m.points; })));
     var cols = matches.map(function (m, i) {
       var cx = i * colW + colW / 2;
@@ -288,13 +330,23 @@
       var by = barTop + (barH - bh);
       var title = 'GW' + m.gw + (m.opp ? (m.home ? ' v ' : ' @ ') + m.opp : '') +
         ' - ' + m.minutes + ' min, ' + m.points + ' pts' +
-        (hasThreshold ? ', ' + m.defcon + ' contributions' : '');
+        (m.goals ? ', ' + plural(m.goals, 'goal') : '') +
+        (m.assists ? ', ' + plural(m.assists, 'assist') : '') +
+        (marks.indexOf('defcon') >= 0 ? ', ' + m.defcon + ' contributions' : '');
       var markers = '<g transform="translate(' + cx + ',' + markY + ')">' + statusMarker(m.status) + '</g>';
-      if (hasThreshold && m.status !== 'unplayed') {
-        markers += '<text class="mk-defcon' + (m.defconHit ? ' hit' : ' miss') + '" x="' + cx +
-          '" y="' + (markY + 13) + '" text-anchor="middle">' + (m.defconHit ? '+' : '–') + '</text>';
+      if (m.status !== 'unplayed') {
+        marks.forEach(function (mark, k) {
+          var y = markY + 14 + k * 13;
+          if (mark === 'defcon') {
+            markers += '<text class="mk-defcon' + (m.defconHit ? ' hit' : ' miss') + '" x="' + cx +
+              '" y="' + y + '" text-anchor="middle">' + (m.defconHit ? '+' : '–') + '</text>';
+          } else if (mark === 'ga' && gaTag(m)) {
+            markers += '<text class="mk-ga" x="' + cx + '" y="' + y + '" text-anchor="middle">' +
+              gaTag(m) + '</text>';
+          }
+        });
       }
-      if (m.cleanSheet) {
+      if (csOutline && m.cleanSheet) {
         markers += '<rect class="mk-cs" x="' + (cx - colW / 2 + 2) + '" y="' + (by - 2) +
           '" width="' + (colW - 4) + '" height="' + (bh + 4) + '" rx="2"/>';
       }
@@ -306,16 +358,31 @@
         '<rect class="scpv-bar" x="' + (cx - colW / 2 + 3) + '" y="' + by +
         '" width="' + (colW - 6) + '" height="' + bh + '"/>' + markers + '</g>';
     }).join('');
-    return '<svg class="scpv-strip" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="xMinYMid meet">' +
-      cols + '</svg>';
+    // Drawn at a fixed 1.5x rather than stretched to the card's width: five
+    // matches in September scaled to fill 640px made every bar a slab and
+    // the whole strip taller than the dialog. It grows sideways as the
+    // season does, and max-width keeps it inside the card once it fills.
+    return '<svg class="scpv-strip" viewBox="0 0 ' + w + ' ' + h + '" width="' + (w * 1.5) +
+      '" height="' + (h * 1.5) + '" preserveAspectRatio="xMinYMid meet">' + cols + '</svg>';
   }
 
-  function renderCard(row) {
+  function stripKey(marks, csOutline) {
+    var parts = ['<span class="mk-key-dot"></span> started', '<span class="mk-key-tri"></span> off the bench'];
+    if (marks.indexOf('ga') >= 0) { parts.push('<span class="mk-ga">G</span>/<span class="mk-ga">A</span> goal, assist'); }
+    if (marks.indexOf('defcon') >= 0) {
+      parts.push('<span class="mk-defcon hit">+</span>/<span class="mk-defcon miss">–</span> DefCon hit, miss');
+    }
+    if (csOutline) { parts.push('outline = clean sheet'); }
+    return '<span class="scpv-key">' + parts.join(' &middot; ') + '</span>';
+  }
+
+  function renderCard(entry) {
     var dlg = document.querySelector('dialog.scoutpv');
-    if (!dlg || !row) { return; }
+    if (!dlg || !entry) { return; }
+    var row = entry.row, cfg = entry.data;
     var body = dlg.querySelector('.scpv-body');
     var pct = row.percentiles || {};
-    var hasThreshold = true;   // every position in scout has a DefCon threshold today
+    var labels = cfg.archetypeLabels || {};
 
     var flags = [];
     if (row.onCorners) { flags.push('Corners'); }
@@ -329,38 +396,32 @@
     flags.push(row.ownership.toFixed(1) + '% owned');
 
     var archBadges = (row.archetypes || []).map(function (a) {
-      return '<span class="archbadge archbadge-' + esc(a) + '">' + esc(ARCHETYPE_LABELS[a] || a) + '</span>';
+      return '<span class="archbadge archbadge-' + esc(a) + '">' + esc(labels[a] || a) + '</span>';
     }).join('');
 
-    var tiles = [
-      bulletBar(pct.defcon_hit_rate || 0, 'DefCon hit rate',
-        Math.round(row.defconHitRate * 100) + '%', row.defconHitN + ' starts'),
-      bulletBar(pct.xgi90 || 0, 'xGI per 90', row.xgi90.toFixed(2)),
-      bulletBar(pct.xgc90 || 0, 'xGC per 90', row.xgc90.toFixed(2)),
-      bulletBar(pct.start_rate || 0, 'Start rate', Math.round(row.startRate * 100) + '%'),
-      bulletBar(pct.bonus90 || 0, 'Bonus per 90', row.bonus90.toFixed(2)),
-    ].join('');
+    // Percentile against whichever pool is filtered in right now, the same
+    // pool the table beside it is shaded against.
+    var tiles = (cfg.cardTiles || []).map(function (key) {
+      return bulletBar(pct[key] || 0, METRICS[key].label,
+        fmtValue(key, row[METRICS[key].field]), tileNote(key, row));
+    }).join('');
 
     var last10 = row.matches.slice(-10);
-    var sparks = [
-      ['DefCon count', last10.map(function (m) { return m.defcon; })],
-      ['xGI', last10.map(function (m) { return m.xgi; })],
-      ['xGC', last10.map(function (m) { return m.xgc; })],
-    ].map(function (s) {
-      return '<div class="scpv-sparkwrap"><div class="scpv-spark-label">' + esc(s[0]) + '</div>' +
-        sparkline(s[1], 100, 24) + '</div>';
+    var sparks = (cfg.sparks || []).map(function (s) {
+      return '<div class="scpv-sparkwrap"><div class="scpv-spark-label">' + esc(s[1]) + '</div>' +
+        sparkline(last10.map(function (m) { return m[s[0]] || 0; }), 100, 24) + '</div>';
     }).join('');
 
+    var marks = cfg.stripMarks || [];
     body.innerHTML =
       '<div class="scpv-head"><h2>' + esc(row.webName) +
       ' <span class="scpv-team">' + esc(row.teamShort) + '</span></h2>' +
-      '<p class="scpv-sub">£' + row.price.toFixed(1) + 'm' + (archBadges ? ' &middot; ' + archBadges : '') + '</p></div>' +
+      '<p class="scpv-sub"><span class="tnum">£' + row.price.toFixed(1) + 'm</span> &middot; ' +
+      esc(cfg.pos) + (archBadges ? ' &middot; ' + archBadges : '') + '</p></div>' +
       '<p class="scpv-flags">' + flags.map(function (f) { return '<span class="scpv-flag">' + esc(f) + '</span>'; }).join('') + '</p>' +
-      '<div class="scpv-block"><h3>This season, per 90</h3><div class="scpv-grid">' + tiles + '</div></div>' +
-      '<div class="scpv-block"><h3>Match by match' +
-      (hasThreshold ? ' <span class="scpv-key"><span class="mk-defcon hit">+</span> hit &middot; ' +
-        '<span class="mk-defcon miss">–</span> miss &middot; outline = clean sheet</span>' : '') +
-      '</h3>' + renderMatchStrip(row.matches, hasThreshold) + '</div>' +
+      '<div class="scpv-block"><h3>This season</h3><div class="scpv-grid">' + tiles + '</div></div>' +
+      '<div class="scpv-block"><h3>Match by match ' + stripKey(marks, cfg.csOutline) + '</h3>' +
+      renderMatchStrip(row.matches, marks, cfg.csOutline) + '</div>' +
       '<div class="scpv-block"><h3>Last 10 gameweeks</h3><div class="scpv-sparks">' + sparks + '</div></div>';
 
     if (typeof dlg.showModal === 'function') { dlg.showModal(); }
@@ -409,16 +470,22 @@
     var pinnedG = null, selGroup = null;
 
     var W = 1040, H = 520, ML = 62, MR = 18, MT = 18, MB = 48;
+    // Marks sit this far inside the axes. Without it a player on zero sat
+    // on the axis line itself: his bubble was half-clipped by the edge of
+    // the plot and printed over the "0.0" tick label beside it.
+    var PAD = 24;
+    var archLabels = data.archetypeLabels || {};
+    var sizeKey = data.sizeMetric || 'solidity_pct';
+    var sizeName = sizeKey === 'solidity_pct' ? 'solidity'
+      : (METRICS[sizeKey] ? METRICS[sizeKey].label : sizeKey);
 
-    function fmtMetric(key, val) {
-      if (key === 'defcon_hit_rate' || key === 'start_rate') { return Math.round(val * 100) + '%'; }
-      if (key === 'minutes_per_start') { return Math.round(val); }
-      if (key === 'xp') { return val.toFixed(1); }
-      return val.toFixed(2);
+    function fmtAxis(key, val) {
+      return key === 'defcon_hit_rate' ? Math.round(val * 100) + '%' : val.toFixed(key === 'defcon90' ? 1 : 2);
     }
 
-    function fmtHeroX(key, val) {
-      return key === 'defcon_hit_rate' ? Math.round(val * 100) + '%' : val.toFixed(1);
+    function ordinal(n) {
+      var s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+      return n + (s[(v - 20) % 10] || s[v] || s[0]);
     }
 
     function drawScatter(rows, heroX) {
@@ -445,25 +512,47 @@
       if (x1 === x0) { x1 = x0 + 1; }
       if (y1 === y0) { y1 = y0 + 1; }
 
-      function sx(v) { return ML + (v - x0) / (x1 - x0) * (W - ML - MR); }
-      function sy(v) { return H - MB - (v - y0) / (y1 - y0) * (H - MT - MB); }
+      function sx(v) { return ML + PAD + (v - x0) / (x1 - x0) * (W - ML - MR - 2 * PAD); }
+      function sy(v) { return H - MB - PAD - (v - y0) / (y1 - y0) * (H - MT - MB - 2 * PAD); }
 
       var grid = node('g', { 'class': 'grid' });
       var labels = node('g', { 'class': 'axlab' });
+      var yDigits = (y1 - y0) < 1.5 ? 2 : 1;
       yTicks.ticks.forEach(function (yv) {
         var gy = sy(yv);
         grid.appendChild(node('line', { x1: ML, y1: gy, x2: W - MR, y2: gy }));
-        labels.appendChild(node('text', { x: ML - 8, y: gy + 4, 'text-anchor': 'end' }, yv.toFixed(1)));
+        labels.appendChild(node('text', { x: ML - 8, y: gy + 4, 'text-anchor': 'end' }, yv.toFixed(yDigits)));
       });
+      var xDigits = (x1 - x0) < 1.5 ? 2 : 1;
       xTicks.ticks.forEach(function (xv) {
         var gx = sx(xv);
         grid.appendChild(node('line', { x1: gx, y1: MT, x2: gx, y2: H - MB }));
         labels.appendChild(node('text', {
           x: gx, y: H - MB + 18, 'text-anchor': 'middle',
-        }, heroX === 'defcon_hit_rate' ? Math.round(xv * 100) + '%' : xv.toFixed(1)));
+        }, heroX === 'defcon_hit_rate' ? Math.round(xv * 100) + '%' : xv.toFixed(xDigits)));
       });
       svg.appendChild(grid);
       svg.appendChild(labels);
+
+      // On the xG x xA plane, faint diagonals of equal xGI: every point on
+      // one line is involved in goals at the same rate, however the split
+      // falls. It turns "finisher or creator" into "and how much of both"
+      // without another word on the chart.
+      if (xField === 'xg90' && yField === 'xa90') {
+        var iso = node('g', { 'class': 'isoxgi' });
+        var step = niceStep((x1 + y1) / 4);
+        for (var c = step; c < x1 + y1 - step / 2; c += step) {
+          // The x + y = c segment, clipped to the plotted box.
+          var ax = c - y0, ay = y0, bx = x0, by = c - x0;
+          if (ax > x1) { ax = x1; ay = c - x1; }
+          if (by > y1) { by = y1; bx = c - y1; }
+          if (ax - bx < (x1 - x0) * 0.08) { continue; }
+          iso.appendChild(node('line', { x1: sx(ax), y1: sy(ay), x2: sx(bx), y2: sy(by) }));
+          iso.appendChild(node('text', { x: sx(bx) + 5, y: sy(by) + 12 },
+            (Math.round(c * 100) / 100) + ' xGI'));
+        }
+        svg.appendChild(iso);
+      }
       svg.appendChild(node('text', {
         'class': 'axtitle', x: (ML + W - MR) / 2, y: H - 8, 'text-anchor': 'middle',
       }, METRICS[heroX].label));
@@ -504,14 +593,15 @@
       var pts = [];
       rows.forEach(function (r) {
         var cx = sx(r[xField]), cy = sy(r[yField]);
-        var radius = radiusForPercentile(r.solidityPct);
+        var sizePct = r.percentiles[sizeKey] || 0;
+        var radius = radiusForPercentile(sizePct);
         var thin = r.minutes < RATE_MIN_MINUTES;
         var detail = r.webName + ' (' + r.teamShort + ') - ' + r.price.toFixed(1) +
-          'm, ' + fmtHeroX(heroX, r[xField]) + ' ' + METRICS[heroX].label.toLowerCase() +
-          ', ' + r[yField].toFixed(2) + ' ' + yLabel + ', solidity ' + r.solidityPct.toFixed(0) +
-          'th pct, ' + r.minutes + ' min' +
+          'm, ' + fmtAxis(heroX, r[xField]) + ' ' + METRICS[heroX].label.toLowerCase() +
+          ', ' + r[yField].toFixed(2) + ' ' + yLabel + ', ' + ordinal(Math.round(sizePct)) +
+          ' percentile ' + sizeName.toLowerCase() + ', ' + r.minutes + ' min' +
           (r.archetypes.length
-            ? ' - ' + r.archetypes.map(function (a) { return ARCHETYPE_LABELS[a] || a; }).join(', ')
+            ? ' - ' + r.archetypes.map(function (a) { return archLabels[a] || a; }).join(', ')
             : '');
         var g = node('g', {
           'class': 'scoutpt ' + (thin ? 'thin' : 'solid'),
@@ -565,7 +655,7 @@
       });
 
       selGroup = node('g', { 'class': 'sel' });
-      selGroup.setAttribute('hidden', '');
+      selGroup.setAttribute('display', 'none');  // 'hidden' does not hide SVG
       selGroup.appendChild(node('circle', { 'class': 'selring', r: 10 }));
       svg.appendChild(selGroup);
 
@@ -575,7 +665,7 @@
       if (!selGroup) { return; }
       var ring = selGroup.querySelector('.selring');
       ring.setAttribute('cx', g._cx); ring.setAttribute('cy', g._cy);
-      selGroup.removeAttribute('hidden');
+      selGroup.removeAttribute('display');
       if (readout) {
         readout.innerHTML = '<b>' + esc(g._r.webName) + '</b>' + esc(g._detail.slice(g._r.webName.length));
       }
@@ -588,14 +678,14 @@
 
     function unpick() {
       if (pinnedG) { pick(pinnedG); return; }
-      if (selGroup) { selGroup.setAttribute('hidden', ''); }
+      if (selGroup) { selGroup.setAttribute('display', 'none'); }
       if (readout) { readout.innerHTML = defaultReadout; }
     }
 
     function archetypeBadges(archs) {
       return archs.map(function (a) {
         return '<span class="archbadge archbadge-' + esc(a) + '">' +
-          esc(ARCHETYPE_LABELS[a] || a) + '</span>';
+          esc(archLabels[a] || a) + '</span>';
       }).join('');
     }
 
@@ -650,7 +740,7 @@
               : '';
           cells += '<td class="num tnum"' + (title ? ' title="' + esc(title) + '"' : '') +
             ' style="background:' + tone[1] + ';color:' + tone[2] + '">' +
-            fmtMetric(key, r[METRICS[key].field]) + '</td>';
+            fmtValue(key, r[METRICS[key].field]) + '</td>';
         });
         cells += '<td>' + archetypeBadges(r.archetypes) + '</td>';
         tr.innerHTML = cells;
@@ -676,9 +766,7 @@
     function clampZ(z) { return Math.max(-Z_CLAMP, Math.min(Z_CLAMP, z)); }
 
     function fmtRaw(key, val) {
-      if (key === 'defcon_hit_rate' || key === 'start_rate') { return Math.round(val * 100) + '%'; }
-      if (key === 'minutes_per_start') { return Math.round(val) + ' min'; }
-      return val.toFixed(2);
+      return fmtValue(key, val) + (key === 'minutes_per_start' ? ' min' : '');
     }
 
     function renderZBars(rows) {
@@ -715,8 +803,11 @@
       if (!tickerEl) { return; }
       var horizon = filters.fixtureHorizon || 6;
       var gwHeaders = rows.length
+        // Gameweek only: the opponent differs by player, so it lives in
+        // each cell. Heading the column with the first player's opponent
+        // mislabelled every other row on the shortlist.
         ? rows[0].fixtures.slice(0, horizon).map(function (fx) {
-            return '<th>GW' + fx.gw + (fx.blank ? '' : '<br>' + (fx.home ? 'v' : '@') + esc(fx.opp)) + '</th>';
+            return '<th>GW' + fx.gw + '</th>';
           }).join('')
         : '';
       var body = rows.map(function (r) {
@@ -725,12 +816,18 @@
           return fx.map(function (f) {
             if (f.blank) { return '<td class="tick-blank">-</td>'; }
             var tone = FIXTURE_TONES[f[field] - 1] || FIXTURE_TONES[2];
-            return '<td style="background:' + tone[0] + ';color:' + tone[1] + '">' + f[field] + '</td>';
+            // Same grammar as the fixture-run pills: capitals at home.
+            var opp = f.home ? f.opp.toUpperCase() : f.opp.toLowerCase();
+            return '<td style="background:' + tone[0] + ';color:' + tone[1] + '" title="GW' + f.gw +
+              (f.home ? ', at home to ' : ', away to ') + esc(f.opp) + '">' +
+              '<span class="tick-opp">' + esc(opp) + '</span> <b>' + f[field] + '</b></td>';
           }).join('');
         }
-        return '<tr class="tick-name"><td colspan="' + (horizon + 1) + '"><b>' + esc(r.webName) + '</b></td></tr>' +
-          '<tr><td class="tick-label">Clean sheet</td>' + cells('cleanSheetDifficulty') + '</tr>' +
-          '<tr><td class="tick-label">DefCon</td>' + cells('defconDifficulty') + '</tr>';
+        return '<tr class="tick-name"><td colspan="' + (horizon + 1) + '"><b>' + esc(r.webName) + '</b>' +
+          ' <span class="teamtag">' + esc(r.teamShort) + '</span></td></tr>' +
+          (data.tickerRows || []).map(function (tr) {
+            return '<tr><td class="tick-label">' + esc(tr[1]) + '</td>' + cells(tr[0]) + '</tr>';
+          }).join('');
       }).join('');
       tickerEl.innerHTML = '<div class="scroll"><table class="scouttickertable">' +
         '<thead><tr><th></th>' + gwHeaders + '</tr></thead>' +
@@ -775,8 +872,8 @@
     function draw() {
       currentRows = applyFilters(data.rows, filters);
       applyDerivations(currentRows, data.archetypes);
-      currentRows.forEach(function (r) { cardRowsById[r.id] = r; });
-      var heroX = heroXKey(currentRows);
+      currentRows.forEach(function (r) { cardRowsById[r.id] = { row: r, data: data }; });
+      var heroX = heroXKey(currentRows, data.heroX);
       drawScatter(currentRows, heroX);
       renderHeatmap(currentRows);
       updateCompareUI();
@@ -805,9 +902,10 @@
     if (minsPerStart) { minsPerStart.addEventListener('change', function () { filters.minMinutesPerStart = this.value ? parseFloat(this.value) : null; draw(); }); }
     if (teamSel) { teamSel.addEventListener('change', function () { filters.team = this.value ? parseInt(this.value, 10) : null; draw(); }); }
     // The horizon control lives on the fixture-runs card, not here, but
-    // the shortlist's own fixture strip has to follow it - one horizon for
-    // the whole section, whichever card the reader changed it on.
-    document.addEventListener('scout:horizon', function (ev) {
+    // the shortlist's own fixture strip has to follow it - one horizon per
+    // position, whichever card the reader changed it on.
+    var view = lab.closest('.scoutview') || panel;
+    view.addEventListener('scout:horizon', function (ev) {
       filters.fixtureHorizon = ev.detail;
       if (compareCard && !compareCard.hidden) { renderCompare(); }
     });
@@ -834,15 +932,13 @@
   // ranking, and a control that reorders nothing is the reason the old
   // horizon selector felt broken.
 
-  function initFixtureRuns() {
-    var card = panel.querySelector('.scoutfx');
-    if (!card) { return; }
-    var holder = card.querySelector('.scout-fixtures');
+  // Each list reads one difficulty field (data-fx) and ranks kindest
+  // first, or hardest first where the list is marked data-hardest.
+  function initFixtureRuns(view, runs) {
+    var card = view.querySelector('.scoutfx');
+    if (!card || !runs) { return; }
     var sel = card.querySelector('.sf-horizon');
-    if (!holder || !sel) { return; }
-    var runs;
-    try { runs = JSON.parse(holder.textContent); }
-    catch (e) { return; }
+    if (!sel) { return; }
 
     var DEPTH = 6;
 
@@ -865,32 +961,93 @@
 
     function render() {
       var horizon = parseInt(sel.value, 10) || 6;
-      [['cs', 'cleanSheetDifficulty'], ['dc', 'defconDifficulty']].forEach(function (pair) {
-        var list = card.querySelector('.fxrun-list[data-metric="' + pair[0] + '"]');
-        if (!list) { return; }
+      card.querySelectorAll('.fxrun-list[data-fx]').forEach(function (list) {
+        var field = list.dataset.fx;
+        var dir = list.dataset.hardest ? -1 : 1;
         var ranked = runs.slice().sort(function (a, b) {
-          return meanOver(a, pair[1], horizon) - meanOver(b, pair[1], horizon);
+          return dir * (meanOver(a, field, horizon) - meanOver(b, field, horizon));
         }).slice(0, DEPTH);
         list.innerHTML = ranked.map(function (run, i) {
           return '<li><span class="slrank">' + (i + 1) + '</span>' +
             '<span class="fxrun-club">' + esc(run.club) + '</span>' +
-            '<span class="fxrun-chips">' + chips(run.cells, pair[1], horizon) + '</span></li>';
+            '<span class="fxrun-avg tnum" title="Average difficulty over the run">' +
+            meanOver(run, field, horizon).toFixed(1) + '</span>' +
+            '<span class="fxrun-chips">' + chips(run.cells, field, horizon) + '</span></li>';
         }).join('');
       });
-      // One horizon for the whole section: the shortlist's fixture strip
-      // listens for this rather than keeping its own copy.
-      document.dispatchEvent(new CustomEvent('scout:horizon', { detail: horizon }));
+      // One horizon per position: the shortlist's fixture strip listens for
+      // this rather than keeping its own copy.
+      view.dispatchEvent(new CustomEvent('scout:horizon', { detail: horizon }));
     }
 
     sel.addEventListener('change', render);
     render();
   }
 
+  // -- position switch --------------------------------------------------
+  //
+  // One lab on screen at a time. Each is initialised the first time it is
+  // shown rather than all three up front: nobody pays for laying out 200
+  // midfielders to look at the defenders.
+
+  var fixtureRuns = null;
+
+  function initView(view) {
+    if (!view || view._scoutReady) { return; }
+    view._scoutReady = true;
+    initFixtureRuns(view, fixtureRuns);
+    view.querySelectorAll('.scoutlab').forEach(initLab);
+  }
+
+  function showPosition(pos) {
+    var switcher = panel.querySelector('.scoutpos');
+    if (switcher) {
+      switcher.querySelectorAll('button[data-pos]').forEach(function (b) {
+        b.setAttribute('aria-selected', String(b.dataset.pos === pos));
+      });
+    }
+    var shown = null;
+    panel.querySelectorAll('.scoutview').forEach(function (v) {
+      v.hidden = v.dataset.pos !== pos;
+      if (!v.hidden) { shown = v; }
+    });
+    initView(shown);
+    document.dispatchEvent(new Event('rail:rebuild'));
+    // Switching from deep in one lab lands at the top of the next, not at
+    // the same pixel offset of a page that is now a different length.
+    if (switcher && switcher.getBoundingClientRect().top < 0) {
+      var bar = document.querySelector('.topbar');
+      var off = (bar ? bar.getBoundingClientRect().height : 0) + 8;
+      window.scrollTo(0, switcher.getBoundingClientRect().top + window.scrollY - off);
+    }
+  }
+
   function draw() {
     if (drawn) { return; }
     drawn = true;
-    initFixtureRuns();
-    panel.querySelectorAll('.scoutlab').forEach(initLab);
+    var holder = panel.querySelector('.scout-fixtures');
+    if (holder) {
+      try { fixtureRuns = JSON.parse(holder.textContent); }
+      catch (e) { fixtureRuns = null; }
+    }
+    var switcher = panel.querySelector('.scoutpos');
+    if (switcher) {
+      switcher.addEventListener('click', function (ev) {
+        var b = ev.target.closest('button[data-pos]');
+        if (b) { showPosition(b.dataset.pos); }
+      });
+      // Arrow keys move along the control, as a tablist should.
+      switcher.addEventListener('keydown', function (ev) {
+        if (ev.key !== 'ArrowRight' && ev.key !== 'ArrowLeft') { return; }
+        var btns = Array.from(switcher.querySelectorAll('button[data-pos]'));
+        var i = btns.indexOf(document.activeElement);
+        if (i < 0) { return; }
+        var next = btns[(i + (ev.key === 'ArrowRight' ? 1 : btns.length - 1)) % btns.length];
+        next.focus();
+        showPosition(next.dataset.pos);
+      });
+    }
+    initView(panel.querySelector('.scoutview:not([hidden])'));
   }
 
   panel.addEventListener('panel:shown', draw);

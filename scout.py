@@ -81,6 +81,33 @@ class PositionConfig:
     archetypes: dict           # {archetype: driving metric key}
     metrics: list              # heatmap column order, metric keys
     zbars: list                # Level 2 z-score band order, spec §5.1
+    # The scatter's x-axis. HERO_X_DEFCON means "the DefCon rate, gated
+    # between per-90 and hit rate by sample size" (hero_x_key); anything
+    # else is a fixed METRICS key.
+    hero_x: str = "defcon"
+    # Bubble size channel: a percentile key (a METRICS key or
+    # 'solidity_pct'), and the legend line that says what big means.
+    size_metric: str = "solidity_pct"
+    size_label: str = "Bigger bubble concedes less"
+    archetype_labels: dict = field(default_factory=dict)
+    # Fixture-runs card: which difficulty each ranked list reads. `fx` is a
+    # fixture_rows field; `hardest` reverses the order for a "who to
+    # avoid" list; `modelled` tags a list whose difficulty is a proxy.
+    fixture_lists: list = field(default_factory=list)
+    # The shortlist's fixture strip: one row per (fixture_rows field, label).
+    ticker_rows: list = field(default_factory=list)
+    # Player card: the five tiles (METRICS keys), the three last-ten
+    # sparklines ((match field, label)), and which markers the match strip
+    # draws under each column ('defcon' hit/miss, 'ga' goals and assists).
+    card_tiles: list = field(default_factory=list)
+    sparks: list = field(default_factory=list)
+    strip_marks: list = field(default_factory=list)
+    # Clean-sheet outline on the match strip - a forward earns nothing for
+    # one, so there it would be decoration.
+    cs_outline: bool = True
+
+
+HERO_X_DEFCON = "defcon"
 
 
 # Metric keys shared across positions, with the direction each is "good" in
@@ -91,6 +118,8 @@ class PositionConfig:
 METRICS = {
     "defcon_hit_rate": ("DefCon hit rate", False),
     "defcon90": ("DefCon per 90", False),
+    "xg90": ("xG per 90", False),
+    "xa90": ("xA per 90", False),
     "xgi90": ("xGI per 90", False),
     "xgc90": ("xGC per 90", True),
     "start_rate": ("Start rate", False),
@@ -100,6 +129,15 @@ METRICS = {
     "cards90": ("Cards per 90", True),
     "xp": ("xP", False),
 }
+
+# The two fixture lists the defender card has always shown, and the
+# attacking pair the midfield and forward labs use instead.
+_FX_CLEAN_SHEET = {"fx": "cleanSheetDifficulty", "title": "Kindest for clean sheets"}
+_FX_DEFCON = {"fx": "defconDifficulty", "title": "Most to defend against",
+              "modelled": True}
+_FX_GOALS = {"fx": "attackDifficulty", "title": "Kindest for goals"}
+_FX_GOALS_HARD = {"fx": "attackDifficulty", "title": "Toughest for goals",
+                  "hardest": True}
 
 POSITIONS = {
     "DEF": PositionConfig(
@@ -112,6 +150,8 @@ POSITIONS = {
             "cleanSheet": "solidity_pct",
             "attacking": "xgi90",
         },
+        archetype_labels={"volume": "Volume", "cleanSheet": "Clean sheet",
+                          "attacking": "Attacking"},
         metrics=["defcon_hit_rate", "xgi90", "xgc90", "start_rate",
                  "minutes_per_start", "bps90", "cards90", "xp"],
         # Exact order from spec §5.1 - xgc90 and cards90 are inverted
@@ -120,6 +160,65 @@ POSITIONS = {
         # without scout.js doing anything extra, only labelling it as such.
         zbars=["defcon_hit_rate", "xgi90", "xgc90", "start_rate",
                "minutes_per_start", "bps90", "cards90"],
+        fixture_lists=[_FX_CLEAN_SHEET, _FX_DEFCON],
+        ticker_rows=[("cleanSheetDifficulty", "Clean sheet"),
+                     ("defconDifficulty", "DefCon")],
+        card_tiles=["defcon_hit_rate", "xgi90", "xgc90", "start_rate", "bonus90"],
+        sparks=[("defcon", "DefCon count"), ("xgi", "xGI"), ("xgc", "xGC")],
+        strip_marks=["defcon"],
+    ),
+    # Midfielders and forwards are bought for goals and assists first, so
+    # their scatter is the attacking plane itself - xG against xA - which
+    # sorts finishers from creators by position alone and puts the players
+    # who do both top-right. A midfielder's DefCon is real points (the
+    # "volume" archetype) but it is the third question, not the first, so
+    # it is the bubble rather than an axis.
+    "MID": PositionConfig(
+        key="MID",
+        label="Midfielders",
+        defcon_threshold=analysis.DEFCON_THRESHOLD["MID"],
+        hero_x="xg90",
+        hero_y="xa90",
+        size_metric="defcon90",
+        size_label="Bigger bubble does more defensive work",
+        archetypes={"finisher": "xg90", "creator": "xa90", "volume": "defcon90"},
+        archetype_labels={"finisher": "Finisher", "creator": "Creator",
+                          "volume": "Volume"},
+        metrics=["xg90", "xa90", "defcon90", "start_rate",
+                 "minutes_per_start", "bps90", "xp"],
+        zbars=["xg90", "xa90", "defcon90", "start_rate",
+               "minutes_per_start", "bps90"],
+        fixture_lists=[_FX_GOALS, _FX_DEFCON],
+        ticker_rows=[("attackDifficulty", "Goals"),
+                     ("defconDifficulty", "DefCon")],
+        card_tiles=["xg90", "xa90", "defcon_hit_rate", "start_rate", "bonus90"],
+        sparks=[("xg", "xG"), ("xa", "xA"), ("defcon", "DefCon count")],
+        strip_marks=["ga", "defcon"],
+    ),
+    # A forward's DefCon threshold exists but almost nobody clears it, so
+    # the third channel is the bonus system instead - the other place a
+    # forward's points come from beyond the goal itself.
+    "FWD": PositionConfig(
+        key="FWD",
+        label="Forwards",
+        defcon_threshold=analysis.DEFCON_THRESHOLD["FWD"],
+        hero_x="xg90",
+        hero_y="xa90",
+        size_metric="bps90",
+        size_label="Bigger bubble earns more bonus",
+        archetypes={"finisher": "xg90", "creator": "xa90", "bonus": "bps90"},
+        archetype_labels={"finisher": "Finisher", "creator": "Creator",
+                          "bonus": "Bonus"},
+        metrics=["xg90", "xa90", "start_rate", "minutes_per_start",
+                 "bps90", "bonus90", "xp"],
+        zbars=["xg90", "xa90", "start_rate", "minutes_per_start",
+               "bps90", "bonus90"],
+        fixture_lists=[_FX_GOALS, _FX_GOALS_HARD],
+        ticker_rows=[("attackDifficulty", "Goals")],
+        card_tiles=["xg90", "xa90", "start_rate", "minutes_per_start", "bonus90"],
+        sparks=[("xg", "xG"), ("xa", "xA"), ("points", "Points")],
+        strip_marks=["ga"],
+        cs_outline=False,
     ),
 }
 
@@ -268,6 +367,10 @@ def season_live(ctx, upto_gw, ttl=fplapi.DEFAULT_TTL):
                     "yellow" if stats.get("yellow_cards") else "none"),
                 "xgc": round(analysis.f(stats.get("expected_goals_conceded")), 2),
                 "xgi": round(analysis.f(stats.get("expected_goal_involvements")), 2),
+                "xg": round(analysis.f(stats.get("expected_goals")), 2),
+                "xa": round(analysis.f(stats.get("expected_assists")), 2),
+                "goals": stats.get("goals_scored", 0),
+                "assists": stats.get("assists", 0),
             })
     return by_player
 
@@ -379,9 +482,14 @@ def raw_rows(ctx, pos, live, min_minutes=1, proj=None, next_gw=None,
             # below - reading it straight off avoids quietly disagreeing
             # with FPL's own rounding of the same figure.
             "defcon90": round(el.get("defensive_contribution_per_90", 0.0) or 0.0, 2),
+            "xg90": round(el.get("expected_goals_per_90", 0.0) or 0.0, 2),
+            "xa90": round(el.get("expected_assists_per_90", 0.0) or 0.0, 2),
             "xgi90": round(el.get("expected_goal_involvements_per_90", 0.0) or 0.0, 2),
+            "goals": el.get("goals_scored", 0),
+            "assists": el.get("assists", 0),
             "xgc90": round(el.get("expected_goals_conceded_per_90", 0.0) or 0.0, 2),
             "bps90": round(analysis.per90(el.get("bps", 0), minutes), 2),
+            "bonus": el.get("bonus", 0),
             "bonus90": round(analysis.per90(el.get("bonus", 0), minutes), 2),
             "cards90": round(analysis.per90(
                 el.get("yellow_cards", 0) + el.get("red_cards", 0), minutes), 2),
@@ -421,11 +529,16 @@ def zscore(values, v):
     return (v - mean) / sd if sd else 0.0
 
 
-def hero_x_key(rows):
+def hero_x_key(rows, hero_x=HERO_X_DEFCON):
     """'defcon_hit_rate' once the filtered pool has enough football behind
     it, else 'defcon90' - see HERO_GATE_MINUTES and plan §2.1. Gated on the
     *median* player's minutes so one or two nailed-on starters cannot pull
-    the whole pool's axis over early."""
+    the whole pool's axis over early.
+
+    Only the DefCon axis is gated; a position whose PositionConfig.hero_x
+    names a fixed metric gets that metric back unchanged."""
+    if hero_x != HERO_X_DEFCON:
+        return hero_x
     if not rows:
         return "defcon90"
     med = statistics.median(r["minutes"] for r in rows)
@@ -519,7 +632,15 @@ def fixture_rows(team_short, proj, start_gw, weeks=6):
     opponent means more clearances, blocks and tackles for this club's
     defence, which is why the two rows point in opposite directions exactly
     as spec §3.2 requires. Every consumer must present this row as modelled,
-    not measured (see the GW10 revisit note in the plan)."""
+    not measured (see the GW10 revisit note in the plan).
+
+    Attack difficulty is the attacking half of the same ticker: this club's
+    own projected goals in the fixture, against ticker.py's XG anchors, so
+    a midfielder's or forward's fixture reads the same way the ticker's
+    attack rating does. Not a proxy - it is the projection itself."""
+    def difficulty(ease):
+        return max(1, min(5, int((1 - ease) * 5) + 1))
+
     out = []
     for fx in ffs.ticker(proj, team_short, start_gw, weeks):
         if fx.get("blank"):
@@ -527,15 +648,16 @@ def fixture_rows(team_short, proj, start_gw, weeks=6):
             continue
         cs_ease = _clamp01(
             (fx["cs"] / 100.0 - ticker.CS_LOW) / (ticker.CS_HIGH - ticker.CS_LOW))
-        cs_diff = max(1, min(5, int((1 - cs_ease) * 5) + 1))
         opp_row = proj.get((fx["opp"], fx["gw"]))
         opp_xg = float(opp_row.get("g") or 0) if opp_row else 0.0
         dc_ease = _clamp01((opp_xg - ticker.XG_LOW) / (ticker.XG_HIGH - ticker.XG_LOW))
-        dc_diff = max(1, min(5, int((1 - dc_ease) * 5) + 1))
+        at_ease = _clamp01(
+            (fx.get("xg", 0.0) - ticker.XG_LOW) / (ticker.XG_HIGH - ticker.XG_LOW))
         out.append({
             "gw": fx["gw"], "opp": fx["opp"], "home": fx["home"],
-            "cleanSheetDifficulty": cs_diff,
-            "defconDifficulty": dc_diff,
+            "cleanSheetDifficulty": difficulty(cs_ease),
+            "defconDifficulty": difficulty(dc_ease),
+            "attackDifficulty": difficulty(at_ease),
         })
     return out
 
@@ -568,11 +690,19 @@ def pool(ctx, pos, live, proj, min_minutes=1, next_gw=None, market=None,
     return {
         "pos": pos,
         "label": cfg.label,
+        "heroX": cfg.hero_x,
         "heroY": cfg.hero_y,
+        "sizeMetric": cfg.size_metric,
         "defconThreshold": cfg.defcon_threshold,
         "metrics": cfg.metrics,
         "zbars": cfg.zbars,
         "archetypes": cfg.archetypes,
+        "archetypeLabels": cfg.archetype_labels,
+        "tickerRows": cfg.ticker_rows,
+        "cardTiles": cfg.card_tiles,
+        "sparks": cfg.sparks,
+        "stripMarks": cfg.strip_marks,
+        "csOutline": cfg.cs_outline,
         "defaultFilters": DEFAULT_FILTERS,
         "rows": rows,
     }
@@ -626,14 +756,19 @@ def _eligible(rows, min_minutes=None):
     return [r for r in rows if r["minutes"] >= floor]
 
 
-def leader_groups(rows, owned_ids=frozenset(), depth=6):
-    """The four leaderboards, as components.stat_leaders group dicts.
+def leader_groups(rows, owned_ids=frozenset(), depth=6, pos="DEF"):
+    """The four leaderboards for `pos`, as components.stat_leaders group
+    dicts. Every position gets four, so each lays out as the same 2x2.
 
     DefCon's sort key follows the same sample gate as the hero axis
     (hero_x_key): the hit rate is the metric that matters, but until the
     pool has enough matches behind it the rate resolves into two or three
     values and ranks nothing, so the per-90 leads and the hit count rides
-    along as the evidence."""
+    along as the evidence.
+
+    Attacking boards rank on the expected rate and print the real tally
+    beside it: xG is the better guide to what comes next, and the goal
+    count is what a reader will check it against."""
     pool = _eligible(rows)
     if not pool:
         return []
@@ -645,53 +780,83 @@ def leader_groups(rows, owned_ids=frozenset(), depth=6):
     def row(r, val):
         return (r["webName"], r["teamShort"], val, r["id"] in owned_ids)
 
-    defcon = rank(lambda r: (r["defconHitRate"], r["defcon90"]) if by_hit_rate
-                  else (r["defcon90"], r["defconHitRate"]))
-    attack = rank(lambda r: r["xgi90"])
-    solid = sorted(pool, key=lambda r: r["xgc90"])[:depth]
-    nailed = rank(lambda r: (r["startRate"], r["minutesPerStart"]))
+    # components.stat_leaders escapes the value, so separators here are
+    # plain characters rather than HTML entities - an &middot; would come
+    # out as the literal text "&middot;".
+    defcon = {
+        "title": "Defensive contribution",
+        "note": ("Hit rate, with the per-90 behind it."
+                 if by_hit_rate else
+                 "Per 90, with hits out of starts beside it."),
+        "tone": "var(--p70)", "icon": "shield",
+        "rows": [row(r, f"{r['defcon90']:.1f} ({r['defconHits']}/{r['defconHitN']})")
+                 for r in rank(lambda r: (r["defconHitRate"], r["defcon90"])
+                               if by_hit_rate
+                               else (r["defcon90"], r["defconHitRate"]))],
+    }
+    nailed = {
+        "title": "Nailed on",
+        "note": ("Starts out of his club's matches, and how long he "
+                 "lasts in them."),
+        "tone": "var(--market)", "icon": "run",
+        # Start rate alone is a column of identical 100%s this early in
+        # a season, which ranks nothing. Minutes per start is the other
+        # half of the minutes question anyway (spec §3.3: selection
+        # security and hook risk are not the same thing), and it is what
+        # actually separates these six. The raw fraction rides along
+        # because a percentage with no denominator is exactly how a man
+        # who has started two of three came to be called nailed on.
+        "rows": [row(r, f"{r['starts']}/{r['teamMatches']} · "
+                        f"{r['minutesPerStart']:.0f} min")
+                 # Total minutes break the tie. Five from five at 90 is half
+                 # the pool in September, and without it the order among
+                 # them was just the order FPL lists players in.
+                 for r in rank(lambda r: (r["startRate"], r["minutesPerStart"],
+                                          r["minutes"]))],
+    }
+    goals = {
+        "title": "Goal threat",
+        "note": "Expected goals per 90, goals scored beside it.",
+        "tone": "var(--mine)", "icon": "ball",
+        "rows": [row(r, f"{r['xg90']:.2f} · {r['goals']}G")
+                 for r in rank(lambda r: (r["xg90"], r["goals"]))],
+    }
+    creation = {
+        "title": "Chance creation",
+        "note": "Expected assists per 90, assists beside it.",
+        "tone": "var(--premium)", "icon": "key",
+        "rows": [row(r, f"{r['xa90']:.2f} · {r['assists']}A")
+                 for r in rank(lambda r: (r["xa90"], r["assists"]))],
+    }
+
+    if pos == "MID":
+        return [goals, creation, defcon, nailed]
+    if pos == "FWD":
+        bonus = {
+            "title": "Bonus magnet",
+            "note": "Bonus-system score per 90, bonus points banked beside it.",
+            "tone": "var(--p70)", "icon": "spark",
+            "rows": [row(r, f"{r['bps90']:.1f} · {r['bonus']}B")
+                     for r in rank(lambda r: (r["bps90"], r["bonus"]))],
+        }
+        return [goals, creation, bonus, nailed]
 
     return [
-        {
-            "title": "Defensive contribution",
-            "note": ("Hit rate, with the per-90 behind it."
-                     if by_hit_rate else
-                     "Per 90, with hits out of starts beside it."),
-            "tone": "var(--p70)", "icon": "shield",
-            # components.stat_leaders escapes the value, so this is a plain
-            # character rather than an HTML entity - an &middot; here comes
-            # out as the literal text "&middot;".
-            "rows": [row(r, f"{r['defcon90']:.1f} ({r['defconHits']}/{r['defconHitN']})")
-                     for r in defcon],
-        },
+        defcon,
         {
             "title": "Threat going forward",
             "note": "Expected goal involvement per 90.",
             "tone": "var(--mine)", "icon": "boot",
-            "rows": [row(r, f"{r['xgi90']:.2f}") for r in attack],
+            "rows": [row(r, f"{r['xgi90']:.2f}") for r in rank(lambda r: r["xgi90"])],
         },
         {
             "title": "Concede the least",
             "note": "Expected goals conceded per 90, lowest first.",
             "tone": "var(--premium)", "icon": "key",
-            "rows": [row(r, f"{r['xgc90']:.2f}") for r in solid],
+            "rows": [row(r, f"{r['xgc90']:.2f}")
+                     for r in sorted(pool, key=lambda r: r["xgc90"])[:depth]],
         },
-        {
-            "title": "Nailed on",
-            "note": ("Starts out of his club's matches, and how long he "
-                     "lasts in them."),
-            "tone": "var(--market)", "icon": "run",
-            # Start rate alone is a column of identical 100%s this early in
-            # a season, which ranks nothing. Minutes per start is the other
-            # half of the minutes question anyway (spec §3.3: selection
-            # security and hook risk are not the same thing), and it is what
-            # actually separates these six. The raw fraction rides along
-            # because a percentage with no denominator is exactly how a man
-            # who has started two of three came to be called nailed on.
-            "rows": [row(r, f"{r['starts']}/{r['teamMatches']} · "
-                            f"{r['minutesPerStart']:.0f} min")
-                     for r in nailed],
-        },
+        nailed,
     ]
 
 
@@ -715,5 +880,6 @@ def club_fixture_runs(ctx, proj, start_gw, weeks=MAX_FIXTURE_HORIZON):
             "cells": cells,
             "csMean": sum(c["cleanSheetDifficulty"] for c in real) / len(real),
             "dcMean": sum(c["defconDifficulty"] for c in real) / len(real),
+            "atMean": sum(c["attackDifficulty"] for c in real) / len(real),
         })
     return out
