@@ -226,6 +226,12 @@ def cmd_dashboard(args, cfg):
         frag = out.with_name(out.stem + "-artifact.html")
         frag.write_text(dashboard.render(data, standalone=False), encoding="utf-8")
         print(f"wrote {frag}  (body-only, for publishing as an Artifact)")
+        # Served beside the page; the phone-alert bot reads it. See
+        # dashboard.projections_export.
+        pj = out.with_name("projections.json")
+        pj.write_text(json.dumps(data["projections"], separators=(",", ":")),
+                      encoding="utf-8")
+        print(f"wrote {pj}  ({len(data['projections']['xp'])} players)")
 
     removed = fplapi.prune_cache()
     if removed:

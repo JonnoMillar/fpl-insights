@@ -99,6 +99,33 @@ for every figure so columns of numbers align. Difficulty pills always carry a
 visible opponent and number, because two of FPL's steps sit at 1.35:1 and
 1.2:1 against white and colour alone would not be readable.
 
+## Phone alerts
+
+The dashboard is something you go and look at. The deadline is the moment
+that matters, so a companion bot, in a separate private repo
+(`fpl-lineup-alert`), pushes to my phone through [ntfy](https://ntfy.sh)
+instead:
+
+- **Before every deadline** (2-6 hours out, once the press conferences have
+  moved the predicted line-ups): any starter Fantasy Football Scout doesn't
+  expect to play, fitness flags in the XI, and a captain who might not start.
+  It names the bench swaps that keep the formation legal and the best captain
+  alternatives, ranked on this dashboard's expected points.
+- **Whenever squad news breaks**: a player's fitness status changing, or an
+  imminent price rise or drop, pushed as it happens rather than discovered on
+  deadline day.
+- **Acting on it from the phone**: each alert is also posted to a GitHub issue.
+  Replying `sub spence for hall` or `captain haaland` runs a workflow that
+  makes the change on the real FPL team. Only the repo owner's comments count,
+  and transfers are deliberately left out because they cost points and cannot
+  be undone.
+
+The two repos share data, not code. Each build here publishes
+`projections.json` (next gameweek's expected points for every player) beside
+the page, and the bot fetches it from the live site, falling back to points
+per game if it is missing or for the wrong gameweek. The bot is kept private
+because it holds an FPL login and can change the team.
+
 ## How it works
 
 ```
@@ -167,7 +194,7 @@ to anonymous visitors but strip the numbers (that is their paid product).
 ## How it stays current
 
 **GitHub Actions builds it** (`.github/workflows/build.yml`) every three hours,
-commits `dashboard-artifact.html` if the page changed, and warns in the run log
+commits `dashboard-artifact.html` and `projections.json` if they changed, and warns in the run log
 if any data source dropped out. Every run ends with a source-health block, so a
 broken scrape shows up as a `FAIL` line rather than a section quietly vanishing.
 

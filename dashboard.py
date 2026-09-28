@@ -494,6 +494,33 @@ def _update_price_history(ctx):
     return weekly
 
 
+def projections_export(ctx, proj, gw, market, baselines, eps_by_id):
+    """Next gameweek's expected points for every player, as plain JSON.
+
+    Published next to the page (projections.json) so the phone-alert bot in
+    the separate fpl-lineup-alert repo can rank substitutions and captain
+    picks on this model instead of points per game. Fetching the deployed
+    file keeps each repo free of the other's code.
+
+    The owned squad carries the same history-backed number the pitch shows
+    (eps_by_id); everyone else gets the bootstrap-only candidate_score, the
+    same split the transfer cards use. One gameweek only: "who should start
+    this week" is the question, and case_score's windowed total is not it.
+    """
+    priors = transfers.positional_priors(ctx)
+    out = {}
+    for el in ctx.players.values():
+        s = eps_by_id.get(el["id"]) or transfers.candidate_score(
+            el, ctx, proj, gw, market, baselines, priors)
+        if s:
+            out[str(el["id"])] = round(s["total"], 2)
+    return {
+        "gw": gw,
+        "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "xp": out,
+    }
+
+
 def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
           elite_depth=elite.PROVEN_POOL_SIZE):
     """Gather everything the page needs."""
@@ -887,6 +914,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "chips": chips_table(histories) if histories else "",
         "scout": scout_section(scout_pools, scout_fixtures, set(squad_ids)),
         "next_gw": next_gw,
+        "projections": projections_export(ctx, proj, next_gw, market,
+                                          baselines, eps_by_id),
         "overall_rank": meta.get("summary_overall_rank"),
         "gw_average": gw_average,
         "rank_move": rank_move,

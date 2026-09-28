@@ -516,7 +516,15 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
         f'<p class="note" hidden>Fantasy Football Scout\'s predicted elevens. '
         f'They are re-tuned after each press conference, so they sharpen '
         f'closer to the deadline.</p>'
-        f'{nav}{"".join(panels)}</div>'
+        f'{nav}{"".join(panels)}'
+        # Visible rather than behind the info button: the phone alerts live
+        # in a separate private repo, so this line is the only place a
+        # visitor to the page learns they exist.
+        f'<p class="lc-foot">The same check runs 2-6 hours before every '
+        f'deadline and pushes to my phone, with the substitutions and '
+        f"captain changes worth making, ranked on this page's expected "
+        f'points. Injury and price news on the squad is pushed as it '
+        f'breaks.</p></div>'
     )
 
 
