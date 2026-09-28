@@ -414,7 +414,9 @@ def render(d, standalone=True):
 
   {d['dialog']}
   <p class="foot">Built from the public Fantasy Premier League API &middot;
-  expected goals are Opta's, as used by FPL &middot; {e(d['generated'])}</p>
+  expected goals are Opta's, as used by FPL &middot; {e(d['generated'])}
+  &middot; <a href="https://github.com/JonnoMillar/fpl-insights">source and
+  phone alerts</a></p>
 </div>
 """
     # Archivo is requested across its width axis as well as its weight axis -
