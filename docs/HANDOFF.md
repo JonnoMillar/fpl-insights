@@ -55,6 +55,12 @@ The fixes are in commit f3578be, followed by the successful automated refresh 33
 
 ### Next implementation, after Jonno responds to the proposal
 
+Visual comparison prepared at Jonno's request: [local before/after preview](http://127.0.0.1:8766/comparison.html), with mobile/desktop switches and Arrival, Planning, Mini-league and Scout comparisons plus reasons. Durable files and screenshot captures are in `C:/Users/jonno/.codex/visualizations/2026/10/14/01a137d8-6cda-70e2-b6ad-0c76be0c871f/` (`comparison.html`, `before.html`, `after.html`, `comparison.png` and per-topic captures). The working copies reuse the committed snapshot; preview changes are applied only to the after copy. `.cache/build_design_preview.py` regenerates them locally and is ignored.
+
+The preview was checked at 390px and 320px, with desktop comparison frames at 1280px. Corrected a preview column-count assumption and the sticky-navigation offset before completion. Confirmed captaincy/transfers lead, mobile standings show Team/Total/GW together, Scout selection and comparison jump work, and sampled states have no document overflow or logged errors. Preview JavaScript syntax was checked; production regressions/failure states were not rerun because application code and the hosted artifact remain unchanged. League sorting needs its event wiring updated before production column rearrangement; the preview states this limitation. No approval of the proposed direction is implied by requesting a visual comparison.
+
+A localhost-only review server on port 8766 was intentionally left running for Jonno to inspect the comparison (exec session 71533); stop it once review is finished. The comparison tab is retained as a deliverable. These local preview assets are not a deployment and should not be staged as generated application output.
+
 Start with compact product orientation and mobile navigation, then decision order/scope. Follow the linked brief rather than restarting the audit. Keep Squad as the default main tab; do not silently choose a new forecasting model or replace the design world. The proposed direction is not yet an approved implementation contract.
 
 The original phase acceptance criteria remain:
