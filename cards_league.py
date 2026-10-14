@@ -742,10 +742,9 @@ def league_table(rows, squads, ctx, me):
         body.append(
             f"<tr{cls}>"
             f'<td class="num" data-v="{r["rank"]}">{r["rank"]}{move_html}</td>'
-            f'<td><b>{e(r["entry_name"])}</b></td>'
-            f'<td>{e(r["player_name"])}</td>'
-            f'<td class="num" data-v="{r["event_total"]}">{r["event_total"]}{gw_tag}</td>'
+            f'<td data-v="{e(r["entry_name"])}"><b>{e(r["entry_name"])}</b><span class="league-manager">{e(r["player_name"])}</span></td>'
             f'<td class="num"><b>{r["total"]}</b></td>'
+            f'<td class="num" data-v="{r["event_total"]}">{r["event_total"]}{gw_tag}</td>'
             f"<td>{e(cap)}</td>"
             f"<td>{e(chip)}</td>"
             f'<td class="num">{bench}</td>'
@@ -762,10 +761,10 @@ def league_table(rows, squads, ctx, me):
     )
     return (
         note
-        + '<div class="scroll"><table data-sortable><thead><tr>'
+        + '<div class="scroll"><table class="league-standings" data-sortable><thead><tr>'
         '<th class="num sortable">#</th><th class="sortable">Team</th>'
-        '<th class="sortable">Manager</th><th class="num sortable">GW</th>'
-        '<th class="num sortable">Total</th><th class="sortable">Captain</th>'
+        '<th class="num sortable">Total</th><th class="num sortable">GW</th>'
+        '<th class="sortable">Captain</th>'
         '<th class="sortable">Chip</th><th class="num sortable">Bench</th>'
         '<th class="num sortable">Hits</th><th class="num sortable">XI xGI</th>'
         f"</tr></thead><tbody>{''.join(body)}</tbody></table></div>"

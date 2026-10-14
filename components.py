@@ -452,7 +452,7 @@ def transfer_cards(rows, note, lede=""):
             'of them, not both.</p>'.format(e(" and ".join(shared)))
             if shared else "")
         cards.append((
-            '<li class="tf-card" style="--gain:{gainpct:.0f}%">'
+            '<li class="tf-card" id="transfer-{index}" tabindex="-1" style="--gain:{gainpct:.0f}%">'
             '<div class="tf-swap">{out}'
             '<div class="tf-mid">'
             '<span class="tf-arrow" aria-hidden="true">'
@@ -476,6 +476,7 @@ def transfer_cards(rows, note, lede=""):
             "</li>"
         ).format(
             exclusive=exclusive,
+            index=len(cards),
             gainpct=r["gain"] / top_gain * 100,
             out=_face(r["out_photo"], r["out_shirt"], r["out"].name,
                       r["out"].team, r["out"].price, "tf-out"),
@@ -561,7 +562,7 @@ def pairing_cards(pairings, note, hit=4):
         # since it may not be the highest-gain pairing shown.
         tag = (f'<p class="pr-tag">{e(p["tag"])}</p>' if p.get("tag") else "")
         cards.append(
-            '<li class="pr-card">'
+            '<li class="pr-card" id="pair-{index}" tabindex="-1">'
             '{tag}'
             '<div class="pr-head"><span class="pr-total">{gain:+.2f}'
             '<small>combined</small></span>'
@@ -570,6 +571,7 @@ def pairing_cards(pairings, note, hit=4):
             '<ul class="pr-legs">{legs}</ul>'
             '<p class="pr-foot">{verdict}</p></li>'.format(
                 tag=tag, gain=p["gain"], after=after, bank=bank,
+                index=len(cards),
                 hitlabel="no hit to pay" if free else f"after &minus;{hit}",
                 legs=legs, verdict=verdict,
             )

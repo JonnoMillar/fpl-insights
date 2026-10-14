@@ -55,6 +55,7 @@ import elite
 import ffs
 import components
 import odds
+import next_action
 import scout
 import ticker
 import transfers
@@ -289,7 +290,7 @@ def render(d, standalone=True):
          e(d["league_name"]), lg_chip, ""),
         ("Projected", f"{projected:.1f}" if projected else "-",
          f"your XI, {next_label}", "", ""),
-        ("Needs a look", len(attention),
+        ("XI needs a look", len(attention),
          "; ".join(f"{nm} &mdash; {why}" for nm, why in attention[:2])
          + ("&hellip;" if len(attention) > 2 else "")
          if attention else "nobody flagged", "", attn_tone),
@@ -307,16 +308,25 @@ def render(d, standalone=True):
         f'<div class="v tnum">{e(v)}{chip}</div><div class="n">{n}</div></div>'
         for k, v, n, chip, tone in tiles
     )
-    # Two one-liners, one for each direction the page can be read in. The
-    # Pick team view swaps them; see the .pkview handler.
+    # The review stays put when the pitch changes period.
     verdict = d.get("verdict") or ""
-    ahead = d.get("next_line") or ""
-    verdict_html = (
-        (f'<p class="hero-line" data-pkview="back">{verdict}</p>'
-         if verdict else "")
-        + (f'<p class="hero-line" data-pkview="pk" hidden>{ahead}</p>'
-           if ahead else "")
-    )
+    verdict_html = f'<p class="hero-line">{verdict}</p>' if verdict else ""
+    action = d.get("next_action") or {}
+    captain = d.get("captain_summary")
+    action_html = ""
+    if action:
+        target = action.get("target")
+        action_title = (f'<a data-dashboard-jump href="#{e(target)}">{e(action["label"])} <span aria-hidden="true">↗</span></a>'
+                        if target else e(action["label"]))
+        captain_title = (f'<a data-dashboard-jump href="#captaincy">Captain {e(captain["player"])} <span aria-hidden="true">↗</span></a>'
+                         if captain else "Captain advice unavailable")
+        captain_note = (f'{captain["ep_total"]:.1f} expected points · {e(captain["opponent"])} '
+                        f'({"H" if captain["home"] else "A"}) · see why'
+                        if captain else "Waiting for supported fixture projections.")
+        action_html = f'''<div class="hero-actions" aria-label="Suggested next steps">
+          <div><span class="hero-eyebrow">{e(next_label)} · suggested action</span><h2>{action_title}</h2><p>{e(action['detail'])}</p></div>
+          <div><span class="hero-eyebrow">Your published XI · captain</span><h2>{captain_title}</h2><p>{captain_note}</p></div>
+        </div><p class="hero-caveat">Model prompts, based on your last published squad. <a data-dashboard-jump href="#action-method">How this is chosen</a> · <a data-dashboard-jump href="#chip-planner">Review chips</a></p>'''
 
     body = f"""
 <header class="topbar"><div class="topbar-in">
@@ -336,6 +346,7 @@ def render(d, standalone=True):
     <div class="mgr">{e(d['manager'])} &middot; {e(d['league_name'])}</div>
     {verdict_html}
     <div class="tiles">{tile_html}</div>
+    {action_html}
   </section>
 
   <div class="tabs tabbar" role="tablist">
@@ -346,25 +357,28 @@ def render(d, standalone=True):
   </div>
 
   <div class="panel" id="p-squad" role="tabpanel">
-    <section class="card">
+    <section class="card squad-pitch">
       <div class="card-head"><h2>Starting XI</h2>
-        <span class="sub" data-pkview="ov">Season points, points per game and season xGI on each card - click one to bring it forward. <b>Looking back:</b> a faded crest means he did not play in GW{d['gw']}. <b>Looking forward:</b> a green dot means Fantasy Football Scout predict him to start {next_label}, red means they do not.</span>
-        <span class="sub" data-pkview="gw" hidden>GW{d['gw']} points on each card, with points per game and season xGI beside them. A faded crest means he did not play that week.</span>
-        <span class="sub" data-pkview="pk" hidden>Next fixture and a read on recent form on each card, shaded by clean-sheet odds for keepers and defenders and by expected goals for everyone else.</span>
+        <span class="sub">Choose a period, then a figure. Tap a player for the full breakdown. A faded crest means no minutes in GW{d['gw']}; the dot shows the predicted start for {next_label}.</span>
       </div>
       <div class="pkview tabbar" role="tablist" aria-label="Pitch view">
-        <button class="pkbtn" role="tab" aria-selected="true" data-view="ov">Overview</button>
-        <button class="pkbtn" role="tab" aria-selected="false" data-view="pk">Pick team</button>
-        <button class="pkbtn" role="tab" aria-selected="false" data-view="gw">Gameweek {d['gw']}</button>
-        <div class="statsel" role="group" aria-label="Bring a figure forward">
+        <button class="pkbtn" role="tab" aria-selected="true" data-view="ov">Season</button>
+        <button class="pkbtn" role="tab" aria-selected="false" data-view="pk">Next gameweek</button>
+        <button class="pkbtn" role="tab" aria-selected="false" data-view="gw">Last gameweek</button>
+      </div>
+      <div class="pitch-controls">
+        <p class="pitch-metric" aria-live="polite">Season · points</p>
+        <div class="statsel" role="group" aria-label="Figure shown on the pitch">
           <button class="stbtn" data-stat="p" aria-pressed="true">points</button>
           <button class="stbtn" data-stat="g" aria-pressed="false">per game</button>
           <button class="stbtn" data-stat="x" aria-pressed="false">xGI</button>
         </div>
         <button class="epbtn" aria-pressed="false" hidden>predicted points</button>
       </div>
-      <div class="pkpanel" data-view="ov">{d['pitch']}</div>
-      <div class="pkpanel" data-view="pk" hidden>{d['pick_pitch']}</div>
+      <div class="pitch-panels">
+        <div class="pkpanel" data-view="ov">{d['pitch']}</div>
+        <div class="pkpanel" data-view="pk" hidden>{d['pick_pitch']}</div>
+      </div>
     </section>
     <details class="card collapsible">
       <summary class="card-head"><h2>Squad detail{components.info_btn()}</h2>
@@ -378,6 +392,10 @@ def render(d, standalone=True):
   </div>
 
   <div class="panel" id="p-market" role="tabpanel" hidden>
+    <details class="card action-method" id="action-method"><summary class="card-head"><h2>How the suggested action is chosen</h2></summary>
+      <div class="card-body"><p>Single moves and jointly evaluated pairs use the same five-gameweek XI gain, after transfer hits. We suggest a move above a two-point margin; a pair must also beat the best single move by two points. Otherwise, roll. This is a conservative heuristic, not a calibrated guarantee, and does not price the future value of banked transfers.</p>
+      <p>A chip is highlighted only when its existing planner identifies a strong next-gameweek opportunity and its availability is verified. Chip timing is judged separately from transfer gains. Wildcard covers a longer window: review that case in the chip planner. Double gameweeks remain unsupported. Check your actual squad, bank and free transfers before acting.</p></div>
+    </details>
     <div class="chapter"><h2>This week</h2>
       <span class="sub">What the fixtures are priced at, and what you missed.</span></div>
     {d['market']}
@@ -393,7 +411,7 @@ def render(d, standalone=True):
 
     <div class="chapter"><h2>Chips and the weeks ahead</h2>
       <span class="sub">Where the fixtures turn, and which chip that is worth.</span></div>
-    {d['chip_planner']}
+    {d['chip_planner'] or '<section class="card" id="chip-planner" tabindex="-1"><div class="card-head"><h2>Chip planner unavailable</h2><span class="subvis">Supported fixture projections and recovered selling prices are required. Check the source status above.</span></div></section>'}
     {d['ticker']}
     {d['fixture_runs']}
 
@@ -588,7 +606,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
 
     photos = {}
     for r in xi + bench:
-        uri = fplapi.photo_data_uri(r.element["photo"])
+        uri = fplapi.photo_data_uri(r.element)
         if uri:
             photos[r.element["id"]] = uri
 
@@ -743,7 +761,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         el = sw["in"]
         sw["in_club"] = ctx.team_name(el["team"])
         sw["out_photo"] = photos.get(sw["out"].element["id"])
-        sw["in_photo"] = fplapi.photo_data_uri(el["photo"])
+        sw["in_photo"] = fplapi.photo_data_uri(el)
         sw["out_shirt"] = shirts.get(
             (sw["out"].element["team"], sw["out"].pos == "GKP"))
         sw["in_shirt"] = shirts.get((el["team"], ctx.pos(el) == "GKP"))
@@ -756,7 +774,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         for leg in pr["legs"]:
             el = leg["in"]
             leg["out_photo"] = photos.get(leg["out"].element["id"])
-            leg["in_photo"] = fplapi.photo_data_uri(el["photo"])
+            leg["in_photo"] = fplapi.photo_data_uri(el)
             leg["out_shirt"] = shirts.get(
                 (leg["out"].element["team"], leg["out"].pos == "GKP"))
             leg["in_shirt"] = shirts.get((el["team"], ctx.pos(el) == "GKP"))
@@ -781,7 +799,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         for pid, rec in own.items():
             if my_name in rec["owners"] and len(rec["owners"]) == 1:
                 league_photos.setdefault(pid, fplapi.photo_data_uri(
-                    ctx.players[pid]["photo"]))
+                    ctx.players[pid]))
     # The handful of rival-owned scorers the card below actually shows, so
     # this is a few extra portrait requests rather than one per player in
     # the league.
@@ -792,7 +810,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         weeks=RIVALS_WINDOW_WEEKS, ttl=ttl)
     for row in rivals_rows + rivals_window_rows:
         league_photos.setdefault(row["id"], fplapi.photo_data_uri(
-            ctx.players[row["id"]]["photo"]))
+            ctx.players[row["id"]]))
 
     watchlist_rows = []
     if own and proj:
@@ -800,7 +818,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             own, ctx, proj, market, baselines, next_gw, squad_ids)
         for row in watchlist_rows:
             league_photos.setdefault(row["id"], fplapi.photo_data_uri(
-                ctx.players[row["id"]]["photo"]))
+                ctx.players[row["id"]]))
 
     # Same graceful-degradation shape ticker.fixture_ticker already uses
     # for the same reason: if proj never arrived this build, there is
@@ -808,6 +826,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     # showing a set of zeroed or misleading cards.
     fh = tc = bb = wc = None
     used = {}
+    chips_verified = False
     if advice_supported and total_sell is not None:
         bank_m = bank
         fh = chips.free_hit(ctx, xi, proj, market, baselines, next_gw,
@@ -819,6 +838,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                             budget=total_sell + bank_m)
         try:
             used = chips.used_chips_this_half(entry_id, next_gw, ttl=ttl)
+            chips_verified = True
         except fplapi.FplError as ex:
             print(f"[chips] chip history unavailable: {ex}")
 
@@ -878,14 +898,14 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                 "legs": [
                     {"out": primary, "in": target_el, "gain": primary_gain,
                      "out_photo": photos.get(primary.element["id"]),
-                     "in_photo": fplapi.photo_data_uri(target_el["photo"]),
+                     "in_photo": fplapi.photo_data_uri(target_el),
                      "out_shirt": shirts.get(
                          (primary.element["team"], primary.pos == "GKP")),
                      "in_shirt": shirts.get(
                          (target_el["team"], ctx.pos(target_el) == "GKP"))},
                     {"out": second, "in": repl_el, "gain": second_gain,
                      "out_photo": photos.get(second.element["id"]),
-                     "in_photo": fplapi.photo_data_uri(repl_el["photo"]),
+                     "in_photo": fplapi.photo_data_uri(repl_el),
                      "out_shirt": shirts.get(
                          (second.element["team"], second.pos == "GKP")),
                      "in_shirt": shirts.get(
@@ -901,6 +921,10 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
 
     return {
         "ctx": ctx,
+        "next_action": next_action.choose(swaps, pairings, free_ts, moves_available, next_gw,
+            (("freehit", "Free Hit", fh), ("3xc", "Triple Captain", tc), ("bboost", "Bench Boost", bb)),
+            used if chips_verified else None),
+        "captain_summary": cap_matrix["candidates"][0] if cap_matrix and advice_supported else None,
         "gw": gw,
         "team_name": meta.get("name", "My team"),
         "manager": f"{meta.get('player_first_name', '')} "

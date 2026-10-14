@@ -292,16 +292,22 @@ def badge_png(team_code):
 
 
 SHIRT_URL = "https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_{code}{gk}-66.png"
-PHOTO_URL = "https://resources.premierleague.com/premierleague/photos/players/110x140/p{pid}.png"
+# Current official FPL ElementPhoto source; uses element.code, without a p
+# prefix. Do not fall back to the legacy path's potentially old-club photo.
+PHOTO_URL = "https://resources.premierleague.com/premierleague25/photos/players/110x140/{pid}.png"
 ASSET_DIR = CACHE_DIR / "assets"
 
 
-def _asset(url, name):
-    """Fetch an image once and keep it on disk. None if it cannot be had."""
+def _asset(url, name, ttl=None):
+    """Cache an image; refresh version-sensitive assets and back off failures."""
     ASSET_DIR.mkdir(parents=True, exist_ok=True)
     path = ASSET_DIR / name
-    if path.exists() and path.stat().st_size > 0:
+    retry = path.with_suffix(path.suffix + ".retry")
+    cached = path.exists() and path.stat().st_size > 0
+    if cached and (ttl is None or time.time() - path.stat().st_mtime < ttl):
         return path.read_bytes()
+    if retry.exists() and time.time() - retry.stat().st_mtime < 86400:
+        return path.read_bytes() if cached else None
     last = None
     for attempt in range(4):
         try:
@@ -313,10 +319,13 @@ def _asset(url, name):
                 data = r.read()
             if data:
                 path.write_bytes(data)
+                retry.unlink(missing_ok=True)
                 return data
         except urllib.error.HTTPError as e:
             if e.code in (403, 404):
                 print(f"[asset] {name} unavailable: HTTP {e.code}; using fallback")
+                path.unlink(missing_ok=True)
+                retry.touch()
                 return None
             last = e
         except Exception as e:
@@ -324,7 +333,8 @@ def _asset(url, name):
         if attempt < 3:
             time.sleep(1 + 2 * attempt)
     print(f"[asset] {name} unavailable: {last!r}")
-    return None
+    retry.touch()
+    return path.read_bytes() if cached else None
 
 
 def shirt_data_uri(team_code, keeper=False):
@@ -344,10 +354,18 @@ def photo_data_uri(photo_field, max_bytes=14000):
     installed, re-encodes to a small JPEG on a white ground - a portrait does
     not need alpha. Without Pillow the raw PNG is embedded instead, so the
     feature degrades rather than disappears."""
-    pid = str(photo_field).split(".")[0]
+    if isinstance(photo_field, dict):
+        pid = ("placeholder" if photo_field.get("has_temporary_code") else
+               str(photo_field.get("code") or str(photo_field.get("photo", "")).split(".")[0]))
+        club = str(photo_field.get("team_code", photo_field.get("team", "")))
+    else:
+        pid = str(photo_field).split(".")[0]
+        club = ""
     if not pid:
         return None
-    raw = _asset(PHOTO_URL.format(pid=pid), f"photo_{pid}.png")
+    raw = _asset(PHOTO_URL.format(pid=pid), f"portrait25_{pid}_{club}.png", ttl=7 * 86400)
+    if not raw and pid != "placeholder":
+        raw = _asset(PHOTO_URL.format(pid="placeholder"), "portrait25_placeholder.png", ttl=7 * 86400)
     if not raw:
         return None
     try:

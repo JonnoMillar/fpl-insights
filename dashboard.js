@@ -243,6 +243,24 @@
   document.addEventListener('rail:rebuild', buildRail);
   buildRail();
 
+  document.querySelectorAll('[data-dashboard-jump]').forEach(function(link){
+    link.addEventListener('click', function(ev){
+      var target = document.getElementById(link.hash.slice(1));
+      if (!target) return;
+      ev.preventDefault();
+      var panel = target.closest('.panel');
+      var tab = panel && document.querySelector('.tab[data-panel="'+panel.id+'"]');
+      if (tab) tab.click();
+      if (target.tagName === 'DETAILS') target.open = true;
+      var details = target.closest('details');
+      if (details) details.open = true;
+      target.setAttribute('tabindex', '-1');
+      target.focus({preventScroll:true});
+      var offset = document.querySelector('.topbar').getBoundingClientRect().height + 16;
+      window.scrollTo(0, target.getBoundingClientRect().top + window.scrollY - offset);
+    });
+  });
+
   // Starting XI: overview vs pick-team pitch. Same swap as the tabs above,
   // scoped to whichever card the clicked button lives in, since the page
   // only has one of these but a second squad card could add one later.
@@ -276,25 +294,25 @@
         // The figure selector only means anything on the two views that
         // share the overview pitch; the predicted-points toggle only means
         // anything on the one that does not.
-        var sel = group.querySelector('.statsel');
+        var sel = card.querySelector('.statsel');
         if (sel) { sel.hidden = view === 'pk'; }
-        var epb = group.querySelector('.epbtn');
+        var epb = card.querySelector('.epbtn');
         if (epb) { epb.hidden = view !== 'pk'; }
-        // The hero's one-liner belongs to the view, not to the card: on
-        // Pick team it should be looking at the week ahead rather than
-        // reporting the one just gone. It lives above the tabs, outside
-        // this card, so it is switched separately.
-        // Only two lines exist - looking forward on Pick team, looking back
-        // on either of the other two - so they key off the same collapse
-        // the panels use rather than off all three view names.
-        var heroKey = view === 'pk' ? 'pk' : 'back';
-        document.querySelectorAll('.hero [data-pkview]').forEach(function(p){
-          p.hidden = p.dataset.pkview !== heroKey;
-        });
         points(view);
+        updatePitchLabel(card);
       });
     });
   });
+
+  function updatePitchLabel(card){
+    var view = card.querySelector('.pkbtn[aria-selected="true"]').dataset.view;
+    var stat = card.querySelector('.stbtn[aria-pressed="true"]').dataset.stat;
+    var label = view === 'pk' ? 'Next gameweek · fixture & form' :
+      stat === 'g' ? 'Season · points per appearance' :
+      stat === 'x' ? 'Season · expected goal involvement' :
+      (view === 'gw' ? 'Last gameweek' : 'Season') + ' · points';
+    card.querySelector('.pitch-metric').textContent = label;
+  }
 
   // Predicted points: the eleven shrink into a column and the bars extend
   // across the space that opens beside them.
@@ -336,6 +354,7 @@
         if (!wrap) { return; }
         wrap.classList.remove('emph-p', 'emph-g', 'emph-x');
         wrap.classList.add('emph-' + b.dataset.stat);
+        updatePitchLabel(group.closest('.card'));
       });
     });
   });

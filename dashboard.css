@@ -397,7 +397,15 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
 .pkview{padding:0 16px; gap:0}
 .pkview > button{font-size:12px; padding:9px 12px}
 .panel[hidden]{display:none}
-.pkpanel[hidden]{display:none}
+.pitch-panels{display:grid}
+.pitch-panels>.pkpanel{grid-area:1/1; min-width:0; align-self:start}
+/* Keep both intrinsic heights in the grid: changing view cannot move the
+   card or everything below it. Hidden content remains non-interactive. */
+.pitch-panels>.pkpanel[hidden]{display:block; visibility:hidden; pointer-events:none}
+.pitch-controls{display:flex; align-items:center; justify-content:space-between;
+  gap:12px; min-height:56px; padding:8px 18px; background:var(--surface-variant)}
+.pitch-metric{margin:0; font-size:13px; font-weight:600}
+.pitch-controls .epbtn{margin:0; min-height:36px}
 
 /* --- pitch --- */
 .pitch{
@@ -487,16 +495,13 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
   transition:font-size .14s, flex-grow .14s, color .14s;
 }
 .pl .sc .g,.pl .sc .x{border-left:1px solid var(--outline-variant)}
-/* Exactly one of the three is forward at a time, and it is forward by a
-   long way: the point of a card this small is that one number should be
-   readable across the room and the other two only when you look for them.
-   The chosen cell also takes extra width, since 15px digits do not fit a
-   third of a 92px card. */
-.ovwrap .sc div{color:var(--p60); font-weight:500; font-size:10px}
+/* Show only the selected measure; the player dialog retains the detail. */
+.ovwrap .sc div{display:none; border:0; font-weight:500; font-size:17px}
 .ovwrap.emph-p .sc .p,
 .ovwrap.emph-g .sc .g,
 .ovwrap.emph-x .sc .x{
   color:var(--on-surface); font-weight:700; font-size:17px; flex-grow:1.7;
+  display:block; border:0;
   /* The one figure in front on a shirt card is set the way a number on a
      shirt is: tight, heavy and slightly taller than it is wide. Plex Mono
      has no width axis, so the squeeze is a transform on the cell rather
@@ -519,7 +524,8 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
   color:var(--on-surface-variant); font:inherit; font-family:var(--mono);
   font-size:11px; font-weight:500; padding:5px 6px; border-radius:var(--radius-xs);
 }
-.stbtn[aria-pressed="true"]{color:var(--on-surface); font-weight:700}
+.stbtn[aria-pressed="true"]{color:var(--ink); background:var(--accent); font-weight:700}
+.pitch-controls .stbtn{font-size:13px; padding:9px 12px}
 .stbtn:hover{color:var(--on-surface)}
 .stbtn:focus-visible{outline:3px solid var(--accent); outline-offset:1px}
 .pl .arm{
@@ -1018,6 +1024,7 @@ table td.tick{border:2px solid var(--surface)}
 .pkstage{display:flex; align-items:flex-start}
 .pkboard{flex:1 1 auto; min-width:0}
 .epside{flex:0 0 0; width:0; overflow:hidden; opacity:0; padding:0}
+.pkstage:not(.ep-on) .epside{display:none}
 /* Matches .epside's own top padding, so the two headers - and therefore the
    two lists under them - start on the same line. */
 .pkstage.ep-on .pkboard{flex:0 0 214px; padding:12px 0 0 12px}
@@ -1609,6 +1616,7 @@ table td.tick{border:2px solid var(--surface)}
 .prlist{list-style:none; margin:0; padding:0; display:grid;
   /* Four pairings divide as 2x2 for the same reason. */
   grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px}
+@media (max-width:900px){.prlist{grid-template-columns:minmax(0,1fr)}}
 .pr-card{background:var(--surface-variant); border-radius:var(--radius-m); padding:14px}
 .pr-tag{
   margin:0 0 8px; font-size:10px; font-weight:700; text-transform:uppercase;
@@ -1617,7 +1625,7 @@ table td.tick{border:2px solid var(--surface)}
 .pr-head{display:flex; gap:14px; align-items:flex-end; margin-bottom:12px}
 .pr-total,.pr-hit,.pr-bank{display:flex; flex-direction:column;
   font-variant-numeric:tabular-nums; line-height:1.05}
-.pr-total{font-size:24px; font-weight:700; color:var(--success)}
+.pr-total{font-size:24px; font-weight:700; color:var(--good-ink)}
 .pr-hit{font-size:15px; font-weight:700; color:var(--on-surface-variant)}
 .pr-bank{font-size:15px; font-weight:700; margin-left:auto; color:var(--on-surface-variant)}
 .pr-head small{font-size:9px; font-weight:600; text-transform:uppercase;
@@ -1716,7 +1724,8 @@ table td.tick{border:2px solid var(--surface)}
 /* Four questions are a 2x2, not a 3 + 1 with a hole beside the last card.
    Must sit after .slwrap: both are one class deep, so source order decides. */
 .slwrap-4{grid-template-columns:repeat(2,minmax(0,1fr))}
-@media (max-width:560px){.slwrap-4{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:900px){.slwrap{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.slwrap,.slwrap-4{grid-template-columns:minmax(0,1fr)}}
 .slcard{
   background:var(--surface-variant); border-radius:var(--radius-m);
   padding:12px 12px 10px; border-top:3px solid var(--accent,var(--p30));
@@ -2367,3 +2376,49 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .scpv-sparkwrap{color:var(--p70)}
 .scpv-spark-label{font-size:11px; color:var(--on-surface-variant); margin-bottom:2px}
 .scpv-spark{width:100px; height:24px; display:block}
+
+/* Review and next action share the hero on every screen size. */
+.hero-actions{display:grid; grid-template-columns:1.5fr 1fr; gap:24px;
+  border-top:1px solid rgb(255 255 255 / 25%); padding-top:18px; margin-top:18px}
+.hero-actions>div{min-width:0}
+.hero-eyebrow{display:block; font-size:11px; font-weight:600; letter-spacing:.06em;
+  text-transform:uppercase; color:rgb(255 255 255 / 75%)}
+.hero-actions h2{font-size:23px; margin:6px 0; letter-spacing:-.02em}
+.hero-actions a{color:var(--accent); text-decoration:none}
+.hero-actions a:hover{text-decoration:underline}
+.hero-actions p{font-size:14px; line-height:1.5; margin:0; color:rgb(255 255 255 / 88%)}
+.hero-caveat{font-size:12px; line-height:1.5; color:rgb(255 255 255 / 75%); margin:16px 0 0}
+.hero-caveat a{display:inline-block; color:inherit; text-underline-offset:3px; padding-block:4px}
+.hero a:focus-visible{outline:3px solid var(--accent); outline-offset:4px}
+.action-method p{font-size:14px; line-height:1.6; max-width:85ch}
+.slcard,.pr-card{min-width:0}
+.slname{min-width:0}.slval{flex-shrink:0}.pr-head{flex-wrap:wrap}
+.league-manager{display:block; font-size:12px; font-weight:400; color:var(--on-surface-variant); margin-top:3px}
+.league-standings td:nth-child(2){min-width:144px; white-space:normal}
+.pr-head small{line-height:1.3}
+@media(max-width:560px){
+  .topbar .stamp{display:none}
+  .topbar-in{padding:10px 16px}.wordmark{font-size:16px}
+  .hero{padding:18px 14px}.hero h1{font-size:23px}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px}
+  .tile{min-width:0}.tile .n{overflow-wrap:anywhere}
+  .hero-actions{grid-template-columns:minmax(0,1fr); gap:18px}
+  .hero-actions h2{font-size:21px}
+  .tabs{gap:0}.tabs>button{flex:1; min-width:0; font-size:13px; padding:12px 3px}
+  .card-head{padding:15px 14px}.card-head .sub,.card-head .subvis{font-size:13px; line-height:1.5}
+  .pkview{padding:0 6px}.pkview>.pkbtn{flex:1; font-size:12px; padding:12px 4px}
+  .pitch-controls{flex-wrap:wrap; padding:10px 12px; gap:6px}
+  .pitch-controls{min-height:84px}
+  .pitch-metric{flex-basis:100%}.pitch-controls .statsel{margin:0}
+  .squad-pitch .pkboard{width:100%}
+  .squad-pitch .row{flex-wrap:nowrap; gap:4px}
+  .squad-pitch .row>.pl{min-width:0; flex:0 1 72px}
+  .squad-pitch .pl .nm{font-size:11px; padding-inline:2px}
+  .squad-pitch .pk-fx{padding-inline:1px}
+  .squad-pitch .pk-fx .fxpill{font-size:10px; padding-inline:3px; gap:2px}
+  .squad-pitch .pk-form{font-size:10px}
+  .pr-leg{gap:5px}.pr-face{flex-direction:column; align-items:flex-start; gap:5px}
+  .pr-name{max-width:100%; white-space:normal; overflow-wrap:anywhere}
+  .league-standings th,.league-standings td{padding:12px 7px}
+  .league-standings td:first-child .delta{display:block; width:max-content; margin-top:4px}
+}

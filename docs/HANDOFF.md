@@ -1,12 +1,28 @@
 # HANDOFF — FPL Insights
 
-Last updated: 14 October 2026, checkpoint after the live brand/UI/visitor review and design proposal.
+Last updated: 14 October 2026, checkpoint after Jonno's requested hero, pitch, mobile layout and portrait improvements. Working source is verified locally; not deployed.
 
 ## Status
 
 Jonno intends to link the live dashboard on his CV. The first phase was a deep audit of glaring functional, correctness and reliability risks, followed by fixes. That phase is complete and live at [FPL Insights](https://fpl-insights-jm.vercel.app/).
 
-The brand/UI/visitor review is now documented in the [design brief and prioritised plan](audits/2026-10-14-design-brief.md). Proposed direction: a football analysis desk, retaining the current purple/green/warm-paper identity and typography while making arrival, decisions and mobile navigation clearer. This is a proposal awaiting Jonno's response; no application code, generated artifact or live UI was changed. Read the [audit and resolution notes](audits/2026-10-13-cv-readiness.md) for correctness evidence; avoid repeating the completed audit without new evidence.
+The brand/UI/visitor review is documented in the [design brief and prioritised plan](audits/2026-10-14-design-brief.md). Jonno reviewed the comparison and explicitly requested the implementation below. His feedback supersedes the proposed removal of the review hero: keep it on both desktop and mobile, add linked next actions, stabilise the pitch and improve narrow layouts. The purple/green/warm-paper identity, existing forecast calculations, correctness guards and dependency-free architecture remain. Read the [audit and resolution notes](audits/2026-10-13-cv-readiness.md) for correctness evidence; avoid repeating the completed audit without new evidence.
+
+## Current implementation checkpoint — 14 October 2026
+
+- Main review hero remains on every screen, with two-column mobile summary tiles and linked captain/action summaries. The actual saved squad suggests Hall → Schuster plus Hughes → Cherki (+23.0 five-GW XI gain after the four-point hit) and Haaland (7.7 expected points). These are snapshot results, not promises of current advice.
+- `next_action.py` selects from existing legal, affordable recommendation outputs. Single moves must clear two net points; pairs must clear two and beat the best single by another two. Otherwise roll the available free transfers; the five-transfer cap is explained. This is a visible conservative heuristic, not a calibrated model of transfer value. Tagged kneejerk pairs use another horizon and are excluded. Missing projections, selling prices or free-transfer count withhold the action.
+- A known-unused chip is promoted only when exactly one existing planner has a strong recommendation for the next gameweek. Chip scores are not ranked against unlike transfer horizons. Wildcard remains a separate longer-window case in the chip planner; it is not automatically promoted by this selector. Unknown chip history never triggers a hero chip recommendation. Model limits and publication caveats remain visible.
+- Hero links switch to Planning, scroll below the sticky header and move keyboard focus to the exact transfer/pair, captaincy matrix or chip card. Method links open their disclosure; unavailable chip advice has a real explanatory destination.
+- Pitch periods read Season / Next gameweek / Last gameweek. The review line stays fixed. Shared grid geometry preserves card position/height; controls occupy their own stable row. Only the chosen points/per-game/xGI number is displayed on each season pitch card. Season-based metrics stay explicitly labelled even in the last-gameweek view. Small pitches retain their formation instead of wrapping a four-player row into two rows.
+- Fixed the responsive cascade where later desktop grids overrode mobile leaders/pairings. Leaders use three desktop/two tablet/one phone columns; pairings stack below 900px, with wrapping names and totals. Pair gains now use dark green for contrast. Standings show Rank / Team (+manager) / Total / GW first; sorting uses the rendered columns.
+- Removed the duplicate Busiest fixture odds card. Existing bookmaker data is team-level: it cannot support a genuine individual goalscorer odds claim.
+- Verified FPL's own current ElementPhoto implementation in its official client. Portraits now use `premierleague25/photos/players/110x140/{element.code}.png`, weekly refreshes and club-specific cache keys. No legacy old-club photo fallback. Temporary/missing portraits use the official neutral placeholder; 403/404 responses are not retried and get a one-day cooldown. An authoritative missing response retires any expired cached image. One requested portrait (code 199798) was unavailable during the first build; the official placeholder loaded. Provider portraits can still lag a transfer; do not claim every picture is current.
+- Verification: `python -m unittest discover -s tests -t .` **72 passed** (64 existing plus 8 focused action/image cases); `node --check dashboard.js` and `git diff --check` passed. Complete cached-data builds succeeded with all nine source-health entries OK, at ~2,982 KB. Existing generated files and projections.json were not replaced or published.
+- Browser proof: 1280px desktop, 390px and 320px phone widths. Pitch top and height identical across the three periods at each width. Verified one selected metric, action/captain/method/chip destinations, expanded predicted-points view, all four tabs at 320px, single-column leaders/pairings with no sampled card/document overflow, standings Total sorting and empty error logs in the checked flows. No physical-phone, Safari/Firefox, screen-reader, fresh-network full rebuild or prediction-backtesting claim.
+- Review files: [before/after comparison](http://127.0.0.1:8766/comparison.html) and [full working dashboard](http://127.0.0.1:8766/revised.html?review=final). Files live in `C:/Users/jonno/.codex/visualizations/2026/10/14/01a137d8-6cda-70e2-b6ad-0c76be0c871f/`; ignored `.cache/update_review.py` assembles the comparison from the committed before artifact and verified revised source build. This comparison supersedes the first hero-removal mockup.
+
+Next gate: Jonno reviews this working comparison. If publishing is requested, fetch/integrate any scheduled bot commits, run a fresh complete artifact build and regressions, check source health and projections compatibility, then publish through the existing Git integration. Continue remaining recruiter orientation/Scout discovery polish only from his review; do not reinstate the rejected hero removal.
 
 The fixes are in commit f3578be, followed by the successful automated refresh 3306697. The checkout was fast-forwarded to that refresh. Existing Scout and social-preview edits present at the start were preserved, verified and included in the release.
 
@@ -53,15 +69,15 @@ The fixes are in commit f3578be, followed by the successful automated refresh 33
 - Saved recruiter and returning-player walkthroughs, shared component/terminology rules, five prioritised delivery passes and per-pass acceptance criteria. The brief preserves model/source/squad-publication limits, all prior correctness fixes and the lightweight architecture. No new numerical correctness conclusion was drawn from differently scoped forecast values.
 - Documentation-only verification: `git diff --check` passed. Regression tests were not rerun; the previous 64-test result above remains historical evidence, not a new run. Application/deployment files remain unchanged.
 
-### Next implementation, after Jonno responds to the proposal
+### Original proposal preview — historical
 
 Visual comparison prepared at Jonno's request: [local before/after preview](http://127.0.0.1:8766/comparison.html), with mobile/desktop switches and Arrival, Planning, Mini-league and Scout comparisons plus reasons. Durable files and screenshot captures are in `C:/Users/jonno/.codex/visualizations/2026/10/14/01a137d8-6cda-70e2-b6ad-0c76be0c871f/` (`comparison.html`, `before.html`, `after.html`, `comparison.png` and per-topic captures). The working copies reuse the committed snapshot; preview changes are applied only to the after copy. `.cache/build_design_preview.py` regenerates them locally and is ignored.
 
 The preview was checked at 390px and 320px, with desktop comparison frames at 1280px. Corrected a preview column-count assumption and the sticky-navigation offset before completion. Confirmed captaincy/transfers lead, mobile standings show Team/Total/GW together, Scout selection and comparison jump work, and sampled states have no document overflow or logged errors. Preview JavaScript syntax was checked; production regressions/failure states were not rerun because application code and the hosted artifact remain unchanged. League sorting needs its event wiring updated before production column rearrangement; the preview states this limitation. No approval of the proposed direction is implied by requesting a visual comparison.
 
-A localhost-only review server on port 8766 was intentionally left running for Jonno to inspect the comparison (exec session 71533); stop it once review is finished. The comparison tab is retained as a deliverable. These local preview assets are not a deployment and should not be staged as generated application output.
+A localhost-only review server on port 8766 was left running for review. The original session ended; the current server and restart command are recorded under Hazards below. These local review assets are not a deployment and should not be staged as generated application output.
 
-Start with compact product orientation and mobile navigation, then decision order/scope. Follow the linked brief rather than restarting the audit. Keep Squad as the default main tab; do not silently choose a new forecasting model or replace the design world. The proposed direction is not yet an approved implementation contract.
+The first preview was a proposal, not approval. The current implementation checkpoint above records Jonno's subsequent requested changes. Keep Squad as the default main tab; do not silently choose a new forecasting model or replace the design world.
 
 The original phase acceptance criteria remain:
 
@@ -74,20 +90,20 @@ Do not introduce a framework, bundler, database, account system or paid service 
 
 ## Open questions for Jonno
 
-- **Non-blocking:** response to the proposed football-analysis-desk direction and balance between familiar FPL styling and personal analyst identity. The concrete recommendation and implementation sequence are in the design brief.
+- **Non-blocking:** response to the revised working comparison; further recruiter-oriented product/author context remains a separate design choice.
 - **Non-blocking:** how much explanatory guidance the CV visitor needs without slowing experienced FPL users. The showcase objective is established; use a mixed-audience assumption until clarified.
 - No unresolved blocker from the functional-repair phase.
 
 ## Hazards at handoff
 
-- No session dev server, login flow or background build remains running. Both local servers were stopped. The GitHub run completed and its generated commit was synced.
+- Local-only comparison server is intentionally running on port 8766 as a hidden background Python process (PID 48336), with logs in `.cache/review-server*.log`; stop after review. Restart with `python -m http.server 8766 --bind 127.0.0.1 --directory C:/Users/jonno/.codex/visualizations/2026/10/14/01a137d8-6cda-70e2-b6ad-0c76be0c871f`. Sandbox network access required approval on this host. The old exec server ended on session reset, so this process keeps the comparison available. No login flow or background build remains running. Browser cache briefly returned a blank local page after restart; an uncached review query loaded the complete document.
 - At checkpoint start, tracked work was clean. Untracked **.agents/** contains the pre-existing project-check skill; **.playwright-mcp/** contains audit snapshots and screenshots. Leave these intact; do not accidentally stage them as application changes.
 - .cache/cv/ contains ignored build logs, generated verification pages and a boundary-check script. It is local evidence, not a deploy source of truth. The committed dashboard-artifact.html is the hosted artifact.
 - The earlier autostash was successfully reapplied during the initial fast-forward. There is no active rebase or known unresolved stash work from this session.
-- AGENTS.md and this handoff are the checkpoint documents to commit. The commit SHA is reported in the chat to avoid embedding a self-referential SHA here.
+- Finished source changes, next_action.py, its tests and this handoff are checkpointed together. The commit SHA is reported in the chat; the live hosted artifact is unchanged.
 
 ## Resume prompt
 
 ```text
-Read AGENTS.md, docs/HANDOFF.md and docs/audits/2026-10-14-design-brief.md. The brand/UI review and design proposal are complete; establish Jonno's response to that proposal before UI implementation. If accepted, start the compact arrival/navigation pass, then decision ordering and scope labels. Preserve completed correctness fixes, visible data/model limits, projections.json compatibility and the lightweight architecture. Verify generated desktop/mobile interactions and failure states before publication. Do not repeat the completed audit or introduce unrelated features.
+Read AGENTS.md and docs/HANDOFF.md. The requested hero actions, stable pitch controls, mobile grids, standings and official portrait update are implemented and verified locally, not deployed. Review Jonno's feedback on the revised comparison. If he requests publication, fetch/integrate scheduled commits, run fresh artifact and regression checks, verify source health/projections and desktop/mobile flows, then use the existing Git deployment. Preserve the review hero on both sizes, correctness fixes, visible model limits, phone-feed compatibility and lightweight architecture.
 ```

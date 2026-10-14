@@ -502,13 +502,14 @@ def bench_boost_pitch(bb, bench_reports, ctx, badges, shirts, proj, market,
 
 
 def _cp_card(label, used_gw, body_html, level=None):
+    key = {"Free Hit": "freehit", "Triple Captain": "3xc", "Bench Boost": "bboost", "Wildcard": "wildcard"}[label]
     if used_gw:
         return (
             f'<div class="cp used"><p class="cp-label">{e(label)}</p>'
             f'<p class="cp-used-tag">Already used, GW{used_gw}</p></div>'
         )
     tone = f" cp-{level}" if level else ""
-    return (f'<div class="cp{tone}"><p class="cp-label">{e(label)}</p>'
+    return (f'<div class="cp{tone}" id="chip-{key}" tabindex="-1"><p class="cp-label">{e(label)}</p>'
             f'{body_html}</div>')
 
 
@@ -610,7 +611,7 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
         extra.append(wildcard_section(wc, xi, bench, ctx, badges, shirts))
 
     return (
-        f'<section class="card"><div class="card-head"><h2>Chip planner{components.info_btn()}</h2>'
+        f'<section class="card" id="chip-planner" tabindex="-1"><div class="card-head"><h2>Chip planner{components.info_btn()}</h2>'
         '<span class="sub" hidden>Best gameweek for each chip in the current half, '
         'scored from the same projections as the rest of the page.</span></div>'
         f'<div class="card-body"><ul class="cplist">{"".join(cards)}</ul></div></section>'
@@ -887,7 +888,7 @@ def captaincy_card(cm):
     }
     return (
         '<section class="card"><div class="card-head">'
-        f'<h2>Captaincy decision matrix{components.info_btn()}</h2>'
+        f'<h2 id="captaincy" tabindex="-1">Captaincy decision matrix{components.info_btn()}</h2>'
         f'<span class="sub" hidden>This gameweek\'s top armband candidates from your XI, '
         f'overlaid across five axes. Each axis is scaled to that metric\'s '
         f'own real range (0.5x-2.0x for the fixture multiplier, 0-100% for '

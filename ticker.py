@@ -579,11 +579,7 @@ def odds_insights(fixtures, reports, ctx, proj, next_gw):
     attackers = [x for x in rows if x["r"].pos in ("MID", "FWD")]
     if attackers:
         b = max(attackers, key=lambda x: x["xg"])
-        # Named after the fixture, not the one player who happened to have
-        # the top individual xG - Busiest fixture below names everyone
-        # involved, and this read as contradicting it whenever two of your
-        # attackers shared the same match: Semenyo alone here, Semenyo and
-        # Haaland both there, for the identical Man City v Bournemouth game.
+        # Team-level market goals do not identify an individual goalscorer.
         mates = sorted({x["r"].name for x in attackers if x["fx"] is b["fx"]})
         items.append({
             "tone": "good", "icon": "spark", "label": "Best attacking fixture",
@@ -612,15 +608,6 @@ def odds_insights(fixtures, reports, ctx, proj, next_gw):
                 "who": w["r"].name,
                 "detail": "{} v {}".format(w["r"].team, w["opp"]),
             })
-
-    busiest = max(rows, key=lambda x: x["total"])
-    involved = sorted({x["r"].name for x in rows if x["fx"] is busiest["fx"]})
-    items.append({
-        "tone": "info", "icon": "ball", "label": "Busiest fixture",
-        "value": "{:.2f}".format(busiest["total"]), "unit": "goals expected",
-        "who": ", ".join(involved[:3]),
-        "detail": "{} v {}".format(busiest["fx"]["home"], busiest["fx"]["away"]),
-    })
 
     gaps = []
     for x in rows:
