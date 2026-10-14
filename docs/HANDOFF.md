@@ -1,12 +1,12 @@
 # HANDOFF — FPL Insights
 
-Last updated: 14 October 2026, checkpoint after the CV-readiness fixes were deployed and verified.
+Last updated: 14 October 2026, checkpoint after the live brand/UI/visitor review and design proposal.
 
 ## Status
 
 Jonno intends to link the live dashboard on his CV. The first phase was a deep audit of glaring functional, correctness and reliability risks, followed by fixes. That phase is complete and live at [FPL Insights](https://fpl-insights-jm.vercel.app/).
 
-The next phase is sharpening brand identity, UI/UX, consistency, product logic and the intended visitor walkthrough. No new brand direction or broad visual redesign has been implemented in this chat. Read the [audit and resolution notes](audits/2026-10-13-cv-readiness.md) for evidence; avoid repeating the completed audit without new evidence.
+The brand/UI/visitor review is now documented in the [design brief and prioritised plan](audits/2026-10-14-design-brief.md). Proposed direction: a football analysis desk, retaining the current purple/green/warm-paper identity and typography while making arrival, decisions and mobile navigation clearer. This is a proposal awaiting Jonno's response; no application code, generated artifact or live UI was changed. Read the [audit and resolution notes](audits/2026-10-13-cv-readiness.md) for correctness evidence; avoid repeating the completed audit without new evidence.
 
 The fixes are in commit f3578be, followed by the successful automated refresh 3306697. The checkout was fast-forwarded to that refresh. Existing Scout and social-preview edits present at the start were preserved, verified and included in the release.
 
@@ -44,6 +44,21 @@ The fixes are in commit f3578be, followed by the successful automated refresh 33
 
 ## Next: brand, UI consistency and visitor walkthrough
 
+### Review completed — 14 October 2026
+
+- Read AGENTS.md, this handoff, README and the current render/CSS/interaction patterns. Used Impeccable design guidance; its context launcher could not install its engine in the sandbox, so existing project context was read directly. No PRODUCT.md, DESIGN.md or existing graphify graph was present. No design tools/dependencies were installed.
+- Inspected the live page with the in-app browser at 1440×900, 390×844 and 320×740. The dedicated Playwright connector was unavailable because its browser profile was in use; the in-app browser provided screenshots, DOM evidence and interactions instead.
+- Findings: purpose/author context is missing at arrival; six summary tiles push mobile navigation down (main tabs around 623px at 390px, 999px at 320px); Scout is partly outside the main-tab strip; Planning puts context/benchmark before decisions; initial mobile standings conceal scores; Scout comparison appears after a long table; similar fixture pills carry opposing rating scales.
+- Verified sampled desktop tabs, mobile next-week pitch, player dialog/Escape, Planning section jump, league arrival, two-player Scout shortlist comparison and 320px keyboard ArrowRight tab activation. No document overflow in sampled states or errors in checked browser logs. These are browser viewport checks, not physical-phone, screen-reader or cross-browser certification.
+- Saved recruiter and returning-player walkthroughs, shared component/terminology rules, five prioritised delivery passes and per-pass acceptance criteria. The brief preserves model/source/squad-publication limits, all prior correctness fixes and the lightweight architecture. No new numerical correctness conclusion was drawn from differently scoped forecast values.
+- Documentation-only verification: `git diff --check` passed. Regression tests were not rerun; the previous 64-test result above remains historical evidence, not a new run. Application/deployment files remain unchanged.
+
+### Next implementation, after Jonno responds to the proposal
+
+Start with compact product orientation and mobile navigation, then decision order/scope. Follow the linked brief rather than restarting the audit. Keep Squad as the default main tab; do not silently choose a new forecasting model or replace the design world. The proposed direction is not yet an approved implementation contract.
+
+The original phase acceptance criteria remain:
+
 1. Inspect the current live page on desktop and mobile, plus dashboard.css, dashboard.py, cards_*.py and relevant feature scripts. Assess the experience of a recruiter arriving from a CV and an FPL user making decisions. Acceptance: a concrete map of what each visitor should understand or do first, and where the current page obstructs that.
 2. Develop a coherent brand direction and information hierarchy for this existing product. Acceptance: a concise design brief covering identity, type/colour roles, terminology, density, shared components and the relationship between Squad, Planning, Mini-league and Scout. Ground recommendations in observed content, not generic dashboard trends.
 3. Prioritise the UI/logic changes and define the intended walkthrough before a broad redesign. Acceptance: a focused implementation sequence with desktop/mobile interaction checks; identify which data and features can remain exactly as they are.
@@ -53,7 +68,7 @@ Do not introduce a framework, bundler, database, account system or paid service 
 
 ## Open questions for Jonno
 
-- **Non-blocking:** preferred brand direction and balance between familiar FPL styling and a distinct personal identity. No direction has been chosen yet; inspect the product and propose a reasoned direction first.
+- **Non-blocking:** response to the proposed football-analysis-desk direction and balance between familiar FPL styling and personal analyst identity. The concrete recommendation and implementation sequence are in the design brief.
 - **Non-blocking:** how much explanatory guidance the CV visitor needs without slowing experienced FPL users. The showcase objective is established; use a mixed-audience assumption until clarified.
 - No unresolved blocker from the functional-repair phase.
 
@@ -68,5 +83,5 @@ Do not introduce a framework, bundler, database, account system or paid service 
 ## Resume prompt
 
 ```text
-Read AGENTS.md and docs/HANDOFF.md, then begin the brand, UI/UX, consistency and visitor-walkthrough phase for FPL Insights as a CV showcase. Inspect the live desktop/mobile experience and existing components, then propose a coherent design direction and prioritised implementation plan grounded in concrete findings. Acceptance: a clear recruiter/FPL-user walkthrough, consistent brand/component rules, and focused changes with verification criteria. Preserve the completed correctness fixes, visible data/model limits, projections.json compatibility and the existing lightweight architecture; do not reopen league-data consent or add unrelated features.
+Read AGENTS.md, docs/HANDOFF.md and docs/audits/2026-10-14-design-brief.md. The brand/UI review and design proposal are complete; establish Jonno's response to that proposal before UI implementation. If accepted, start the compact arrival/navigation pass, then decision ordering and scope labels. Preserve completed correctness fixes, visible data/model limits, projections.json compatibility and the lightweight architecture. Verify generated desktop/mobile interactions and failure states before publication. Do not repeat the completed audit or introduce unrelated features.
 ```
