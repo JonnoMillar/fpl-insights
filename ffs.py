@@ -42,6 +42,7 @@ def projections(ttl=fplapi.DEFAULT_TTL):
 
         if cache.exists() and time.time() - cache.stat().st_mtime < ttl:
             raw = json.loads(cache.read_text(encoding="utf-8"))
+            fplapi.note("fixture projections", bool(raw), f"{len(raw)} cached club-gameweeks")
             return {(k.split("|")[0], int(k.split("|")[1])): v for k, v in raw.items()}
     except (ValueError, OSError, KeyError):
         pass
@@ -64,6 +65,7 @@ def projections(ttl=fplapi.DEFAULT_TTL):
         raw = json.loads(match.group(1))
     except ValueError as e:
         print(f"[ffs] projections blob unreadable: {e}")
+        fplapi.note("fixture projections", False, "invalid projection JSON")
         return {}
     if len(raw) < MIN_EXPECTED:
         print(f"[ffs] only {len(raw)} projection entries - ignoring")

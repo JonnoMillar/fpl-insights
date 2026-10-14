@@ -224,8 +224,8 @@ def cmd_dashboard(args, cfg):
 
     if args.artifact:
         frag = out.with_name(out.stem + "-artifact.html")
-        frag.write_text(dashboard.render(data, standalone=False), encoding="utf-8")
-        print(f"wrote {frag}  (body-only, for publishing as an Artifact)")
+        frag.write_text(dashboard.render(data, standalone=True), encoding="utf-8")
+        print(f"wrote {frag}  (complete HTML, for static hosting)")
         # Served beside the page; the phone-alert bot reads it. See
         # dashboard.projections_export.
         pj = out.with_name("projections.json")
@@ -296,7 +296,7 @@ def main(argv=None):
                         "proven (top-100k last season) history (0 disables it)")
     d.add_argument("--open", action="store_true", help="open it in your browser")
     d.add_argument("--artifact", action="store_true",
-                   help="also write a body-only copy for publishing as an Artifact")
+                   help="also write the complete static-hosting copy")
     d.set_defaults(func=cmd_dashboard)
 
     pl = sub.add_parser("player", help="one player in detail", parents=[common])

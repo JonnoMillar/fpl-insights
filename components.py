@@ -534,13 +534,12 @@ def pairing_cards(pairings, note, hit=4):
             '<svg viewBox="0 0 28 12"><path d="M0 6h21M16 1.5l5 4.5-5 4.5" '
             'fill="none" stroke="currentColor" stroke-width="1.8" '
             'stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
-            '{inp}<span class="pr-gain">{gain:+.2f}</span></li>'.format(
+            '{inp}</li>'.format(
                 out=_mini_face(leg["out_photo"], leg["out_shirt"],
                                leg["out"].name, "pr-out"),
                 inp=_mini_face(leg["in_photo"], leg["in_shirt"],
                                leg["in"]["web_name"], "pr-in",
                                duties=duty_badges(leg["in"])),
-                gain=leg["gain"],
             )
             for leg in p["legs"]
         )

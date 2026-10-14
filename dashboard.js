@@ -1,5 +1,60 @@
 
 (function(){
+  var snapshot = document.querySelector('[data-generated]');
+  function markFreshness() {
+    if (!snapshot) return;
+    var generated = Date.parse(snapshot.dataset.generated);
+    if (!Number.isFinite(generated)) return;
+    var age = Math.max(0, Math.floor((Date.now() - generated) / 60000));
+    var stale = age >= 360;
+    snapshot.classList.toggle('data-warning', stale);
+    snapshot.textContent = (stale ? 'Update overdue. ' : 'Snapshot: ') +
+      (age < 60 ? age + ' minutes' : Math.floor(age / 60) + ' hours') +
+      ' old. Squad and bank reflect the last published picks; pre-deadline moves are not public.';
+  }
+  markFreshness();
+  window.setInterval(markFreshness, 60000);
+
+  // Reuse the Scout tab's automatic keyboard activation for the other views.
+  document.querySelectorAll('[role="tablist"]:not(.scoutpos)').forEach(function(group, gi) {
+    var buttons = Array.from(group.querySelectorAll(':scope > [role="tab"]'));
+    if (!buttons.length) return;
+    buttons.forEach(function(b, bi) {
+      b.id = b.id || 'view-tab-' + gi + '-' + bi;
+      var target = b.dataset.panel ? document.getElementById(b.dataset.panel) : null;
+      var card = b.closest('.card');
+      if (!target && card && b.dataset.view) {
+        target = card.querySelector('.pkpanel[data-view="' + (b.dataset.view === 'pk' ? 'pk' : 'ov') + '"]');
+      }
+      if (!target && card && b.dataset.lcview) target = card.querySelector('.lcpanel[data-lcview="' + b.dataset.lcview + '"]');
+      if (!target && card && b.dataset.rv) target = card.querySelector('.rvpanel[data-rv="' + b.dataset.rv + '"]');
+      if (target) {
+        target.id = target.id || 'view-panel-' + gi + '-' + bi;
+        target.setAttribute('role', 'tabpanel');
+        b.setAttribute('aria-controls', target.id);
+      }
+    });
+    function sync() {
+      buttons.forEach(function(b) {
+        var selected = b.getAttribute('aria-selected') === 'true';
+        b.tabIndex = selected ? 0 : -1;
+        var target = document.getElementById(b.getAttribute('aria-controls'));
+        if (target && selected) target.setAttribute('aria-labelledby', b.id);
+      });
+    }
+    group.addEventListener('click', sync);
+    group.addEventListener('keydown', function(ev) {
+      if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(ev.key)) return;
+      var i = buttons.indexOf(ev.target);
+      if (i < 0) return;
+      ev.preventDefault();
+      i = ev.key === 'Home' ? 0 : ev.key === 'End' ? buttons.length - 1 :
+        (i + (ev.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
+      buttons[i].focus();
+      buttons[i].click();
+    });
+    sync();
+  });
   // The "i" beside a title reveals that card's explanation. Delegated once
   // rather than wired per-card, since the same markup shape (title, button,
   // then the text it reveals as the next sibling in a .card-head or .find)
@@ -120,6 +175,7 @@
   var railWrap=document.querySelector('.railwrap');
   var rail=document.querySelector('.rail');
   var railTargets=[];
+  var chapterSeq=0;
 
   function buildRail(){
     if(!rail) return;
@@ -136,7 +192,10 @@
     chapters.forEach(function(ch,i){
       var h=ch.querySelector('h2');
       if(!h) return;
-      if(!ch.id) ch.id='ch-'+(panel.id||'p')+'-'+i;
+      // A running count, not the index: the index is within the visible
+      // chapters only, so each Scout position handed its own chapters the
+      // same three ids.
+      if(!ch.id) ch.id='ch-'+(panel.id||'p')+'-'+(++chapterSeq);
       var b=document.createElement('button');
       b.type='button';
       b.className='railbtn';

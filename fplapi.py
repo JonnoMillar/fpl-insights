@@ -236,6 +236,7 @@ def ffs_predicted_photo_ids(ttl=DEFAULT_TTL):
         if path.exists() and time.time() - path.stat().st_mtime < ttl:
             cached = json.loads(path.read_text(encoding="utf-8"))
             if isinstance(cached, dict):
+                note("predicted line-ups", True, f"{len(cached)} cached starters")
                 return cached
     except (ValueError, OSError):
         pass
@@ -313,6 +314,11 @@ def _asset(url, name):
             if data:
                 path.write_bytes(data)
                 return data
+        except urllib.error.HTTPError as e:
+            if e.code in (403, 404):
+                print(f"[asset] {name} unavailable: HTTP {e.code}; using fallback")
+                return None
+            last = e
         except Exception as e:
             last = e
         if attempt < 3:

@@ -1,10 +1,9 @@
 """Cards for the Scout tab: the position labs and fixture runs."""
 
-import json
 
 import components
 import scout
-from cards_common import e
+from cards_common import e, script_json
 
 
 # --- scout section ----------------------------------------------------------
@@ -138,8 +137,12 @@ def _scout_position_switch(scout_pools):
     stacked down one tab. Stacked, the Scout tab was three times the height
     of any other with the same three chapters repeating, and the question
     anyone opens it with is about one position at a time."""
+    # Roving tabindex: only the selected tab sits in the Tab order, and
+    # scout.js moves it with the arrow keys and on every switch.
     btns = "".join(
         f'<button type="button" role="tab" data-pos="{e(pos)}" '
+        f'id="scoutpos-tab-{e(pos)}" aria-controls="scoutview-{e(pos)}" '
+        f'tabindex="{0 if i == 0 else -1}" '
         f'aria-selected="{"true" if i == 0 else "false"}">'
         f'<span class="scoutpos-code">{e(pos)}</span>'
         f'<span class="scoutpos-label">{e(data["label"])}</span>'
@@ -183,7 +186,7 @@ def _scout_lab(pos, data, fixture_runs, owned_ids):
         "name for his match log, or tick up to six to compare.</span></div>"
         f'<div class="scoutlab" data-pos="{e(pos)}">'
         f'<script type="application/json" class="scout-data" '
-        f'data-pos="{e(pos)}">{json.dumps(data)}</script>'
+        f'data-pos="{e(pos)}">{script_json(data)}</script>'
         # Open by default. Collapsed, the most capable thing on the tab
         # was a title and a triangle - no row count, no hint of a
         # scatter, filters or a six-way compare behind it, and nothing
@@ -243,7 +246,9 @@ def scout_section(scout_pools, fixture_runs=None, owned_ids=frozenset()):
     if not scout_pools:
         return ""
     views = "".join(
-        f'<div class="scoutview" data-pos="{e(pos)}"{"" if i == 0 else " hidden"}>'
+        f'<div class="scoutview" data-pos="{e(pos)}" id="scoutview-{e(pos)}" '
+        f'role="tabpanel" aria-labelledby="scoutpos-tab-{e(pos)}"'
+        f'{"" if i == 0 else " hidden"}>'
         + _scout_lab(pos, data, fixture_runs, owned_ids)
         + "</div>"
         for i, (pos, data) in enumerate(scout_pools.items())
@@ -254,7 +259,7 @@ def scout_section(scout_pools, fixture_runs=None, owned_ids=frozenset()):
         # Fixture runs are per club, not per position, so they are embedded
         # once and every lab's card ranks the same runs its own way.
         + (f'<script type="application/json" class="scout-fixtures">'
-           f"{json.dumps(fixture_runs)}</script>" if fixture_runs else "")
+           f"{script_json(fixture_runs)}</script>" if fixture_runs else "")
         # One shared card for every position and every player in every pool -
         # filled on demand from whichever row was clicked, the same "one
         # dialog, many payloads" shape as dialog.pv (dashboard.py:

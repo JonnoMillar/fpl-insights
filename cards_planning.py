@@ -1,12 +1,12 @@
 """Cards for the Planning tab: chips, transfers, captaincy, prices and elite ownership."""
 
-import json
 
 import components
+from chips import confidence
 import ticker
 import transfers
 from analysis import f
-from cards_common import e, pos_fixture_pill
+from cards_common import e, pos_fixture_pill, script_json
 
 
 def price_row(r):
@@ -154,7 +154,7 @@ def scatter(points):
         '<p class="legend"><span class="key mkt"></span>Every player with 60+ minutes'
         '<span class="key mine"></span>Your squad'
         '<span class="key outlier"></span>Furthest from the norm</p>'
-        f'<script type="application/json" class="scatter-data">{json.dumps(data)}</script>'
+        f'<script type="application/json" class="scatter-data">{script_json(data)}</script>'
         "</div></section>"
     )
 
@@ -480,13 +480,13 @@ def bench_boost_pitch(bb, bench_reports, ctx, badges, shirts, proj, market,
                 el["id"], ctx.pos(el), el["team"], team_name,
                 el["web_name"], el["now_cost"] / 10.0, ctx, badges, shirts,
                 fx_html=_fixture_pill_for(team_name, ctx.pos(el), proj,
-                                          market, next_gw),
+                                          market, bb["gw"]),
                 incoming=True, known=False))
         else:
             cards.append(_mini_shirt_card(
                 r.element["id"], r.pos, r.element["team"], r.team, r.name,
                 r.price, ctx, badges, shirts,
-                fx_html=_fixture_pill_for(r.team, r.pos, proj, market, next_gw),
+                fx_html=_fixture_pill_for(r.team, r.pos, proj, market, bb["gw"]),
                 incoming=False))
     note = ("Moves that would improve that specific week, not this one."
            if bb["transfers"] else
@@ -535,7 +535,6 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
         if not series or len(series) < 2:
             return ""
         top = max(v for _g, v in series) or 1.0
-        low = min(v for _g, v in series)
         bars = "".join(
             '<span class="cpw{sel}" style="--h:{h:.0f}%" '
             'title="GW{gw}: {v:.1f} {unit}"><i></i><em>{gw}</em></span>'.format(
@@ -543,11 +542,11 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
                 h=max(6.0, v / top * 100), gw=gw, v=v, unit=e(unit))
             for gw, v in series
         )
-        flat = (top - low) < 0.12 * top
-        read = ("every week in the window is within a point or two of this "
-                "one - timing is yours"
-                if flat else
-                "clearly the best week in the window")
+        runner_up = max(v for g, v in series if g != best_gw)
+        level = confidence(top, runner_up)
+        read = {"flexible": "close to the next-best week - timing is flexible",
+                "watch": "a modest edge over the next-best week",
+                "strong": "clearly ahead of the next-best week"}[level]
         return (f'<div class="cpweeks" aria-hidden="true">{bars}</div>'
                 f'<p class="cpweeks-read">{read}</p>')
 
@@ -557,7 +556,7 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
         pt = fh["points_team"]
         body = (
             f'<p class="cp-gw">GW{fh["gw"]}</p>'
-            f'<p class="cp-reason">Best possible XI projects {pt["ideal_value"]:.1f} pts '
+            f'<p class="cp-reason">Suggested XI projects {pt["ideal_value"]:.1f} pts '
             f'against your XI\'s {pt["ours_value"]:.1f} that week - a gap of '
             f'{fh["gap"]:.1f}.</p>'
             f'{week_strip(fh.get("series"), fh["gw"], "pt gap")}'
@@ -570,7 +569,7 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
         body = (
             f'<p class="cp-gw">GW{tc["gw"]}</p>'
             f'<p class="cp-reason">Captain {e(tc["player"].name)} for '
-            f'{tc["ep"]:.1f} pts ({tc["ep"] * 2:.1f} with the armband, '
+            f'{tc["ep"]:.1f} pts ({tc["ep"] * 3:.1f} with Triple Captain, '
             f'{tc["ep"]:.1f} more than a normal captaincy).</p>'
             f'{week_strip(tc.get("series"), tc["gw"], "pts")}'
             f'{conf_pill(tc["confidence"])}'
@@ -581,8 +580,7 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
     if bb:
         body = (
             f'<p class="cp-gw">GW{bb["gw"]}</p>'
-            f'<p class="cp-reason">Bench projects {bb["ep"]:.1f} pts that week'
-            f'{" - if your bench stays as it is." if not bb["transfers"] else "."}</p>'
+            f'<p class="cp-reason">Your current bench projects {bb["ep"]:.1f} pts that week.</p>'
             f'{week_strip(bb.get("series"), bb["gw"], "pts")}'
             f'{conf_pill(bb["confidence"])}'
         )
@@ -915,6 +913,6 @@ def captaincy_card(cm):
         '<div class="cap-chart scroll"><svg class="radar" viewBox="-100 -10 640 400" '
         'role="img" aria-label="Captaincy decision matrix radar chart"></svg>'
         "</div>"
-        f'<script type="application/json" class="captaincy-data">{json.dumps(data)}</script>'
+        f'<script type="application/json" class="captaincy-data">{script_json(data)}</script>'
         "</div></section>"
     )

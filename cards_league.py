@@ -1,6 +1,5 @@
 """Cards for the Mini-league tab: standings, ownership, template and rivals."""
 
-import json
 import math
 
 import analysis
@@ -8,7 +7,7 @@ import components
 import fplapi
 import transfers
 from analysis import f
-from cards_common import TONE_COLOR, e, meter
+from cards_common import TONE_COLOR, e, meter, script_json
 
 
 def findings_cards(finds):
@@ -636,7 +635,7 @@ def league_position_card(data):
         '<div class="scroll"><svg class="lpchart" viewBox="0 0 1040 460" '
         'role="img" aria-label="League position over time"></svg></div>'
         f'<ul class="lplegend">{legend}</ul>'
-        f'<script type="application/json" class="lpchart-data">{json.dumps(data)}</script>'
+        f'<script type="application/json" class="lpchart-data">{script_json(data)}</script>'
         "</div></section>"
     )
 

@@ -247,6 +247,28 @@
   // Updated by every lab's draw() - see initLab.
   var cardRowsById = {};
 
+  // Per-club fixture runs from the section's one scout-fixtures island,
+  // parsed on first draw. The fixture-runs cards rank these, and the
+  // shortlist looks a player's club up here rather than every pool row
+  // carrying its own copy.
+  var fixtureRuns = null;
+  var runsByClub = null;
+
+  function clubCells(club) {
+    if (!runsByClub) {
+      runsByClub = {};
+      (fixtureRuns || []).forEach(function (run) { runsByClub[run.club] = run.cells; });
+    }
+    return runsByClub[club] || null;
+  }
+
+  // Archetype pills, shared by the table and the player card.
+  function badgesHtml(archs, labels) {
+    return (archs || []).map(function (a) {
+      return '<span class="archbadge archbadge-' + esc(a) + '">' + esc(labels[a] || a) + '</span>';
+    }).join('');
+  }
+
   // One number format per metric, shared by the table, the compare bars
   // and the card, so a figure never reads 27.6 in one place and 27.60 in
   // the next.
@@ -262,6 +284,7 @@
   // The small print under a card tile: the count a rate was made from.
   function tileNote(key, row) {
     if (key === 'defcon_hit_rate') { return row.defconHits + ' of ' + plural(row.defconHitN, 'start'); }
+    if (key === 'defcon90') { return 'hit in ' + row.defconHits + ' of ' + plural(row.defconHitN, 'start'); }
     if (key === 'start_rate') { return row.starts + ' of ' + row.teamMatches + ' matches'; }
     if (key === 'xg90') { return plural(row.goals, 'goal'); }
     if (key === 'xa90') { return plural(row.assists, 'assist'); }
@@ -337,7 +360,7 @@
       if (m.status !== 'unplayed') {
         marks.forEach(function (mark, k) {
           var y = markY + 14 + k * 13;
-          if (mark === 'defcon') {
+          if (mark === 'defcon' && m.defconHit !== null) {
             markers += '<text class="mk-defcon' + (m.defconHit ? ' hit' : ' miss') + '" x="' + cx +
               '" y="' + y + '" text-anchor="middle">' + (m.defconHit ? '+' : '–') + '</text>';
           } else if (mark === 'ga' && gaTag(m)) {
@@ -395,9 +418,7 @@
     flags.push((row.priceChangeMomentum >= 0 ? '+' : '') + row.priceChangeMomentum + ' transfers this GW');
     flags.push(row.ownership.toFixed(1) + '% owned');
 
-    var archBadges = (row.archetypes || []).map(function (a) {
-      return '<span class="archbadge archbadge-' + esc(a) + '">' + esc(labels[a] || a) + '</span>';
-    }).join('');
+    var archBadges = badgesHtml(row.archetypes, labels);
 
     // Percentile against whichever pool is filtered in right now, the same
     // pool the table beside it is shaded against.
@@ -682,12 +703,7 @@
       if (readout) { readout.innerHTML = defaultReadout; }
     }
 
-    function archetypeBadges(archs) {
-      return archs.map(function (a) {
-        return '<span class="archbadge archbadge-' + esc(a) + '">' +
-          esc(archLabels[a] || a) + '</span>';
-      }).join('');
-    }
+    function archetypeBadges(archs) { return badgesHtml(archs, archLabels); }
 
     function renderHeatmap(rows) {
       if (!tbody) { return; }
@@ -802,16 +818,21 @@
     function renderTicker(rows) {
       if (!tickerEl) { return; }
       var horizon = filters.fixtureHorizon || 6;
-      var gwHeaders = rows.length
-        // Gameweek only: the opponent differs by player, so it lives in
-        // each cell. Heading the column with the first player's opponent
-        // mislabelled every other row on the shortlist.
-        ? rows[0].fixtures.slice(0, horizon).map(function (fx) {
-            return '<th>GW' + fx.gw + '</th>';
-          }).join('')
-        : '';
+      // Every club's cells run over the same gameweeks (fixture_rows emits
+      // one per week, blanks included), so any club supplies the headers.
+      // Gameweek only: the opponent differs by player, so it lives in each
+      // cell. Heading the column with the first player's opponent
+      // mislabelled every other row on the shortlist.
+      var gws = fixtureRuns && fixtureRuns.length
+        ? fixtureRuns[0].cells.slice(0, horizon).map(function (c) { return c.gw; })
+        : [];
+      var gwHeaders = gws.map(function (gw) { return '<th>GW' + gw + '</th>'; }).join('');
       var body = rows.map(function (r) {
-        var fx = r.fixtures.slice(0, horizon);
+        // A club with no fixture at all over the horizon is left out of the
+        // runs, so it reads as a row of blanks rather than nothing.
+        var fx = (clubCells(r.teamShort) || gws.map(function (gw) {
+          return { gw: gw, blank: true };
+        })).slice(0, horizon);
         function cells(field) {
           return fx.map(function (f) {
             if (f.blank) { return '<td class="tick-blank">-</td>'; }
@@ -953,9 +974,10 @@
       }).join('');
     }
 
+    // null when the club has no fixture in the horizon at all.
     function meanOver(run, field, horizon) {
       var real = run.cells.slice(0, horizon).filter(function (c) { return !c.blank; });
-      if (!real.length) { return 99; }
+      if (!real.length) { return null; }
       return real.reduce(function (s, c) { return s + c[field]; }, 0) / real.length;
     }
 
@@ -964,14 +986,21 @@
       card.querySelectorAll('.fxrun-list[data-fx]').forEach(function (list) {
         var field = list.dataset.fx;
         var dir = list.dataset.hardest ? -1 : 1;
-        var ranked = runs.slice().sort(function (a, b) {
-          return dir * (meanOver(a, field, horizon) - meanOver(b, field, horizon));
+        // A club with no fixture has no run to rank, kind or tough. It is
+        // dropped rather than given a sentinel score: a sentinel sorted to
+        // the top of the "toughest" list whenever a blank week fell inside
+        // the horizon, and printed its fake average beside the club.
+        var ranked = runs.map(function (run) {
+          return { run: run, mean: meanOver(run, field, horizon) };
+        }).filter(function (x) { return x.mean !== null; }).sort(function (a, b) {
+          return dir * (a.mean - b.mean);
         }).slice(0, DEPTH);
-        list.innerHTML = ranked.map(function (run, i) {
+        list.innerHTML = ranked.map(function (x, i) {
+          var run = x.run;
           return '<li><span class="slrank">' + (i + 1) + '</span>' +
             '<span class="fxrun-club">' + esc(run.club) + '</span>' +
             '<span class="fxrun-avg tnum" title="Average difficulty over the run">' +
-            meanOver(run, field, horizon).toFixed(1) + '</span>' +
+            x.mean.toFixed(1) + '</span>' +
             '<span class="fxrun-chips">' + chips(run.cells, field, horizon) + '</span></li>';
         }).join('');
       });
@@ -990,8 +1019,6 @@
   // shown rather than all three up front: nobody pays for laying out 200
   // midfielders to look at the defenders.
 
-  var fixtureRuns = null;
-
   function initView(view) {
     if (!view || view._scoutReady) { return; }
     view._scoutReady = true;
@@ -1002,8 +1029,12 @@
   function showPosition(pos) {
     var switcher = panel.querySelector('.scoutpos');
     if (switcher) {
+      // Roving tabindex: only the selected tab is in the Tab order; the
+      // arrow keys move between the three.
       switcher.querySelectorAll('button[data-pos]').forEach(function (b) {
-        b.setAttribute('aria-selected', String(b.dataset.pos === pos));
+        var on = b.dataset.pos === pos;
+        b.setAttribute('aria-selected', String(on));
+        b.tabIndex = on ? 0 : -1;
       });
     }
     var shown = null;
@@ -1013,12 +1044,16 @@
     });
     initView(shown);
     document.dispatchEvent(new Event('rail:rebuild'));
-    // Switching from deep in one lab lands at the top of the next, not at
-    // the same pixel offset of a page that is now a different length.
-    if (switcher && switcher.getBoundingClientRect().top < 0) {
+    // Keep the switch in sight under the sticky bar. Measured against the
+    // bar's height, not the viewport's top edge: a switch half tucked
+    // under the bar is on screen but not visible, and the new lab's first
+    // chapter went with it.
+    if (switcher) {
       var bar = document.querySelector('.topbar');
       var off = (bar ? bar.getBoundingClientRect().height : 0) + 8;
-      window.scrollTo(0, switcher.getBoundingClientRect().top + window.scrollY - off);
+      if (switcher.getBoundingClientRect().top < off) {
+        window.scrollTo(0, switcher.getBoundingClientRect().top + window.scrollY - off);
+      }
     }
   }
 

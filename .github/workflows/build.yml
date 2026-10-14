@@ -6,6 +6,14 @@ name: Build dashboard
 # its data there. GitHub's runners have open outbound network, so the build
 # happens here and the routine only has to publish what this commits.
 on:
+  push:
+    paths:
+      - '*.py'
+      - '*.js'
+      - '*.css'
+      - 'tests/**'
+      - '.github/workflows/build.yml'
+      - 'vercel.json'
   schedule:
     # Every three hours, not twice a day. GitHub's scheduler is best-effort -
     # their own docs warn that scheduled runs can be delayed or dropped under
@@ -40,6 +48,9 @@ jobs:
       - name: Install Pillow
         run: python -m pip install --quiet --retries 5 --timeout 60 Pillow
 
+      - name: Regression tests
+        run: python -m unittest discover -s tests -t .
+
       # The badge, shirt and photo files never change, so keeping them across
       # runs saves ~60 downloads from the Premier League CDN every build.
       - name: Restore image cache
@@ -50,12 +61,13 @@ jobs:
 
       - name: Build
         id: build
+        shell: bash
         run: |
           python cli.py dashboard --artifact | tee build.log
           echo "--- sources ---"
           sed -n '/sources this run:/,$p' build.log
 
-      - name: Fail if a source dropped out
+      - name: Report optional source failures
         run: |
           if grep -q '^  FAIL' build.log; then
             echo "::warning::One or more data sources failed this run:"

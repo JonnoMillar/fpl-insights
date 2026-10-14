@@ -8,6 +8,7 @@ player actually generating, per 90 minutes, and does his points total agree?"
 """
 
 import math
+import re
 
 from dataclasses import dataclass, field
 
@@ -57,16 +58,19 @@ class Ctx:
     fixtures: list = field(default_factory=list)
     # Photo ids Fantasy Football Scout expects to start. Empty means unknown -
     # never "nobody starts" - so every consumer must check it is non-empty.
-    predicted: set = field(default_factory=set)
+    predicted: dict = field(default_factory=dict)
 
     @classmethod
     def load(cls, ttl=fplapi.DEFAULT_TTL):
+        fplapi.HEALTH.clear()
         boot = fplapi.bootstrap(ttl=ttl)
+        fplapi.note("FPL players", True, f"{len(boot['elements'])} players")
         c = cls(boot=boot)
         c.players = {e["id"]: e for e in boot["elements"]}
         c.teams = {t["id"]: t for t in boot["teams"]}
         c.events = boot["events"]
         c.fixtures = fplapi.fixtures(ttl=ttl)
+        fplapi.note("FPL fixtures", True, f"{len(c.fixtures)} fixtures")
         c.predicted = fplapi.ffs_predicted_photo_ids(ttl=ttl)
         return c
 
@@ -77,7 +81,50 @@ class Ctx:
         """True / False / None, where None means we have no line-up data."""
         if not self.predicted:
             return None
-        return element["photo"].split(".")[0] in self.predicted
+        pid = element["photo"].split(".")[0]
+        if not isinstance(self.predicted, dict):
+            return None  # old photo-only caches do not establish club identity
+        norm = lambda s: re.sub(r"[^a-z0-9]", "", s.lower().replace("&", "and"))
+        club = self.teams[element["team"]]
+        names = {norm(club["name"]), norm(club["short_name"])}
+        aliases = {"wolves": "wolverhamptonwanderers", "spurs": "tottenhamhotspur",
+                   "manchesterunited": "manutd", "manchestercity": "mancity",
+                   "brightonandhovealbion": "brighton", "nottinghamforest": "nottmforest"}
+        names |= {aliases[n] for n in names if n in aliases}
+        names |= {alias for alias, canonical in aliases.items() if canonical in names}
+        predicted_club = self.predicted.get(pid)
+        if predicted_club is not None:
+            return True if norm(predicted_club) in names else None
+        known_clubs = {norm(n) for n in self.predicted.values()}
+        return False if names & known_clubs else None
+
+    def next_event(self):
+        return next((e["id"] for e in self.events if e.get("is_next")), None)
+
+    def scoring_fixture(self, element, proj, gw, market):
+        """Bind single-match estimates to FPL's actual week, opponent and venue."""
+        if gw is None:
+            return None, None
+        tid = element["team"]
+        matches = [fx for fx in self.fixtures if fx.get("event") == gw
+                   and tid in (fx["team_h"], fx["team_a"])]
+        if len(matches) != 1:
+            return None, None  # blanks score zero; doubles are explicitly unsupported
+        fx = matches[0]
+        home = fx["team_h"] == tid
+        opp = self.team_name(fx["team_a"] if home else fx["team_h"])
+        club = self.team_name(tid)
+        row = proj.get((club, gw))
+        if row and (row.get("opp") != opp or (row.get("ven", "H").upper() == "H") != home):
+            row = None
+        mk = (market or {}).get(club)
+        if mk:
+            kickoff = fx.get("kickoff_time") or ""
+            priced_at = mk.get("kickoff") or ""
+            if (mk.get("opp") != opp or mk.get("home") != home
+                    or not kickoff or not priced_at or kickoff[:10] != priced_at[:10]):
+                mk = None
+        return row, mk
 
     # -- gameweek helpers --
 
@@ -449,9 +496,10 @@ def squad_sell_value(entry_id, ctx, squad_reports, ttl=fplapi.DEFAULT_TTL):
     bought_at = {}
     for t in transfers_history:
         pid = t["element_in"]
+        when = (t["event"], t.get("time", ""))
         prev = bought_at.get(pid)
-        if prev is None or t["event"] > prev[0]:
-            bought_at[pid] = (t["event"], t["element_in_cost"])
+        if prev is None or when > prev[0]:
+            bought_at[pid] = (when, t["element_in_cost"])
 
     per_player = {}
     for r in squad_reports:
@@ -462,7 +510,9 @@ def squad_sell_value(entry_id, ctx, squad_reports, ttl=fplapi.DEFAULT_TTL):
         else:
             s = fplapi.element_summary(pid, ttl=ttl)
             first = next((h for h in s.get("history", []) if h["round"] == 1), None)
-            buy = first["value"] if first else now
+            if first is None:
+                raise fplapi.FplError(f"Purchase price unavailable for {r.name}")
+            buy = first["value"]
         sell = buy + (now - buy) // 2 if now > buy else now
         per_player[pid] = sell / 10.0
     return sum(per_player.values()), per_player
@@ -974,8 +1024,7 @@ def expected_points(r, ctx, proj, gw, market=None, baselines=None,
     """
     el = r.element
     club = ctx.team_name(el["team"])
-    fixture = proj.get((club, gw))
-    mk = (market or {}).get(club)
+    fixture, mk = ctx.scoring_fixture(el, proj, gw, market)
     if not fixture and not mk:
         return None
 

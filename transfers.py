@@ -15,10 +15,9 @@ Two constraints shape the implementation:
   each one's match history would be six hundred requests. Everything here is
   computed from the bootstrap payload, which is one request for the lot, at
   the cost of approximating the two fields that normally come from history.
-* **Selling price is unknown.** FPL sell a player back at purchase price plus
-  half the rise, and purchase price only exists behind a login. Current price
-  is used instead, so a long-held riser is worth slightly less than shown.
-  Stated wherever the numbers appear.
+* **Affordability uses recovered selling values.** The dashboard supplies
+  purchase-history-backed prices; if it cannot recover them, it withholds
+  affordability advice instead of treating current prices as proceeds.
 """
 
 import analysis
@@ -193,8 +192,7 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
     a fraction of a point."""
     pos = ctx.pos(el)
     club = ctx.team_name(el["team"])
-    fixture = proj.get((club, gw))
-    mk = (market or {}).get(club)
+    fixture, mk = ctx.scoring_fixture(el, proj, gw, market)
     if not fixture and not mk:
         return None
 
@@ -510,6 +508,10 @@ BENCH_AUTOSUB_ALLOWANCE = 0.15
 XI_GAIN_CANDIDATES = 30
 
 
+def sale_price(r, sell_values=None):
+    return r.price if sell_values is None else sell_values[r.element["id"]]
+
+
 def _own_pool_row(r, value):
     """One owned player as a squadbuilder pool row."""
     return {"id": r.element["id"], "pos": r.pos, "club": r.team,
@@ -524,18 +526,8 @@ def _candidate_pool_row(el, ctx, value):
 
 
 def _xi_value(pool):
-    """The best legal XI's projected value, or None if the pool cannot field
-    one at all.
-
-    None rather than 0.0, and the difference is not cosmetic. best_xi needs a
-    full fifteen - it fills a bench first, and that bench wants a second
-    goalkeeper - so a pool one keeper short returns None. Reported as 0.0,
-    that made *every* `_xi_swap_gain` come out as 0.0 - 0.0 = 0, silently, and
-    the Buy/Sell/Keep/Avoid board lost its entire XI-based half without
-    anything on the page looking broken: Sell could never clear its margin, so
-    it read "nothing this week" every week while Suggested transfers listed
-    six. A caller that cannot build an XI has to know it cannot."""
-    result = squadbuilder.best_xi(pool, budget=1e9)
+    """Exact value of a legal owned fifteen's XI; unknown stays None."""
+    result = squadbuilder.owned_xi(pool)
     return result["value"] if result else None
 
 
@@ -569,7 +561,7 @@ def _rank_swap_options(own_pool, base_xi_value, out_id, options, limit):
     return top
 
 
-def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
+def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4, sell_values=None):
     """Buy, Sell, Keep and Avoid - four questions with four different
     rules, not one ranking sliced into quarters.
 
@@ -665,7 +657,7 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
     sell, sell_ids = [], set()
     for r in scored_owned:
         mine = scores[r.element["id"]]["total"]
-        budget = r.price + bank
+        budget = sale_price(r, sell_values) + bank
         options = []
         for pid, s in scores.items():
             if pid in owned:
@@ -733,7 +725,7 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
         # the case reads as "sell your worst option here", not your best.
         funder = None
         for r in scored_owned:
-            if r.pos != pos or r.price + bank + 1e-9 < price:
+            if r.pos != pos or sale_price(r, sell_values) + bank + 1e-9 < price:
                 continue
             r_total = scores[r.element["id"]]["total"]
             if s["total"] - r_total < SELL_MARGIN:
@@ -757,7 +749,7 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
             "id": r.element["id"], "name": r.name, "pos": r.pos,
             "club": r.team, "price": r.price, "ep": s["total"],
             "opponent": s["opponent"], "home": s["home"],
-            "note": "no reachable upgrade at {:.1f}m".format(r.price + bank),
+            "note": "no meaningful reachable upgrade at {:.1f}m".format(sale_price(r, sell_values) + bank),
         })
     keep.sort(key=lambda x: -x["ep"])
 
@@ -781,7 +773,7 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
             # A fractional gap is nothing over TRANSFER_HORIZON_WEEKS
             # weeks - the same meaningful-gain bar every other list here
             # holds a claim to (L10), not "ranked below by any amount".
-            if os_["total"] - s["total"] < MIN_CASE_GAIN or not club_ok(oel):
+            if os_["total"] - s["total"] < SELL_MARGIN or not club_ok(oel):
                 continue
             if better is None or os_["total"] > better[1]["total"]:
                 better = (oel, os_)
@@ -798,12 +790,13 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4):
     # Sell and Keep are lists of players already owned, so the club budget
     # does not apply to them - it only constrains who you can sign.
     return {
-        "buy": take(buy, per_list), "sell": sell[:per_list],
+        "buy": take([r for r in buy if r["id"] not in {a["id"] for a in avoid}], per_list),
+        "sell": sell[:per_list],
         "keep": keep[:per_list], "avoid": take(avoid, per_list),
     }
 
 
-def kneejerk(ctx, squad_reports, scores, bank=0.0):
+def kneejerk(ctx, squad_reports, scores, bank=0.0, sell_values=None):
     """The player who just hauled and you do not own - named as the
     impulse it is, and priced honestly.
 
@@ -835,17 +828,18 @@ def kneejerk(ctx, squad_reports, scores, bank=0.0):
 
     # Who you would have to sell to afford him, and whether anyone at that
     # money is projected to do better.
-    affordable = [r for r in squad_reports
-                  if r.pos == pos and r.price + bank + 1e-9 >= price]
-    funder = min(affordable, key=lambda r: r.price) if affordable else None
-
     club_counts = {}
     for r in squad_reports:
         club_counts[r.element["team"]] = club_counts.get(r.element["team"], 0) + 1
+    affordable = [r for r in squad_reports
+                  if r.pos == pos and sale_price(r, sell_values) + bank + 1e-9 >= price
+                  and club_counts.get(best["team"], 0)
+                  - int(r.element["team"] == best["team"]) < SQUAD_LIMIT_PER_CLUB]
+    funder = min(affordable, key=lambda r: sale_price(r, sell_values)) if affordable else None
 
     rival = None
     if funder:
-        budget = funder.price + bank
+        budget = sale_price(funder, sell_values) + bank
         for pid, s in scores.items():
             if pid in owned or pid == best["id"]:
                 continue
@@ -917,7 +911,7 @@ def kneejerk(ctx, squad_reports, scores, bank=0.0):
                 key=lambda r: scores.get(r.element["id"], {}).get("total", 0.0),
             )
             for second in others:
-                budget = primary.price + second.price + bank
+                budget = sale_price(primary, sell_values) + sale_price(second, sell_values) + bank
                 if budget + 1e-9 < price:
                     continue
                 remaining = budget - price
@@ -925,6 +919,8 @@ def kneejerk(ctx, squad_reports, scores, bank=0.0):
                 after[primary.element["team"]] -= 1
                 after[second.element["team"]] -= 1
                 after[best["team"]] = after.get(best["team"], 0) + 1
+                if after[best["team"]] > SQUAD_LIMIT_PER_CLUB:
+                    continue
                 candidates = []
                 for pid, s in scores.items():
                     if pid in owned or pid == best["id"]:
@@ -979,7 +975,7 @@ def kneejerk(ctx, squad_reports, scores, bank=0.0):
 
 
 def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
-                     shortlist=30, limit=4, elite=None, hit_cost=4):
+                     shortlist=30, limit=4, elite=None, hit_cost=4, sell_values=None):
     """Two out, two in - the moves a single transfer cannot reach.
 
     Pairs matter because the constraints interact. Selling one player frees
@@ -993,7 +989,7 @@ def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
       3 forwards, so the positions going out must match the positions coming
       in. Nothing else keeps the squad legal.
     * **Money.** The bank plus both sale prices must cover both purchases.
-      Sale price is taken as current price - the real figure needs a login.
+      Uses recovered selling values supplied by the dashboard.
     * **Three per club.** Checked after both sales and both purchases, since
       selling two from one club is exactly what makes a third signing legal.
     * **Distinct players.** Cannot buy the same man twice, or one already held.
@@ -1045,7 +1041,7 @@ def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
         base = here.get(r.element["id"])
         if not base:
             continue
-        ceiling = r.price + bank + 6.0
+        ceiling = sale_price(r, sell_values) + bank + 6.0
         options = []
         for pid, s in scored.items():
             el = ctx.players[pid]
@@ -1070,7 +1066,7 @@ def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
     for i, a_id in enumerate(ids):
         for b_id in ids[i + 1:]:
             ra, rb = reports_by_id[a_id], reports_by_id[b_id]
-            budget = bank + ra.price + rb.price
+            budget = bank + sale_price(ra, sell_values) + sale_price(rb, sell_values)
             # Freeing both slots before testing the club limit is the whole
             # point of looking at pairs.
             freed = dict(club_counts)
@@ -1090,23 +1086,29 @@ def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
                     extra = 1 if ta == tb else 0
                     if freed.get(tb, 0) + 1 + extra > SQUAD_LIMIT_PER_CLUB:
                         continue
-                    gain = oa["gain"] + ob["gain"]
+                    result_pool = [p for p in own_pool if p["id"] not in (a_id, b_id)]
+                    result_pool += [oa["row"], ob["row"]]
+                    after_value = _xi_value(result_pool)
+                    if base_xi_value is None or after_value is None:
+                        continue
+                    raw_gain = oa["raw_gain"] + ob["raw_gain"]
+                    gain = after_value - base_xi_value + BENCH_AUTOSUB_ALLOWANCE * raw_gain
                     if best is None or gain > best["gain"]:
                         best = {"gain": gain, "a": oa, "b": ob}
             if not best:
                 continue
-            spend = best["a"]["price"] + best["b"]["price"] - ra.price - rb.price
+            spend = best["a"]["price"] + best["b"]["price"] - sale_price(ra, sell_values) - sale_price(rb, sell_values)
             pairings.append({
                 "legs": [
                     {"out": ra, "out_score": here[a_id], "in": best["a"]["el"],
                      "in_score": best["a"]["score"], "gain": best["a"]["gain"],
                      "price": best["a"]["price"],
-                     "spend": best["a"]["price"] - ra.price,
+                     "spend": best["a"]["price"] - sale_price(ra, sell_values),
                      "elite": elite_by_id.get(best["a"]["el"]["id"])},
                     {"out": rb, "out_score": here[b_id], "in": best["b"]["el"],
                      "in_score": best["b"]["score"], "gain": best["b"]["gain"],
                      "price": best["b"]["price"],
-                     "spend": best["b"]["price"] - rb.price,
+                     "spend": best["b"]["price"] - sale_price(rb, sell_values),
                      "elite": elite_by_id.get(best["b"]["el"]["id"])},
                 ],
                 "gain": best["gain"],
@@ -1137,7 +1139,8 @@ def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
 
 
 def suggest(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
-            per_slot=3, limit=6, elite=None, xi_based=True):
+            per_slot=3, limit=6, elite=None, xi_based=True, sell_values=None,
+            full_squad=None):
     """Swaps worth a look: one out, one in, same position, affordable.
 
     Ranked on the gain in case_score, not one gameweek of raw projected
@@ -1155,7 +1158,7 @@ def suggest(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
     week."""
     club_counts = {}
     squad_ids = set()
-    for r in squad_reports:
+    for r in (full_squad or squad_reports):
         squad_ids.add(r.element["id"])
         club_counts[r.element["team"]] = club_counts.get(r.element["team"], 0) + 1
 
@@ -1196,7 +1199,7 @@ def suggest(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
                 else case_score(r.element, ctx, proj, gw, market, baselines, priors))
         if not here:
             continue
-        budget = r.price + bank
+        budget = sale_price(r, sell_values) + bank
         pos = r.pos
         options = []
         for pid, s in scored.items():
@@ -1217,7 +1220,7 @@ def suggest(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
                 continue
             options.append({
                 "element": el, "score": s, "raw_gain": raw_gain,
-                "price": price, "spend": price - r.price,
+                "price": price, "spend": price - sale_price(r, sell_values),
                 "elite": elite_by_id.get(pid),
                 "row": _candidate_pool_row(el, ctx, s["total"]) if xi_based else None,
             })

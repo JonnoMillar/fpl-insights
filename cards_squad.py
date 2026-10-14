@@ -1,6 +1,5 @@
 """Cards for the Squad tab: the pitch views, squad table, findings and player dialog."""
 
-import json
 import math
 import re
 
@@ -10,7 +9,7 @@ import ffs
 import pulse
 import ticker
 from analysis import f
-from cards_common import TONE_COLOR, e, meter, pos_fixture_pill
+from cards_common import TONE_COLOR, e, meter, pos_fixture_pill, script_json
 
 
 # FPL's own five-step difficulty scale, background and text, straight from
@@ -837,11 +836,17 @@ def player_payload(r, ctx, proj, ep, next_gw, photos):
     player at a time."""
     el = r.element
     flag, news = r.availability
-    fixtures = [
-        {"gw": row["gw"], "opp": row["opp"], "home": row["home"],
-         "cs": round(row["cs"]), "xg": round(row["xg"], 2)}
-        for row in ffs.ticker(proj, r.team, next_gw, 6)
-    ]
+    fixtures = []
+    if next_gw is not None:
+        for row in ffs.ticker(proj, r.team, next_gw, 6):
+            actual = [fx for fx in ctx.fixtures if fx.get("event") == row["gw"]
+                      and el["team"] in (fx["team_h"], fx["team_a"])]
+            if row.get("blank") or len(actual) != 1:
+                state = "blank" if not actual else "unavailable"
+                fixtures.append({"gw": row["gw"], state: True})
+            else:
+                fixtures.append({"gw": row["gw"], "opp": row["opp"], "home": row["home"],
+                                 "cs": round(row["cs"]), "xg": round(row["xg"], 2)})
     log = [
         {"gw": h["round"], "opp": ctx.team_name(h["opponent_team"]),
          "home": h["was_home"], "min": h["minutes"],
@@ -892,5 +897,5 @@ def player_dialog(payloads):
         '<button class="pv-close" aria-label="Close player detail">&times;</button>'
         '<div class="pv-body"></div></dialog>'
         f'<script type="application/json" id="player-data">'
-        f"{json.dumps({'players': payloads, 'optaLabels': labels})}</script>"
+        f"{script_json({'players': payloads, 'optaLabels': labels})}</script>"
     )

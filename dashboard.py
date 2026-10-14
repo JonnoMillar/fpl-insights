@@ -86,6 +86,22 @@ JS = (Path(__file__).with_name("dashboard.js")).read_text(encoding="utf-8")
 
 # Inline rather than a file so the page stays self-contained: it works opened
 # from disk, and the body-only artifact the live site serves carries it too.
+# Link previews need an absolute image URL, so this points at the deployed
+# copy of docs/og.png (Vercel serves the repo root as static files).
+SITE_URL = "https://fpl-insights-jm.vercel.app"
+SOCIAL_META = (
+    '<meta name="description" content="Expected goals, bookmaker odds and '
+    'fixture strength for a Fantasy Premier League squad, turned into '
+    'captain, transfer and chip decisions.">'
+    '<meta property="og:type" content="website">'
+    '<meta property="og:title" content="FPL Insights">'
+    '<meta property="og:description" content="The numbers behind the points: '
+    'expected goals, odds and fixtures turned into FPL decisions.">'
+    f'<meta property="og:image" content="{SITE_URL}/docs/og.png">'
+    '<meta property="og:image:width" content="1200">'
+    '<meta property="og:image:height" content="630">'
+    '<meta name="twitter:card" content="summary_large_image">'
+)
 FAVICON = (
     '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,' + quote(
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
@@ -202,9 +218,19 @@ def week_verdict(ctx, gw, squad_ids, captain_id, points, average, pending):
 
 # --- page -----------------------------------------------------------------
 
+def source_notice(d):
+    missing = [f"{name}: {row['detail']}" for name, row in d.get("source_health", {}).items()
+               if not row["ok"]]
+    if not missing:
+        return ""
+    return ('<p class="data-status data-warning" role="status">Some data is unavailable. '
+            + e("; ".join(missing)) + '</p>')
+
+
 def render(d, standalone=True):
     ctx = d["ctx"]
     title = d["team_name"]
+    next_label = f"GW{d['next_gw']}" if d["next_gw"] <= 38 else "no upcoming gameweek"
     eh = d["entry_history"]
 
     # What belongs here is what you would act on, not what happened. Squad
@@ -262,7 +288,7 @@ def render(d, standalone=True):
         ("League", f"{d['my_rank']}/{d['league_size']}" if d["my_rank"] else "-",
          e(d["league_name"]), lg_chip, ""),
         ("Projected", f"{projected:.1f}" if projected else "-",
-         f"your XI, GW{d['next_gw']}", "", ""),
+         f"your XI, {next_label}", "", ""),
         ("Needs a look", len(attention),
          "; ".join(f"{nm} &mdash; {why}" for nm, why in attention[:2])
          + ("&hellip;" if len(attention) > 2 else "")
@@ -302,6 +328,9 @@ def render(d, standalone=True):
 </header>
 
 <div class="wrap">
+  <p class="data-status" role="status" data-generated="{e(d.get('generated_iso', ''))}">
+    Snapshot: {e(d['generated'])}. Squad and bank reflect the last published picks.</p>
+{source_notice(d)}
   <section class="hero">
     <h1>{e(title)}</h1>
     <div class="mgr">{e(d['manager'])} &middot; {e(d['league_name'])}</div>
@@ -319,7 +348,7 @@ def render(d, standalone=True):
   <div class="panel" id="p-squad" role="tabpanel">
     <section class="card">
       <div class="card-head"><h2>Starting XI</h2>
-        <span class="sub" data-pkview="ov">Season points, points per game and season xGI on each card - click one to bring it forward. <b>Looking back:</b> a faded crest means he did not play in GW{d['gw']}. <b>Looking forward:</b> a green dot means Fantasy Football Scout predict him to start GW{d['next_gw']}, red means they do not.</span>
+        <span class="sub" data-pkview="ov">Season points, points per game and season xGI on each card - click one to bring it forward. <b>Looking back:</b> a faded crest means he did not play in GW{d['gw']}. <b>Looking forward:</b> a green dot means Fantasy Football Scout predict him to start {next_label}, red means they do not.</span>
         <span class="sub" data-pkview="gw" hidden>GW{d['gw']} points on each card, with points per game and season xGI beside them. A faded crest means he did not play that week.</span>
         <span class="sub" data-pkview="pk" hidden>Next fixture and a read on recent form on each card, shaded by clean-sheet odds for keepers and defenders and by expected goals for everyone else.</span>
       </div>
@@ -339,7 +368,7 @@ def render(d, standalone=True):
     </section>
     <details class="card collapsible">
       <summary class="card-head"><h2>Squad detail{components.info_btn()}</h2>
-        <span class="sub" hidden>Click a column heading to sort. xP is projected points for GW{d['next_gw']} - the one forward-looking column, so you can sort the underlying numbers against what the model expects from them. Next 3 fixtures rated out of ten, higher is better; CAPITALS are home.</span>
+        <span class="sub" hidden>Click a column heading to sort. xP is projected points for {next_label} - the one forward-looking column, so you can sort the underlying numbers against what the model expects from them. Next 3 fixtures rated out of ten, higher is better; CAPITALS are home.</span>
       </summary>
       {d['squad_table']}
     </details>
@@ -429,7 +458,7 @@ def render(d, standalone=True):
         "family=Archivo:wdth,wght@62..125,400..700&"
         "family=IBM+Plex+Mono:wght@400;500;600&display=swap\">"
     )
-    head = f"<title>{e(title)}</title>{FAVICON}{fonts}<style>{CSS}</style>"
+    head = f"<title>FPL Insights · {e(title)}</title>{FAVICON}{SOCIAL_META}{fonts}<style>{CSS}</style>"
     page = (
         f"{head}{body}<script>{JS}</script><script>{SCATTER_JS}</script>"
         f"<script>{PLAYERVIEW_JS}</script><script>{CAPTAINCY_JS}</script>"
@@ -542,7 +571,11 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     xi = [reports[i] for i in xi_ids]
     bench = [reports[i] for i in bench_ids]
 
-    matched = pulse.attach(ctx, ttl=ttl)
+    try:
+        matched = pulse.attach(ctx, ttl=ttl)
+    except fplapi.FplError as ex:
+        fplapi.note("Opta stats", False, str(ex)[:120])
+        matched = 0
     if matched:
         print(f"[pulse] {matched} players matched to Premier League Opta stats")
 
@@ -595,7 +628,35 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     except fplapi.FplError as ex:
         print(f"[odds] skipped: {ex}")
         market, market_fixtures = {}, []
-    next_gw = min(38, (ctx.current_event() or 1) + 1)
+    next_gw = ctx.next_event() or 39  # 39 is an ended season, never a scored fixture
+    if next_gw == 39:
+        proj, market, market_fixtures = {}, {}, []
+    doubles = {}
+    for fx in ctx.fixtures:
+        if next_gw <= (fx.get("event") or 0) < min(39, next_gw + 8):
+            for tid in (fx["team_h"], fx["team_a"]):
+                key = (tid, fx["event"])
+                doubles[key] = doubles.get(key, 0) + 1
+    incomplete = False
+    for (tid, event), count in doubles.items():
+        if count != 1:
+            continue
+        fx = next(fx for fx in ctx.fixtures if fx.get("event") == event
+                  and tid in (fx["team_h"], fx["team_a"]))
+        home = tid == fx["team_h"]
+        key = (ctx.team_name(tid), event)
+        row = proj.get(key)
+        opp = ctx.team_name(fx["team_a"] if home else fx["team_h"])
+        if not row or row.get("opp") != opp or (row.get("ven", "H").upper() == "H") != home:
+            incomplete = True
+            proj.pop(key, None)
+    advice_supported = bool(proj) and not incomplete and not any(n > 1 for n in doubles.values())
+    fplapi.note("recommendations", advice_supported,
+                "single-fixture window" if advice_supported else
+                "No upcoming gameweek" if next_gw == 39 else
+                "Fixture coverage incomplete; advice withheld" if incomplete and proj else
+                "Double gameweeks are not modelled; advice withheld" if proj else
+                "Fixture projections unavailable; advice withheld")
     baselines = analysis.team_attack_baselines(ctx)
     # One event_live call per gameweek so far, shared across every position -
     # see scout.season_live. Fails soft like the other optional sections
@@ -605,6 +666,9 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     # memory) - priors computed once here, never inside the per-position loop.
     try:
         scout_live = scout.season_live(ctx, ctx.current_event() or 1, ttl=ttl)
+        if any(m.get("multipleFixtures") for matches in scout_live.values() for m in matches):
+            fplapi.note("Scout defensive hit rates", False,
+                        "Double-fixture weeks excluded; season totals still include them")
         scout_priors = transfers.positional_priors(ctx)
         scout_pools = {
             pos: scout.pool(ctx, pos, scout_live, proj, next_gw=next_gw,
@@ -659,14 +723,22 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     )
 
     bank = (picks.get("entry_history", {}).get("bank") or 0) / 10.0
+    total_sell, sell_values = None, None
+    try:
+        total_sell, sell_values = analysis.squad_sell_value(entry_id, ctx, xi + bench, ttl=ttl)
+        fplapi.note("selling prices", True, "purchase history recovered")
+    except fplapi.FplError as ex:
+        fplapi.note("selling prices", False, str(ex)[:120])
+        print(f"[transfers] unavailable: {ex}")
+    moves_available = advice_supported and sell_values is not None
     free_ts = analysis.free_transfers(entry_id, next_gw, ttl=ttl)
     pair_hit = analysis.transfer_cost(2, free_ts)
     print(f"[transfers] {free_ts if free_ts is not None else '?'} free, "
           f"a pair costs {pair_hit}")
     swaps = transfers.suggest(
         ctx, xi + bench, proj, next_gw, market, baselines,
-        bank=bank, limit=6, elite=elite_res,
-    )
+        bank=bank, limit=6, elite=elite_res, sell_values=sell_values,
+    ) if moves_available else []
     for sw in swaps:
         el = sw["in"]
         sw["in_club"] = ctx.team_name(el["team"])
@@ -678,8 +750,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
 
     pairings = transfers.pair_suggestions(
         ctx, xi + bench, proj, next_gw, market, baselines,
-        bank=bank, limit=4, elite=elite_res, hit_cost=pair_hit,
-    )
+        bank=bank, limit=4, elite=elite_res, hit_cost=pair_hit, sell_values=sell_values,
+    ) if moves_available else []
     for pr in pairings:
         for leg in pr["legs"]:
             el = leg["in"]
@@ -736,21 +808,13 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     # showing a set of zeroed or misleading cards.
     fh = tc = bb = wc = None
     used = {}
-    total_sell = None
-    if proj:
-        bank_m = (picks.get("entry_history", {}).get("bank") or 0) / 10.0
-        try:
-            total_sell, _per_player = analysis.squad_sell_value(
-                entry_id, ctx, xi + bench, ttl=ttl)
-        except fplapi.FplError as ex:
-            print(f"[chips] sell value unavailable, falling back to "
-                  f"current price: {ex}")
-            total_sell = sum(r.price for r in xi + bench)
+    if advice_supported and total_sell is not None:
+        bank_m = bank
         fh = chips.free_hit(ctx, xi, proj, market, baselines, next_gw,
                             budget=total_sell + bank_m)
         tc = chips.triple_captain(ctx, xi, proj, market, baselines, next_gw)
         bb = chips.bench_boost(ctx, bench, proj, market, baselines, next_gw,
-                               bank=bank_m)
+                               bank=bank_m, full_squad=xi + bench, sell_values=sell_values)
         wc = chips.wildcard(ctx, xi + bench, proj, market, baselines, next_gw,
                             budget=total_sell + bank_m)
         try:
@@ -768,8 +832,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     lg_scores = transfers.league_scores(
         ctx, proj, next_gw, market, baselines,
         always={r.element["id"] for r in xi + bench})
-    kj = transfers.kneejerk(ctx, xi + bench, lg_scores, bank=bank)
-    vb = transfers.verdict_board(ctx, xi + bench, lg_scores, bank=bank)
+    kj = transfers.kneejerk(ctx, xi + bench, lg_scores, bank=bank, sell_values=sell_values) if moves_available else None
+    vb = transfers.verdict_board(ctx, xi + bench, lg_scores, bank=bank, sell_values=sell_values) if moves_available else None
 
     # The knee-jerk card states in prose that a pair reaches him, but
     # "Suggested pairs" runs its own separate top-gain search and has no
@@ -796,8 +860,19 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                 second.element["id"], {}).get("total", 0.0)
             spend = (
                 (target_el["now_cost"] + repl_el["now_cost"]) / 10.0
-                - primary.price - second.price
+                - sell_values[primary.element["id"]] - sell_values[second.element["id"]]
             )
+            own_pool = [transfers._own_pool_row(r, lg_scores[r.element["id"]]["total"])
+                        for r in xi + bench if r.element["id"] in lg_scores]
+            base_value = transfers._xi_value(own_pool)
+            after_pool = [p for p in own_pool if p["id"] not in
+                          (primary.element["id"], second.element["id"])]
+            after_pool += [transfers._candidate_pool_row(target_el, ctx, kj["ep"]),
+                           transfers._candidate_pool_row(repl_el, ctx, fp["replacement_score"]["total"])]
+            after_value = transfers._xi_value(after_pool)
+            combined_gain = ((after_value - base_value) if after_value is not None and base_value is not None
+                             else primary_gain + second_gain)
+            combined_gain += transfers.BENCH_AUTOSUB_ALLOWANCE * (primary_gain + second_gain)
             pairings.append({
                 "tag": f"Reaches the knee-jerk pick, {target_el['web_name']}",
                 "legs": [
@@ -816,7 +891,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                      "in_shirt": shirts.get(
                          (repl_el["team"], ctx.pos(repl_el) == "GKP"))},
                 ],
-                "gain": primary_gain + second_gain,
+                "gain": combined_gain,
+                "after_hit": combined_gain - pair_hit,
                 "bank_after": bank - spend,
             })
     # A genuinely different question from Free Hit's budget-capped "ideal" -
@@ -848,7 +924,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "chip_planner": chip_planner_card(fh, tc, bb, wc, used, xi, bench,
                                           ctx, badges, shirts, proj, market,
                                           next_gw),
-        "best_xi": best_xi_card(next_ideal, ctx, set(squad_ids), next_gw),
+        "best_xi": best_xi_card(next_ideal, ctx, set(squad_ids), next_gw) if advice_supported else "",
         "kneejerk": kneejerk_card(kj, gw),
         "verdicts": verdict_board_card(vb, next_gw),
         "captaincy": captaincy_card(cap_matrix),
@@ -875,8 +951,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             swaps,
             f"Same position, affordable on {bank:.1f}m in the bank, ranked by "
             f"projected gain over the next {transfers.TRANSFER_HORIZON_WEEKS} "
-            f"gameweeks (plus a small form/xGI nudge). Selling price is taken as "
-            f"current price - read these as prompts, not instructions.",
+            f"gameweeks (plus a small form/xGI nudge). Selling price comes from "
+            f"recovered purchase history - read these as prompts, not instructions.",
             # How many of these you can actually take is the first thing you
             # need and it used to live only in a collapsed note on a different
             # card. It belongs on the face of the card that lists the moves.
@@ -916,17 +992,18 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "chips": chips_table(histories) if histories else "",
         "scout": scout_section(scout_pools, scout_fixtures, set(squad_ids)),
         "next_gw": next_gw,
-        "projections": projections_export(ctx, proj, next_gw, market,
-                                          baselines, eps_by_id),
+        "projections": projections_export(ctx, proj if advice_supported else {},
+                                          next_gw if advice_supported else None,
+                                          market if advice_supported else {}, baselines, eps_by_id if advice_supported else {}),
         "overall_rank": meta.get("summary_overall_rank"),
         "gw_average": gw_average,
         "rank_move": rank_move,
         "verdict": verdict,
-        "next_line": next_week_line(ctx, xi, eps, next_gw),
+        "next_line": next_week_line(ctx, xi, eps, next_gw) if advice_supported else "",
         "projected_xi": sum(
             ep["total"] for r, ep in eps
             if r.element["id"] in set(xi_ids)
-        ) or None,
+        ) if advice_supported else None,
         "sell_value": total_sell,
         # Anyone you would want to know about before the deadline, each with
         # the reason. A tile that names a player and not what is wrong with
@@ -937,4 +1014,6 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             if r.availability[0] or ctx.is_predicted(r.element) is False
         ],
         "generated": datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC"),
+        "generated_iso": datetime.now(timezone.utc).isoformat(),
+        "source_health": dict(fplapi.HEALTH),
     }

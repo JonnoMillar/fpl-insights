@@ -93,6 +93,8 @@ def _premium_star(cls):
 
 
 def rating_pill(opp, home, score):
+    if opp is None:
+        return '<span class="rpill fxr-blank">Unavailable</span>'
     """A fixture chip using the same rating and ramp as the ticker, so a
     fixture looks the same wherever it appears."""
     cls, style = _cell_style(score)

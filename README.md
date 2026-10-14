@@ -5,7 +5,7 @@ numbers behind the points (expected goals, expected assists, defensive
 contributions, bookmaker-implied fixture strength) and turns them into
 decisions: who to captain, who to sell, when to play a chip.
 
-**Live: https://fpl-insights-jm.vercel.app** (rebuilt automatically every three hours)
+**Live: https://fpl-insights-jm.vercel.app** (scheduled to rebuild every three hours; actual timing can vary)
 
 ![Squad tab: team summary and pitch view](docs/screenshots/squad.png)
 
@@ -73,7 +73,7 @@ Responses are cached in `.cache/` for 15 minutes. `--ttl 0` forces a refresh.
 ## The dashboard
 
 `python cli.py dashboard --open` writes `dashboard.html` and opens it. Re-run it
-whenever you want current numbers. `--artifact` also writes a body-only copy,
+whenever you want current numbers. `--artifact` also writes a complete HTML copy,
 `dashboard-artifact.html`, which is what the live site serves.
 
 Four tabs:
@@ -193,10 +193,11 @@ to anonymous visitors but strip the numbers (that is their paid product).
 
 ## How it stays current
 
-**GitHub Actions builds it** (`.github/workflows/build.yml`) every three hours,
-commits `dashboard-artifact.html` and `projections.json` if they changed, and warns in the run log
-if any data source dropped out. Every run ends with a source-health block, so a
-broken scrape shows up as a `FAIL` line rather than a section quietly vanishing.
+**GitHub Actions builds it** (`.github/workflows/build.yml`) on code changes and
+on a three-hour schedule. It runs the regression tests first, then commits
+`dashboard-artifact.html` and `projections.json` if they changed. Optional source
+failures appear in the run log and on the page. Every run ends with a source-health
+block, so a broken scrape shows up as a `FAIL` line rather than quietly vanishing.
 
 Three-hourly rather than twice a day because GitHub's scheduler is best-effort:
 the very first scheduled run here was skipped outright, with no error, leaving
@@ -209,9 +210,11 @@ through the day, so later builds land before a typical 18:30 deadline.
 that changes the page triggers a fresh deploy with no extra step. This replaced
 a second scheduled job that republished the page twice a day and quietly
 stopped running with no error. Deploying off the git push removes that failure
-mode rather than monitoring it better. The remaining gap: if the GitHub Action
-itself stops firing, the page looks fine while falling behind, and the backstop
-is GitHub's own failure email.
+mode rather than monitoring it better. If the GitHub Action stops firing, the
+page warns once its snapshot is six hours old. Scheduled runs can be delayed or
+skipped, so three hours is a
+requested cadence, not a freshness guarantee. Fatal build errors and failed
+regression tests prevent publication, preserving the last valid page.
 
 **The built HTML is committed.** A 2.2 MB page eight times a day sounds
 expensive, but the embedded images are byte-identical between builds, so git
@@ -247,3 +250,18 @@ never mixed in one number.
   everything uses `urllib`.
 - **Connection resets.** Requests on my network intermittently die with
   WinError 10054, so every fetch retries with backoff.
+
+## Recommendation limits
+
+Squad, bank and free-transfer estimates describe the last public picks. Moves
+already made before the next deadline are not visible without signing in.
+Transfer affordability uses selling values recovered from public purchase
+history; advice is withheld when those values cannot be recovered. Bench Boost
+rebuilds show at most one affordable upgrade, checked against the full squad.
+
+The model currently supports single-fixture gameweeks. Chip and transfer advice
+is withheld if its eight-week planning window contains a double gameweek, and
+missing projections are reported rather than replaced by repeated market odds.
+Blank weeks are distinguished from unavailable fixture data in player dialogs.
+The budget-based Free Hit and Wildcard search is approximate; owned-XI selection
+is exact for a legal fifteen. Projections are estimates, not backtested forecasts.

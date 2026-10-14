@@ -182,6 +182,34 @@ def best_xi(pool, budget):
     return best
 
 
+def owned_xi(pool):
+    """Exact best XI from an already owned, legal fifteen; prices are sunk."""
+    by_pos = _by_position(pool)
+    quotas = {"GKP": 2, "DEF": 5, "MID": 5, "FWD": 3}
+    if any(len(by_pos[pos]) != n for pos, n in quotas.items()):
+        return None
+    if len({p["id"] for p in pool}) != 15:
+        return None
+    counts = {}
+    for p in pool:
+        counts[p["club"]] = counts.get(p["club"], 0) + 1
+    if max(counts.values()) > CLUB_LIMIT:
+        return None
+    ranked = {pos: sorted(rows, key=lambda p: -p["value"])
+              for pos, rows in by_pos.items()}
+    best = None
+    for d, m, fw in FORMATIONS:
+        xi = (ranked["GKP"][:1] + ranked["DEF"][:d]
+              + ranked["MID"][:m] + ranked["FWD"][:fw])
+        value = sum(p["value"] for p in xi)
+        if best is None or value > best["value"]:
+            ids = {p["id"] for p in xi}
+            best = {"formation": (d, m, fw), "xi": xi,
+                    "bench": [p for p in pool if p["id"] not in ids],
+                    "value": value, "cost": sum(p["price"] for p in pool)}
+    return best
+
+
 def _floor_cost(by_pos, quotas):
     """The cheapest a set of quotas can possibly be filled for, ignoring the
     club cap. A lower bound, which is all a budget reserve needs."""

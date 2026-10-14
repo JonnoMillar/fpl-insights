@@ -319,12 +319,9 @@ def triple_captain(ctx, xi_reports, proj, market, baselines, next_gw):
     }
 
 
-def bench_boost(ctx, bench_reports, proj, market, baselines, next_gw, bank=0.0):
-    """The gameweek in the window where the manager's current bench
-    projects highest, plus any transfers that would meaningfully improve
-    that specific week - reusing transfers.suggest exactly as it already
-    works, just pointed at the bench and the target week instead of the
-    whole squad and next week."""
+def bench_boost(ctx, bench_reports, proj, market, baselines, next_gw, bank=0.0,
+                full_squad=None, sell_values=None):
+    """Best week for the current bench, plus one affordable legal upgrade."""
     start, weeks = analysis.chip_window(next_gw)
     totals = {}
     for gw in range(start, start + weeks):
@@ -350,7 +347,8 @@ def bench_boost(ctx, bench_reports, proj, market, baselines, next_gw, bank=0.0):
     # so its own raw gain is the right question (L2).
     suggestions = transfers.suggest(
         ctx, bench_reports, proj, best_gw, market, baselines,
-        bank=bank, per_slot=1, limit=3, xi_based=False)
+        bank=bank, per_slot=1, limit=1, xi_based=False,
+        full_squad=full_squad, sell_values=sell_values)
     for t in suggestions:
         t["in_club"] = ctx.team_name(t["in"]["team"])
 
@@ -489,7 +487,7 @@ def wildcard(ctx, all_reports, proj, market, baselines, next_gw, budget):
     # window, formation-optimized the same way points_team finds one for
     # a single week - budget is unconstrained here since these 15 are
     # already owned, only which 11 of them to start is being decided.
-    current_best = squadbuilder.best_xi(own_pool, budget=1e9)
+    current_best = squadbuilder.owned_xi(own_pool)
     current_value = current_best["value"] if current_best else 0.0
 
     gap = max(0.0, ideal["value"] - current_value)

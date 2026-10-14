@@ -385,18 +385,16 @@ class SeasonLiveTests(unittest.TestCase):
             live = scout.season_live(ctx, 1)
         self.assertEqual(live[100][0]["status"], "unplayed")
 
-    def test_double_gameweek_uses_only_first_fixture(self):
-        # Documented DGW blindness (plan §1 / quality-audit L1): a second
-        # `explain` entry must not be joined against, matching the rest of
-        # the codebase's current behaviour rather than silently disagreeing
-        # with it inside this one module.
+    def test_double_gameweek_does_not_attribute_aggregate_to_one_fixture(self):
         ctx = self._ctx()
         cases = {1: self._live_response(10, minutes=90, starts=1, extra_fixture_id=11)}
         with mock.patch.object(scout.fplapi, "event_live",
                                 side_effect=lambda gw, ttl=None: cases[gw]):
             live = scout.season_live(ctx, 1)
         self.assertEqual(len(live[100]), 1)
-        self.assertEqual(live[100][0]["opp"], "BBB")  # from fixture 10, not 11
+        self.assertEqual(live[100][0]["opp"], "Multiple fixtures")
+        self.assertTrue(live[100][0]["multipleFixtures"])
+        self.assertIsNone(live[100][0]["defconHit"])
 
     def test_finished_week_cached_longer_than_current_week(self):
         ctx = self._ctx()

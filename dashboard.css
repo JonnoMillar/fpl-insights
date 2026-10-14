@@ -82,6 +82,8 @@
   --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
 }
 *{box-sizing:border-box}
+.data-status{font-size:13px;line-height:1.5;color:var(--p80);margin:12px 0}
+.data-warning{background:var(--attention-wash);color:var(--attention-ink);padding:12px;border-radius:var(--radius-s)}
 body{
   margin:0; background:var(--ground); color:var(--on-surface);
   font-family:var(--sans);

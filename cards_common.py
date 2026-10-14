@@ -1,6 +1,7 @@
 """Small HTML helpers and palette constants shared by every tab's cards."""
 
 import html
+import json
 
 
 
@@ -15,6 +16,11 @@ TONE_COLOR = {
 
 def e(x):
     return html.escape(str(x), quote=True)
+
+
+def script_json(value):
+    """Escape the HTML boundary as well as JSON syntax."""
+    return json.dumps(value).replace("<", "\\u003c")
 
 
 # Same five-step purple ramp and the same split used in the player-detail
@@ -38,6 +44,8 @@ def _step_tone(value, steps):
 
 
 def pos_fixture_pill(pos, opp, home, cs, xg):
+    if opp is None:
+        return '<span class="fxpill">Unavailable</span>'
     by_attack = pos not in ("GKP", "DEF")
     bg, fg = _step_tone(xg, XG_TONE) if by_attack else _step_tone(cs, CS_TONE)
     label = opp.upper() if home else opp.lower()

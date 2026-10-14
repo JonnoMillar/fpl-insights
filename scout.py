@@ -191,7 +191,10 @@ POSITIONS = {
         fixture_lists=[_FX_GOALS, _FX_DEFCON],
         ticker_rows=[("attackDifficulty", "Goals"),
                      ("defconDifficulty", "DefCon")],
-        card_tiles=["xg90", "xa90", "defcon_hit_rate", "start_rate", "bonus90"],
+        # DefCon per 90, not hit rate, to match the table, bubble and
+        # archetype: the same player should not read strong in one place
+        # and middling in the next.
+        card_tiles=["xg90", "xa90", "defcon90", "start_rate", "bonus90"],
         sparks=[("xg", "xG"), ("xa", "xA"), ("defcon", "DefCon count")],
         strip_marks=["ga", "defcon"],
     ),
@@ -321,11 +324,13 @@ def season_live(ctx, upto_gw, ttl=fplapi.DEFAULT_TTL):
     fixtures_by_id = {fx["id"]: fx for fx in ctx.fixtures}
     finished_events = {e["id"] for e in ctx.events if e.get("finished")}
     by_player = {}
+    missing_gws = []
     for gw in range(1, upto_gw + 1):
         week_ttl = FINISHED_LIVE_TTL if gw in finished_events else ttl
         try:
             live = fplapi.event_live(gw, ttl=week_ttl)
         except fplapi.FplError:
+            missing_gws.append(gw)
             continue
         for el in live.get("elements", []):
             stats = el.get("stats") or {}
@@ -335,11 +340,8 @@ def season_live(ctx, upto_gw, ttl=fplapi.DEFAULT_TTL):
                 continue
             team = player["team"]
             explain = el.get("explain") or []
-            # A double gameweek carries two entries in `explain`; only the
-            # first fixture is used here, matching the rest of the codebase's
-            # documented DGW blindness (quality-audit-2026-09-02, L1) rather
-            # than silently disagreeing with it inside one new module.
-            fx = fixtures_by_id.get(explain[0]["fixture"]) if explain else None
+            multiple = len(explain) > 1
+            fx = fixtures_by_id.get(explain[0]["fixture"]) if len(explain) == 1 else None
             opp, home = None, None
             if fx:
                 if fx["team_h"] == team:
@@ -351,13 +353,14 @@ def season_live(ctx, upto_gw, ttl=fplapi.DEFAULT_TTL):
             status = "started" if started else ("subbedOn" if minutes else "unplayed")
             by_player.setdefault(pid, []).append({
                 "gw": gw,
-                "opp": ctx.team_name(opp) if opp is not None else None,
+                "opp": "Multiple fixtures" if multiple else ctx.team_name(opp) if opp is not None else None,
+                "multipleFixtures": multiple,
                 "home": home,
                 "status": status,
                 "minutes": minutes,
                 "points": stats.get("total_points", 0),
                 "defcon": stats.get("defensive_contribution", 0),
-                "defconHit": stats.get("defensive_contribution", 0) >= (
+                "defconHit": None if multiple else stats.get("defensive_contribution", 0) >= (
                     analysis.DEFCON_THRESHOLD.get(ctx.pos(player)) or 999),
                 "cleanSheet": bool(stats.get("clean_sheets")),
                 "goalsConceded": stats.get("goals_conceded", 0),
@@ -372,6 +375,9 @@ def season_live(ctx, upto_gw, ttl=fplapi.DEFAULT_TTL):
                 "goals": stats.get("goals_scored", 0),
                 "assists": stats.get("assists", 0),
             })
+    fplapi.note("Scout history", not missing_gws,
+                "missing GW " + ", ".join(map(str, missing_gws)) if missing_gws else
+                f"{upto_gw} gameweeks loaded")
     return by_player
 
 
@@ -421,7 +427,8 @@ def raw_rows(ctx, pos, live, min_minutes=1, proj=None, next_gw=None,
         first_start = next((m["gw"] for m in matches if m["status"] == "started"), None)
         team_matches = _team_played_since(ctx, el["team"], first_start)
         team_matches_total = _team_played_since(ctx, el["team"], None)
-        started_matches = [m for m in matches if m["status"] == "started"]
+        started_matches = [m for m in matches if m["status"] == "started"
+                           and not m.get("multipleFixtures")]
         hit_n = len(started_matches)
         hits = sum(1 for m in started_matches if m["defconHit"])
         flag, news = "", ""
@@ -666,8 +673,9 @@ def pool(ctx, pos, live, proj, min_minutes=1, next_gw=None, market=None,
          baselines=None, priors=None):
     """Everything scout.js needs for one position: the full raw pool (only
     gated on `min_minutes`, never on the *adjustable* filters - see
-    DEFAULT_FILTERS), fixtures out to MAX_FIXTURE_HORIZON, and the config
-    the client-side filter bar and archetype badges need.
+    DEFAULT_FILTERS) and the config the client-side filter bar, scatter,
+    player card and archetype badges need. Fixtures are not here - see
+    club_fixture_runs.
 
     Deliberately un-filtered and un-derived beyond that gate: percentiles,
     z-scores, archetypes and the hero axis are all relative to whichever
@@ -684,9 +692,9 @@ def pool(ctx, pos, live, proj, min_minutes=1, next_gw=None, market=None,
     rows = raw_rows(ctx, pos, live, min_minutes=min_minutes, proj=proj,
                     next_gw=next_gw, market=market, baselines=baselines,
                     priors=priors)
-    start_gw = (ctx.current_event() or 1) + 1
-    for r in rows:
-        r["fixtures"] = fixture_rows(r["teamShort"], proj, start_gw, MAX_FIXTURE_HORIZON)
+    # No per-row fixtures: a player's fixtures are his club's, and those
+    # ship once for every club in club_fixture_runs. Repeating them on each
+    # of 400 rows was a third of the section's payload.
     return {
         "pos": pos,
         "label": cfg.label,
@@ -861,25 +869,18 @@ def leader_groups(rows, owned_ids=frozenset(), depth=6, pos="DEF"):
 
 
 def club_fixture_runs(ctx, proj, start_gw, weeks=MAX_FIXTURE_HORIZON):
-    """Per club: the two difficulty rows across the horizon, plus their
-    means, so a club can be ranked on either question separately.
+    """Per club: every difficulty row across the horizon. The one fixture
+    source for the whole section - the fixture-runs cards rank it, and the
+    shortlist's fixture strip looks a player's club up in it.
 
-    Two questions, not one - a club with kind clean-sheet fixtures is
-    usually a club whose defenders will have little to do, which is exactly
-    the trade-off spec §3.2 exists to keep visible."""
+    No means are precomputed: scout.js ranks over whatever horizon the
+    reader picks, so an 8-week mean here would only be a second definition
+    of the same number that could disagree with the one on screen."""
     out = []
     for tid, t in ctx.teams.items():
         club = t["short_name"]
         cells = fixture_rows(club, proj, start_gw, weeks)
-        real = [c for c in cells if not c.get("blank")]
-        if not real:
+        if not any(not c.get("blank") for c in cells):
             continue
-        out.append({
-            "club": club,
-            "teamId": tid,
-            "cells": cells,
-            "csMean": sum(c["cleanSheetDifficulty"] for c in real) / len(real),
-            "dcMean": sum(c["defconDifficulty"] for c in real) / len(real),
-            "atMean": sum(c["attackDifficulty"] for c in real) / len(real),
-        })
+        out.append({"club": club, "teamId": tid, "cells": cells})
     return out

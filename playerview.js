@@ -195,6 +195,10 @@
       var byAttack = p.pos !== 'GKP' && p.pos !== 'DEF';
       h.push('<section class="pv-block"><h3>Next fixtures</h3><div class="pv-fx">' +
         p.fixtures.map(function (fx) {
+          if (fx.blank || fx.unavailable) {
+            return '<span class="fxcell"><b>GW' + fx.gw + '</b><i>' +
+              (fx.blank ? 'Blank' : 'Unavailable') + '</i></span>';
+          }
           var t = byAttack ? xgTone(fx.xg) : csTone(fx.cs);
           return '<span class="fxcell" style="background:' + t[0] + ';color:' +
             t[1] + '" title="GW' + fx.gw + ', ' + fx.xg +
