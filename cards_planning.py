@@ -513,8 +513,53 @@ def _cp_card(label, used_gw, body_html, level=None):
             f'{body_html}</div>')
 
 
+def _plan_bench_boost(plan):
+    """Bench Boost as the transfer plan times it: the week it plays it, or
+    the later week it holds it for. None when the plan does not model chips.
+
+    The plan's week wins over this card's own scan of today's bench: the
+    plan can swap a keeper who never plays for one who does before the week
+    comes, and two different Bench Boost weeks on one page is a
+    contradiction."""
+    if not plan or not plan.get("chips_modelled"):
+        return None
+    series = [(w["gw"], w["bench_points"]) for w in plan["weeks"]]
+    played = next((w for w in plan["weeks"] if w["chip"] == "bboost"), None)
+    if played:
+        return {"gw": played["gw"], "ep": played["bench_points"], "series": series,
+                "week": played, "held": False}
+    held = next((c for c in plan.get("held_chips", []) if c["key"] == "bboost"), None)
+    if held:
+        return {"gw": held["gw"], "ep": held["gain"], "series": series,
+                "week": None, "held": True}
+    return None
+
+
+def _plan_bench_pitch(week, ctx, badges, shirts):
+    if not week:
+        return ""
+    cards = []
+    for pid in week["bench"]:
+        el = ctx.players[pid]
+        fx = week["fixtures"].get(pid)
+        fx_html = (f'<span class="plan-fx">{e(fx["opp"])} ({"H" if fx["home"] else "A"})</span>'
+                   if fx else '<span class="plan-fx">blank</span>')
+        cards.append(_mini_shirt_card(
+            pid, ctx.pos(el), el["team"], ctx.team_name(el["team"]), el["web_name"],
+            el["now_cost"] / 10.0, ctx, badges, shirts, fx_html=fx_html,
+            incoming=pid in week["bought"], known=pid not in week["bought"]))
+    return (
+        '<details class="card collapsible swapcard"><summary class="card-head">'
+        f'<h2>Bench Boost bench, GW{week["gw"]}{components.info_btn()}</h2>'
+        '<span class="sub" hidden>The bench the transfer plan boosts, after its '
+        'moves. IN marks a player the plan signs before then.</span></summary>'
+        f'<div class="card-body"><div class="benchstrip bbpitch">'
+        f'<div class="row">{"".join(cards)}</div></div></div></details>'
+    )
+
+
 def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
-                      proj, market, next_gw):
+                      proj, market, next_gw, plan=None):
     """The four chip recommendations, one card each - target gameweek,
     the number behind it, and a plain-language confidence read."""
     if not (fh or tc or bb or wc):
@@ -578,7 +623,24 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
         cards.append(_cp_card("Triple Captain", used.get("3xc"), body,
                               tc["confidence"]))
 
-    if bb:
+    plan_bb = _plan_bench_boost(plan)
+    if plan_bb and plan_bb["held"]:
+        body = (
+            f'<p class="cp-gw">Hold: GW{plan_bb["gw"]}</p>'
+            f'<p class="cp-reason">The transfer plan keeps it past GW{plan["end_gw"]}: its '
+            f'best projected week is GW{plan_bb["gw"]}, worth {plan_bb["ep"]:.1f} more '
+            f'than a normal week.</p>'
+        )
+        cards.append(_cp_card("Bench Boost", used.get("bboost"), body, None))
+    elif plan_bb:
+        body = (
+            f'<p class="cp-gw">GW{plan_bb["gw"]}</p>'
+            f'<p class="cp-reason">Timed in the transfer plan: after its moves, the '
+            f'bench projects {plan_bb["ep"]:.1f} pts that week.</p>'
+            f'{week_strip(plan_bb["series"], plan_bb["gw"], "pts")}'
+        )
+        cards.append(_cp_card("Bench Boost", used.get("bboost"), body, None))
+    elif bb:
         body = (
             f'<p class="cp-gw">GW{bb["gw"]}</p>'
             f'<p class="cp-reason">Your current bench projects {bb["ep"]:.1f} pts that week.</p>'
@@ -604,7 +666,9 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
     # you are not doing this week does not deserve a screen of its own
     # every visit.
     extra = []
-    if bb:
+    if plan_bb:
+        extra.append(_plan_bench_pitch(plan_bb["week"], ctx, badges, shirts))
+    elif bb:
         extra.append(bench_boost_pitch(bb, bench, ctx, badges, shirts,
                                        proj, market, next_gw))
     if wc:

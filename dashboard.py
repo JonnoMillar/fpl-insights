@@ -56,6 +56,7 @@ import ffs
 import components
 import odds
 import next_action
+import planner
 import scout
 import ticker
 import transfers
@@ -72,6 +73,7 @@ from cards_league import (chips_table, differential_card,
     ownership_carousel, rival_returns, rival_returns_window, rivals_card,
     template_pitch, template_xi)
 from cards_scout import scout_section
+from cards_plan import plan_card
 
 
 CSS = (Path(__file__).with_name("dashboard.css")).read_text(encoding="utf-8")
@@ -82,6 +84,7 @@ CAPTAINCY_JS = (Path(__file__).with_name("captaincy.js")).read_text(encoding="ut
 LEAGUECHART_JS = (Path(__file__).with_name("leaguechart.js")).read_text(encoding="utf-8")
 TICKER_JS = (Path(__file__).with_name("ticker.js")).read_text(encoding="utf-8")
 SCOUT_JS = (Path(__file__).with_name("scout.js")).read_text(encoding="utf-8")
+PLANVIEW_JS = (Path(__file__).with_name("planview.js")).read_text(encoding="utf-8")
 
 JS = (Path(__file__).with_name("dashboard.js")).read_text(encoding="utf-8")
 
@@ -409,8 +412,8 @@ def render(d, standalone=True):
 
   <div class="panel" id="p-market" role="tabpanel" hidden>
     <details class="card action-method" id="action-method"><summary class="card-head"><h2>How the suggested action is chosen</h2></summary>
-      <div class="card-body"><p>Single moves and jointly evaluated pairs use the same five-gameweek XI gain, after transfer hits. We suggest a move above a two-point margin; a pair must also beat the best single move by two points. Otherwise, roll. This is a conservative heuristic, not a calibrated guarantee, and does not price the future value of banked transfers.</p>
-      <p>A chip is highlighted only when its existing planner identifies a strong next-gameweek opportunity and its availability is verified. Chip timing is judged separately from transfer gains. Wildcard covers a longer window: review that case in the chip planner. Double gameweeks remain unsupported. Check your actual squad, bank and free transfers before acting.</p></div>
+      <div class="card-body"><p>The action is the first week of the transfer plan. The plan searches the next eight gameweeks for which moves to make and when: one or two a week, or a roll. Each move must clear a two-point margin on top of any four-point hit, a free transfer banked at the end is worth 1.5 points, and later weeks count for less because their projections are less certain. It keeps the squad's cheap bench slots: an enabler leaves only for another cheap player, or in a two-move restructure. This is a conservative heuristic, not a calibrated guarantee.</p>
+      <p>Bench Boost and Triple Captain are timed inside the plan when their availability is verified, against their best later week this half. Free Hit is highlighted only when its own planner has a strong next-gameweek case; Wildcard is a longer-window decision in the chip planner. Double gameweeks remain unsupported. Check your actual squad, bank and free transfers before acting.</p></div>
     </details>
     <div class="chapter"><h2>This week</h2>
       <span class="sub">What the fixtures are priced at, and what you missed.</span></div>
@@ -420,6 +423,7 @@ def render(d, standalone=True):
 
     <div class="chapter"><h2>Your moves</h2>
       <span class="sub">Who to sell, who to buy, and who takes the armband.</span></div>
+    {d.get('plan', '')}
     {d['verdicts']}
     {d['transfers']}
     {d['pairings']}
@@ -497,7 +501,7 @@ def render(d, standalone=True):
         f"{head}{body}<script>{JS}</script><script>{SCATTER_JS}</script>"
         f"<script>{PLAYERVIEW_JS}</script><script>{CAPTAINCY_JS}</script>"
         f"<script>{LEAGUECHART_JS}</script><script>{TICKER_JS}</script>"
-        f"<script>{SCOUT_JS}</script>"
+        f"<script>{SCOUT_JS}</script><script>{PLANVIEW_JS}</script>"
     )
     if not standalone:
         return page
@@ -510,7 +514,8 @@ def render(d, standalone=True):
         f"<script>{CAPTAINCY_JS}</script>"
         f"<script>{LEAGUECHART_JS}</script>"
         f"<script>{TICKER_JS}</script>"
-        f"<script>{SCOUT_JS}</script></body></html>"
+        f"<script>{SCOUT_JS}</script>"
+        f"<script>{PLANVIEW_JS}</script></body></html>"
     )
 
 
@@ -931,15 +936,39 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                 "after_hit": combined_gain - pair_hit,
                 "bank_after": bank - spend,
             })
+    # The transfer plan: which moves in which week, holding the squad's cheap
+    # slots, with Bench Boost/Triple Captain timed inside it. The hero action
+    # reads its first week, and the single/pair lists below are tagged with
+    # when each move is best made, so the page gives one answer, not three.
+    plan = None
+    if moves_available:
+        cap_first = None
+        if cap_matrix:
+            top = cap_matrix["candidates"][0]
+            cap_first = next((r.element["id"] for r in xi
+                              if r.name == top["player"] and r.team == top["team"]), None)
+        plan = planner.build(ctx, xi + bench, proj, market, baselines, next_gw, bank,
+                             sell_values, free_ts, used if chips_verified else None,
+                             captain_first=cap_first)
+        timing_priors = transfers.positional_priors(ctx)
+        for sw in swaps:
+            sw["timing"] = planner.timing_note(sw["in"], sw["out"].element, plan, ctx, proj,
+                                               market, baselines, timing_priors, next_gw)
+        for pr in pairings:
+            for leg in pr["legs"]:
+                leg["timing"] = planner.timing_note(leg["in"], leg["out"].element, plan, ctx,
+                                                    proj, market, baselines, timing_priors,
+                                                    next_gw)
     # A genuinely different question from Free Hit's budget-capped "ideal" -
     # see chips.literal_best_xi for why reusing that number here was wrong.
     next_ideal = chips.literal_best_xi(ctx, xi, proj, market, baselines, next_gw)
 
     return {
         "ctx": ctx,
-        "next_action": next_action.choose(swaps, pairings, free_ts, moves_available, next_gw,
-            (("freehit", "Free Hit", fh), ("3xc", "Triple Captain", tc), ("bboost", "Bench Boost", bb)),
-            used if chips_verified else None),
+        "next_action": next_action.choose(plan, free_ts, moves_available, next_gw,
+            (("freehit", "Free Hit", fh),), used if chips_verified else None),
+        "plan": plan_card(plan, ctx, shirts, badges),
+        "plan_data": plan,
         "captain_summary": cap_matrix["candidates"][0] if cap_matrix and advice_supported else None,
         "gw": gw,
         "team_name": meta.get("name", "My team"),
@@ -963,7 +992,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                                       vice, proj, market, next_gw, eps),
         "chip_planner": chip_planner_card(fh, tc, bb, wc, used, xi, bench,
                                           ctx, badges, shirts, proj, market,
-                                          next_gw),
+                                          next_gw, plan=plan),
         "best_xi": best_xi_card(next_ideal, ctx, set(squad_ids), next_gw) if advice_supported else "",
         "kneejerk": kneejerk_card(kj, gw),
         "verdicts": verdict_board_card(vb, next_gw),
@@ -990,7 +1019,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "transfers": components.transfer_cards(
             swaps,
             f"Same position, affordable on {bank:.1f}m in the bank, ranked by "
-            f"projected gain over the next {transfers.TRANSFER_HORIZON_WEEKS} "
+            f"projected gain if made this week, over the next {transfers.TRANSFER_HORIZON_WEEKS} "
             f"gameweeks (plus a small form/xGI nudge). Selling price comes from "
             f"recovered purchase history - read these as prompts, not instructions.",
             # How many of these you can actually take is the first thing you
@@ -998,7 +1027,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             # card. It belongs on the face of the card that lists the moves.
             lede=(f"You have {free_ts} free transfer"
                   f"{'s' if free_ts != 1 else ''} this week. Each further move "
-                  f"costs 4 points."
+                  f"costs 4 points. These are moves made now; the transfer plan "
+                  f"above chooses the week."
                   if free_ts is not None else
                   "Free-transfer count unavailable - price any move beyond "
                   "your first at 4 points.")),

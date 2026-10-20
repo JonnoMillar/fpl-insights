@@ -472,10 +472,12 @@ def transfer_cards(rows, note, lede=""):
             '<small>his own 5 GW</small></div>'
             "</div>"
             '<p class="tf-foot">{fixture} next &middot; {elite}</p>'
-            "{exclusive}"
+            "{timing}{exclusive}"
             "</li>"
         ).format(
             exclusive=exclusive,
+            timing=('<p class="tf-timing">{}</p>'.format(e(r["timing"]))
+                    if r.get("timing") else ""),
             index=len(cards),
             gainpct=r["gain"] / top_gain * 100,
             out=_face(r["out_photo"], r["out_shirt"], r["out"].name,
@@ -569,7 +571,9 @@ def pairing_cards(pairings, note, hit=4):
             '<span class="pr-hit">{after:+.2f}<small>{hitlabel}</small></span>'
             '<span class="pr-bank">{bank:.1f}m<small>bank after</small></span></div>'
             '<ul class="pr-legs">{legs}</ul>'
-            '<p class="pr-foot">{verdict}</p></li>'.format(
+            '<p class="pr-foot">{verdict}</p>{timing}</li>'.format(
+                timing="".join('<p class="tf-timing">{}</p>'.format(e(leg["timing"]))
+                               for leg in p["legs"] if leg.get("timing")),
                 tag=tag, gain=p["gain"], after=after, bank=bank,
                 index=len(cards),
                 hitlabel="no hit to pay" if free else f"after &minus;{hit}",
