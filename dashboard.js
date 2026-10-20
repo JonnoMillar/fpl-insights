@@ -10,7 +10,7 @@
     snapshot.classList.toggle('data-warning', stale);
     snapshot.textContent = (stale ? 'Update overdue. ' : 'Snapshot: ') +
       (age < 60 ? age + ' minutes' : Math.floor(age / 60) + ' hours') +
-      ' old. Squad and bank reflect the last published picks; pre-deadline moves are not public.';
+      ' old · Last published squad and bank; pre-deadline changes are not public.';
   }
   markFreshness();
   window.setInterval(markFreshness, 60000);
@@ -315,11 +315,32 @@
   }
 
   document.querySelectorAll('.lineup-toggle').forEach(function(btn){
+    var overview = btn.closest('.squad-overview');
+    var variants = overview.querySelector('.lineup-variants');
+    var animations = [];
     btn.addEventListener('click', function(){
       var on = btn.getAttribute('aria-checked') !== 'true';
+      animations.forEach(function(animation){ animation.cancel(); });
+      animations = [];
+      var oldPositions = {};
+      variants.querySelectorAll(':scope > :not([hidden]) .pl').forEach(function(player){
+        oldPositions[player.dataset.player] = player.getBoundingClientRect();
+      });
       btn.setAttribute('aria-checked', String(on));
-      btn.closest('.squad-pitch').querySelectorAll('[data-lineup]').forEach(function(panel){
+      overview.classList.toggle('preview-on', on);
+      overview.querySelectorAll('[data-lineup]').forEach(function(panel){
         panel.hidden = panel.dataset.lineup !== (on ? 'transfers' : 'owned');
+      });
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      variants.querySelectorAll(':scope > :not([hidden]) .pl').forEach(function(player){
+        if (!player.animate) return;
+        var old = oldPositions[player.dataset.player];
+        var next = player.getBoundingClientRect();
+        var frames = old ? [
+          {transform:'translate(' + (old.left-next.left) + 'px,' + (old.top-next.top) + 'px)'},
+          {transform:'translate(0,0)'}
+        ] : [{opacity:0,transform:'translateY(8px)'},{opacity:1,transform:'translateY(0)'}];
+        animations.push(player.animate(frames, {duration:260,easing:'cubic-bezier(.22,1,.36,1)'}));
       });
     });
   });

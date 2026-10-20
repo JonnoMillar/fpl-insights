@@ -32,11 +32,13 @@ def choose(swaps, pairs, free, supported, next_gw, chip_options=(), used=None):
     if single and single[0] > 2:
         gain, i, row = single
         action = dict(label="Make 1 transfer", target=f"transfer-{i}", moves=[row],
+                      projected_gain=gain, horizon=5,
                       detail=f"{row['out'].name} → {row['in']['web_name']} · +{gain:.1f} projected XI points over 5 GW after hits.")
     if pair and pair[0] > max(2, (single[0] if single else 0) + 2):
         gain, i, row = pair
         names = "; ".join(f"{leg['out'].name} → {leg['in']['web_name']}" for leg in row["legs"])
         action = dict(label="Make 2 transfers", target=f"pair-{i}", moves=row["legs"],
+                      projected_gain=gain, horizon=5,
                       detail=f"{names} · +{gain:.1f} projected XI points over 5 GW after hits.")
     # Confidence here is timing separation, not probability of success. If
     # several chips qualify, retain the transfer action and invite comparison.

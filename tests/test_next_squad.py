@@ -87,8 +87,12 @@ class NextSquadTests(unittest.TestCase):
         old=self.reports[2];incoming=self.incoming(old,98,5)
         row={'out':old,'in':incoming.element,'gain':10}
         self.assertEqual(choose([row],[],1,True,8)['moves'],[row])
+        self.assertEqual(choose([row],[],1,True,8)['projected_gain'],10)
+        self.assertEqual(choose([row],[],1,True,8)['horizon'],5)
+        self.assertEqual(choose([row],[],0,True,8)['projected_gain'],6)
         self.assertEqual(choose([row],[],1,False,8).get('moves',[]),[])
         chip=('3xc','Triple Captain',{'gw':8,'ep':10,'confidence':'strong'})
         action=choose([row],[],1,True,8,[chip],{})
         self.assertEqual(action['chip'],'3xc')
         self.assertEqual(action.get('moves',[]),[])
+        self.assertNotIn('projected_gain',action)

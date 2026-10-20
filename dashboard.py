@@ -313,29 +313,40 @@ def render(d, standalone=True):
     verdict = d.get("verdict") or ""
     verdict_html = f'<p class="hero-line">{verdict}</p>' if verdict else ""
     action = d.get("next_action") or {}
-    captain = d.get("captain_summary")
-    action_html = ""
-    if action:
-        target = action.get("target")
-        action_title = (f'<a data-dashboard-jump href="#{e(target)}">{e(action["label"])} <span aria-hidden="true">↗</span></a>'
-                        if target else e(action["label"]))
-        captain_title = (f'<a data-dashboard-jump href="#captaincy">Captain {e(captain["player"])} <span aria-hidden="true">↗</span></a>'
-                         if captain else "Captain advice unavailable")
-        captain_note = (f'{captain["ep_total"]:.1f} expected points · {e(captain["opponent"])} '
-                        f'({"H" if captain["home"] else "A"}) · see why'
-                        if captain else "Waiting for supported fixture projections.")
-        action_html = f'''<div class="hero-actions" aria-label="Suggested next steps">
-          <div><span class="hero-eyebrow">{e(next_label)} · suggested action</span><h3>{action_title}</h3></div>
-          <div><span class="hero-eyebrow">Suggested owned XI · captain</span><h3>{captain_title}</h3></div>
-        </div><details class="hero-reasons"><summary>Why these suggestions</summary>
-          <p>{e(action['detail'])}</p><p>{captain_note}</p>
-        </details><p class="hero-caveat">Model prompts, based on your last published squad. <a data-dashboard-jump href="#action-method">How this is chosen</a> · <a data-dashboard-jump href="#chip-planner">Review chips</a></p>'''
-
-    hero_html = f'''<section class="hero" aria-labelledby="review-title">
-      <div class="hero-identity"><h2 class="hero-title" id="review-title">{e(title)}</h2>
-      <div class="mgr">{e(d['manager'])} &middot; {e(d['league_name'])}</div></div>
-      <div class="hero-review">{verdict_html}<div class="tiles">{tile_html}</div></div>
-      <div class="hero-decision">{action_html}</div>
+    moves = action.get("moves", [])
+    exchange_html = "".join(
+        f'<li class="transfer-pair"><span class="transfer-out"><small>Out</small><strong>{e(move["out"].name)}</strong></span>'
+        f'<span class="transfer-arrow" aria-hidden="true">→</span>'
+        f'<span class="transfer-in"><small>In</small><strong>{e(move["in"]["web_name"])}</strong></span></li>'
+        for move in moves
+    )
+    target = action.get("target")
+    action_title = (f'<a data-dashboard-jump href="#{e(target)}">{e(action["label"])} <span aria-hidden="true">↗</span></a>'
+                    if target else e(action.get("label", "Advice unavailable")))
+    captain_html = ""
+    for mode in ("owned", "transfers"):
+        brief = d.get(mode + "_brief") or {}
+        name = brief.get("captain")
+        captain_html += (f'<div class="captain-brief" data-lineup="{mode}" {"hidden" if mode == "transfers" else ""}>'
+                         f'<span class="captain-disc" aria-hidden="true">C</span><div><small>{"Preview" if mode == "transfers" else "Owned XI"} captain</small>'
+                         f'<strong>{e(name or "Unavailable")}</strong>'
+                         f'<span>{e(brief.get("note", "Supported projections required"))}</span></div></div>')
+    gain = action.get("projected_gain")
+    upside = (f'<p class="brief-upside"><b class="tnum">+{gain:.1f}</b><span>projected XI points<br>over {action["horizon"]} GW, after hits</span></p>'
+              if gain is not None else "")
+    brief_html = f'''<aside class="decision-brief" aria-labelledby="decision-title">
+      <div class="brief-heading"><h2 id="decision-title">The next move</h2><span>{e(next_label)}</span></div>
+      <h3 class="brief-action">{action_title}</h3>
+      {upside}
+      <ul class="transfer-pairs" aria-label="Suggested transfers">{exchange_html}</ul>
+      {captain_html}
+      <p class="brief-chip">{e(d.get("chip_note", "Chip advice unavailable"))}</p>
+      <details class="brief-reasons"><summary>Why this move?</summary><p>{e(action.get('detail', 'Supported projections are required.'))}</p>{verdict_html}</details>
+      <p class="brief-caveat">{e(d.get('transfer_preview_note', 'Check your actual squad and bank before acting.'))}</p>
+      <div class="brief-links"><a data-dashboard-jump href="#action-method">How it's chosen</a><a data-dashboard-jump href="#chip-planner">Review chips ↗</a></div>
+    </aside>'''
+    hero_html = f'''<section class="hero" aria-label="Weekly scorecard">
+      <div class="tiles">{tile_html}</div>
     </section>'''
 
     body = f"""
@@ -349,8 +360,8 @@ def render(d, standalone=True):
 
 <div class="wrap">
   <section class="product-intro" aria-labelledby="product-purpose">
-    <h1 id="product-purpose">The numbers behind your FPL decisions.</h1>
-    <p>Jonno Millar's public Fantasy Premier League squad and mini-league, analysed from player statistics, fixtures and market odds.</p>
+    <h1 id="product-purpose">{e(title)}</h1>
+    <p>{e(d['manager'])}’s Fantasy Premier League squad <span aria-hidden="true">·</span> {e(d['league_name'])}</p>
     <div class="intro-links">
       <a href="https://github.com/JonnoMillar/fpl-insights">Source code <span aria-hidden="true">↗</span></a>
       <details class="about-methods">
@@ -377,9 +388,10 @@ def render(d, standalone=True):
   <div class="panel" id="p-squad" role="tabpanel">
     <div class="squad-overview">
     {hero_html}
+    {brief_html}
     <section class="card squad-pitch">
-      <div class="card-head"><h2>Starting XI{components.info_btn()}</h2>
-        <span class="subvis">Tap a player for the full breakdown.</span>
+      <div class="team-sheet-head"><div class="card-head"><h2>Starting XI{components.info_btn()}</h2>
+        <span class="subvis">Select a player to explore</span>
         <span class="sub" hidden>Season and Last gameweek use your last published team. Next gameweek selects the best legal XI from your owned squad, then lets you preview the recommended transfers. xP is projected points before captain or chip multipliers. C is captain, V is vice-captain, and IN marks an incoming transfer. A faded crest means no minutes in GW{d['gw']}.</span>
       </div>
       <div class="pkview tabbar" role="tablist" aria-label="Pitch view">
@@ -387,14 +399,16 @@ def render(d, standalone=True):
         <button class="pkbtn" role="tab" aria-selected="false" data-view="pk">Next gameweek</button>
         <button class="pkbtn" role="tab" aria-selected="false" data-view="gw">Last gameweek</button>
       </div>
+      </div>
       <div class="pitch-controls">
+        <button type="button" data-pkview="pk" hidden class="lineup-toggle" role="switch" aria-checked="false" {'disabled' if not d.get('transfer_pick_pitch') else ''}><span class="lineup-switch" aria-hidden="true"><span class="lineup-thumb"></span></span><span>Preview transfers</span></button>
         <p class="pitch-metric" aria-live="polite">Season · points</p>
         <div class="statsel" role="group" aria-label="Figure shown on the pitch">
           <button class="stbtn" data-stat="p" aria-pressed="true">points</button>
           <button class="stbtn" data-stat="g" aria-pressed="false">per game</button>
           <button class="stbtn" data-stat="x" aria-pressed="false">xGI</button>
         </div>
-        <button class="epbtn" aria-pressed="false" hidden>predicted points</button>
+        <button class="epbtn" aria-label="Projected points breakdown" aria-pressed="false" hidden>Breakdown</button>
       </div>
       <div class="pitch-context" aria-live="polite">
         <p data-pkview="ov">Last published squad · season figures</p>
@@ -404,8 +418,7 @@ def render(d, standalone=True):
             <p data-lineup="owned">{e(d.get('owned_lineup_note', 'Suggested XI unavailable: supported projections are required.'))}</p>
             <p data-lineup="transfers" hidden>{e(d.get('transfer_lineup_note', 'Transfer preview unavailable.'))}</p>
           </div>
-          <button type="button" class="lineup-toggle" role="switch" aria-checked="false" {'disabled' if not d.get('transfer_pick_pitch') else ''}>Apply suggested transfers</button>
-          <p class="lineup-preview-note">{e(d.get('transfer_preview_note', 'No suggested transfers to preview.'))}</p>
+          <p class="mobile-exchanges">{e(" · ".join(move["out"].name + " → " + move["in"]["web_name"] for move in moves))}</p>
         </div>
       </div>
       <div class="pitch-panels">
@@ -1006,6 +1019,13 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         captain = next(r.name for r in team["xi"] if r.element["id"] == team["captain"])
         return f"{label} · {'–'.join(map(str, team['formation']))} · Captain {captain} · {chip_note}"
 
+    def team_brief(team, scores):
+        if not team:
+            return {}
+        player = next(r for r in team["xi"] if r.element["id"] == team["captain"])
+        score = scores.get(player.element["id"], {}).get("total")
+        return {"captain": player.name, "note": f"{score:.1f} xP before captain multiplier" if score is not None else "Projection unavailable"}
+
     dialog_eps = eps + [(r, preview_eps.get(r.element["id"])) for r in preview_reports]
 
     return {
@@ -1032,6 +1052,9 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "pitch": pitch(xi, bench, ctx, badges, shirts, cap, vice, gw=gw),
         "pick_pitch": team_pitch(owned_lineup, eps_by_id),
         "transfer_pick_pitch": team_pitch(transfer_lineup, preview_eps, {r.element["id"] for r in preview_reports}) if transfer_lineup else "",
+        "owned_brief": team_brief(owned_lineup, eps_by_id),
+        "transfers_brief": team_brief(transfer_lineup, preview_eps),
+        "chip_note": chip_note,
         "owned_lineup_note": team_note(owned_lineup, "Best owned XI"),
         "transfer_lineup_note": team_note(transfer_lineup, "With suggested transfers"),
         "transfer_preview_note": preview_note,
