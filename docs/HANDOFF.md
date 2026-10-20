@@ -1,8 +1,36 @@
 # HANDOFF — FPL Insights
 
-Last updated: 20 October 2026, transfer plan built on branch feat/transfer-planner (worktree .claude/worktrees/transfer-planner); awaiting Jonno's review. Not merged or published. Codex is doing design work on main in parallel.
+Last updated: 20 October 2026. Jonno's first review of the transfer plan is applied on feat/transfer-planner and merged with origin/main's generated commits. Verified locally, **not pushed or published**: Jonno has not seen the layout yet, and pushing main would also publish Codex's priority-1 design commit (dc67b26), which is still awaiting his review. Codex has two more unmerged commits on codex/design-density.
 
-## Transfer plan checkpoint — 20 October 2026 (branch feat/transfer-planner)
+## Transfer plan review applied — 20 October 2026
+
+Jonno's review, and what changed:
+
+- **Margin and hits.** The margin rises from 2 to 3 points per move. A hit is allowed only in the coming week and only when it's urgent. Urgent means a starter-priced squad player is ruled out (status i/s/u/n or chance of playing ≤25%). It also covers a must-have signing: top five in his position on xGI per 90 (450+ minutes, MID/FWD only), with a next fixture of FPL difficulty ≤3. Otherwise a great pair rolls a week and is made with two free transfers. The plan card notes why a hit was taken. Jonno doubted Neto, and the data agrees: £6.5m, xGI/90 0.38, with form 10 coming from one haul. He was not force-in material.
+- **Enablers.** Jonno's rule: an enabler is never upgraded while he stays in a dormant bench spot. The structure floor already held cheap-player numbers. Now an enabler swapped for another *benched* cheap player is a pending move, and a plan can't end with one unless a Bench Boost is played later in the same plan. This removed GW11 Dubravka→Kinsky (+0.0 in plan; it was paying only for a Bench Boost held to GW17). Moving an enabler to a cheap player who *starts* (Hughes→Rudoni) is allowed.
+- **Chip hold margin.** A chip is played only when its week beats its best later week by 2 points. Without this, the flat real bench (13.2–13.7 every week) burned Bench Boost in GW10 on noise.
+- **Venue.** Home/away is already priced into each fixture: FFS per-club-gameweek xG and clean-sheet odds, bookmaker lines for the next round. Adding a separate venue factor would double-count it.
+- **Real-data plan (cached 20 Oct, 1 FT):** GW8 Hughes→Rudoni (free, +8.2), GW9 Groß→Manzambi (+14.6), GW10 Hall→Vuskovic (waits out LIV/MCI, +5.5), then rolls. No hits. Bench Boost held (best week GW17). +28.3 over GW8–15 against no transfers.
+- **Verification:** 91 unittest tests pass (6 new). Mutation checks: the hit gate, pending-dormant filter and chip margin each fail a test when removed. `node --check` on all scripts and `git diff --check` pass. The artifact build passes with all 9 sources OK (FFS projections and line-ups served from cache within TTL). projections.json has gw 8 and 668 players. Browser: hero "Make 1 transfer" opens Planning and focuses plan-gw-8. No document overflow at 375/320px, and no element overflow on any of the 8 week pitches. The only console 404 came from a probe fetch. Not done: backtesting, physical phones.
+- **Preview:** preview "dashboard" serves the **main checkout** root on 8795. The plan is at http://localhost:8795/.claude/worktrees/transfer-planner/dashboard.html. Plain /dashboard.html is main's page, with no plan.
+
+### Next gate: Wildcard + Bench Boost (analysis only, not built)
+
+Jonno's two orders: (A) Wildcard week N into a fifteen-starter squad, Bench Boost N+1, then banked transfers move money from the bench back to the XI; (B) transfers build the Bench Boost bench, Bench Boost, then Wildcard back to the long-term template (11 strong starters, one decent bench player, 3 enablers). Free transfers survive a Wildcard (rule since 2024/25, cap 5), and both first-half chips expire after GW19.
+
+Default view: **B usually wins.** A Wildcard's lasting value is the squad it leaves. In B it lands exactly on the template for the next fixture run. In A it's spent on a squad dismantled a week later, and getting back needs roughly six transfers: sell bench mid-pricers for enablers, then upgrade starters. A wins when the Bench Boost week needs wholesale change (a double gameweek) and four or five free transfers are banked to unwind it.
+
+Factors to model, comparing A, B and "Bench Boost with ordinary transfers, Wildcard saved":
+1. Bench Boost gain in its week under each path.
+2. Cost of the detour against the template path: weaker XI in B's build-up weeks, money stranded on the bench in A's unwind weeks.
+3. Transfers each path needs against free transfers banked (cap 5, kept through Wildcard), and the hits implied.
+4. Quality of the post-Wildcard squad over the next 6–8 weeks: when the following fixture swing arrives.
+5. Chip deadlines (GW19 / GW38), one chip per week, Free Hit and Triple Captain timing.
+6. Double gameweeks: advice is withheld while doubles are unmodelled, though doubles are where most Bench Boost value lies.
+
+Build: a horizon-weighted best-fifteen for the Wildcard week (squadbuilder exists, check it fits), then score all three paths over the same window with the planner's week scorer. Show the winner and the margin.
+
+## Transfer plan checkpoint — 20 October 2026 (first build, superseded in part above)
 
 Jonno's requests: stop suggestions that upgrade bench enablers (Diop, Hughes, Dubravka); time transfers by fixtures (e.g. don't buy Brighton defenders into LIV away, MCI away); show up to three weeks of planned moves with later weeks behind a disclosure; add a per-gameweek pick-team pitch showing starters, captain, ins/outs and chips.
 
