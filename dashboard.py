@@ -280,6 +280,8 @@ def render(d, standalone=True):
 
     tiles = [
         ("Gameweek", eh.get("points", "-"), gw_note, "", gw_tone),
+        ("Projected", f"{projected:.1f}" if projected else "-",
+         f"your XI, {next_label}", "", ""),
         # "up 1.5m" beside "1,218,139 overall" read as a contradiction - two
         # millions, one a movement and one a position, neither saying which.
         # The chip says what it is.
@@ -288,8 +290,6 @@ def render(d, standalone=True):
          rank_chip, ""),
         ("League", f"{d['my_rank']}/{d['league_size']}" if d["my_rank"] else "-",
          e(d["league_name"]), lg_chip, ""),
-        ("Projected", f"{projected:.1f}" if projected else "-",
-         f"your XI, {next_label}", "", ""),
         ("XI needs a look", len(attention),
          "; ".join(f"{nm} &mdash; {why}" for nm, why in attention[:2])
          + ("&hellip;" if len(attention) > 2 else "")
@@ -304,7 +304,7 @@ def render(d, standalone=True):
           f"squad {eh.get('value', 0) / 10:.1f}m"), "", ""),
     ]
     tile_html = "".join(
-        f'<div class="tile {tone}"><div class="k">{e(k)}</div>'
+        f'<div class="tile {"tile-primary" if k in ("Gameweek", "Projected") else "tile-secondary"} {tone}"><div class="k">{e(k)}</div>'
         f'<div class="v tnum">{e(v)}{chip}</div><div class="n">{n}</div></div>'
         for k, v, n, chip, tone in tiles
     )
@@ -324,9 +324,19 @@ def render(d, standalone=True):
                         f'({"H" if captain["home"] else "A"}) · see why'
                         if captain else "Waiting for supported fixture projections.")
         action_html = f'''<div class="hero-actions" aria-label="Suggested next steps">
-          <div><span class="hero-eyebrow">{e(next_label)} · suggested action</span><h2>{action_title}</h2><p>{e(action['detail'])}</p></div>
-          <div><span class="hero-eyebrow">Your published XI · captain</span><h2>{captain_title}</h2><p>{captain_note}</p></div>
-        </div><p class="hero-caveat">Model prompts, based on your last published squad. <a data-dashboard-jump href="#action-method">How this is chosen</a> · <a data-dashboard-jump href="#chip-planner">Review chips</a></p>'''
+          <div><span class="hero-eyebrow">{e(next_label)} · suggested action</span><h3>{action_title}</h3></div>
+          <div><span class="hero-eyebrow">Your published XI · captain</span><h3>{captain_title}</h3></div>
+        </div><details class="hero-reasons"><summary>Why these suggestions</summary>
+          <p>{e(action['detail'])}</p><p>{captain_note}</p>
+        </details><p class="hero-caveat">Model prompts, based on your last published squad. <a data-dashboard-jump href="#action-method">How this is chosen</a> · <a data-dashboard-jump href="#chip-planner">Review chips</a></p>'''
+
+    hero_html = f'''<section class="hero" aria-labelledby="review-title">
+      <h2 class="hero-title" id="review-title">{e(title)}</h2>
+      <div class="mgr">{e(d['manager'])} &middot; {e(d['league_name'])}</div>
+      {verdict_html}
+      <div class="tiles">{tile_html}</div>
+      {action_html}
+    </section>'''
 
     body = f"""
 <header class="topbar"><div class="topbar-in">
@@ -354,28 +364,23 @@ def render(d, standalone=True):
       </details>
     </div>
   </section>
-  <p class="data-status" role="status" data-generated="{e(d.get('generated_iso', ''))}">
-    Snapshot: {e(d['generated'])}. Squad and bank reflect the last published picks.</p>
-{source_notice(d)}
-  <section class="hero">
-    <h2 class="hero-title">{e(title)}</h2>
-    <div class="mgr">{e(d['manager'])} &middot; {e(d['league_name'])}</div>
-    {verdict_html}
-    <div class="tiles">{tile_html}</div>
-    {action_html}
-  </section>
-
-  <div class="tabs tabbar" role="tablist">
+  <div class="tabs tabbar" role="tablist" aria-label="Dashboard sections">
     <button class="tab" role="tab" aria-selected="true" data-panel="p-squad">Squad</button>
     <button class="tab" role="tab" aria-selected="false" data-panel="p-market">Planning</button>
     <button class="tab" role="tab" aria-selected="false" data-panel="p-league">Mini-league</button>
     <button class="tab" role="tab" aria-selected="false" data-panel="p-scout">Scout</button>
   </div>
 
+  <p class="data-status" role="status" data-generated="{e(d.get('generated_iso', ''))}">
+    Snapshot: {e(d['generated'])}. Squad and bank reflect the last published picks.</p>
+{source_notice(d)}
   <div class="panel" id="p-squad" role="tabpanel">
+    <div class="squad-overview">
+    {hero_html}
     <section class="card squad-pitch">
-      <div class="card-head"><h2>Starting XI</h2>
-        <span class="sub">Choose a period, then a figure. Tap a player for the full breakdown. A faded crest means no minutes in GW{d['gw']}; the dot shows the predicted start for {next_label}.</span>
+      <div class="card-head"><h2>Starting XI{components.info_btn()}</h2>
+        <span class="subvis">Tap a player for the full breakdown.</span>
+        <span class="sub" hidden>Choose a period, then a figure. A faded crest means no minutes in GW{d['gw']}; the dot shows the predicted start for {next_label}.</span>
       </div>
       <div class="pkview tabbar" role="tablist" aria-label="Pitch view">
         <button class="pkbtn" role="tab" aria-selected="true" data-view="ov">Season</button>
@@ -396,6 +401,7 @@ def render(d, standalone=True):
         <div class="pkpanel" data-view="pk" hidden>{d['pick_pitch']}</div>
       </div>
     </section>
+    </div>
     <details class="card collapsible">
       <summary class="card-head"><h2>Squad detail{components.info_btn()}</h2>
         <span class="sub" hidden>Click a column heading to sort. xP is projected points for {next_label} - the one forward-looking column, so you can sort the underlying numbers against what the model expects from them. Next 3 fixtures rated out of ten, higher is better; CAPITALS are home.</span>

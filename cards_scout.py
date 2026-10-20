@@ -164,7 +164,8 @@ def _scout_lab(pos, data, fixture_runs, owned_ids):
     lead_sub, fx_sub = _CHAPTER_SUBS.get(pos, ("", ""))
     return (
         '<div class="chapter"><h2>Worth a look</h2>'
-        f'<span class="sub">{e(lead_sub)}</span></div>'
+        f'<span class="sub">{e(lead_sub)}</span>'
+        f'<a class="scout-explore" data-dashboard-jump href="#scout-explorer-{e(pos)}">Explore &amp; compare</a></div>'
         + components.stat_leaders(
             groups,
             title=f"{label} worth a look",
@@ -191,7 +192,7 @@ def _scout_lab(pos, data, fixture_runs, owned_ids):
         # was a title and a triangle - no row count, no hint of a
         # scatter, filters or a six-way compare behind it, and nothing
         # to suggest opening it was worth doing.
-        '<details class="card collapsible scoutexplorer" open>'
+        f'<details class="card collapsible scoutexplorer" id="scout-explorer-{e(pos)}" open>'
         f'<summary class="card-head"><h2>All {e(label.lower())}'
         f"{components.info_btn()}</h2>"
         f'<span class="subvis">{len(data["rows"])} {e(singular)}s, sorted '
@@ -213,13 +214,14 @@ def _scout_lab(pos, data, fixture_runs, owned_ids):
         '<span class="key key-thin"></span>Below the minutes floor'
         f'<span class="key key-size"></span>{e(cfg.size_label)}'
         "</p>"
-        + _scout_heatmap_shell(data)
         + '<p class="scoutcomparebar" hidden>'
-        '<span class="scb-count"></span>'
+        '<span class="scb-count" aria-live="polite"></span>'
+        f'<a class="scb-compare" data-dashboard-jump href="#scout-compare-{e(pos)}" hidden>Compare players</a>'
         '<button type="button" class="scb-clear">Clear shortlist</button>'
         "</p>"
-        "</div></details>"
-        '<section class="card scoutcompare" hidden>'
+        + _scout_heatmap_shell(data)
+        + "</div></details>"
+        f'<section class="card scoutcompare" id="scout-compare-{e(pos)}" hidden>'
         f'<div class="card-head"><h2>Shortlist{components.info_btn()}</h2>'
         '<span class="sub" hidden>Each bar is distance from the filtered '
         "pool's own average on one shared scale. Right is always better, "

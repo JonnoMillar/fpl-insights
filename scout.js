@@ -875,6 +875,11 @@
         compareBar.hidden = n === 0;
         var countSpan = compareBar.querySelector('.scb-count');
         if (countSpan) { countSpan.textContent = n + ' of ' + MAX_SHORTLIST + ' selected'; }
+        var compareLink = compareBar.querySelector('.scb-compare');
+        if (compareLink) {
+          compareLink.hidden = n < 2;
+          compareLink.textContent = 'Compare ' + n + ' players';
+        }
       }
       if (compareCard) { compareCard.hidden = n < 2; }
       if (n >= 2) { renderCompare(); }
@@ -885,6 +890,8 @@
         selected.clear();
         updateCompareUI();
         renderHeatmap(currentRows);
+        var firstPick = lab.querySelector('.scoutpick');
+        if (firstPick) { firstPick.focus({preventScroll:true}); }
       });
     }
 

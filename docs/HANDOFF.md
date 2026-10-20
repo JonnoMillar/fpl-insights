@@ -1,12 +1,25 @@
 # HANDOFF — FPL Insights
 
-Last updated: 20 October 2026, first apple-design improvement implemented and verified locally; awaiting Jonno's review. Not published; UI source still differs from the live artifact.
+Last updated: 20 October 2026, layout/density and Scout discovery improvements verified on isolated branch `codex/design-density`. Not integrated or published; Jonno is concurrently working with Claude.
 
 ## Status
 
 Jonno intends to link the live dashboard on his CV. The first phase was a deep audit of glaring functional, correctness and reliability risks, followed by fixes. That phase is complete and live at [FPL Insights](https://fpl-insights-jm.vercel.app/).
 
 The brand/UI/visitor review is documented in the [design brief and prioritised plan](audits/2026-10-14-design-brief.md). Jonno reviewed the comparison and explicitly requested the implementation below. His feedback supersedes the proposed removal of the review hero: keep it on both desktop and mobile, add linked next actions, stabilise the pitch and improve narrow layouts. The purple/green/warm-paper identity, existing forecast calculations, correctness guards and dependency-free architecture remain. Read the [audit and resolution notes](audits/2026-10-13-cv-readiness.md) for correctness evidence; avoid repeating the completed audit without new evidence.
+
+## Layout, density and Scout checkpoint — 20 October 2026
+
+- Jonno asked to continue with more Apple-review fixes and specifically asked about overwhelming text density. He is concurrently adding a section and editing suggestions with Claude. Main was tracked-clean at `dc67b26`; Claude's existing worktrees were left untouched. This pass lives in the app-managed worktree `C:/Users/jonno/.codex/worktrees/design-density/fpl-insights`, branch **`codex/design-density`**, based on `dc67b26`. Do not silently merge or replace Claude's work.
+- **Arrival/composition:** main tabs now precede the review and status remains visible on every tab. The retained weekly review sits beside the pitch at widths ≥1100px, stacking below that. Review is scoped to Squad so the other tabs open directly on their content. Two headline tiles (Gameweek / Projected) lead four compact supporting facts; all six values and notes remain. Advice links and public-picks/model caveats stay visible; the existing longer transfer/captain explanations are available in a native keyboard-operated “Why these suggestions” disclosure. No recommendation logic or advice wording was changed.
+- **Density/type:** card titles use sentence case and normal Archivo width, with chapters retaining stronger display type. Hero labels are 12px sentence case. Supporting facts use quiet rows rather than six competing boxes. The pitch has a short visible instruction; its complete period/crest/start explanation uses the existing information control. Long review words wrap, including at doubled text sizes.
+- **Scout discovery:** each shortlist area links to Explore & compare. Selection count, Compare N players and Clear shortlist sit above the long table. Compare appears at two selections and uses the existing jump/focus handler; ticking players does not trigger an application scroll. Clear/filter pruning and the six-player limit are retained. Clearing returns keyboard focus to the first table checkbox as the toolbar disappears. Fixed the toolbar's `display:flex` overriding its `hidden` attribute. New compare/clear/entry targets have a 44px minimum height.
+- **Measured improvement, same data:** at 390px, tabs move from **y≈1073 to y≈233**, review height **718 to 464px**, and pitch top **1131 to 810px**. The complete Starting XI heading fits the 390×844 healthy-snapshot viewport. At 320px tabs start around **260px**, pitch around **946px**; warnings/large text are allowed to grow rather than being clipped. At 1440px pitch top moves **758 to 339px**, aligned with the review.
+- Complete source builds using the existing cache succeeded (latest **20 October 2026, 13:19 UTC**), with all **nine source-health entries OK**; predicted line-ups and projections explicitly report cached data. This is not a fresh-network source verification. Price-history updates were redirected into the review folder. No tracked generated HTML, projections or price history was changed.
+- **Verification:** **72 unittest tests passed**; `node --check scout.js` and `git diff --check` passed. Isolated headless Chromium at **1440/768/390/320px** checked all main tabs, all three pitch periods with identical document top/height, pitch explanation, keyboard advice disclosure, player dialog/Escape/focus restoration, captain jump/tab/focus/offset, Scout's three positions, explore/compare focus, selection/clear/team filtering, no document overflow and no page-script errors. Synthetic overdue/unavailable-source layouts retain warnings and unavailable labels at each width. A scoped doubled-text check at 320px found no document overflow or clipped review labels/numbers/links after adding wrapping. The review page's width selector and full 390px heading visibility were checked after final CSS edits. These are not physical-device, cross-browser, full accessibility/zoom or prediction-accuracy claims.
+- Review: [before/after](http://127.0.0.1:8768/density/) · [working dashboard](http://127.0.0.1:8768/density/after.html). Same-data HTML, screenshots, build data and verification scripts/results are in the existing visualization folder's `density/` subfolder. The previously running localhost review server on **8768** serves this too; keep it for Jonno's review, stop afterwards. No dependencies added.
+
+Next gate: review the isolated UI pass and integrate it with Claude's completed changes deliberately. Remaining Apple work includes Planning decision order (deferred to avoid concurrent suggestion/section changes), duplicate Scout headings, broader type/control-target consistency and persistent main navigation. Before publication, integrate origin's scheduled generated commits and run a fresh build plus the usual data/browser gates. This branch changes only `dashboard.py`, `dashboard.css`, `cards_scout.py`, `scout.js` and HANDOFF.
 
 ## First design implementation checkpoint — 20 October 2026
 
@@ -17,7 +30,7 @@ The brand/UI/visitor review is documented in the [design brief and prioritised p
 - Local review: [before/after comparison](http://127.0.0.1:8768/) and [working dashboard](http://127.0.0.1:8768/after.html). Both comparison sides use the same current-data snapshot. Files and screenshots live in `C:/Users/jonno/.codex/visualizations/2026/10/20/01a15934-fc8a-7fe2-900f-4851ac7df814/`; temporary build/check scripts are ignored under `.cache/`. Review server on **8768** is intentionally left running for Jonno; stop after review. No dependency added.
 - Fetched origin: local main is four source/doc commits ahead and 29 generated-only commits behind origin/main before this checkpoint. No integration or push performed. Before publication, fetch/integrate scheduled commits, regenerate and verify current hosted output. Preserve pre-existing untracked `.agents/` and `.playwright-mcp/`.
 
-Next gate: Jonno reviews priority 1. Once accepted, implement priority 2: main tabs before the substantial review, desktop review/pitch composition and compact mobile facts, retaining the hero and all six facts. The existing mobile navigation remains far down the page; that is the explicitly deferred second improvement.
+Jonno subsequently requested more fixes; see the isolated layout/density and Scout checkpoint above. This first pass remains on main at `dc67b26`.
 
 ## CV showcase review checkpoint — 20 October 2026
 
@@ -112,7 +125,7 @@ Do not introduce a framework, bundler, database, account system or paid service 
 
 ## Open questions for Jonno
 
-- **Next review gate:** Jonno's response to the first Apple-review improvement (product purpose, author/source context and methods disclosure).
+- **Next review gate:** Jonno's response to the isolated layout/density and Scout pass, followed by integration with Claude's section/suggestion changes.
 - **Non-blocking:** how much explanatory guidance the CV visitor needs without slowing experienced FPL users. The showcase objective is established; use a mixed-audience assumption until clarified.
 - No unresolved blocker from the functional-repair phase.
 
@@ -127,5 +140,5 @@ Do not introduce a framework, bundler, database, account system or paid service 
 ## Resume prompt
 
 ```text
-Read AGENTS.md, docs/HANDOFF.md and docs/audits/2026-10-20-apple-design-showcase.md. Jonno requested implementation one improvement at a time, with review after the first. Priority 1 (arrival purpose, author/public-squad context, source and methods) is implemented and verified locally; await his feedback before priority 2 (review/pitch composition and mobile navigation). Current review: http://127.0.0.1:8768/ with a 20 October current-data snapshot. Preserve the hero on desktop and mobile, all six facts, stable pitch, existing functionality, correctness guards, visible limits, phone-feed compatibility and Python/vanilla JavaScript architecture. No publication yet. If requested, fetch/integrate scheduled commits, run a fresh complete artifact build and regressions, verify source health/projections and browser flows, then use the existing Git deployment.
+Read AGENTS.md, docs/HANDOFF.md and the Apple review. Main has priority 1 at dc67b26. The subsequent layout/density and Scout improvements are on codex/design-density in C:/Users/jonno/.codex/worktrees/design-density/fpl-insights; review http://127.0.0.1:8768/density/. Jonno is concurrently adding a section/editing suggestions with Claude: preserve that work and integrate deliberately, without replacing the main checkout or force-pushing. The UI pass retains the hero on Squad at both sizes, all six facts, advice/model limits and stable pitch; no recommendation logic or Planning order changed. Remaining design work is listed in the latest checkpoint. No publication yet. Before any release, integrate scheduled commits, run a fresh complete artifact build/regressions, and verify source health/projections/browser flows through the existing Git deployment.
 ```

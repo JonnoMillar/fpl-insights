@@ -234,7 +234,7 @@ section{margin-bottom:16px}
   padding:14px 16px; border-bottom:1px solid var(--outline-variant);
   display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
 }
-.card-head h2{font-size:16px; text-transform:uppercase; letter-spacing:0.04em}
+.card-head h2{font-size:16px; text-transform:none; font-stretch:100%; letter-spacing:-.005em}
 
 /* --- chapter ---
    A screen section, above the cards it groups.
@@ -244,9 +244,8 @@ section{margin-bottom:16px}
    below me", the same markup inside a card meant "this card", and at 17 vs
    16 nothing told them apart. Worse, which one a section got was arbitrary.
 
-   So: a card's own title stays 16px uppercase, and the level above it is
-   this - larger, expanded on Archivo's width axis, sentence case rather
-   than a second set of caps, and ruled underneath in ink. The width axis
+   A card title uses 16px sentence case; the chapter above it is larger,
+   expanded on Archivo's width axis and ruled underneath in ink. The width axis
    is what separates the two, not weight, because both were already bold.
    A bare `card-head` on the ground is now always a mistake. */
 .chapter{
@@ -335,12 +334,7 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
 .tile .delta-up{background:rgb(1 252 122 / 18%); color:#8affc4}
 .tile .delta-down{background:rgb(230 0 35 / 22%); color:#ff9aa8}
 
-/* Six separate tiles, each with its own edge. This was briefly one
-   recessed band divided by hairlines - a scoreboard read - but at 9% white
-   the dividers were invisible on the four tiles that carry no tone, so the
-   two that did were the only ones that looked like anything. Back to
-   discrete tiles, with the border taken from 9% to 18% so every one of
-   them actually has an edge to see. */
+/* Headline figures retain tiles; supporting facts become quieter rows. */
 .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:10px; margin-top:18px}
 .tile{
   background:rgb(255 255 255 / 7%); border-radius:var(--radius-s);
@@ -2274,14 +2268,20 @@ details .scroll{padding:0 14px 14px}
   font-size:10px; font-weight:700; background:var(--p5); color:var(--p80);
 }
 .scoutcomparebar{
-  display:flex; align-items:center; gap:12px; margin:14px 0 0; padding:9px 12px;
+  display:flex; align-items:center; gap:8px 12px; flex-wrap:wrap; margin:14px 0; padding:9px 12px;
   background:var(--p5); border-radius:var(--radius-s); font-size:13px;
 }
+.scoutcomparebar[hidden],.scb-compare[hidden]{display:none}
 .scoutcomparebar .scb-count{font-weight:600}
+.scb-compare,.scout-explore{display:inline-flex; align-items:center; min-height:44px; font-size:13px; font-weight:600; text-underline-offset:3px}
+.scout-explore{margin-left:auto}
+.scb-compare{background:var(--accent); color:var(--ink); padding:8px 12px; border-radius:var(--radius-xs); text-decoration:none}
+.scb-compare:hover{box-shadow:inset 0 0 0 1px var(--ink)}
+.scb-compare:focus-visible,.scout-explore:focus-visible{outline:3px solid var(--accent-ink); outline-offset:2px}
 .scb-clear{
   font:inherit; font-size:12px; background:var(--surface);
   border:1px solid var(--outline); border-radius:var(--radius-xs);
-  padding:3px 10px; cursor:pointer; color:var(--on-surface-variant);
+  padding:3px 10px; min-height:44px; cursor:pointer; color:var(--on-surface-variant);
 }
 .scb-clear:hover{color:var(--ink); border-color:var(--p50)}
 
@@ -2398,10 +2398,8 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .hero-actions>div{min-width:0}
 .hero-eyebrow{display:block; font-size:11px; font-weight:600; letter-spacing:.06em;
   text-transform:uppercase; color:rgb(255 255 255 / 75%)}
-.hero-actions h2{font-size:23px; margin:6px 0; letter-spacing:-.02em}
 .hero-actions a{color:var(--accent); text-decoration:none}
 .hero-actions a:hover{text-decoration:underline}
-.hero-actions p{font-size:14px; line-height:1.5; margin:0; color:rgb(255 255 255 / 88%)}
 .hero-caveat{font-size:12px; line-height:1.5; color:rgb(255 255 255 / 75%); margin:16px 0 0}
 .hero-caveat a{display:inline-block; color:inherit; text-underline-offset:3px; padding-block:4px}
 .hero a:focus-visible{outline:3px solid var(--accent); outline-offset:4px}
@@ -2418,7 +2416,6 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   .tiles{grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px}
   .tile{min-width:0}.tile .n{overflow-wrap:anywhere}
   .hero-actions{grid-template-columns:minmax(0,1fr); gap:18px}
-  .hero-actions h2{font-size:21px}
   .tabs{gap:0}.tabs>button{flex:1; min-width:0; font-size:13px; padding:12px 3px}
   .card-head{padding:15px 14px}.card-head .sub,.card-head .subvis{font-size:13px; line-height:1.5}
   .pkview{padding:0 6px}.pkview>.pkbtn{flex:1; font-size:12px; padding:12px 4px}
@@ -2436,4 +2433,54 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   .pr-name{max-width:100%; white-space:normal; overflow-wrap:anywhere}
   .league-standings th,.league-standings td{padding:12px 7px}
   .league-standings td:first-child .delta{display:block; width:max-content; margin-top:4px}
+}
+
+/* Keep the weekly briefing beside the team it describes. */
+.squad-overview{display:grid; grid-template-columns:minmax(300px,1fr) minmax(0,2fr); gap:16px; align-items:start}
+.squad-overview>.hero,.squad-overview>.squad-pitch{min-width:0}
+.squad-overview .hero{padding:18px 16px}
+.squad-overview .hero-title{font-size:24px; overflow-wrap:anywhere}
+.squad-overview .mgr{font-size:13px}
+.squad-overview .hero-line{margin-top:12px; font-size:14px}
+.squad-overview .tiles{grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 12px; margin-top:12px}
+.squad-overview .tile-primary{margin-bottom:4px; padding:10px}
+.squad-overview .tile,.hero-actions h3{overflow-wrap:anywhere}
+.squad-overview .tile .k{font-size:12px; text-transform:none; letter-spacing:0; color:rgb(255 255 255 / 78%)}
+.squad-overview .tile .n{line-height:1.4; color:rgb(255 255 255 / 72%)}
+.squad-overview .tile-secondary{display:grid; grid-template-columns:minmax(0,1fr) auto; align-content:start; gap:2px 6px;
+  background:none; border:0; border-bottom:1px solid rgb(255 255 255 / 18%); border-radius:0; padding:9px 0}
+.squad-overview .tile-secondary .k,.squad-overview .tile-secondary .n{grid-column:1}
+.squad-overview .tile-secondary .v{grid-column:2; grid-row:1 / span 2; font-size:18px; margin:0; align-self:start; justify-content:flex-end}
+.squad-overview .tile-secondary .delta{font-size:10px}
+.squad-overview .hero-actions{grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:12px; padding-top:12px}
+.squad-overview .hero-eyebrow{font-size:12px; text-transform:none; letter-spacing:0}
+.hero-actions h3{font-size:18px; text-transform:none; font-stretch:100%; letter-spacing:-.01em; margin:5px 0 0; line-height:1.3}
+.hero-reasons{border:0; margin-top:4px}
+.hero-reasons>summary{min-height:44px; padding:8px 0; font-size:13px; color:rgb(255 255 255 / 85%)}
+.hero-reasons>summary::before{color:inherit}
+.hero-reasons p{font-size:14px; line-height:1.5; margin:0 0 10px}
+.hero-reasons>summary:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.squad-overview .hero-caveat{margin:0; line-height:1.5}
+@media(max-width:1099px){
+  .squad-overview{grid-template-columns:minmax(0,1fr)}
+  .squad-overview>.hero{margin-bottom:0}
+}
+@media(max-width:560px){
+  .wrap{padding-top:12px}
+  .product-intro{padding-top:0; padding-bottom:0; margin-bottom:0}
+  .product-intro h1{font-size:24px}
+  .product-intro>p{font-size:13px}
+  .tabs{margin-top:0}
+  .data-status{margin:8px 0}
+  .squad-overview{gap:8px}
+  .squad-overview .hero{padding:12px}
+  .squad-overview .hero-title{font-size:21px}
+  .squad-overview .hero-line{margin-top:8px; font-size:13px}
+  .squad-overview .tiles{margin-top:10px}
+  .squad-overview .tile-primary{padding:8px; margin-bottom:0}
+  .squad-overview .tile-secondary{padding:7px 0}
+  .squad-overview .tile-secondary .v{font-size:16px}
+  .squad-overview .hero-actions{gap:10px; padding-top:8px; margin-top:8px}
+  .hero-reasons{margin-top:0}
+  .hero-actions h3{font-size:16px}
 }
