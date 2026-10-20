@@ -338,11 +338,27 @@ def render(d, standalone=True):
 </header>
 
 <div class="wrap">
+  <section class="product-intro" aria-labelledby="product-purpose">
+    <h1 id="product-purpose">The numbers behind your FPL decisions.</h1>
+    <p>Jonno Millar's public Fantasy Premier League squad and mini-league, analysed from player statistics, fixtures and market odds.</p>
+    <div class="intro-links">
+      <a href="https://github.com/JonnoMillar/fpl-insights">Source code <span aria-hidden="true">↗</span></a>
+      <details class="about-methods">
+        <summary>About &amp; methods</summary>
+        <div class="about-copy">
+          <p>Built by Jonno Millar to turn the numbers behind the points into captain, transfer and chip decisions. Explore the published squad, compare mini-league results, or use Scout to find and compare players.</p>
+          <p>Player statistics come from the public Fantasy Premier League API, including Opta's expected goals and expected assists. Their sum, expected goal involvement (xGI), describes the quality of chances a player takes and creates. Fixtures, market odds and predicted line-ups inform the analysis.</p>
+          <p>Projections are estimates. Advice uses the last published squad and bank, so check your actual team before acting. Double-gameweek planning is unsupported. Snapshots refresh on a best-effort schedule; their age and any unavailable sources are shown below.</p>
+          <a href="https://github.com/JonnoMillar/fpl-insights#how-it-works">Read about the data and approach <span aria-hidden="true">↗</span></a>
+        </div>
+      </details>
+    </div>
+  </section>
   <p class="data-status" role="status" data-generated="{e(d.get('generated_iso', ''))}">
     Snapshot: {e(d['generated'])}. Squad and bank reflect the last published picks.</p>
 {source_notice(d)}
   <section class="hero">
-    <h1>{e(title)}</h1>
+    <h2 class="hero-title">{e(title)}</h2>
     <div class="mgr">{e(d['manager'])} &middot; {e(d['league_name'])}</div>
     {verdict_html}
     <div class="tiles">{tile_html}</div>

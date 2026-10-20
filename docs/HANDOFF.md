@@ -1,12 +1,23 @@
 # HANDOFF — FPL Insights
 
-Last updated: 20 October 2026, apple-design CV showcase assessment complete. No application edits or publication in this review; the latest UI source still differs from the live artifact.
+Last updated: 20 October 2026, first apple-design improvement implemented and verified locally; awaiting Jonno's review. Not published; UI source still differs from the live artifact.
 
 ## Status
 
 Jonno intends to link the live dashboard on his CV. The first phase was a deep audit of glaring functional, correctness and reliability risks, followed by fixes. That phase is complete and live at [FPL Insights](https://fpl-insights-jm.vercel.app/).
 
 The brand/UI/visitor review is documented in the [design brief and prioritised plan](audits/2026-10-14-design-brief.md). Jonno reviewed the comparison and explicitly requested the implementation below. His feedback supersedes the proposed removal of the review hero: keep it on both desktop and mobile, add linked next actions, stabilise the pitch and improve narrow layouts. The purple/green/warm-paper identity, existing forecast calculations, correctness guards and dependency-free architecture remain. Read the [audit and resolution notes](audits/2026-10-13-cv-readiness.md) for correctness evidence; avoid repeating the completed audit without new evidence.
+
+## First design implementation checkpoint — 20 October 2026
+
+- Jonno authorised implementing the Apple review in impact order, one improvement at a time, with review after the first. Implemented **priority 1 only: product orientation at arrival**. Keep priorities 2–5 for subsequent review gates; do not combine the review/pitch composition into this pass.
+- Added the purpose heading, author/public-squad context, visible Source code link and native About & methods disclosure. It explains sources, xGI, available interactions and prediction/public-picks limits, with a link to README's data/approach sections. The product statement is the sole h1; the team title becomes h2 with its previous appearance. Existing hero facts, actions, tabs, pitch and forecast logic are retained.
+- Fresh source build completed at **20 October 2026, 12:12 UTC** with all **nine source-health entries OK**. One official portrait returned HTTP 403 and used its existing placeholder. Review price history was redirected to the review folder; tracked HTML, projections and price history were not changed.
+- Verification: **72 unittest tests passed**; `git diff --check` passed. Headless Chromium checks at **1440/390/320px** verified purpose/source visible at arrival, single h1, six facts, disclosure keyboard opening/closing with focus retained, all four main tabs, no document overflow and no recorded page-script errors. Doubled introduction text at 320px fits after adding word wrapping to the heading. This is scoped enlarged-text testing, not a full accessibility/zoom or cross-browser audit. Native browser connectors were unavailable (Playwright profile busy; in-app webview failed to attach); used installed Python Playwright with an isolated headless browser.
+- Local review: [before/after comparison](http://127.0.0.1:8768/) and [working dashboard](http://127.0.0.1:8768/after.html). Both comparison sides use the same current-data snapshot. Files and screenshots live in `C:/Users/jonno/.codex/visualizations/2026/10/20/01a15934-fc8a-7fe2-900f-4851ac7df814/`; temporary build/check scripts are ignored under `.cache/`. Review server on **8768** is intentionally left running for Jonno; stop after review. No dependency added.
+- Fetched origin: local main is four source/doc commits ahead and 29 generated-only commits behind origin/main before this checkpoint. No integration or push performed. Before publication, fetch/integrate scheduled commits, regenerate and verify current hosted output. Preserve pre-existing untracked `.agents/` and `.playwright-mcp/`.
+
+Next gate: Jonno reviews priority 1. Once accepted, implement priority 2: main tabs before the substantial review, desktop review/pitch composition and compact mobile facts, retaining the hero and all six facts. The existing mobile navigation remains far down the page; that is the explicitly deferred second improvement.
 
 ## CV showcase review checkpoint — 20 October 2026
 
@@ -17,7 +28,7 @@ The brand/UI/visitor review is documented in the [design brief and prioritised p
 - Sampled all four tabs at 1440/390/320, Scout's three positions, team filter/two-player compare, pitch periods/metric visibility, hero captain destination/focus, keyboard tabs, player dialog/Escape/focus restoration, Total sorting and reduced-motion styles. No sampled document overflow or recorded console errors. No fresh build, regression run, physical-device, cross-browser, enlarged-text or performance claim. Application and generated files unchanged.
 - Local evidence remains in untracked `.playwright-mcp/`. The temporary review server for this audit on port 8767 is stopped after use; the older comparison server recorded below was not changed. Documentation-only `git diff --check` is the checkpoint verification. Commit only this assessment and HANDOFF; preserve pre-existing `.agents/` and `.playwright-mcp/`.
 
-Next gate: Jonno's response to the proposed direction. The highest-impact implementation is compact purpose/navigation plus a desktop review/pitch composition, keeping the requested hero and all six summary facts. If implementation is requested, verify a current-data source build before publication; do not simply publish the historical review HTML.
+The direction was subsequently authorised one improvement at a time; see the first implementation checkpoint above. Before publication, verify a current-data source build; do not simply publish the historical review HTML.
 
 ## Current implementation checkpoint — 14 October 2026
 
@@ -101,7 +112,7 @@ Do not introduce a framework, bundler, database, account system or paid service 
 
 ## Open questions for Jonno
 
-- **Non-blocking:** response to the revised working comparison; further recruiter-oriented product/author context remains a separate design choice.
+- **Next review gate:** Jonno's response to the first Apple-review improvement (product purpose, author/source context and methods disclosure).
 - **Non-blocking:** how much explanatory guidance the CV visitor needs without slowing experienced FPL users. The showcase objective is established; use a mixed-audience assumption until clarified.
 - No unresolved blocker from the functional-repair phase.
 
@@ -116,5 +127,5 @@ Do not introduce a framework, bundler, database, account system or paid service 
 ## Resume prompt
 
 ```text
-Read AGENTS.md, docs/HANDOFF.md and docs/audits/2026-10-20-apple-design-showcase.md. The apple-design CV review is complete; its direction is proposed, with no application edits. Incorporate Jonno's feedback before implementing. Preserve the weekly review hero on desktop and mobile, stable pitch, existing functionality, correctness guards, visible model limits, phone-feed compatibility and Python/vanilla JavaScript architecture. Current source differs from the live UI; the local review HTML contains historical data. If publication is requested, fetch/integrate scheduled commits, run a fresh complete artifact build and regressions, verify source health/projections and browser flows, then use the existing Git deployment.
+Read AGENTS.md, docs/HANDOFF.md and docs/audits/2026-10-20-apple-design-showcase.md. Jonno requested implementation one improvement at a time, with review after the first. Priority 1 (arrival purpose, author/public-squad context, source and methods) is implemented and verified locally; await his feedback before priority 2 (review/pitch composition and mobile navigation). Current review: http://127.0.0.1:8768/ with a 20 October current-data snapshot. Preserve the hero on desktop and mobile, all six facts, stable pitch, existing functionality, correctness guards, visible limits, phone-feed compatibility and Python/vanilla JavaScript architecture. No publication yet. If requested, fetch/integrate scheduled commits, run a fresh complete artifact build and regressions, verify source health/projections and browser flows, then use the existing Git deployment.
 ```

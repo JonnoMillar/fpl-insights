@@ -207,6 +207,21 @@ a{color:inherit}
 }
 
 .wrap{max-width:var(--shell);margin:0 auto;padding:16px}
+.product-intro{padding:8px 0 16px; border-bottom:1px solid var(--outline-variant)}
+.product-intro h1{font-size:clamp(26px,3vw,32px); font-stretch:125%; overflow-wrap:anywhere}
+.product-intro>p{max-width:80ch; margin:10px 0 4px; line-height:1.5}
+.intro-links{display:flex; align-items:flex-start; gap:8px 24px; flex-wrap:wrap; font-size:13px}
+.intro-links>a,.about-methods>summary{min-height:44px; display:flex; align-items:center; gap:6px}
+.intro-links>a{text-underline-offset:3px; font-weight:600}
+.intro-links>a:hover,.about-methods>summary:hover{color:var(--accent-ink)}
+.intro-links>a:focus-visible{outline:3px solid var(--accent-ink); outline-offset:3px}
+.intro-links .about-methods{flex:1; min-width:150px; border:0}
+.intro-links .about-methods[open]{flex-basis:100%}
+.about-methods>summary{padding:0; font-size:13px; font-weight:600}
+.about-methods>summary:focus-visible{outline-color:var(--accent-ink)}
+.about-copy{max-width:75ch; padding:0 0 12px; font-size:15px; line-height:1.6}
+.about-copy p{margin:0 0 12px}
+.about-copy>a{text-underline-offset:3px}
 /* Cards inside a chapter sit closer than the chapter break above them:
    16 within, and 30+12 at a heading, so the group reads as a group. This
    was a flat 20 everywhere, from before there were chapters at all. */
@@ -297,7 +312,7 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
   color:var(--white); border-radius:var(--radius-m); padding:22px 18px;
   box-shadow:var(--shadow); position:relative; overflow:hidden;
 }
-.hero h1{font-size:clamp(23px,4vw,34px); font-stretch:125%; font-weight:700}
+.hero-title{font-size:clamp(23px,4vw,34px); font-stretch:125%; font-weight:700; text-transform:none; letter-spacing:-.005em}
 .hero .mgr{color:rgb(255 255 255 / 66%); font-size:14px; margin-top:3px}
 /* The one sentence that says whether the week was good. Sits between the
    name and the numbers because it is the thing you read first and the
@@ -2088,7 +2103,7 @@ details .scroll{padding:0 14px 14px}
 @media (max-width:560px){
   .pl{width:76px}
   .pk{width:92px}
-  .hero h1{font-size:20px}
+  .hero-title{font-size:20px}
   body{font-size:14px}
 }
 
@@ -2399,7 +2414,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 @media(max-width:560px){
   .topbar .stamp{display:none}
   .topbar-in{padding:10px 16px}.wordmark{font-size:16px}
-  .hero{padding:18px 14px}.hero h1{font-size:23px}
+  .hero{padding:18px 14px}.hero-title{font-size:23px}
   .tiles{grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px}
   .tile{min-width:0}.tile .n{overflow-wrap:anywhere}
   .hero-actions{grid-template-columns:minmax(0,1fr); gap:18px}
