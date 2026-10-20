@@ -31,12 +31,12 @@ def choose(swaps, pairs, free, supported, next_gw, chip_options=(), used=None):
         action["label"] = "Hold your squad"
     if single and single[0] > 2:
         gain, i, row = single
-        action = dict(label="Make 1 transfer", target=f"transfer-{i}",
+        action = dict(label="Make 1 transfer", target=f"transfer-{i}", moves=[row],
                       detail=f"{row['out'].name} → {row['in']['web_name']} · +{gain:.1f} projected XI points over 5 GW after hits.")
     if pair and pair[0] > max(2, (single[0] if single else 0) + 2):
         gain, i, row = pair
         names = "; ".join(f"{leg['out'].name} → {leg['in']['web_name']}" for leg in row["legs"])
-        action = dict(label="Make 2 transfers", target=f"pair-{i}",
+        action = dict(label="Make 2 transfers", target=f"pair-{i}", moves=row["legs"],
                       detail=f"{names} · +{gain:.1f} projected XI points over 5 GW after hits.")
     # Confidence here is timing separation, not probability of success. If
     # several chips qualify, retain the transfer action and invite comparison.
@@ -46,6 +46,6 @@ def choose(swaps, pairs, free, supported, next_gw, chip_options=(), used=None):
               and (row.get("gap", row.get("ep", 0)) > 0)]
     if len(strong) == 1:
         key, name, row = strong[0]
-        action = dict(label=f"Play {name}", target=f"chip-{key}",
+        action = dict(label=f"Play {name}", target=f"chip-{key}", chip=key,
                       detail=f"GW{next_gw} has a clear edge within the modelled single-fixture window. Review the chip case before playing it.")
     return action

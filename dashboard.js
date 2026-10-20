@@ -297,7 +297,7 @@
         var sel = card.querySelector('.statsel');
         if (sel) { sel.hidden = view === 'pk'; }
         var epb = card.querySelector('.epbtn');
-        if (epb) { epb.hidden = view !== 'pk'; }
+        if (epb) { epb.hidden = view !== 'pk' || !card.querySelector('.pkstage .epside'); }
         points(view);
         updatePitchLabel(card);
       });
@@ -307,38 +307,35 @@
   function updatePitchLabel(card){
     var view = card.querySelector('.pkbtn[aria-selected="true"]').dataset.view;
     var stat = card.querySelector('.stbtn[aria-pressed="true"]').dataset.stat;
-    var label = view === 'pk' ? 'Next gameweek · fixture & form' :
+    var label = view === 'pk' ? 'Next gameweek · projected points' :
       stat === 'g' ? 'Season · points per appearance' :
       stat === 'x' ? 'Season · expected goal involvement' :
       (view === 'gw' ? 'Last gameweek' : 'Season') + ' · points';
     card.querySelector('.pitch-metric').textContent = label;
   }
 
-  // Predicted points: the eleven shrink into a column and the bars extend
-  // across the space that opens beside them.
+  document.querySelectorAll('.lineup-toggle').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var on = btn.getAttribute('aria-checked') !== 'true';
+      btn.setAttribute('aria-checked', String(on));
+      btn.closest('.squad-pitch').querySelectorAll('[data-lineup]').forEach(function(panel){
+        panel.hidden = panel.dataset.lineup !== (on ? 'transfers' : 'owned');
+      });
+    });
+  });
+
+  // Keep both point breakdowns in sync within the reserved pitch area.
   document.querySelectorAll('.epbtn').forEach(function (btn) {
-    var stage = btn.closest('.card').querySelector('.pkstage');
-    if (!stage) { btn.hidden = true; return; }
-    var side = stage.querySelector('.epside');
-    var reduce = window.matchMedia &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var stages = Array.from(btn.closest('.card').querySelectorAll('.pkstage'));
+    if (!stages.length) { btn.hidden = true; return; }
     btn.addEventListener('click', function () {
       var on = btn.getAttribute('aria-pressed') !== 'true';
       btn.setAttribute('aria-pressed', String(on));
-      stage.classList.toggle('ep-on', on);
-      if (side) { side.setAttribute('aria-hidden', String(!on)); }
-      if (!on || reduce || !side) { return; }
-      // Run the bars out only once the column has finished opening,
-      // otherwise they animate to a width that is still changing.
-      window.setTimeout(function () {
-        side.querySelectorAll('.epcr .epbar').forEach(function (bar, i) {
-          if (!bar.animate) { return; }
-          bar.animate(
-            [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
-            { duration: 340, delay: i * 45, easing: 'cubic-bezier(.2,.7,.3,1)' }
-          );
-        });
-      }, 260);
+      stages.forEach(function(stage){
+        stage.classList.toggle('ep-on', on);
+        var side = stage.querySelector('.epside');
+        if (side) { side.setAttribute('aria-hidden', String(!on)); }
+      });
     });
   });
 

@@ -2465,6 +2465,63 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   .squad-overview{grid-template-columns:minmax(0,1fr)}
   .squad-overview>.hero{margin-bottom:0}
 }
+
+/* Each period uses the same field, player cards and bench geometry. */
+.squad-pitch{--squad-player-height:128px}
+.squad-pitch .pitch{display:grid; grid-template-rows:repeat(4,var(--squad-player-height)); gap:14px; padding:18px 10px}
+.squad-pitch .pitch>.row{display:flex; flex-wrap:nowrap; align-items:stretch; margin:0}
+.squad-pitch .row>.pl{flex:0 0 min(92px,calc((100% - 32px)/5)); width:auto; min-width:0; height:var(--squad-player-height)}
+.squad-pitch .benchstrip{min-height:176px}
+.squad-pitch .benchstrip .row{flex-wrap:nowrap; margin:0}
+.squad-pitch .pl:not(.pk) .sc{min-height:60px; align-items:center}
+.squad-pitch .pkboard{width:100%}
+.squad-pitch .pkstage{display:block; position:relative}
+.squad-pitch .pkboard-head{display:none}
+.pk-xp{font-size:17px; font-weight:700; line-height:1.2; text-align:center; padding:4px 1px}
+.pk-xp small{font-size:10px; font-weight:500; padding-left:3px}
+.is-incoming{box-shadow:0 0 0 2px var(--accent),0 3px 12px rgb(1 252 122 / 30%)}
+.incoming-badge{position:absolute; top:3px; right:3px; border-radius:3px; padding:1px 3px;
+  background:var(--accent); color:var(--ink); font:700 10px/1.3 var(--sans)}
+.squad-pitch .pk .arm{top:3px; left:3px; width:16px; height:16px; font-size:10px}
+.pitch-context{display:grid; padding:12px 16px; border-bottom:1px solid var(--outline-variant); background:var(--surface)}
+.pitch-context>*,.lineup-summaries>*{grid-area:1/1; margin:0}
+.pitch-context>[hidden],.lineup-summaries>[hidden],.lineup-variants>[hidden]{display:block; visibility:hidden; pointer-events:none}
+.pitch-context p{font-size:13px; line-height:1.5; margin:0}
+.lineup-summaries,.lineup-variants{display:grid; min-width:0}
+.lineup-variants>*{grid-area:1/1; min-width:0}
+.lineup-toggle{display:inline-flex; align-items:center; min-height:44px; gap:8px; padding:7px 10px; margin:6px 0;
+  border:1px solid var(--outline); border-radius:var(--radius-s); background:var(--surface); color:var(--ink); font:600 13px var(--sans); cursor:pointer}
+.lineup-toggle::before{content:""; width:28px; height:16px; border-radius:10px; background:var(--outline); box-shadow:inset -12px 0 0 2px var(--surface)}
+.lineup-toggle[aria-checked="true"]{background:var(--accent); border-color:var(--accent-ink)}
+.lineup-toggle[aria-checked="true"]::before{background:var(--ink); box-shadow:inset 12px 0 0 2px var(--accent)}
+.lineup-toggle:disabled{opacity:.6; cursor:default}
+.lineup-toggle:focus-visible{outline:3px solid var(--accent-ink); outline-offset:2px}
+.lineup-preview-note{color:var(--on-surface-variant)}
+.lineup-unavailable{min-height:766px; padding:24px; margin:0; line-height:1.6}
+/* Point breakdowns overlay the reserved team area, retaining its size. */
+.squad-pitch .pkstage.ep-on .pkboard{flex:none; width:100%; padding:0; visibility:hidden}
+.squad-pitch .pkstage.ep-on .pkboard-head{display:none}
+.squad-pitch .pkstage.ep-on .pitch{display:grid; grid-template-rows:repeat(4,var(--squad-player-height)); gap:14px; padding:18px 10px}
+.squad-pitch .pkstage.ep-on .pitch .row{display:flex; margin:0}
+.squad-pitch .pkstage.ep-on .benchstrip{display:block}
+.squad-pitch .pkstage.ep-on .pk{height:var(--squad-player-height); animation:none}
+.squad-pitch .pkstage.ep-on .epside{position:absolute; inset:0; width:100%; padding:16px; overflow:auto; background:var(--surface)}
+.squad-pitch .epcname{display:block}
+@media(min-width:1100px){
+  .squad-overview{align-items:stretch}
+  .squad-overview>.hero,.squad-overview>.squad-pitch{margin-bottom:0}
+  .squad-overview>.hero{display:flex; flex-direction:column; gap:28px; padding:28px}
+  .hero-review{flex:1; display:flex; flex-direction:column; gap:24px}
+  .hero-review .hero-line{margin-top:0}
+  .hero-review .tiles{flex:1; align-content:space-between; row-gap:24px; margin-top:0}
+  .squad-overview .tile .k,.squad-overview .tile .n{font-size:13px}
+  .squad-overview .tile-primary .v{font-size:32px}
+  .squad-overview .tile-secondary .v{font-size:22px}
+  .squad-overview .tile-secondary{padding-block:16px}
+  .squad-overview .hero-line{font-size:15px; line-height:1.6}
+  .squad-overview .hero-actions{padding-top:20px; margin-top:0; gap:18px}
+  .hero-decision .hero-caveat{margin-top:12px}
+}
 @media(max-width:560px){
   .wrap{padding-top:12px}
   .product-intro{padding-top:0; padding-bottom:0; margin-bottom:0}

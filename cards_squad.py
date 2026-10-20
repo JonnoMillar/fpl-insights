@@ -137,11 +137,8 @@ def pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id, gw=None):
 
 
 def pick_card(r, ctx, badges, shirts, captain_id, vice_id, proj, market,
-              next_gw, played=True):
-    """One card for the 'Pick team' pitch: the same shirt card as the
-    overview, plus the two things worth knowing at a glance before a
-    deadline - the next fixture, and a read on recent form worth the one
-    line it costs."""
+              next_gw, played=True, ep=None, incoming=False):
+    """A next-week player card with fixture, projected points and IN badge."""
     el = r.element
     shirt = shirts.get((el["team"], r.pos == "GKP"))
     uri = shirt or badges.get(el["team"])
@@ -166,18 +163,20 @@ def pick_card(r, ctx, badges, shirts, captain_id, vice_id, proj, market,
                          fx_rows[0]["cs"], fx_rows[0]["xg"])
         if fx_rows else ""
     )
+    has_fixture = any(fx.get("event") == next_gw and el["team"] in (fx["team_h"], fx["team_a"])
+                      for fx in ctx.fixtures)
+    if not has_fixture or not fx_rows:
+        fx_html = '<span class="fxpill">Unavailable</span>' if has_fixture else '<span class="fxpill">Blank</span>'
 
-    form = r.recent_form()
-    snippet = ""
-    if form:
-        icon = SPARK_ICON if form["hot"] else ""
-        hot_cls = " hot" if form["hot"] else ""
-        snippet = f'<div class="pk-form{hot_cls}">{icon}{e(form["text"])}</div>'
-
-    cls = "pl pk" if played else "pl pk out"
+    xp = f'{ep["total"]:.1f}' if ep else "—"
+    snippet = f'<div class="pk-xp tnum" title="Projected points before captain or chip multipliers">{xp}<small>xP</small></div>'
+    cls = "pl pk" + (" is-incoming" if incoming else "")
+    badge = '<span class="incoming-badge" aria-hidden="true">IN</span>' if incoming else ""
+    if incoming:
+        title += " - suggested incoming transfer"
     return (
         f'<div class="{cls}" title="{e(title)}" data-player="{el["id"]}" '
-        f'role="button" tabindex="0" aria-label="{e(title)}">{arm}'
+        f'role="button" tabindex="0" aria-label="{e(title)}">{arm}{badge}'
         f'<div class="crest">{crest}</div>'
         f'<div class="nm">{e(r.name)}</div>'
         f'<div class="pk-fx">{fx_html}</div>'
@@ -186,7 +185,7 @@ def pick_card(r, ctx, badges, shirts, captain_id, vice_id, proj, market,
 
 
 def pick_team_pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id,
-                    proj, market, next_gw, eps=None):
+                    proj, market, next_gw, eps=None, incoming_ids=()):
     """The pick-team pitch, and the expected-points column it folds out to.
 
     Both live in one `.pkstage` so the Predicted points toggle can move
@@ -202,6 +201,7 @@ def pick_team_pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id,
     level with its own card."""
     order = {"GKP": 1, "DEF": 2, "MID": 3, "FWD": 4}
     rows = {1: [], 2: [], 3: [], 4: []}
+    by_id = {r.element["id"]: ep for r, ep in eps or []}
     for r in xi:
         rows[order.get(r.pos, 4)].append(r)
     # The left column carries a header of its own only so the two columns
@@ -216,7 +216,8 @@ def pick_team_pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id,
             continue
         cards = "".join(
             pick_card(r, ctx, badges, shirts, captain_id, vice_id, proj,
-                     market, next_gw, r.minutes > 0)
+                     market, next_gw, ep=by_id.get(r.element["id"]),
+                     incoming=r.element["id"] in incoming_ids)
             for r in rows[k]
         )
         pitch_order.extend(r.element["id"] for r in rows[k])
@@ -224,7 +225,8 @@ def pick_team_pitch(xi, bench, ctx, badges, shirts, captain_id, vice_id,
     out.append("</div>")
     cards = "".join(
         pick_card(r, ctx, badges, shirts, captain_id, vice_id, proj, market,
-                 next_gw, r.minutes > 0)
+                 next_gw, ep=by_id.get(r.element["id"]),
+                 incoming=r.element["id"] in incoming_ids)
         for r in bench
     )
     out.append(

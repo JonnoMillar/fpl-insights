@@ -56,6 +56,7 @@ import ffs
 import components
 import odds
 import next_action
+import next_squad
 import scout
 import ticker
 import transfers
@@ -281,7 +282,7 @@ def render(d, standalone=True):
     tiles = [
         ("Gameweek", eh.get("points", "-"), gw_note, "", gw_tone),
         ("Projected", f"{projected:.1f}" if projected else "-",
-         f"your XI, {next_label}", "", ""),
+         f"best owned XI, {next_label}", "", ""),
         # "up 1.5m" beside "1,218,139 overall" read as a contradiction - two
         # millions, one a movement and one a position, neither saying which.
         # The chip says what it is.
@@ -325,17 +326,16 @@ def render(d, standalone=True):
                         if captain else "Waiting for supported fixture projections.")
         action_html = f'''<div class="hero-actions" aria-label="Suggested next steps">
           <div><span class="hero-eyebrow">{e(next_label)} · suggested action</span><h3>{action_title}</h3></div>
-          <div><span class="hero-eyebrow">Your published XI · captain</span><h3>{captain_title}</h3></div>
+          <div><span class="hero-eyebrow">Suggested owned XI · captain</span><h3>{captain_title}</h3></div>
         </div><details class="hero-reasons"><summary>Why these suggestions</summary>
           <p>{e(action['detail'])}</p><p>{captain_note}</p>
         </details><p class="hero-caveat">Model prompts, based on your last published squad. <a data-dashboard-jump href="#action-method">How this is chosen</a> · <a data-dashboard-jump href="#chip-planner">Review chips</a></p>'''
 
     hero_html = f'''<section class="hero" aria-labelledby="review-title">
-      <h2 class="hero-title" id="review-title">{e(title)}</h2>
-      <div class="mgr">{e(d['manager'])} &middot; {e(d['league_name'])}</div>
-      {verdict_html}
-      <div class="tiles">{tile_html}</div>
-      {action_html}
+      <div class="hero-identity"><h2 class="hero-title" id="review-title">{e(title)}</h2>
+      <div class="mgr">{e(d['manager'])} &middot; {e(d['league_name'])}</div></div>
+      <div class="hero-review">{verdict_html}<div class="tiles">{tile_html}</div></div>
+      <div class="hero-decision">{action_html}</div>
     </section>'''
 
     body = f"""
@@ -380,7 +380,7 @@ def render(d, standalone=True):
     <section class="card squad-pitch">
       <div class="card-head"><h2>Starting XI{components.info_btn()}</h2>
         <span class="subvis">Tap a player for the full breakdown.</span>
-        <span class="sub" hidden>Choose a period, then a figure. A faded crest means no minutes in GW{d['gw']}; the dot shows the predicted start for {next_label}.</span>
+        <span class="sub" hidden>Season and Last gameweek use your last published team. Next gameweek selects the best legal XI from your owned squad, then lets you preview the recommended transfers. xP is projected points before captain or chip multipliers. C is captain, V is vice-captain, and IN marks an incoming transfer. A faded crest means no minutes in GW{d['gw']}.</span>
       </div>
       <div class="pkview tabbar" role="tablist" aria-label="Pitch view">
         <button class="pkbtn" role="tab" aria-selected="true" data-view="ov">Season</button>
@@ -396,9 +396,24 @@ def render(d, standalone=True):
         </div>
         <button class="epbtn" aria-pressed="false" hidden>predicted points</button>
       </div>
+      <div class="pitch-context" aria-live="polite">
+        <p data-pkview="ov">Last published squad · season figures</p>
+        <p data-pkview="gw" hidden>Last published squad · GW{d['gw']} points</p>
+        <div data-pkview="pk" hidden>
+          <div class="lineup-summaries">
+            <p data-lineup="owned">{e(d.get('owned_lineup_note', 'Suggested XI unavailable: supported projections are required.'))}</p>
+            <p data-lineup="transfers" hidden>{e(d.get('transfer_lineup_note', 'Transfer preview unavailable.'))}</p>
+          </div>
+          <button type="button" class="lineup-toggle" role="switch" aria-checked="false" {'disabled' if not d.get('transfer_pick_pitch') else ''}>Apply suggested transfers</button>
+          <p class="lineup-preview-note">{e(d.get('transfer_preview_note', 'No suggested transfers to preview.'))}</p>
+        </div>
+      </div>
       <div class="pitch-panels">
         <div class="pkpanel" data-view="ov">{d['pitch']}</div>
-        <div class="pkpanel" data-view="pk" hidden>{d['pick_pitch']}</div>
+        <div class="pkpanel" data-view="pk" hidden><div class="lineup-variants">
+          <div data-lineup="owned">{d['pick_pitch']}</div>
+          <div data-lineup="transfers" hidden>{d.get('transfer_pick_pitch', '')}</div>
+        </div></div>
       </div>
     </section>
     </div>
@@ -726,7 +741,11 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         if ep:
             eps.append((r, ep))
     eps_by_id = {r.element["id"]: ep for r, ep in eps}
-    cap_matrix = captaincy.matrix(ctx, xi, eps_by_id)
+    blank_ids = {r.element["id"] for r in xi + bench if not any(
+        fx.get("event") == next_gw and r.element["team"] in (fx["team_h"], fx["team_a"])
+        for fx in ctx.fixtures)}
+    owned_lineup = next_squad.select(xi + bench, eps_by_id, blank_ids) if advice_supported else None
+    cap_matrix = captaincy.matrix(ctx, owned_lineup["xi"], eps_by_id) if owned_lineup else None
 
     elite_res = None
     if elite_depth:
@@ -941,11 +960,57 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     # see chips.literal_best_xi for why reusing that number here was wrong.
     next_ideal = chips.literal_best_xi(ctx, xi, proj, market, baselines, next_gw)
 
+    action = next_action.choose(swaps, pairings, free_ts, moves_available, next_gw,
+        (("freehit", "Free Hit", fh), ("3xc", "Triple Captain", tc), ("bboost", "Bench Boost", bb)),
+        used if chips_verified else None)
+    chip_name = {"freehit": "Free Hit", "3xc": "Triple Captain", "bboost": "Bench Boost"}.get(action.get("chip"))
+    chip_note = f"Suggested chip: {chip_name}" if chip_name else "No chip suggested"
+    if action.get("chip") == "freehit":
+        chip_note += " — replacement squad is in the chip planner"
+    preview_reports, preview_eps, transfer_lineup = [], {}, None
+    moves = action.get("moves", [])
+    preview_note = "No suggested transfers to preview."
+    if owned_lineup and moves:
+        try:
+            preview_reports = [analysis.build_player(ctx, move["in"]["id"], ttl=ttl) for move in moves]
+            changed = next_squad.apply_transfers(xi + bench, preview_reports, moves, bank, sell_values)
+            if changed:
+                preview_eps = dict(eps_by_id)
+                for r in preview_reports:
+                    photos[r.element["id"]] = fplapi.photo_data_uri(r.element)
+                    ep = analysis.expected_points(r, ctx, proj, next_gw, market=market, baselines=baselines)
+                    if ep:
+                        preview_eps[r.element["id"]] = ep
+                preview_blanks = {r.element["id"] for r in changed if not any(
+                    fx.get("event") == next_gw and r.element["team"] in (fx["team_h"], fx["team_a"])
+                    for fx in ctx.fixtures)}
+                transfer_lineup = next_squad.select(changed, preview_eps, preview_blanks)
+            preview_note = (f"Preview only · {len(moves)} transfer{'s' if len(moves) != 1 else ''} · {analysis.transfer_cost(len(moves), free_ts)}-point hit. Check your actual squad and bank."
+                            if transfer_lineup else "Transfer preview unavailable: a legal, affordable squad and supported projections are required.")
+            fplapi.note("transfer preview", bool(transfer_lineup), "Recommended moves verified" if transfer_lineup else preview_note)
+        except fplapi.FplError as ex:
+            preview_note = "Transfer preview unavailable: incoming player history could not be loaded."
+            fplapi.note("transfer preview", False, str(ex)[:120])
+
+    def team_pitch(team, scores, incoming_ids=()):
+        if not team:
+            return '<p class="lineup-unavailable">Suggested XI unavailable. Supported single-fixture projections for the squad are required. Your published team remains available in Season and Last gameweek.</p>'
+        # select() permits missing scores only for confirmed blanks.
+        team_eps = [(r, scores.get(r.element["id"], {"total": 0.0})) for r in team["xi"] + team["bench"]]
+        return pick_team_pitch(team["xi"], team["bench"], ctx, badges, shirts,
+                               team["captain"], team["vice"], proj, market, next_gw, team_eps, incoming_ids)
+
+    def team_note(team, label):
+        if not team:
+            return "Suggested XI unavailable: supported projections are required."
+        captain = next(r.name for r in team["xi"] if r.element["id"] == team["captain"])
+        return f"{label} · {'–'.join(map(str, team['formation']))} · Captain {captain} · {chip_note}"
+
+    dialog_eps = eps + [(r, preview_eps.get(r.element["id"])) for r in preview_reports]
+
     return {
         "ctx": ctx,
-        "next_action": next_action.choose(swaps, pairings, free_ts, moves_available, next_gw,
-            (("freehit", "Free Hit", fh), ("3xc", "Triple Captain", tc), ("bboost", "Bench Boost", bb)),
-            used if chips_verified else None),
+        "next_action": action,
         "captain_summary": cap_matrix["candidates"][0] if cap_matrix and advice_supported else None,
         "gw": gw,
         "team_name": meta.get("name", "My team"),
@@ -965,8 +1030,11 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "my_xgi": my_xgi,
         "xgi_note": xgi_note,
         "pitch": pitch(xi, bench, ctx, badges, shirts, cap, vice, gw=gw),
-        "pick_pitch": pick_team_pitch(xi, bench, ctx, badges, shirts, cap,
-                                      vice, proj, market, next_gw, eps),
+        "pick_pitch": team_pitch(owned_lineup, eps_by_id),
+        "transfer_pick_pitch": team_pitch(transfer_lineup, preview_eps, {r.element["id"] for r in preview_reports}) if transfer_lineup else "",
+        "owned_lineup_note": team_note(owned_lineup, "Best owned XI"),
+        "transfer_lineup_note": team_note(transfer_lineup, "With suggested transfers"),
+        "transfer_preview_note": preview_note,
         "chip_planner": chip_planner_card(fh, tc, bb, wc, used, xi, bench,
                                           ctx, badges, shirts, proj, market,
                                           next_gw),
@@ -1009,7 +1077,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                   "Free-transfer count unavailable - price any move beyond "
                   "your first at 4 points.")),
         "dialog": player_dialog([
-            player_payload(r, ctx, proj, ep, next_gw, photos) for r, ep in eps
+            player_payload(r, ctx, proj, ep, next_gw, photos) for r, ep in dialog_eps
         ] + [
             player_payload(r, ctx, proj, None, next_gw, photos)
             for r in xi + bench if not any(r is q for q, _ in eps)
@@ -1046,10 +1114,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "rank_move": rank_move,
         "verdict": verdict,
         "next_line": next_week_line(ctx, xi, eps, next_gw) if advice_supported else "",
-        "projected_xi": sum(
-            ep["total"] for r, ep in eps
-            if r.element["id"] in set(xi_ids)
-        ) if advice_supported else None,
+        "projected_xi": owned_lineup["value"] if owned_lineup else None,
         "sell_value": total_sell,
         # Anyone you would want to know about before the deadline, each with
         # the reason. A tile that names a player and not what is wrong with
