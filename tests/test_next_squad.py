@@ -2,6 +2,7 @@
 import unittest
 from copy import copy
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import next_squad
 import cards_squad
@@ -82,6 +83,24 @@ class NextSquadTests(unittest.TestCase):
         html=cards_squad.pick_card(r,self.ctx,{}, {},None,None,{}, {},8)
         self.assertIn('Unavailable',html)
         self.assertNotIn('>Blank<',html)
+
+    def test_next_fixture_separates_opponent_and_position_metric(self):
+        r=SimpleNamespace(element=self.reports[2].element, pos='DEF', team='C3',
+                          name='Defender',price=5,availability=(None,''))
+        self.ctx.fixtures=[{'event':8,'team_h':r.element['team'],'team_a':'OTHER'}]
+        fixture={'opp':'E<V','home':True,'cs':45.6,'xg':1.75}
+        with patch('cards_squad.ticker._rows_for',return_value=[fixture]):
+            html=cards_squad.pick_card(r,self.ctx,{}, {},None,None,{}, {},8,ep={'total':5})
+            self.assertIn('E&lt;V <small>(H)</small>',html)
+            self.assertIn('<span>CS</span> <b>46%</b>',html)
+            self.assertIn('Team clean-sheet chance',html)
+            self.assertNotIn('<span>Team xG</span>',html)
+            r.pos='FWD'
+            fixture['home']=False
+            html=cards_squad.pick_card(r,self.ctx,{}, {},None,None,{}, {},8,ep={'total':5})
+            self.assertIn('E&lt;V <small>(A)</small>',html)
+            self.assertIn('<span>Team xG</span> <b>1.75</b>',html)
+            self.assertIn('Expected team goals',html)
 
     def test_action_exposes_only_the_moves_it_actually_selects(self):
         old=self.reports[2];incoming=self.incoming(old,98,5)

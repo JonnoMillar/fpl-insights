@@ -281,8 +281,6 @@ def render(d, standalone=True):
 
     tiles = [
         ("Gameweek", eh.get("points", "-"), gw_note, "", gw_tone),
-        ("Projected", f"{projected:.1f}" if projected else "-",
-         f"best owned XI, {next_label}", "", ""),
         # "up 1.5m" beside "1,218,139 overall" read as a contradiction - two
         # millions, one a movement and one a position, neither saying which.
         # The chip says what it is.
@@ -291,6 +289,8 @@ def render(d, standalone=True):
          rank_chip, ""),
         ("League", f"{d['my_rank']}/{d['league_size']}" if d["my_rank"] else "-",
          e(d["league_name"]), lg_chip, ""),
+        ("Projected", f"{projected:.1f}" if projected else "-",
+         f"best owned XI, {next_label}", "", ""),
         ("XI needs a look", len(attention),
          "; ".join(f"{nm} &mdash; {why}" for nm, why in attention[:2])
          + ("&hellip;" if len(attention) > 2 else "")
@@ -304,11 +304,16 @@ def render(d, standalone=True):
           if d.get("sell_value") else
           f"squad {eh.get('value', 0) / 10:.1f}m"), "", ""),
     ]
-    tile_html = "".join(
-        f'<div class="tile {"tile-primary" if k in ("Gameweek", "Projected") else "tile-secondary"} {tone}"><div class="k">{e(k)}</div>'
-        f'<div class="v tnum">{e(v)}{chip}</div><div class="n">{n}</div></div>'
-        for k, v, n, chip, tone in tiles
-    )
+    score_groups = []
+    for group_id, label, group_tiles in (("recent", "Just happened", tiles[:3]),
+                                         ("upcoming", "Up next", tiles[3:])):
+        tile_html = "".join(
+            f'<div class="tile {"tile-primary" if k in ("Gameweek", "Projected") else "tile-secondary"} {tone}"><div class="k">{e(k)}</div>'
+            f'<div class="v tnum">{e(v)}{chip}</div><div class="n">{n}</div></div>'
+            for k, v, n, chip, tone in group_tiles
+        )
+        score_groups.append(f'<section class="score-group score-{group_id}" aria-labelledby="score-{group_id}">'
+                            f'<h2 id="score-{group_id}">{label}</h2><div class="tiles">{tile_html}</div></section>')
     # The review stays put when the pitch changes period.
     verdict = d.get("verdict") or ""
     verdict_html = f'<p class="hero-line">{verdict}</p>' if verdict else ""
@@ -346,7 +351,7 @@ def render(d, standalone=True):
       <div class="brief-links"><a data-dashboard-jump href="#action-method">How it's chosen</a><a data-dashboard-jump href="#chip-planner">Review chips ↗</a></div>
     </aside>'''
     hero_html = f'''<section class="hero" aria-label="Weekly scorecard">
-      <div class="tiles">{tile_html}</div>
+      {"".join(score_groups)}
     </section>'''
 
     body = f"""
@@ -392,7 +397,7 @@ def render(d, standalone=True):
     <section class="card squad-pitch">
       <div class="team-sheet-head"><div class="card-head"><h2>Starting XI{components.info_btn()}</h2>
         <span class="subvis">Select a player to explore</span>
-        <span class="sub" hidden>Season and Last gameweek use your last published team. Next gameweek selects the best legal XI from your owned squad, then lets you preview the recommended transfers. xP is projected points before captain or chip multipliers. C is captain, V is vice-captain, and IN marks an incoming transfer. A faded crest means no minutes in GW{d['gw']}.</span>
+        <span class="sub" hidden>Season and Last gameweek use your last published team. Next gameweek selects the best legal XI from your owned squad, then lets you preview the recommended transfers. xP is projected points before captain or chip multipliers. C is captain, V is vice-captain, and IN marks an incoming transfer. CS is the team clean-sheet chance; team xG is expected team goals. A faded crest means no minutes in GW{d['gw']}.</span>
       </div>
       <div class="pkview tabbar" role="tablist" aria-label="Pitch view">
         <button class="pkbtn" role="tab" aria-selected="true" data-view="ov">Season</button>

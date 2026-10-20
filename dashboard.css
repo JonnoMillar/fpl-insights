@@ -2447,26 +2447,31 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   padding:20px; background:var(--surface); border:1px solid var(--outline-variant); border-radius:8px; box-shadow:var(--shadow)}
 .tabs{margin:8px 0 0}
 .tabs>button{min-height:40px; padding:8px 20px}
-.data-status{font-size:12px; margin:8px 0 12px}
+.data-status{font-size:12px; margin:4px 0 8px}
 .squad-overview{display:grid; grid-template-columns:280px minmax(0,1fr); grid-template-areas:"review review" "brief pitch"; gap:14px; align-items:start; margin-bottom:16px}
 .squad-overview>*{min-width:0}
-.squad-overview>.hero{grid-area:review; border:1px solid var(--outline-variant); padding:0; background:var(--surface); color:var(--ink); border-radius:10px; box-shadow:none; margin:0}
-.squad-overview .tiles{display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:0; margin:0}
-.squad-overview .tile{border:0; border-right:1px solid var(--outline-variant); border-radius:0; background:none; padding:9px 16px; min-width:0}
+.squad-overview>.hero{grid-area:review; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; border:0; padding:0; background:none; color:var(--ink); box-shadow:none; overflow:visible; margin:0}
+.score-group{min-width:0; margin:0; overflow:hidden; border-radius:10px; background:#eae3ed; border:1px solid #d9cfdd}
+.score-group h2{font-size:12px; line-height:18px; font-weight:600; font-stretch:100%; text-transform:none; letter-spacing:0; margin:0; padding:4px 14px; border-bottom:1px solid #d9cfdd}
+.score-upcoming{background:#e2ece4; border-color:#cddbcf}
+.score-upcoming h2{border-color:#cddbcf; color:#235d3b}
+.squad-overview .tiles{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; margin:0}
+.squad-overview .tile{border:0; border-right:1px solid #d9cfdd; border-radius:0; background:none; padding:6px 14px; min-width:0}
+.squad-overview .score-upcoming .tile{border-color:#cddbcf}
 .squad-overview .tile:last-child{border-right:0}
 .squad-overview .tile .k{font-size:12px; letter-spacing:0; text-transform:none; color:var(--p80)}
 .squad-overview .tile .v{font-size:25px; line-height:1.2; margin:3px 0; color:var(--ink); gap:6px}
 .squad-overview .tile .n{font-size:12px; color:var(--p80); line-height:1.35; overflow-wrap:anywhere}
-.squad-overview .tile:first-child{background:var(--ink); color:white}
-.squad-overview .tile:first-child .k,.squad-overview .tile:first-child .n{color:#e7d8e9}
-.squad-overview .tile:first-child .v{color:#8affc4}
-.squad-overview .tile:nth-child(2) .v{color:var(--accent-ink)}
+.squad-overview .score-recent .tile:first-child{background:var(--ink); color:white}
+.squad-overview .score-recent .tile:first-child .k,.squad-overview .score-recent .tile:first-child .n{color:#e7d8e9}
+.squad-overview .score-recent .tile:first-child .v{color:#8affc4}
+.squad-overview .score-upcoming .tile:first-child .v{color:var(--accent-ink)}
 .squad-overview .tile-warn .v{color:var(--attention-ink)}
 .squad-overview .tile .delta-up{color:var(--good-ink); background:var(--good-wash)}
 .squad-overview .tile .delta-down{color:var(--bad-ink); background:var(--bad-wash)}
 .squad-overview .hero-line{border:0; border-top:1px solid var(--outline-variant); padding:8px 16px; margin:0; max-width:none; font-size:13px; color:var(--p80)}
 .squad-overview .hero-line b{color:var(--ink)}
-.decision-brief{grid-area:brief; background:var(--surface); border:1px solid var(--outline-variant); border-radius:10px; padding:18px; overflow-wrap:anywhere}
+.decision-brief{grid-area:brief; background:#eae3ed; border:1px solid var(--outline-variant); border-radius:10px; padding:18px; overflow-wrap:anywhere}
 .brief-heading{display:flex; align-items:center; justify-content:space-between; gap:8px}
 .brief-heading h2{font-size:15px; font-stretch:100%; text-transform:none; letter-spacing:0}
 .brief-heading>span{font:12px var(--mono); color:var(--p80)}
@@ -2502,20 +2507,20 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .brief-caveat{font-size:12px; line-height:1.5; color:var(--p80); border-top:1px solid var(--outline-variant); padding-top:12px; margin:6px 0}
 .brief-links{display:flex; flex-wrap:wrap; gap:0 12px; font-size:12px}
 .brief-links a{display:inline-flex; align-items:center; min-height:36px; text-underline-offset:3px}
-.squad-overview>.squad-pitch{grid-area:pitch; margin:0; --squad-player-height:76px; border-radius:10px; overflow:hidden}
-.team-sheet-head{display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--outline-variant)}
+.squad-overview>.squad-pitch{grid-area:pitch; margin:0; --squad-player-height:112px; --pitch-a:#176f48; --pitch-b:#145f40; container-type:inline-size; border-radius:10px; overflow:hidden; background:#eae3ed}
+.team-sheet-head{background:#eae3ed; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--outline-variant)}
 .team-sheet-head .pkview{border-bottom:0; align-self:stretch}
 .squad-pitch .card-head{border:0; padding:10px 16px; gap:12px; flex-wrap:wrap}
 .squad-pitch .card-head h2{font-size:16px}
 .squad-pitch .card-head .subvis{display:none}
 .squad-pitch .pkview{padding:0 12px}
 .squad-pitch .pkview>button{font-size:13px; min-height:38px; padding:8px 14px}
-.squad-pitch .pitch-controls{padding:3px 16px; min-height:44px; gap:8px; background:var(--surface); flex-wrap:nowrap}
+.squad-pitch .pitch-controls{padding:3px 16px; min-height:44px; gap:8px; background:#eae3ed; flex-wrap:nowrap}
 .squad-pitch .pitch-metric{font-size:12px; font-weight:500}
 .squad-pitch:has(.pkbtn[data-view="pk"][aria-selected="true"]) .pitch-metric{display:none}
 .squad-pitch .pitch-controls .stbtn{font-size:12px; min-height:36px; padding:6px 10px}
 .squad-pitch .pitch-controls .epbtn{font-size:12px}
-.pitch-context{display:grid; padding:5px 16px; border-top:1px solid var(--outline-variant); background:var(--surface-variant)}
+.pitch-context{display:grid; padding:5px 16px; border-top:1px solid var(--outline-variant); background:#dedbe1}
 .pitch-context>*,.lineup-summaries>*{grid-area:1/1; margin:0}
 .pitch-context>[hidden],.lineup-summaries>[hidden],.lineup-variants>[hidden]{display:block; visibility:hidden; pointer-events:none}
 .pitch-context p{font-size:12px; line-height:1.5; margin:0}
@@ -2530,24 +2535,55 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .lineup-toggle[aria-checked="true"] .lineup-thumb{transform:translateX(16px)}
 .lineup-toggle:disabled{opacity:.55; cursor:default}
 .lineup-toggle:focus-visible{outline:3px solid var(--accent-ink); outline-offset:3px; border-radius:4px}
-/* Four equal lanes make formation changes legible without resizing the field. */
-.squad-pitch .pitch,.squad-pitch .pkstage.ep-on .pitch{display:grid; grid-template-rows:repeat(4,var(--squad-player-height)); gap:8px; padding:10px 12px}
+/* The same four lanes and card footprint serve every period and formation. */
+.squad-pitch .pitch,.squad-pitch .pkstage.ep-on .pitch{display:grid; grid-template-rows:repeat(4,var(--squad-player-height)); gap:6px; padding:8px 12px}
 .squad-pitch .pitch>.row,.squad-pitch .pkstage.ep-on .pitch .row{display:flex; flex-wrap:nowrap; align-items:stretch; margin:0; gap:10px}
-.squad-pitch .row>.pl{flex:0 0 min(104px,calc((100% - 40px)/5)); width:auto; min-width:0; height:var(--squad-player-height); border-radius:5px}
-.squad-pitch .pl .crest{height:26px}
-.squad-pitch .pl .crest img.kit,.squad-pitch .pl .crest img.crestimg{width:26px; height:26px}
-.squad-pitch .pl .nm{font-size:12px; padding:1px 3px; line-height:16px}
-.squad-pitch .pl:not(.pk) .sc{height:32px; align-items:center}
-.squad-pitch .pl .sc div{font-size:19px; line-height:24px; padding:4px 1px}
-.squad-pitch .pk .pk-fx{height:14px; line-height:13px; padding:0 2px; text-align:center}
-.squad-pitch .pk .fxpill{font-size:9px; padding:0 3px; line-height:13px; vertical-align:top}
-.squad-pitch .pk-xp{display:flex; align-items:baseline; justify-content:center; height:18px; font-size:16px; font-weight:700; line-height:16px; padding:0 1px}
-.squad-pitch .pk-xp small{font-size:9px; font-weight:400; line-height:1; padding-left:2px}
+.squad-pitch .row>.pl{display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:40px 20px 28px 24px;
+  flex:0 0 min(90px,calc((100% - 40px)/5)); width:auto; min-width:0; height:var(--squad-player-height); border-radius:6px; background:#faf6ee}
+.squad-pitch .pl .crest{grid-column:1; grid-row:1; height:auto; background:#ede5d8}
+.squad-pitch .pl .crest img.kit,.squad-pitch .pl .crest img.crestimg{width:36px; height:36px}
+.squad-pitch .pl .nm{grid-column:1; grid-row:2; align-self:center; background:none; color:var(--ink); font-size:12px; padding:1px 3px; line-height:18px}
+.squad-pitch .pl:not(.pk) .sc{grid-column:1; grid-row:3 / 5; height:auto; align-self:stretch; align-items:center; justify-content:center}
+.squad-pitch .pl .sc div{font-size:22px; line-height:26px; padding:0 1px}
+.squad-pitch .pk .pk-fx{grid-column:1; grid-row:3; display:flex; flex-direction:column; justify-content:center; height:auto; line-height:14px; padding:0 2px; text-align:center}
+.squad-pitch .pk-opponent{font-size:10px; line-height:14px; font-weight:600; color:var(--p80); white-space:nowrap}
+.squad-pitch .pk-opponent small{font-size:9px; font-weight:400}
+.squad-pitch .pk-market{font-size:9px; line-height:14px; white-space:nowrap; color:var(--p80)}
+.squad-pitch .pk-market b{font-weight:600; color:var(--ink)}
+.squad-pitch .pk .fxpill{font-size:9px; padding:0 2px; background:none; color:var(--p80); white-space:normal}
+.squad-pitch .pk-xp{grid-column:1; grid-row:4; display:flex; align-items:baseline; justify-content:center; gap:3px; height:auto; font-size:19px; font-weight:700; line-height:21px; padding:0 1px}
+.squad-pitch .pk-xp small{font-size:10px; font-weight:400; line-height:1; padding:0}
 .squad-pitch .pl .arm{top:3px; left:3px; width:15px; height:15px; font-size:10px}
 .squad-pitch .pl .pip{top:5px; right:5px; width:7px; height:7px}
-.squad-pitch .benchstrip{padding:6px 12px 10px; min-height:102px; border-top:1px solid var(--outline-variant)}
-.squad-pitch .benchstrip .lbl{font-size:11px; text-transform:none; letter-spacing:0; line-height:16px; margin-bottom:2px}
+.squad-pitch .benchstrip{padding:4px 12px 8px; border-top:1px solid #bacdbc; background:#dce6dc}
+.squad-pitch .benchstrip .lbl{font-size:11px; text-transform:none; letter-spacing:0; line-height:16px; margin-bottom:2px; color:#405e48}
 .squad-pitch .benchstrip .row{flex-wrap:nowrap; margin:0; gap:10px}
+/* Wide cards spend the available grass on larger shirts and separate data columns. */
+@container(min-width:750px){
+  .squad-pitch .pitch,.squad-pitch .pkstage.ep-on .pitch{--squad-player-height:76px}
+  .squad-pitch .benchstrip{--squad-player-height:76px}
+  .squad-pitch .row>.pl{grid-template-columns:48px minmax(0,1fr) 48px; grid-template-rows:24px 52px; flex-basis:min(180px,calc((100% - 40px)/5))}
+  .squad-pitch .pl .crest{grid-column:1; grid-row:1 / 3}
+  .squad-pitch .pl .crest img.kit,.squad-pitch .pl .crest img.crestimg{width:44px; height:48px}
+  .squad-pitch .pl .nm{grid-column:2 / 4; grid-row:1; font-size:13px; text-align:left; padding:2px 6px; line-height:20px}
+  .squad-pitch .pl:not(.pk) .sc{grid-column:2 / 4; grid-row:2; justify-content:flex-start; padding-left:6px}
+  .squad-pitch .pl .sc div{font-size:25px; text-align:left}
+  .squad-pitch .pk .pk-fx{grid-column:2; grid-row:2; text-align:left; padding:0 0 6px 6px; gap:3px}
+  .squad-pitch .pk-opponent{font-size:11px; line-height:16px}
+  .squad-pitch .pk-market{font-size:10px; line-height:16px}
+  .squad-pitch .pk-xp{grid-column:3; grid-row:2; align-items:center; flex-direction:column; justify-content:center; gap:1px; font-size:20px; line-height:24px; padding-bottom:4px}
+  .squad-pitch .incoming-badge{top:auto; bottom:3px; right:auto; left:18px}
+}
+@container(min-width:750px) and (max-width:953px){
+  .squad-pitch .row>.pl{grid-template-columns:44px minmax(0,1fr) 44px}
+  .squad-pitch .pl .crest img.kit,.squad-pitch .pl .crest img.crestimg{width:40px; height:44px}
+  .squad-pitch .pk .pk-fx{gap:0; padding-bottom:2px}
+  .squad-pitch .pk-market{display:flex; flex-direction:column; font-size:10px; line-height:12px}
+  .squad-pitch .pk-xp{font-size:18px; line-height:22px}
+}
+@container(min-width:954px){
+  .squad-pitch .pk-opponent,.squad-pitch .pk-market{font-size:12px}
+}
 .squad-pitch .pkboard{width:100%}
 .squad-pitch .pkstage{display:block; position:relative}
 .squad-pitch .pkboard-head{display:none}
@@ -2568,14 +2604,14 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   .wrap>.tabs{grid-column:2; grid-row:1; align-self:center; margin:0}
 }
 @media(min-width:801px) and (max-height:850px){
-  .squad-overview>.squad-pitch{--squad-player-height:66px}
-  .squad-pitch .pl .crest{height:20px}
-  .squad-pitch .pl .crest img.kit,.squad-pitch .pl .crest img.crestimg{height:20px; width:24px}
-  .squad-pitch .pl .nm{font-size:11px; line-height:14px}
-  .squad-pitch .pk-xp{height:16px; font-size:15px; line-height:14px}
-  .squad-pitch .benchstrip{min-height:92px}
-  .squad-pitch .pl:not(.pk) .sc{height:30px}
-  .squad-pitch .pl .sc div{padding-block:3px}
+  @container(min-width:750px){
+    .squad-pitch .pitch,.squad-pitch .pkstage.ep-on .pitch,.squad-pitch .benchstrip{--squad-player-height:66px}
+    .squad-pitch .row>.pl{grid-template-rows:22px 44px}
+    .squad-pitch .pl .crest img.kit,.squad-pitch .pl .crest img.crestimg{width:40px; height:42px}
+    .squad-pitch .pl .nm{font-size:12px; line-height:18px}
+    .squad-pitch .pk .pk-fx{padding-bottom:4px; gap:0}
+    .squad-pitch .pk-xp{font-size:19px; line-height:21px; padding-bottom:3px}
+  }
   .decision-brief{padding:14px 18px}
   .brief-action{margin:10px 0}
   .transfer-pair{padding:7px 0}
@@ -2587,7 +2623,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 @media(max-width:1099px){
   .squad-overview{grid-template-columns:245px minmax(0,1fr); gap:12px}
   .decision-brief{padding:14px}
-  .squad-overview .tile{padding:10px}
+  .squad-overview .tile{padding:6px 10px}
   .squad-overview .tile .v{font-size:23px}
   .team-sheet-head{flex-wrap:wrap}
   .team-sheet-head .pkview{width:100%}
@@ -2597,9 +2633,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 }
 @media(max-width:800px){
   .squad-overview{grid-template-columns:minmax(0,1fr); grid-template-areas:"review" "pitch" "brief"}
-  .squad-overview .tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .squad-overview .tile:nth-child(3){border-right:0}
-  .squad-overview .tile:nth-child(-n+3){border-bottom:1px solid var(--outline-variant)}
+  .squad-overview>.hero{grid-template-columns:minmax(0,1fr); gap:8px}
   .decision-brief{padding:18px}
   .product-intro{grid-template-columns:minmax(0,1fr)}
   .product-intro .intro-links{grid-column:1; grid-row:auto; gap:20px; justify-content:flex-start}
@@ -2627,12 +2661,17 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   .squad-pitch .pkview{padding:0 4px}
   .squad-pitch .pkview>button{font-size:12px; padding:8px 10px}
   .squad-pitch .pitch-controls{padding-inline:10px}
+  .squad-overview>.squad-pitch{--squad-player-height:128px}
+  .squad-pitch .row>.pl{grid-template-rows:40px 20px 44px 24px}
   .squad-pitch .pitch,.squad-pitch .pkstage.ep-on .pitch{padding-inline:8px}
   .squad-pitch .pitch>.row,.squad-pitch .pkstage.ep-on .pitch .row,.squad-pitch .benchstrip .row{gap:6px}
-  .squad-pitch .row>.pl{flex-basis:min(76px,calc((100% - 24px)/5))}
+  .squad-pitch .row>.pl{flex-basis:min(90px,calc((100% - 24px)/5))}
   .squad-pitch .pl .nm{font-size:10px; padding-inline:1px}
   .squad-pitch .pl .arm{width:13px; height:13px; font-size:9px; left:2px; top:2px}
   .squad-pitch .incoming-badge{font-size:8px; right:2px; top:2px; padding:1px}
-  .squad-pitch .pk .fxpill{font-size:8px; padding-inline:1px}
+  .squad-pitch .pk .fxpill{font-size:9px; padding-inline:1px}
+  .squad-pitch .pk .pk-fx{gap:2px}
+  .squad-pitch .pk-market{display:flex; flex-direction:column; font-size:9px; line-height:12px}
+  .squad-pitch .pk-market b{font-size:12px; line-height:16px}
   .squad-pitch .pitch-context{padding-inline:10px}
 }

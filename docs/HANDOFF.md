@@ -1,12 +1,26 @@
 # HANDOFF — FPL Insights
 
-Last updated: 20 October 2026, compact matchday redesign verified on `codex/design-density`. Ready for Jonno's review; not integrated or published.
+Last updated: 21 October 2026, grouped scorecards and roomier player tiles verified on `codex/design-density`. Ready for Jonno's review; not integrated or published.
 
 ## Status
 
 Jonno intends to link the live dashboard on his CV. The first phase was a deep audit of glaring functional, correctness and reliability risks, followed by fixes. That phase is complete and live at [FPL Insights](https://fpl-insights-jm.vercel.app/).
 
 The brand/UI/visitor review is documented in the [design brief and prioritised plan](audits/2026-10-14-design-brief.md). Jonno reviewed the comparison and explicitly requested the implementation below. His feedback supersedes the proposed removal of the review hero: keep it on both desktop and mobile, add linked next actions, stabilise the pitch and improve narrow layouts. The purple/green/warm-paper identity, existing forecast calculations, correctness guards and dependency-free architecture remain. Read the [audit and resolution notes](audits/2026-10-13-cv-readiness.md) for correctness evidence; avoid repeating the completed audit without new evidence.
+
+## Scorecard grouping and player balance — 21 October 2026
+
+- Jonno accepted the compact redesign's direction and requested less dominant white, larger/less cramped shirts and next-gameweek fixture figures, less empty grass, and two top groups: **Just happened = Gameweek / Total / League** on the left; **Up next = Projected / XI needs a look / In the bank** on the right. That exact order is implemented. The groups stack on phones.
+- Applied muted plum surfaces to the recent scorecard, briefing and pitch controls; muted green to upcoming facts and the bench; warm cream to player tiles. The pitch greens are quieter. Strong purple remains concentrated in the gameweek score and chrome.
+- Desktop player tiles now use the pitch width: up to **180px wide**, with a separate shirt column, name/fixture column and projected-points column. Normal image boxes are **44×48px**, previously 26×26; short desktop uses **40×42px**, previously 24×20. Tightened the lane gaps/outer grass and bench padding rather than growing the desktop view. Normal field is **338px**, short desktop **298px**, with the same 76/66px player heights as the prior checkpoint. At 1280×800 the full team sheet still ends near **y=788**, and at 1440×900 near **y=838**.
+- Fixtures show opponent and explicit H/A venue separately from labelled **CS** (GKP/DEF) or **Team xG** (MID/FWD). Projections remain xP before captain/chip multipliers. Missing fixture estimates still say Unavailable and confirmed blanks remain Blank. A regression test caught an unknown-opponent fallback during implementation; corrected it and retained that boundary. Existing forecast values, recommendation policy and budget/ownership guards are unchanged.
+- Container width selects horizontal or stacked tiles. Narrow desktop and phone layouts stack the market label/value instead of squeezing or dropping information. Phone tiles are 128px high with 36px shirts and larger market values; the page scrolls naturally. All three periods and both transfer states retain identical field/player/bench/card geometry at each tested viewport. The transfer switch, movement, incoming highlights and Out/In pairs are preserved.
+- **Verification:** **81 unittest tests passed**, including the new position-specific CS/xG formatting, H/A and escaping check; `git diff --check` passed. Complete build at **21 October 00:34 BST (20 October 23:34 UTC)** reported all **10 health entries OK**, with projections/line-ups served from cache. Final HTML uses that snapshot; not a fresh-network source verification. Tracked generated HTML, projections and price history are unchanged.
+- Playwright/Chromium checks at **1897×897, 1440×900, 1280×800, 1100×900, 768×1024, 390×844 and 320×740** cover exact scorecard order/placement, desktop arrival fit, fixed geometry across periods/previews, owned/changed 11+4 membership, captain/vice, incoming dialogs and focus, stable breakdown overlays, disabled unsupported previews, all four main tabs, no sampled horizontal overflow or page errors. Separate final checks confirm no player-card vertical clipping or market-value horizontal overflow across all seven sizes. Inspected desktop and phone screenshots and corrected tight-width Team xG overflow. Motion/rapid toggles/reduced motion and methods/pitch help passed again. Physical devices, other browsers and comprehensive screen-reader/zoom coverage remain unverified.
+- Review: [updated dashboard](http://127.0.0.1:8768/balance/after.html). Source snapshot, screenshots and browser scripts/results live in the visualization folder's `balance/` subfolder. The localhost server on **8768** was restarted and remains available for review; stop afterwards. No dependencies added.
+- Work remains isolated on `codex/design-density` in the existing Codex worktree. Main/Claude's planner have advanced independently (main inspected at `9a99d87`); they were not changed or integrated. The preview still uses this branch's earlier recommendation policy. Integrate Claude's new first-week moves/chip/gain horizon with the brief and pitch together before publication.
+
+Next gate: Jonno reviews this refinement. No push or publication. `/clear` is safe after the review checkpoint; resume from this section.
 
 ## Compact matchday redesign checkpoint — 20 October 2026
 

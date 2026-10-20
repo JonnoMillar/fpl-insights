@@ -9,7 +9,7 @@ import ffs
 import pulse
 import ticker
 from analysis import f
-from cards_common import TONE_COLOR, e, meter, pos_fixture_pill, script_json
+from cards_common import TONE_COLOR, e, meter, script_json
 
 
 # FPL's own five-step difficulty scale, background and text, straight from
@@ -158,14 +158,19 @@ def pick_card(r, ctx, badges, shirts, captain_id, vice_id, proj, market,
         title += f" - {flag}. {news}"
 
     fx_rows = ticker._rows_for(r.team, proj, market, next_gw, 1)
-    fx_html = (
-        pos_fixture_pill(r.pos, fx_rows[0]["opp"], fx_rows[0]["home"],
-                         fx_rows[0]["cs"], fx_rows[0]["xg"])
-        if fx_rows else ""
-    )
+    fx_html = ""
+    if fx_rows and fx_rows[0]["opp"] is not None:
+        fixture = fx_rows[0]
+        defensive = r.pos in ("GKP", "DEF")
+        label = "CS" if defensive else "Team xG"
+        value = f"{fixture['cs']:.0f}%" if defensive else f"{fixture['xg']:.2f}"
+        description = "Team clean-sheet chance" if defensive else "Expected team goals"
+        venue = "H" if fixture["home"] else "A"
+        fx_html = (f'<span class="pk-opponent">{e(fixture["opp"])} <small>({venue})</small></span>'
+                   f'<span class="pk-market" title="{description}"><span>{label}</span> <b>{value}</b></span>')
     has_fixture = any(fx.get("event") == next_gw and el["team"] in (fx["team_h"], fx["team_a"])
                       for fx in ctx.fixtures)
-    if not has_fixture or not fx_rows:
+    if not has_fixture or not fx_rows or fx_rows[0]["opp"] is None:
         fx_html = '<span class="fxpill">Unavailable</span>' if has_fixture else '<span class="fxpill">Blank</span>'
 
     xp = f'{ep["total"]:.1f}' if ep else "—"
