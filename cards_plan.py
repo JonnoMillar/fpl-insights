@@ -60,6 +60,11 @@ def _move_html(m, ctx, week_moves=()):
                          f"{e(partner['in_name'])}")
         elif m["in_cheap"]:
             notes.append("a cheaper player who frees money")
+    if m.get("urgent") == "out":
+        notes.append(f"worth the hit: {e(out_el['web_name'])} is ruled out")
+    elif m.get("urgent") == "in":
+        notes.append(f"worth the hit: {e(in_el['web_name'])} is top five in his "
+                     f"position on xGI per 90 with a fair fixture next")
     if m["waited"]:
         wt = m["waited"]
         weeks = (f"GW{wt['from_gw']}" if wt["from_gw"] == wt["to_gw"]
@@ -241,9 +246,14 @@ def plan_card(plan, ctx, shirts, badges):
 
     note = (f"Each week scores the best eleven from your fifteen, the captain twice, and the "
             f"bench by its chance of coming on (all of it on Bench Boost week). A plan may "
-            f"roll, or make one or two moves a week; a hit costs 4, every move must also "
+            f"roll, or make one or two moves a week. A hit costs 4 and is taken only this "
+            f"week, only when urgent: a starter ruled out, or a signing top five in his "
+            f"position on xGI per 90 with a fair next fixture. Every move must also "
             f"clear a {plan['margin']:.0f}-point margin, and a free transfer still banked "
-            f"at the end is worth {plan['ft_value']:.1f}. Later weeks count for less, "
+            f"at the end is worth {plan['ft_value']:.1f}. A chip is played only when its "
+            f"week beats waiting by {plan['chip_margin']:.0f} points, and an enabler is "
+            f"swapped for another bench player only ahead of a planned Bench Boost. "
+            f"Later weeks count for less, "
             f"because their projections are less certain. Uses the transfer model's "
             f"projections and current prices; the first week's captain follows the "
             f"captaincy card.")

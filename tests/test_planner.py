@@ -172,6 +172,72 @@ class AccountingTests(unittest.TestCase):
         self.assertEqual(len(ins), len(set(ins)))
 
 
+class HitTests(unittest.TestCase):
+    def test_two_big_upgrades_take_two_weeks_not_a_hit(self):
+        # Each upgrade is worth six a week, so the second one made now
+        # would beat the four-point hit. Nothing is urgent, though: make
+        # one this week and the other next week, both free.
+        rows, values = squad()
+        for pid in (103, 104):
+            rows[pid] = {"pos": "MID", "club": f"N{pid}", "price": 7.0}
+            values[pid] = flat(11.0)
+        _p, _best, plan = run(rows, values, ft=1)
+        self.assertTrue(all(w["hits"] == 0 for w in plan["weeks"]))
+        got = moves(plan)
+        self.assertEqual(sorted(gw for gw, _o, i in got if i in (103, 104)), [10, 11])
+
+    def test_ruled_out_starters_justify_a_hit(self):
+        rows, values = squad()
+        for pid, injured in ((103, 8), (104, 9)):
+            values[injured] = flat(0.0)
+            rows[pid] = {"pos": "MID", "club": f"N{pid}", "price": 7.0}
+            values[pid] = flat(10.0)
+        _p, _best, calm = run(rows, values, ft=1)
+        self.assertTrue(all(w["hits"] == 0 for w in calm["weeks"]))
+        _p, _best, plan = run(rows, values, ft=1, urgent={8, 9})
+        first = plan["weeks"][0]
+        self.assertEqual(first["hits"], 1)
+        self.assertEqual({m["out"] for m in first["moves"]}, {8, 9})
+        self.assertTrue(all(m["urgent"] == "out" for m in first["moves"]))
+
+    def test_hits_only_in_the_first_week(self):
+        p, _best, _plan = run(*squad(), urgent={8})
+        self.assertTrue(p.hit_ok([(8, 100)], 0))
+        self.assertFalse(p.hit_ok([(8, 100)], 1))
+        self.assertFalse(p.hit_ok([(9, 100)], 0))
+
+
+class FakeCtx:
+    def __init__(self, players, fdr):
+        self.players, self.fdr = players, fdr
+
+    def next_fixtures(self, team, count, gw):
+        return [(0, True, self.fdr[team], gw)]
+
+
+class UrgentIdsTests(unittest.TestCase):
+    def test_who_counts_as_urgent(self):
+        def el(pid, team, xgi, mins=630, status="a", chance=None):
+            return {"id": pid, "team": team, "minutes": mins, "status": status,
+                    "chance_of_playing_next_round": chance,
+                    "expected_goal_involvements_per_90": xgi}
+        players = {
+            1: el(1, 1, 0.1, status="i", chance=0),      # injured starter
+            2: el(2, 1, 0.1, status="i", chance=0),      # injured enabler
+            3: el(3, 2, 0.9),                            # elite, hard fixture
+            4: el(4, 3, 0.8),                            # elite, fair fixture
+            5: el(5, 3, 0.95, mins=250),                 # elite on too little
+            6: el(6, 3, 0.38),                           # Neto: good, not elite
+        }
+        for pid in range(7, 10):                         # three more above him,
+            players[pid] = el(pid, 2, 0.4 + pid / 100)   # all facing a hard game
+        rows = {p: {"pos": "MID", "price": 7.0} for p in players}
+        rows[2]["price"] = 4.5
+        got = planner.urgent_ids(FakeCtx(players, {1: 3, 2: 5, 3: 2}),
+                                 {1, 2}, rows, CAPS, 10)
+        self.assertEqual(got, {1, 4})
+
+
 class BenchBoostTests(unittest.TestCase):
     def chips(self):
         return [{"key": "bboost", "first": 0, "last": H - 1}]
@@ -195,6 +261,33 @@ class BenchBoostTests(unittest.TestCase):
         boost = next(w for w in plan["weeks"] if w["chip"] == "bboost")
         self.assertIn(100, boost["bench"])
         self.assertNotIn(2, boost["bench"])
+
+    def long(self, rows, values, extra=4):
+        for pid in values:
+            values[pid] = values[pid] + [values[pid][-1]] * extra
+        return [{"key": "bboost", "first": 0, "last": H + extra - 1}]
+
+    def test_bench_keeper_is_left_alone_until_the_boost_is_planned(self):
+        # The same playing keeper, but the boost's best week is after the
+        # plan ends: in the plan he would only sit on the bench, so the
+        # enabler swap is a dormant upgrade and waits for a later plan.
+        rows, values = squad()
+        rows[100] = {"pos": "GKP", "club": "X", "price": 4.5}
+        values[100] = flat(3.5)
+        chips = self.long(rows, values)
+        values[7][H + 1] = 12.0
+        _p, _best, plan = run(rows, values, chips=chips, bank=0.5, ft=2)
+        self.assertFalse(any(w["chip"] for w in plan["weeks"]))
+        self.assertNotIn(100, [i for _gw, _o, i in moves(plan)])
+
+    def test_flat_bench_holds_the_boost(self):
+        # Every week's bench is the same give or take a tenth: no week is a
+        # reason to play it, so it is held rather than spent on the noise.
+        rows, values = squad()
+        chips = self.long(rows, values)
+        values[7][0] = 3.1
+        _p, _best, plan = run(rows, values, chips=chips)
+        self.assertFalse(any(w["chip"] for w in plan["weeks"]))
 
     def test_chip_held_past_the_plan_is_reported(self):
         rows, values = squad()

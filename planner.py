@@ -51,8 +51,22 @@ DECAY = 0.9          # per-week discount: later projections are less certain
 FT_VALUE = 1.5       # a free transfer still banked at the end
 # Per move, on top of any hit: projections are noisy and the best-looking
 # move of many is flattered by that noise, so a move has to clear this to
-# be worth a transfer. Two points matches the margin the hero action used.
-TRANSFER_MARGIN = 2.0
+# be worth a transfer. Two points let a one-week haul (Neto, form 10 on
+# 0.38 xGI/90) look like a reason to move; three makes rolling the default.
+TRANSFER_MARGIN = 3.0
+# A hit is taken only when it is urgent, and only this week, where the news
+# is known: a starter ruled out, or a signing who is clearly elite on the
+# underlying numbers with a fair fixture next. A pair that merely projects
+# well rolls a week and is made with two free transfers instead.
+URGENT_CHANCE = 25        # chance of playing at or below this is "ruled out"
+MUST_HAVE_TOP = 5         # top N in the position on xGI per 90
+MUST_HAVE_MINUTES = 450   # enough football for per-90 numbers to mean much
+MUST_HAVE_MAX_FDR = 3     # FPL difficulty of his next fixture
+# A chip played now must beat its best later week by this much. With a
+# flat bench every week looks alike, and the first tie would otherwise burn
+# Bench Boost on whichever week the noise favoured, and with it the
+# chance to build a bench worth boosting.
+CHIP_MARGIN = 2.0
 FT_CAP = 5
 HIT = 4
 MAX_PER_WEEK = 2
@@ -113,12 +127,15 @@ class Planner:
     chips: [{"key": "bboost" | "3xc", "first": i, "last": i}] in week-index
         space, one per chip still available (a chip per half, so the same
         chip may appear twice across the half boundary).
+    urgent: ids whose move justifies a hit in the first week - squad
+        starters ruled out, and must-have signings. No hits otherwise.
     """
 
     def __init__(self, rows, values, squad, sell, bank, ft, caps,
                  chips=(), horizon=HORIZON, act_weeks=ACT_WEEKS,
-                 enabler_floor=None):
+                 enabler_floor=None, urgent=()):
         self.rows, self.values = rows, values
+        self.urgent = frozenset(urgent)
         self.squad0 = frozenset(squad)
         self.sell0 = dict(sell)
         self.bank0, self.ft0 = bank, ft
@@ -293,23 +310,31 @@ class Planner:
         free = st["ft"]
         hits = max(0, n - free)
         realized = (st["realized"] + self.w[i] * self.score(st["ids"], i)
-                    + (self.chip_gain(st["ids"], i, chip) if chip else 0.0)
+                    + (self.chip_gain(st["ids"], i, chip) - CHIP_MARGIN if chip else 0.0)
                     - HIT * hits - TRANSFER_MARGIN * n)
         played = st["played"] | ({chip_index} if chip_index is not None else set())
+        # An enabler swapped for another cheap player who still sits on the
+        # bench is only worth it for a Bench Boost; until one is played in
+        # the plan the move is pending, and a plan cannot end with one.
+        xi = set(self.week(st["ids"], i)["xi"])
+        dormant = sum(1 for o, c in st["week_moves"]
+                      if is_cheap(self.rows[o], self.caps)
+                      and is_cheap(self.rows[c], self.caps) and c not in xi)
+        pending = 0 if chip == "bboost" else st["pending"] + dormant
         week = {"i": i, "moves": st["week_moves"], "hits": hits,
                 "ft_before": free, "chip": chip, "bank": st["bank"]}
         nxt = {"ids": st["ids"], "bank": st["bank"], "sold": st["sold"],
                "realized": realized, "played": frozenset(played),
                "ft": min(FT_CAP, max(0, free - n) + 1),
                "weeks": st["weeks"] + [week], "week_moves": [],
-               "moved": st["moved"] + n}
+               "moved": st["moved"] + n, "pending": pending}
         nxt["eval"] = self._eval(nxt, i)
         return nxt
 
     def run(self):
         start = {"ids": self.squad0, "bank": self.bank0, "sold": frozenset(),
                  "realized": 0.0, "played": frozenset(), "ft": self.ft0,
-                 "weeks": [], "week_moves": [], "moved": 0}
+                 "weeks": [], "week_moves": [], "moved": 0, "pending": 0}
         beam = [start]
         for i in range(self.h):
             open_states = list(beam)
@@ -341,6 +366,8 @@ class Planner:
                             open_states.append(s2)
             closed = []
             for st in open_states:
+                if len(st["week_moves"]) > st["ft"] and not self.hit_ok(st["week_moves"], i):
+                    continue
                 closed.append(self._close_week(st, i))
                 # One chip a week at most; each instance is one half's chip,
                 # so its own week range already keeps it in that half.
@@ -349,8 +376,10 @@ class Planner:
                         continue
                     closed.append(self._close_week(st, i, c["key"], n))
             beam = self._select(closed)
-        best = max(beam, key=lambda s: s["eval"])
-        return best
+        return max((s for s in beam if not s["pending"]), key=lambda s: s["eval"])
+
+    def hit_ok(self, moves, i):
+        return i == 0 and any(o in self.urgent or c in self.urgent for o, c in moves)
 
     def _select(self, states):
         """Best BEAM_WIDTH distinct states, always keeping the best one that
@@ -362,10 +391,11 @@ class Planner:
                 uniq[key] = st
         ranked = sorted(uniq.values(), key=lambda s: -s["eval"])
         keep = ranked[:BEAM_WIDTH]
-        if not any(s["moved"] == 0 for s in keep):
-            idle = [s for s in ranked if s["moved"] == 0]
-            if idle:
-                keep.append(idle[0])
+        # Always keep a "do nothing" plan and one with nothing pending, so
+        # either can still win at the end.
+        for ok in (lambda s: s["moved"] == 0, lambda s: not s["pending"]):
+            if not any(ok(s) for s in keep):
+                keep.extend([s for s in ranked if ok(s)][:1])
         return keep
 
 
@@ -422,6 +452,43 @@ def chip_instances(next_gw, used, length):
     return out
 
 
+def ruled_out(el):
+    chance = el.get("chance_of_playing_next_round")
+    return (el.get("status") in ("i", "s", "u", "n")
+            or (chance is not None and chance <= URGENT_CHANCE))
+
+
+def urgent_ids(ctx, squad, rows, caps, next_gw):
+    """Players whose move may justify a hit this week.
+
+    Selling: a starter-priced squad player ruled out - an injured enabler
+    on the bench is no emergency. Buying: top MUST_HAVE_TOP in his
+    position on xGI per 90 over MUST_HAVE_MINUTES+, with a next fixture of
+    FPL difficulty MUST_HAVE_MAX_FDR or easier. Goalkeepers and defenders
+    never qualify on numbers: their points are mostly clean sheets, which
+    is the fixture, not the player.
+    ponytail: xGI per 90 only; add defensive contributions if a defender
+    ever clearly deserves a hit."""
+    out = {p for p in squad
+           if ruled_out(ctx.players[p]) and not is_cheap(rows[p], caps)}
+    by_pos = {}
+    for p in rows:
+        el = ctx.players[p]
+        if ruled_out(el) or el.get("minutes", 0) < MUST_HAVE_MINUTES:
+            continue
+        if rows[p]["pos"] in ("MID", "FWD"):
+            by_pos.setdefault(rows[p]["pos"], []).append(el)
+    for els in by_pos.values():
+        els.sort(key=lambda el: -float(el.get("expected_goal_involvements_per_90") or 0))
+        for el in els[:MUST_HAVE_TOP]:
+            if el["id"] in squad:
+                continue
+            nxt = ctx.next_fixtures(el["team"], 1, next_gw)
+            if nxt and nxt[0][3] == next_gw and nxt[0][2] <= MUST_HAVE_MAX_FDR:
+                out.add(el["id"])
+    return out
+
+
 def _display_points(planner, ids, i, chip):
     wk = planner.week(ids, i)
     pts = wk["xi_val"] + wk["cap_val"] * (2 if chip == "3xc" else 1)
@@ -465,9 +532,10 @@ def build(ctx, squad_reports, proj, market, baselines, next_gw, bank,
                      "price": el["now_cost"] / 10.0}
         values[pid] = weeks
 
+    caps = transfers.price_caps(ctx)
     planner = Planner(rows, values, squad, sell_values, bank, free_ts,
-                      transfers.price_caps(ctx), chip_instances(next_gw, used, length),
-                      horizon=h)
+                      caps, chip_instances(next_gw, used, length),
+                      horizon=h, urgent=urgent_ids(ctx, squad, rows, caps, next_gw))
     best = planner.run()
     idle = baseline(planner)
     return describe(planner, best, idle, gws, ctx, proj, captain_first)
@@ -520,6 +588,9 @@ def describe(planner, best, idle, gws, ctx=None, proj=None, captain_first=None):
                 "pos": planner.rows[c]["pos"],
                 "sell": planner.sell0[o], "price": planner.rows[c]["price"],
                 "in_club": planner.rows[c]["club"], "out_club": planner.rows[o]["club"],
+                # Why this week's hit was allowed, when it was.
+                "urgent": (None if not wk["hits"] else "out" if o in planner.urgent
+                           else "in" if c in planner.urgent else None),
                 "out_cheap": is_cheap(planner.rows[o], planner.caps),
                 "in_cheap": is_cheap(planner.rows[c], planner.caps),
                 # His own points against the man he replaces, from this
@@ -579,7 +650,7 @@ def describe(planner, best, idle, gws, ctx=None, proj=None, captain_first=None):
         "held_chips": held,
         "baseline_chips": [(gws[w["i"]], w["chip"]) for w in idle["weeks"] if w["chip"]],
         "show_weeks": SHOW_WEEKS,
-        "margin": TRANSFER_MARGIN, "ft_value": FT_VALUE,
+        "margin": TRANSFER_MARGIN, "ft_value": FT_VALUE, "chip_margin": CHIP_MARGIN,
     }
 
 
