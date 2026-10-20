@@ -1,12 +1,23 @@
 # HANDOFF — FPL Insights
 
-Last updated: 14 October 2026, checkpoint after Jonno's requested hero, pitch, mobile layout and portrait improvements. Working source is verified locally; not deployed.
+Last updated: 20 October 2026, apple-design CV showcase assessment complete. No application edits or publication in this review; the latest UI source still differs from the live artifact.
 
 ## Status
 
 Jonno intends to link the live dashboard on his CV. The first phase was a deep audit of glaring functional, correctness and reliability risks, followed by fixes. That phase is complete and live at [FPL Insights](https://fpl-insights-jm.vercel.app/).
 
 The brand/UI/visitor review is documented in the [design brief and prioritised plan](audits/2026-10-14-design-brief.md). Jonno reviewed the comparison and explicitly requested the implementation below. His feedback supersedes the proposed removal of the review hero: keep it on both desktop and mobile, add linked next actions, stabilise the pitch and improve narrow layouts. The purple/green/warm-paper identity, existing forecast calculations, correctness guards and dependency-free architecture remain. Read the [audit and resolution notes](audits/2026-10-13-cv-readiness.md) for correctness evidence; avoid repeating the completed audit without new evidence.
+
+## CV showcase review checkpoint — 20 October 2026
+
+- Jonno requested an apple-design assessment for a recruiter/engineering hiring manager: five presentation improvements and a concrete direction before editing. Read [the assessment](audits/2026-10-20-apple-design-showcase.md) for measured evidence, source locations, guideline references, a token/type proposal and desktop/mobile structure. This is a proposal, not an approved implementation.
+- Inspected live arrival (20 October, 08:12 UTC snapshot) and the historical local `revised.html` build. Live still has older pitch controls and no linked hero actions; local CSS and embedded dashboard.js/scout.js/playerview.js/ticker.js match current source exactly. The local 14 October snapshot displays an expected overdue warning; do not describe it as a live-feed outage or current transfer advice.
+- Five priorities: explain purpose/author/source on arrival; compose the retained weekly review beside the pitch and compact it on mobile; surface Planning decisions and Scout comparison; tighten typography/card hierarchy; finish navigation, control targets and feedback. Preserve the purple/green/paper identity, both type families, hero on both sizes, stable pitch and all existing functionality.
+- Browser evidence: local hero 718px high at 390px, tabs at y≈906px, pitch at y≈1,208px; at 320px these are 871px / 1,059px / 1,380px. With the unfiltered defender pool at 390px, comparison starts roughly 3,362px below the first selection. Information-button hit boxes are 16×16px. The report distinguishes design comfort targets from web accessibility requirements.
+- Sampled all four tabs at 1440/390/320, Scout's three positions, team filter/two-player compare, pitch periods/metric visibility, hero captain destination/focus, keyboard tabs, player dialog/Escape/focus restoration, Total sorting and reduced-motion styles. No sampled document overflow or recorded console errors. No fresh build, regression run, physical-device, cross-browser, enlarged-text or performance claim. Application and generated files unchanged.
+- Local evidence remains in untracked `.playwright-mcp/`. The temporary review server for this audit on port 8767 is stopped after use; the older comparison server recorded below was not changed. Documentation-only `git diff --check` is the checkpoint verification. Commit only this assessment and HANDOFF; preserve pre-existing `.agents/` and `.playwright-mcp/`.
+
+Next gate: Jonno's response to the proposed direction. The highest-impact implementation is compact purpose/navigation plus a desktop review/pitch composition, keeping the requested hero and all six summary facts. If implementation is requested, verify a current-data source build before publication; do not simply publish the historical review HTML.
 
 ## Current implementation checkpoint — 14 October 2026
 
@@ -105,5 +116,5 @@ Do not introduce a framework, bundler, database, account system or paid service 
 ## Resume prompt
 
 ```text
-Read AGENTS.md and docs/HANDOFF.md. The requested hero actions, stable pitch controls, mobile grids, standings and official portrait update are implemented and verified locally, not deployed. Review Jonno's feedback on the revised comparison. If he requests publication, fetch/integrate scheduled commits, run fresh artifact and regression checks, verify source health/projections and desktop/mobile flows, then use the existing Git deployment. Preserve the review hero on both sizes, correctness fixes, visible model limits, phone-feed compatibility and lightweight architecture.
+Read AGENTS.md, docs/HANDOFF.md and docs/audits/2026-10-20-apple-design-showcase.md. The apple-design CV review is complete; its direction is proposed, with no application edits. Incorporate Jonno's feedback before implementing. Preserve the weekly review hero on desktop and mobile, stable pitch, existing functionality, correctness guards, visible model limits, phone-feed compatibility and Python/vanilla JavaScript architecture. Current source differs from the live UI; the local review HTML contains historical data. If publication is requested, fetch/integrate scheduled commits, run a fresh complete artifact build and regressions, verify source health/projections and browser flows, then use the existing Git deployment.
 ```
