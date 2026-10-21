@@ -1,6 +1,6 @@
 # HANDOFF — FPL Insights
 
-Last updated: 21 October 2026, five switchable Squad palette studies verified on `codex/design-density`. Awaiting Jonno’s palette choice; production styling is unchanged from the prior checkpoint.
+Last updated: 21 October 2026, palette experiment reverted at Jonno’s request. Restored the pre-palette version (`c04fe81`); frontend work now handed to Claude.
 
 ## Status
 
@@ -8,17 +8,14 @@ Jonno intends to link the live dashboard on his CV. The first phase was a deep a
 
 The brand/UI/visitor review is documented in the [design brief and prioritised plan](audits/2026-10-14-design-brief.md). Jonno reviewed the comparison and explicitly requested the implementation below. His feedback supersedes the proposed removal of the review hero: keep it on both desktop and mobile, add linked next actions, stabilise the pitch and improve narrow layouts. The purple/green/warm-paper identity, existing forecast calculations, correctness guards and dependency-free architecture remain. Read the [audit and resolution notes](audits/2026-10-13-cv-readiness.md) for correctness evidence; avoid repeating the completed audit without new evidence.
 
-## Five palette studies — 21 October 2026
+## Palette experiment reverted — 21 October 2026
 
-- Jonno found the last pass too purple and requested **five switchable palettes**, with deliberate attention colours and recognisable FPL cues. He explicitly limited this to enough of the page to compare, rather than implementing all tabs. Used the frontend-design skill to retain the existing type/layout and spend the accent on upcoming decisions instead of recolouring every block loudly.
-- [Open the palette study](http://127.0.0.1:8768/palettes/). Five buttons above the scorecards switch instantly: **Touchline** (forest/mint), **Cyan pulse** (navy/cyan), **Pink accent** (charcoal/pink), **Lime press** (olive/lime), **Floodlights** (dark/mint). Swatches and a short attention-role explanation accompany each. The URL fragment preserves the selected option on reload. My suggested starting direction is Cyan pulse; Jonno has not selected one.
-- Purple is concentrated in the small masthead; the next-action link and Projected total receive the main accent. Recent results are quieter. Incoming players/gains remain green, losses red, availability amber. Player cards stay pale for clear shirts/figures, including in the dark direction. Existing transfer state and totals survive palette switches; no data or advice policy changed.
-- This is a **disposable preview**, built from the prior verified HTML by `docs/design/palettes/build.py`; `preview.js` and `preview.css` contain the five token sets and overrides. The picker temporarily replaces the team introduction in the copy so desktop fit is preserved. Source/data/live artifacts are unchanged. Main tabs remain functional, but only Squad is refined for these palettes. README records palette roles, core hex values and rebuild instructions. No dependencies, network refresh, merge, push or publication.
-- **Verification:** Playwright/Chromium passed all **35 combinations** (5 palettes × 1897/1440/1280/1100/768/390/320px): selected state, no sampled page/button overflow, equal pitch height, desktop full-XI/bench fit at 1440×900 and 1280×800, transfer toggle and incoming profiles, retained preview totals/state through theme changes, keyboard activation, URL reload and no page errors. Sampled visible text contrast in the picker, topbar and Squad workspace passes the 4.5:1 normal / 3:1 large-text thresholds. Fixed the initially weak dark vice-captain badge and dark outgoing/loss text. The initial preview toolbar exceeded the 1280×800 fit by eight pixels; compacted it and reran successfully.
-- Visually inspected all five desktop screenshots, phone directions and the dark player dialog. `node --check docs/design/palettes/preview.js` passed; builder boundary check rejected incomplete HTML without writing output and verified the complete preview's language/charset/viewport metadata; `git diff --check` passed. The production regression suite was not repeated for this isolated design prototype (prior checkpoint: 85 passed). Other browsers/devices and a comprehensive accessibility audit remain unverified.
-- Cached input remains the **21 October 00:07 UTC** snapshot. The visualization folder's `palettes/` contains generated HTML, screenshots, Playwright script and `verification.json`. Existing localhost **8768** server is available for review; stop afterwards. Codex worktree only; Claude/main remain separate.
+- Jonno rejected the five palettes and requested the exact state from before that experiment. Reverted `720e6f3`, removing the palette prototype sources and restoring the prior handoff. Application source matches **`c04fe81`**. Keep the compact layout, transfer previews, weekly impact and navigation already present at that checkpoint.
+- Jonno will use Claude for frontend work. Do not continue design iterations unless asked. No merge, push, publication or changes to Claude/main.
+- Restored preview: [pre-palette dashboard](http://127.0.0.1:8768/contrast/after.html). The old `/palettes/` preview now serves the same pre-palette HTML so refreshing that URL also removes the experiment.
+- Verification: compared all tracked files against `c04fe81`, excluding this handoff update; no differences. `git diff --check` passed. No application code changed, so the previous checkpoint’s test/browser results apply; not rerun for removing the isolated prototype.
 
-Next gate: Jonno picks a direction or combines specific parts, then implement the chosen palette consistently in production source. `/clear` is safe after review; resume here.
+Next step: Claude owns frontend changes. `/clear` is safe; resume from this rollback note if needed.
 
 ## Colour and section contrast — 21 October 2026
 
