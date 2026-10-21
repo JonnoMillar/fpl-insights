@@ -1,6 +1,6 @@
 # HANDOFF — FPL Insights
 
-Last updated: 21 October 2026, reviewed pre-palette UI integrated with Claude’s transfer planner for local main. Verified source and generated artifact; not pushed or published. Claude owns subsequent frontend work.
+Last updated: 21 October 2026. Local main holds Codex's reviewed UI merged with Claude's transfer planner (second review applied). Not pushed or published. Claude owns frontend and planner work from main; a separate data-research audit is in progress under `research/`.
 
 ## Data research audit — 21 October 2026 (Phase 1 checkpoint)
 
@@ -11,6 +11,13 @@ Last updated: 21 October 2026, reviewed pre-palette UI integrated with Claude’
 - Verification at this gate: source/cached-schema traces reviewed; audit report links and `git diff --check` passed. No application changes, so no build or application regression run needed for this documentation checkpoint.
 
 Next gate: finish landscape convergence, ranked gaps, acquisition evidence and local samples. `/clear` is safe only after resuming from this section and `research/log.md`; work continues in the current chat.
+
+## Claude: planner and frontend next — 21 October 2026
+
+- **State:** feat/transfer-planner is fully contained in main (0 commits ahead). Work from main from now on. The worktree `.claude/worktrees/transfer-planner` can be removed once Jonno agrees.
+- **Next task (requested by Jonno, unblocked now that Codex has merged):** render the Transfer plan's moves with the existing suggested-transfer card design (Codex's restyled cards), then collapse the old Suggested transfers section into a disclosure titled "Other transfer options". Acceptance: plan cards show out/in, price, bank and gain per week. The hero and sidebar jump still focus the plan week. 1440/375/320 show no overflow. Tests and `node --check` pass.
+- **Awaiting Jonno:** (1) whether to push/publish: fetch and integrate origin's newer generated commits first, then run the full gates; (2) a yes to build the Wildcard + Bench Boost comparison. The analysis and factors are under "Transfer plan review applied" below, with B (transfers, then Bench Boost, then Wildcard) as the default view; (3) his sanity check on Cherki being sold (missed GW7, 2 starts in his last 3).
+- **Open model question:** the Squad pitch uses match-history xP and the plan uses the season-based transfer scorer. They give different first-week totals (66.1 vs 70.0 for the same XI in this snapshot). Consolidating them is a separate decision; not started.
 
 ## Status
 
@@ -244,6 +251,9 @@ The fixes are in commit f3578be, followed by the successful automated refresh 33
 - Some Premier League portrait requests return 403. Existing shirt fallbacks work; these permanent failures now stop retrying immediately.
 - GitHub authentication works when tools have the required host/network access. A sandboxed auth error initially looked like an invalid token; the approved host check succeeded. Do not ask Jonno to re-authenticate on that evidence alone.
 - Vercel CLI credentials were unavailable. An automatic login prompt was cancelled; no account settings changed. Publication succeeded through the existing Git integration, so CLI login is not a prerequisite for this route.
+- The preview config "dashboard" (`.claude/launch.json`, port 8795) serves the **main checkout root**, not a worktree. A worktree's page is at `/.claude/worktrees/<name>/dashboard.html`. Plain `/dashboard.html` is main's page. An earlier link pointed Jonno at the wrong page.
+- FFS team-news pages carry player photos in sidebar widgets before the first club block. Only `<li class="team-news-item">` blocks may be parsed (fixed 21 Oct). A player read as "unknown" line-up falls back to a 75% start, which hides benched players.
+- To probe the planner on real data without a rebuild, wrap `planner.build` during a cached build (`--ttl 99999999`, price history redirected to scratch) and pickle its arguments. The 21 Oct session's probe scripts lived in its scratchpad and are gone; recreate as needed.
 - The stopped local server that worked used port 8766 outside the network sandbox. The first sandboxed server on 8765 was unreachable. Use approved tool access if the same socket restriction recurs.
 
 ## Next: brand, UI consistency and visitor walkthrough
@@ -278,7 +288,7 @@ Do not introduce a framework, bundler, database, account system or paid service 
 
 ## Open questions for Jonno
 
-- **Next review gate:** Jonno's response to the stable pitch/owned-XI/transfer-toggle pass, followed by integration with Claude's section/suggestion changes.
+- **Next review gate:** see "Claude: planner and frontend next": publish decision, Wildcard + Bench Boost build, Cherki check.
 - **Non-blocking:** how much explanatory guidance the CV visitor needs without slowing experienced FPL users. The showcase objective is established; use a mixed-audience assumption until clarified.
 - No unresolved blocker from the functional-repair phase.
 
@@ -293,5 +303,5 @@ Do not introduce a framework, bundler, database, account system or paid service 
 ## Resume prompt
 
 ```text
-Read AGENTS.md, docs/HANDOFF.md and the Apple review. Continue codex/design-density in C:/Users/jonno/.codex/worktrees/design-density/fpl-insights. Latest preview: http://127.0.0.1:8768/pitch/. Hero now stretches beside the pitch, and actual field/cards/bench stay fixed across all periods. Jonno clarified that Next gameweek defaults to the best owned XI, with a toggle to preview suggested transfers, green IN highlights and correct captain/chip labels. 80 tests and six-width browser checks passed. Claude is independently editing the transfer planner; do not overwrite or silently merge that work. On integration, source the preview's moves/chip from Claude's first-week plan so it agrees with the new hero. Preserve public-squad, selling-value, unsupported-fixture and phone-feed guards. No publication yet; integrate scheduled commits and run the full fresh-data release gates first.
+Read AGENTS.md and docs/HANDOFF.md, starting with "Claude: planner and frontend next". Work on main in C:/Users/jonno/code/fpl-insights (not the old transfer-planner worktree). Task: render the Transfer plan's weekly moves with the existing suggested-transfer card design, and collapse the old Suggested transfers section into an "Other transfer options" disclosure. Keep the plan as the single source for the hero, the sidebar jump and the next-week preview (next_action.choose(plan, ...), next_squad.from_plan). Verify with python -m unittest discover -s tests -t ., node --check on edited scripts, a cached build, and browser checks at 1440/375/320 (preview "dashboard" serves main's root on 8795). Do not stage research/, .agents/ or .playwright-mcp/: another session's data-research audit is in progress there. Do not push or publish until Jonno says so; before publishing, integrate origin's newer generated commits and rerun the gates.
 ```
