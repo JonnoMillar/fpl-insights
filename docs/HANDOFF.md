@@ -2,6 +2,16 @@
 
 Last updated: 21 October 2026, reviewed pre-palette UI integrated with Claude’s transfer planner for local main. Verified source and generated artifact; not pushed or published. Claude owns subsequent frontend work.
 
+## Data research audit — 21 October 2026 (Phase 1 checkpoint)
+
+- User requested five phases of broad analyst-data research, 20+ ranked gaps, 3+ tested acquisition routes for each top-eight gap, and 5+ local working component samples, all under `research/`. No production changes, publishing, paid accounts or spend.
+- Phase 1 complete: `research/current-data.md` traces all active endpoints, used fields, cache versus build cadence, UI/model consumers, unused fields and broad payload passthrough. Evidence: `research/evidence/repo-audit-notes.md`, baseline `5546ef7`.
+- Verified source issue: Pulselive touches has five pages in the local cache but `pulse.ranked` reads four; news/source timestamps and some price metadata are fetched but discarded. No fixes applied. Current generated timestamp is distinct from input freshness.
+- Independent research/acquisition is in progress; `research/log.md` is the running entry point. Raw public probe datasets stay ignored; selected response metadata and samples will be committed.
+- Verification at this gate: source/cached-schema traces reviewed; audit report links and `git diff --check` passed. No application changes, so no build or application regression run needed for this documentation checkpoint.
+
+Next gate: finish landscape convergence, ranked gaps, acquisition evidence and local samples. `/clear` is safe only after resuming from this section and `research/log.md`; work continues in the current chat.
+
 ## Status
 
 Jonno intends to link the live dashboard on his CV. The first phase was a deep audit of glaring functional, correctness and reliability risks, followed by fixes. That phase is complete and live at [FPL Insights](https://fpl-insights-jm.vercel.app/).
