@@ -1,12 +1,25 @@
 # HANDOFF — FPL Insights
 
-Last updated: 21 October 2026, palette experiment reverted at Jonno’s request. Restored the pre-palette version (`c04fe81`); frontend work now handed to Claude.
+Last updated: 21 October 2026, reviewed pre-palette UI integrated with Claude’s transfer planner for local main. Verified source and generated artifact; not pushed or published. Claude owns subsequent frontend work.
 
 ## Status
 
 Jonno intends to link the live dashboard on his CV. The first phase was a deep audit of glaring functional, correctness and reliability risks, followed by fixes. That phase is complete and live at [FPL Insights](https://fpl-insights-jm.vercel.app/).
 
 The brand/UI/visitor review is documented in the [design brief and prioritised plan](audits/2026-10-14-design-brief.md). Jonno reviewed the comparison and explicitly requested the implementation below. His feedback supersedes the proposed removal of the review hero: keep it on both desktop and mobile, add linked next actions, stabilise the pitch and improve narrow layouts. The purple/green/warm-paper identity, existing forecast calculations, correctness guards and dependency-free architecture remain. Read the [audit and resolution notes](audits/2026-10-13-cv-readiness.md) for correctness evidence; avoid repeating the completed audit without new evidence.
+
+## Reviewed UI and planner integration on main — 21 October 2026
+
+- Jonno explicitly requested committing the restored, pre-palette version to **main**. Main already contained Claude’s reviewed planner through `8819237`; merged that history with `codex/design-density`, preserving both implementations. No palette experiment remains in the final tree. No new design iteration or planner-policy change.
+- Resolved the overlapping CSS, renderer, action chooser and handoff. The brief’s moves/chip now come from `next_action.choose(plan, ...)`; convert the first-week move IDs to existing report/player objects for profile links and explanations. The preview applies those exact moves with the existing shared-budget/selling-value/club guards and keeps the plan’s **XI, bench order, captain and vice** through `next_squad.from_plan`, validating membership, formation, armbands and supported forecasts. Main’s recent-minutes model, urgency/margin/chip rules and all planner tests are preserved.
+- Existing scoring distinction remains: the Squad pitch/weekly delta uses match-history xP, while the multiweek plan uses its season-based transfer scorer. The Starting XI information disclosure now says this explicitly; do not describe the two forecasts as identical. In this snapshot Hughes→Rudoni is the first-week move; the pitch reads **64.8 owned / 66.1 preview / +1.3 GW8 xP, no hit**. The plan’s first-week projection is **70.0**, with the same selected XI/captain and its own scorer. Future scorer consolidation is a separate decision for Claude, not part of this merge.
+- Shortened the existing availability fallback to **predicted bench**, retaining the meaning while avoiding an extra scorecard line that pushed the bench eight pixels below 1280×800. The rest of the reviewed layout/colours remain. The old Suggested transfers/plan-card redesign is still deferred to Claude.
+- **Verification:** all **110 unittest tests passed**, combining both suites and adding plan-preview membership/armband/formation/missing-vs-blank guards. Updated the obsolete test that still called the retired swaps/pairs chooser signature. All root JavaScript files pass `node --check`; `git diff --check` passes. Complete build at **21 October 13:32 UTC (14:32 BST)** reports **10 source-health entries OK**, using the existing cache with a 24-hour TTL; this is not fresh-network verification. An HTTP 403 portrait used the established fallback.
+- Playwright/Chromium passed at **1440×900, 1280×800, 1100×900, 768×1024, 390×844, 375×812 and 320×740**: stable period geometry, desktop full-XI/bench fit, exact first-week plan/preview players and armbands, incoming profiles, weekly total/delta agreement, sidebar-to-plan focus jump, all eight plan-week pitches and keyboard tabs, main tabs, no sampled document overflow or page errors. Inspected desktop/phone Squad and full Planning screenshots. Other browsers, physical devices and full accessibility/zoom coverage remain unverified.
+- Regenerated **dashboard-artifact.html**, **projections.json** (GW8, 668 players, compatible public interface) and price history from the verified combined source. Complete language/encoding/viewport HTML checked. Build input, HTML, screenshots and browser results are in the visualization folder’s `integration/`. Preview: [merged dashboard](http://127.0.0.1:8768/integration/after.html).
+- Updated local main only. No push or deployment. Fetched origin for inspection; its four newer generated commits remain on origin/main until a future deliberate publication integration. Main’s untracked `.agents/` and `.playwright-mcp/`, and Claude’s worktrees, were untouched. Keep this Codex worktree for provenance; Claude continues frontend work from main.
+
+Next gate: Claude continues frontend changes. Before publishing, fetch/integrate newer generated commits and rerun the appropriate gates. `/clear` is safe; resume from this section.
 
 ## Palette experiment reverted — 21 October 2026
 
@@ -16,6 +29,56 @@ The brand/UI/visitor review is documented in the [design brief and prioritised p
 - Verification: compared all tracked files against `c04fe81`, excluding this handoff update; no differences. `git diff --check` passed. No application code changed, so the previous checkpoint’s test/browser results apply; not rerun for removing the isolated prototype.
 
 Next step: Claude owns frontend changes. `/clear` is safe; resume from this rollback note if needed.
+
+## Transfer plan review 2 — 21 October 2026
+
+- **Groß.** The plan sold him whoever the target was (Manzambi, else Kudus), even with xG weight cut to 0.25. The cause was the targets' roles: three recent starts were treated as a nailed role for eight weeks. With the minutes model below he is kept. His model projection (~4.5/week) still sits well under his 8.3 points per game: it trusts 1.16 xA over 6 actual assists. That is deliberate regression, not a bug.
+- **Gvardiol and minutes.** A scraper bug in fplapi._parse_ffs_predicted read page chrome (watchlist and app-promo widgets) as a club called "Download the FFScout app", so Gvardiol was "unknown", not benched, and scored as a 75% starter. That is fixed and tested. Beyond the predicted line-up, the plan now takes start chance from the last 3 matches plus next week's predicted line-up, drifting 25% back toward the season rate each week (planner.start_chances; candidate_score accepts p_start). Gvardiol: 16% next-but-one week, 48% by GW13. Van Hecke beats that, so the plan sells him after GW8.
+- **Real-data plan (21 Oct cache):** GW8 Hughes→Rudoni, GW9 Gvardiol→Van Hecke, GW10 roll, GW11 Cherki→Saka + Konsa→Vuskovic (two free). No hits, +28.7, Bench Boost held to GW17. 96 tests pass.
+- **UI requested, deferred until Codex lands:** render plan moves with the suggested-transfer card design, and collapse the old Suggested transfers section into "Other transfer options". Deferred because Codex is restyling the same cards.
+- **Codex integration plan (codex/design-density, based on dc67b26):** it changes next_action.py (old swaps/pairs chooser plus explain_move, moves/projected_gain/horizon/chip fields) and adds next_squad.py (a next-week team preview). The model stays the source of truth: keep choose(plan, ...), keep Codex's added fields, and adapt explain_move to plan moves. Feed Codex's next-week preview from plan weeks[0] (xi, bench, captain) instead of a second selection, or retire next_squad in favour of the plan pitch with Codex's styling. Take Codex's CSS and layout wholesale, then restyle plan cards on its transfer-card component. Order: Codex merges to main first, main merges into feat/transfer-planner, resolve, run both test suites, build, then browser-check at 1440/375/320.
+
+## Transfer plan review applied — 20 October 2026
+
+Jonno's review, and what changed:
+
+- **Margin and hits.** The margin rises from 2 to 3 points per move. A hit is allowed only in the coming week and only when it's urgent. Urgent means a starter-priced squad player is ruled out (status i/s/u/n or chance of playing ≤25%). It also covers a must-have signing: top five in his position on xGI per 90 (450+ minutes, MID/FWD only), with a next fixture of FPL difficulty ≤3. Otherwise a great pair rolls a week and is made with two free transfers. The plan card notes why a hit was taken. Jonno doubted Neto, and the data agrees: £6.5m, xGI/90 0.38, with form 10 coming from one haul. He was not force-in material.
+- **Enablers.** Jonno's rule: an enabler is never upgraded while he stays in a dormant bench spot. The structure floor already held cheap-player numbers. Now an enabler swapped for another *benched* cheap player is a pending move, and a plan can't end with one unless a Bench Boost is played later in the same plan. This removed GW11 Dubravka→Kinsky (+0.0 in plan; it was paying only for a Bench Boost held to GW17). Moving an enabler to a cheap player who *starts* (Hughes→Rudoni) is allowed.
+- **Chip hold margin.** A chip is played only when its week beats its best later week by 2 points. Without this, the flat real bench (13.2–13.7 every week) burned Bench Boost in GW10 on noise.
+- **Venue.** Home/away is already priced into each fixture: FFS per-club-gameweek xG and clean-sheet odds, bookmaker lines for the next round. Adding a separate venue factor would double-count it.
+- **Real-data plan (cached 20 Oct, 1 FT):** GW8 Hughes→Rudoni (free, +8.2), GW9 Groß→Manzambi (+14.6), GW10 Hall→Vuskovic (waits out LIV/MCI, +5.5), then rolls. No hits. Bench Boost held (best week GW17). +28.3 over GW8–15 against no transfers.
+- **Verification:** 91 unittest tests pass (6 new). Mutation checks: the hit gate, pending-dormant filter and chip margin each fail a test when removed. `node --check` on all scripts and `git diff --check` pass. The artifact build passes with all 9 sources OK (FFS projections and line-ups served from cache within TTL). projections.json has gw 8 and 668 players. Browser: hero "Make 1 transfer" opens Planning and focuses plan-gw-8. No document overflow at 375/320px, and no element overflow on any of the 8 week pitches. The only console 404 came from a probe fetch. Not done: backtesting, physical phones.
+- **Preview:** preview "dashboard" serves the **main checkout** root on 8795. The plan is at http://localhost:8795/.claude/worktrees/transfer-planner/dashboard.html. Plain /dashboard.html is main's page, with no plan.
+
+### Next gate: Wildcard + Bench Boost (analysis only, not built)
+
+Jonno's two orders: (A) Wildcard week N into a fifteen-starter squad, Bench Boost N+1, then banked transfers move money from the bench back to the XI; (B) transfers build the Bench Boost bench, Bench Boost, then Wildcard back to the long-term template (11 strong starters, one decent bench player, 3 enablers). Free transfers survive a Wildcard (rule since 2024/25, cap 5), and both first-half chips expire after GW19.
+
+Default view: **B usually wins.** A Wildcard's lasting value is the squad it leaves. In B it lands exactly on the template for the next fixture run. In A it's spent on a squad dismantled a week later, and getting back needs roughly six transfers: sell bench mid-pricers for enablers, then upgrade starters. A wins when the Bench Boost week needs wholesale change (a double gameweek) and four or five free transfers are banked to unwind it.
+
+Factors to model, comparing A, B and "Bench Boost with ordinary transfers, Wildcard saved":
+1. Bench Boost gain in its week under each path.
+2. Cost of the detour against the template path: weaker XI in B's build-up weeks, money stranded on the bench in A's unwind weeks.
+3. Transfers each path needs against free transfers banked (cap 5, kept through Wildcard), and the hits implied.
+4. Quality of the post-Wildcard squad over the next 6–8 weeks: when the following fixture swing arrives.
+5. Chip deadlines (GW19 / GW38), one chip per week, Free Hit and Triple Captain timing.
+6. Double gameweeks: advice is withheld while doubles are unmodelled, though doubles are where most Bench Boost value lies.
+
+Build: a horizon-weighted best-fifteen for the Wildcard week (squadbuilder exists, check it fits), then score all three paths over the same window with the planner's week scorer. Show the winner and the margin.
+
+## Transfer plan checkpoint — 20 October 2026 (first build, superseded in part above)
+
+Jonno's requests: stop suggestions that upgrade bench enablers (Diop, Hughes, Dubravka); time transfers by fixtures (e.g. don't buy Brighton defenders into LIV away, MCI away); show up to three weeks of planned moves with later weeks behind a disclosure; add a per-gameweek pick-team pitch showing starters, captain, ins/outs and chips.
+
+- **planner.py**: beam search over 8 GWs (moves allowed in the first 6). Per week the plan may roll or make 1-2 moves from a move list built once from the current squad. Objective: best XI + captain twice + bench weights (0.21/0.06/0.02, reserve GK 0.03; whole bench on Bench Boost); 4 per hit; 2-point margin per move; 1.5 per banked FT at the end; 0.9 weekly discount. Chips are judged *undiscounted* against their best later week this half (discounting made the plan burn Bench Boost in GW8). Bench Boost and Triple Captain are planned; Free Hit and Wildcard are not. Never sells a player it signed; never buys back a player it sold. Takes about 2 seconds on real data.
+- **Enabler structure (transfers.py)**: a cheap player costs at most the position's cheapest starting price + 0.5 (4.5 GK/DEF, 5.0 MID/FWD; every playing budget keeper costs 4.5). Enablers are the cheap players on the projected bench, up to 3. The squad must keep at least that many cheap players. A single enabler move must be to another cheap player; a restructure (enabler out, cheap player in at another position, same week) is allowed. Applied to suggest, pair_suggestions, verdict_board and kneejerk as well as the plan.
+- **Scorer fix**: candidate_score no longer applies low-evidence tempering to players the predicted line-up leaves out. It had scored zero-minute Dubravka at a ~50% start (2.4/week; Hughes 2.1).
+- **UI**: cards_plan.py and planview.js add a Transfer plan card at the top of Planning > Your moves: a moves list (GW+1 to GW+3, later weeks in a disclosure) and Squad by gameweek tabs with a pitch per week. IN/C/V/chip are text labels with square tags. Kits come from one CSS rule each, saving ~0.7 MB of duplicate data URIs. The hero action now comes from next_action.choose(plan, ...). Free Hit is still promoted only on a strong next-week case. The chip planner's Bench Boost follows the plan's week and bench. Single and pair cards carry timing tags such as "In the transfer plan for GW10", "The plan sells X differently" or "Better from GWn".
+- **First-week captain** follows the captaincy card (history-backed scorer) so the page never names two captains. Later weeks use the transfer scorer's pick; the two scorers differ by about 0.6 pts per player-week on average (the 'one scorer since L11' memory was stale).
+- **Real-data plan (cached 20 Oct)**: GW8 Hughes→Neto + Gvardiol→Thomas(COV) restructure, −4, +15.8; GW9 Groß→Manzambi; GW10 Hall→Vuskovic (waits out LIV/MCI); GW11 Dubravka→Kinsky; GW15 Bench Boost. At a 3-point margin the plan does Hughes→Rudoni free instead. Jonno should judge the GW8 hit.
+- **Verification**: 85 unittest tests pass (12 new in tests/test_planner.py, plus rewritten next_action tests). Mutation checks: tests fail when the structure floor, the undiscounted chips or the margin is removed. Cached-data build OK, all sources OK, 3.36 MB. Browser checks: desktop, 375px and 320px with no overflow on any of the 8 week pitches, week tabs keyboard-operable, hero link focuses plan-gw-8, no console errors. Not done: fresh-network build, backtesting.
+
+Next gate: Jonno reviews the plan. Open decisions: whether to keep the 2-point margin and allowing GW8 hits; and Wildcard→Bench Boost combo planning (not built). Before merging, integrate with Codex's main (expect conflicts in dashboard.css, components.py, cards_planning.py, dashboard.py render), rerun tests, build, check in the browser, then publish via the existing Git flow. Local preview: start preview "dashboard" (serves the main checkout root on 8795) and open /.claude/worktrees/transfer-planner/dashboard.html.
 
 ## Colour and section contrast — 21 October 2026
 

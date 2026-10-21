@@ -2687,3 +2687,60 @@ thead small,thead .muted{color:#ddc9e4}
   .squad-pitch .pk-market b{font-size:12px; line-height:16px}
   .squad-pitch .pitch-context{padding-inline:10px}
 }
+
+/* --- transfer plan ------------------------------------------------------
+   Moves by gameweek, then the squad each week. Every state is written as
+   text (IN, C, V, the chip's name) and carried by weight or a square tag,
+   never by hue alone. Tags are squared off, not pills. */
+.plan-lede{margin:0 0 8px; font-size:15px; line-height:1.5}
+.plan-structure,.plan-chips{margin:0 0 8px; font-size:13px; line-height:1.5; color:var(--on-surface-variant); max-width:90ch}
+.plan-weeks{list-style:none; margin:14px 0 0; padding:0; display:grid; gap:8px}
+.plan-week{border:1px solid var(--outline-variant); border-radius:var(--radius-s); padding:10px 12px; background:var(--surface)}
+.plan-week:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.plan-week-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; font-size:13px}
+.plan-week-head b{font-family:var(--mono); font-size:14px}
+.plan-bank{margin-left:auto; color:var(--on-surface-variant); font-size:12px}
+.plan-view{appearance:none; font:inherit; font-size:12px; font-weight:600; cursor:pointer;
+  border:1px solid var(--outline); background:var(--surface); color:var(--ink);
+  border-radius:var(--radius-xs); padding:6px 10px; min-height:32px}
+.plan-view:hover{background:var(--p5)}
+.plan-view:focus-visible{outline:3px solid var(--accent); outline-offset:1px}
+.plan-chip{font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
+  background:var(--ink); color:var(--white); border-radius:var(--radius-xs); padding:2px 6px}
+.plan-moves{list-style:none; margin:8px 0 0; padding:0; display:grid; gap:6px}
+.plan-move{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; font-size:14px}
+.plan-move small{font-family:var(--mono); font-size:11px; color:var(--on-surface-variant)}
+.plan-out{color:var(--on-surface-variant)}
+.plan-out s{text-decoration-thickness:1px}
+.plan-in{font-weight:700}
+.plan-money{font-family:var(--mono); font-size:12px}
+.plan-note{flex-basis:100%; margin:0; font-size:12px; line-height:1.45; color:var(--on-surface-variant)}
+.plan-gain{margin:8px 0 0; font-size:13px}
+.plan-gain b{font-family:var(--mono)}
+.plan-later{margin-top:10px}
+.plan-later > summary{cursor:pointer; font-size:13px; font-weight:600; padding:8px 0}
+.plan-sub{margin:22px 0 8px; font-size:14px; text-transform:uppercase; letter-spacing:.04em}
+.plan-gwtabs > button small{font-family:var(--mono); font-size:10px; font-weight:800; margin-left:4px}
+.plan-panel{margin-top:10px}
+.plan-panel[hidden]{display:none}
+.plan-panel-head{margin:0 0 4px; font-size:14px}
+.plan-panel-head .tnum{font-family:var(--mono); font-weight:700}
+.plan-changes{margin:0 0 10px; font-size:13px; color:var(--on-surface-variant)}
+.plan-pl{width:96px}
+.plan-fx{font-size:10px; text-align:center; color:var(--on-surface-variant); padding:0 3px}
+.plan-pts{font-family:var(--mono); font-size:12px; font-weight:700; text-align:center; padding:1px 0 5px}
+.plan-pl .arm.plan-vice{background:var(--p20)}
+.plan-in-tag{position:absolute; top:3px; right:3px; z-index:2; padding:1px 4px;
+  border-radius:2px; background:var(--ink); color:var(--white);
+  font-size:9px; font-weight:800; letter-spacing:.04em}
+.plan-new{outline:2px solid var(--white); outline-offset:1px}
+@media (max-width:560px){
+  .plan-bank{margin-left:0}
+  .plan-pitch .row{flex-wrap:nowrap; gap:4px}
+  .plan-pitch .row > .pl, .plan-panel .benchstrip .row > .pl{min-width:0; flex:0 1 72px}
+  .plan-panel .benchstrip .row{flex-wrap:nowrap; gap:4px}
+  .plan-pl .nm{font-size:11px; padding-inline:2px}
+}
+.plan-kit{display:block; width:40px; height:40px; background:center/contain no-repeat}
+.plan-kit[class*="plan-crest-"]{width:32px; height:32px}
+@media (max-width:560px){.plan-kit{width:34px; height:34px}}

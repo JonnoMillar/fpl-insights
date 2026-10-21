@@ -155,15 +155,41 @@ class NextSquadTests(unittest.TestCase):
         self.assertNotIn("against Old's 0.00",explain_move({'out':old,'in':new},ctx,8))
 
     def test_action_exposes_only_the_moves_it_actually_selects(self):
-        old=self.reports[2];incoming=self.incoming(old,98,5)
-        row={'out':old,'in':incoming.element,'gain':10}
-        self.assertEqual(choose([row],[],1,True,8)['moves'],[row])
-        self.assertEqual(choose([row],[],1,True,8)['projected_gain'],10)
-        self.assertEqual(choose([row],[],1,True,8)['horizon'],5)
-        self.assertEqual(choose([row],[],0,True,8)['projected_gain'],6)
-        self.assertEqual(choose([row],[],1,False,8).get('moves',[]),[])
-        chip=('3xc','Triple Captain',{'gw':8,'ep':10,'confidence':'strong'})
-        action=choose([row],[],1,True,8,[chip],{})
+        from tests.test_next_action import week, plan
+        first=week(8,[('Old','New')],hits=1,gain=10,chip='3xc')
+        later=week(9,[('Later','Other')])
+        p=plan(first,later)
+        action=choose(p,0,True,8)
+        self.assertEqual(action['moves'],first['moves'])
+        self.assertEqual(action['projected_gain'],10)
+        self.assertEqual(action['horizon'],2)
         self.assertEqual(action['chip'],'3xc')
+        self.assertEqual(choose(p,1,False,8).get('moves',[]),[])
+        first['chip']=None
+        chip=('freehit','Free Hit',{'gw':8,'gap':10,'confidence':'strong'})
+        action=choose(p,1,True,8,[chip],{})
+        self.assertEqual(action['chip'],'freehit')
         self.assertEqual(action.get('moves',[]),[])
         self.assertNotIn('projected_gain',action)
+
+    def test_preview_keeps_the_plans_xi_bench_and_captain(self):
+        selected=next_squad.select(self.reports,self.scores)
+        week={key:([r.element['id'] for r in selected[key]] if key in ('xi','bench') else selected[key])
+              for key in ('xi','bench','captain','vice')}
+        week['captain'],week['vice']=week['vice'],week['captain']
+        team=next_squad.from_plan(self.reports,self.scores,week)
+        self.assertEqual(team['captain'],week['captain'])
+        self.assertEqual(team['vice'],week['vice'])
+        self.assertEqual([r.element['id'] for r in team['xi']],week['xi'])
+        self.assertEqual([r.element['id'] for r in team['bench']],week['bench'])
+        bad=dict(week,bench=week['bench'][:-1]+[week['xi'][0]])
+        self.assertIsNone(next_squad.from_plan(self.reports,self.scores,bad))
+        self.assertIsNone(next_squad.from_plan(self.reports,self.scores,dict(week,captain=week['bench'][0])))
+        self.assertIsNone(next_squad.from_plan(self.reports,self.scores,dict(week,vice=week['captain'])))
+        bad_xi,bad_bench=list(week['xi']),list(week['bench'])
+        defender=next(i for i,pid in enumerate(bad_xi) if next(r for r in self.reports if r.element['id']==pid).pos=='DEF')
+        bad_xi[defender],bad_bench[0]=bad_bench[0],bad_xi[defender]
+        self.assertIsNone(next_squad.from_plan(self.reports,self.scores,dict(week,xi=bad_xi,bench=bad_bench)))
+        scores=dict(self.scores);del scores[week['xi'][0]]
+        self.assertIsNone(next_squad.from_plan(self.reports,scores,week))
+        self.assertIsNotNone(next_squad.from_plan(self.reports,scores,week,blank_ids={week['xi'][0]}))

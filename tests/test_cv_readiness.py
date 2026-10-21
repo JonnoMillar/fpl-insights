@@ -131,6 +131,17 @@ class SelectionTests(unittest.TestCase):
         self.assertFalse({r["id"] for r in board["buy"]} & {r["id"] for r in board["avoid"]})
 
 
+class PredictedLineupParseTests(unittest.TestCase):
+    def test_page_chrome_before_the_first_club_is_ignored(self):
+        # The sidebar's watchlist and app-promo widgets carry player photos
+        # and an h2 of their own; they once made Gvardiol a starter for
+        # "Download the FFScout app" and so neither starter nor benched.
+        photo = 'photos/players/110x140/{}.png'
+        html = ('<div><h2>Download the FFScout app</h2>' + photo.format(1) + '</div>'
+                '<li class="team-news-item"><h2>Arsenal</h2>' + photo.format(2) + '</li>')
+        self.assertEqual(fplapi._parse_ffs_predicted(html), {"2": "Arsenal"})
+
+
 class FixtureTests(unittest.TestCase):
     def setUp(self):
         self.ctx = analysis.Ctx(boot={})

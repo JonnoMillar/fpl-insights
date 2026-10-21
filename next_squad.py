@@ -39,6 +39,26 @@ def select(reports, scores, blank_ids=()):
             "value": selected["value"], "formation": selected["formation"]}
 
 
+def from_plan(reports, scores, week, blank_ids=()):
+    """Keep the plan's first-week XI/captain while validating preview data."""
+    if not select(reports, scores, blank_ids):
+        return None
+    xi, bench = week["xi"], week["bench"]
+    by_id = {r.element["id"]: r for r in reports}
+    if (len(xi) != 11 or len(bench) != 4 or len(set(xi + bench)) != 15
+            or set(xi + bench) != set(by_id)
+            or week["captain"] not in xi or week["vice"] not in xi
+            or week["captain"] == week["vice"]):
+        return None
+    positions = [by_id[pid].pos for pid in xi]
+    formation = tuple(positions.count(pos) for pos in ("DEF", "MID", "FWD"))
+    if positions.count("GKP") != 1 or not (3 <= formation[0] <= 5 and 2 <= formation[1] <= 5 and 1 <= formation[2] <= 3):
+        return None
+    return {"xi": [by_id[pid] for pid in xi], "bench": [by_id[pid] for pid in bench],
+            "captain": week["captain"], "vice": week["vice"], "formation": formation,
+            "value": sum(scores.get(pid, {}).get("total", 0) for pid in xi)}
+
+
 def apply_transfers(reports, incoming, moves, bank, selling):
     if not moves or selling is None or bank is None:
         return None

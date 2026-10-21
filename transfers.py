@@ -182,14 +182,17 @@ def _shrink(rate, minutes, prior):
 
 
 def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
-                    league_avg=1.45):
+                    league_avg=1.45, p_start=None):
     """Expected points for any player, from the bootstrap payload alone.
 
     Mirrors analysis.expected_points, but `appearances` and the defensive
     threshold hit-rate normally come from match history. Starts stand in for
     appearances, and the hit rate is approximated from the season rate against
     the threshold - crude, but it only moves defenders and holding midfielders
-    a fraction of a point."""
+    a fraction of a point.
+
+    `p_start` overrides the start probability, for a week the predicted
+    line-up does not describe (see planner.start_chances)."""
     pos = ctx.pos(el)
     club = ctx.team_name(el["team"])
     fixture, mk = ctx.scoring_fixture(el, proj, gw, market)
@@ -199,7 +202,10 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
     minutes_played = el.get("minutes", 0)
     starts = el.get("starts", 0) or 0
     pred = ctx.is_predicted(el)
-    if pred is True:
+    overridden = p_start is not None
+    if overridden:
+        avg_start_minutes = min(90.0, minutes_played / starts) if starts else 75.0
+    elif pred is True:
         p_start, avg_start_minutes = 0.92, 90.0
     elif pred is False:
         p_start, avg_start_minutes = 0.10, 75.0
@@ -215,7 +221,13 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
     # rates, and outranked a fit player mid-hot-streak. Temper the start
     # probability toward a coin flip until there is some football to back
     # the billing up.
-    if minutes_played < EVIDENCE_MINUTES:
+    #
+    # Only a billing to start is tempered. A man the feed leaves out who has
+    # barely played is not "no evidence" - the missing minutes agree with
+    # the feed - and pulling him up toward a coin flip scored a reserve
+    # keeper with no minutes at all as a half-time starter, which made
+    # every non-playing enabler look worth keeping on a Bench Boost.
+    if minutes_played < EVIDENCE_MINUTES and pred is not False and not overridden:
         evidence = minutes_played / EVIDENCE_MINUTES
         p_start = p_start * evidence + 0.5 * (1 - evidence)
 
@@ -508,6 +520,52 @@ BENCH_AUTOSUB_ALLOWANCE = 0.15
 XI_GAIN_CANDIDATES = 30
 
 
+# Squad structure. Most squads carry a few minimum-price "enablers" who
+# exist to fund the starters and rarely play for the manager. Upgrading one
+# to a mid-price player does not add a starter - it benches a better player
+# than him, so the money moves from the XI to the bench. A cheap player is
+# one priced within ENABLER_MARGIN of the cheapest starting price in his
+# position: 4.5 for keepers and defenders, 5.0 for midfielders and forwards
+# this season. Half a million is the narrowest margin that still reaches a
+# keeper who actually plays - every one of those costs 4.5.
+ENABLER_MARGIN = 0.5
+MAX_ENABLERS = 3
+
+
+def price_caps(ctx):
+    """The most a cheap player costs, per position. Built from starting
+    prices, so a season of price drops does not lower the bar."""
+    floors = {}
+    for el in ctx.players.values():
+        pos = ctx.pos(el)
+        start = (el["now_cost"] - (el.get("cost_change_start") or 0)) / 10.0
+        floors[pos] = min(floors.get(pos, start), start)
+    return {pos: v + ENABLER_MARGIN for pos, v in floors.items()}
+
+
+def is_cheap(price, pos, caps):
+    return price <= caps.get(pos, 0.0) + 1e-9
+
+
+def squad_enablers(pool, caps):
+    """The cheap players a squad keeps on its bench: ids of at most
+    MAX_ENABLERS, cheapest first. `pool` is squadbuilder rows for a legal
+    fifteen; an unscoreable pool has none."""
+    best = squadbuilder.owned_xi(pool)
+    if not best:
+        return []
+    cheap = sorted((p for p in best["bench"] if is_cheap(p["price"], p["pos"], caps)),
+                   key=lambda p: p["price"])
+    return [p["id"] for p in cheap[:MAX_ENABLERS]]
+
+
+def keeps_structure(pool, caps, floor):
+    """Whether a squad still holds `floor` cheap players - an enabler can
+    leave only for another cheap player, or alongside a cheap arrival in a
+    different position."""
+    return sum(is_cheap(p["price"], p["pos"], caps) for p in pool) >= floor
+
+
 def sale_price(r, sell_values=None):
     return r.price if sell_values is None else sell_values[r.element["id"]]
 
@@ -604,6 +662,8 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4, sell_values=
     own_pool = [_own_pool_row(r, scores[r.element["id"]]["total"])
                 for r in scored_owned]
     base_xi_value = _xi_value(own_pool)
+    caps = price_caps(ctx)
+    enablers = set(squad_enablers(own_pool, caps))
 
     # Three per club, the same rule `suggest` enforces. Without it the Buy
     # column filled with whichever club had the kindest fixture that week -
@@ -669,6 +729,11 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4, sell_values=
                 continue
             if not club_ok(el, selling=r):
                 continue
+            # An enabler is sold only for another cheap player (see
+            # ENABLER_MARGIN); a dearer one just benches a better man.
+            if (r.element["id"] in enablers
+                    and not is_cheap(el["now_cost"] / 10.0, r.pos, caps)):
+                continue
             options.append({
                 "element": el, "score": s, "raw_gain": s["total"] - mine,
                 "row": _candidate_pool_row(el, ctx, s["total"]),
@@ -726,6 +791,8 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4, sell_values=
         funder = None
         for r in scored_owned:
             if r.pos != pos or sale_price(r, sell_values) + bank + 1e-9 < price:
+                continue
+            if r.element["id"] in enablers and not is_cheap(price, pos, caps):
                 continue
             r_total = scores[r.element["id"]]["total"]
             if s["total"] - r_total < SELL_MARGIN:
@@ -831,8 +898,14 @@ def kneejerk(ctx, squad_reports, scores, bank=0.0, sell_values=None):
     club_counts = {}
     for r in squad_reports:
         club_counts[r.element["team"]] = club_counts.get(r.element["team"], 0) + 1
+    caps = price_caps(ctx)
+    own_pool = [_own_pool_row(r, scores.get(r.element["id"], {}).get("total", 0.0))
+                for r in squad_reports]
+    enablers = set(squad_enablers(own_pool, caps))
+    target_cheap = is_cheap(price, pos, caps)
     affordable = [r for r in squad_reports
                   if r.pos == pos and sale_price(r, sell_values) + bank + 1e-9 >= price
+                  and (target_cheap or r.element["id"] not in enablers)
                   and club_counts.get(best["team"], 0)
                   - int(r.element["team"] == best["team"]) < SQUAD_LIMIT_PER_CLUB]
     funder = min(affordable, key=lambda r: sale_price(r, sell_values)) if affordable else None
@@ -933,6 +1006,16 @@ def kneejerk(ctx, squad_reports, scores, bank=0.0, sell_values=None):
                     if after.get(el["team"], 0) >= SQUAD_LIMIT_PER_CLUB:
                         continue
                     candidates.append((el, s))
+                # The pair has to leave as many cheap players as it found:
+                # selling an enabler for the target is only a restructure if
+                # a cheap player comes back in the other slot.
+                after_pool = [p for p in own_pool if p["id"] not in
+                              (primary.element["id"], second.element["id"])]
+                after_pool.append(_candidate_pool_row(best, ctx, 0.0))
+                candidates = [
+                    (el, s) for el, s in candidates
+                    if keeps_structure(after_pool + [_candidate_pool_row(el, ctx, 0.0)],
+                                       caps, len(enablers))]
                 if not candidates:
                     continue
                 repl_el, repl_s = max(candidates, key=lambda x: x[1]["total"])
@@ -1029,6 +1112,8 @@ def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
     own_pool = [_own_pool_row(r, here[r.element["id"]]["total"])
                 for r in squad_reports if r.element["id"] in here]
     base_xi_value = _xi_value(own_pool)
+    caps = price_caps(ctx)
+    structure_floor = len(squad_enablers(own_pool, caps))
 
     # Shortlist per squad player. The ceiling allows for money freed by the
     # other sale, so genuinely reachable upgrades are not filtered out early.
@@ -1088,6 +1173,8 @@ def pair_suggestions(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
                         continue
                     result_pool = [p for p in own_pool if p["id"] not in (a_id, b_id)]
                     result_pool += [oa["row"], ob["row"]]
+                    if not keeps_structure(result_pool, caps, structure_floor):
+                        continue
                     after_value = _xi_value(result_pool)
                     if base_xi_value is None or after_value is None:
                         continue
@@ -1189,6 +1276,19 @@ def suggest(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
                     for r in squad_reports if r.element["id"] in own_scores]
         base_xi_value = _xi_value(own_pool)
 
+    # Enablers leave only for another cheap player here; a restructure that
+    # moves the cheap slot to another position takes two moves, which is
+    # what pair_suggestions and the transfer plan are for.
+    caps = price_caps(ctx)
+    structure = full_squad or squad_reports
+    if xi_based:
+        enablers = set(squad_enablers(own_pool, caps))
+    else:
+        enablers = set(squad_enablers([
+            _own_pool_row(r, (case_score(r.element, ctx, proj, gw, market,
+                                         baselines, priors) or {}).get("total", 0.0))
+            for r in structure], caps))
+
     out_rows = []
     for r in squad_reports:
         # Deliberately the same scorer as the candidates. The richer model in
@@ -1214,6 +1314,8 @@ def suggest(ctx, squad_reports, proj, gw, market, baselines, bank=0.0,
             if el["team"] == r.element["team"]:
                 count -= 1
             if count >= SQUAD_LIMIT_PER_CLUB:
+                continue
+            if r.element["id"] in enablers and not is_cheap(price, pos, caps):
                 continue
             raw_gain = s["total"] - here["total"]
             if not xi_based and raw_gain <= MIN_CASE_GAIN:
