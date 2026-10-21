@@ -238,6 +238,38 @@ class UrgentIdsTests(unittest.TestCase):
         self.assertEqual(got, {1, 4})
 
 
+class StartChanceTests(unittest.TestCase):
+    class Ctx:
+        def __init__(self, pred):
+            self.pred = pred
+
+        def is_predicted(self, el):
+            return self.pred
+
+    def chances(self, statuses, pred, n=5):
+        live = {1: [{"status": {"S": "started", "s": "subbedOn", "-": "unplayed"}[c]}
+                    for c in statuses]}
+        return planner.start_chances({"id": 1}, self.Ctx(pred), live, n)
+
+    def test_dropped_starter_drifts_back_toward_his_season_role(self):
+        # Gvardiol: five starts, two sub appearances, predicted benched.
+        got = self.chances("SSSSSss", False)
+        self.assertIsNone(got[0])                  # the line-up feed decides
+        self.assertLess(got[1], 0.25)              # his role now
+        self.assertTrue(all(a < b for a, b in zip(got[1:], got[2:])))
+        self.assertLess(got[-1], 5 / 8)            # never past his season rate
+
+    def test_unknown_line_up_uses_the_role_from_week_one(self):
+        got = self.chances("SSSSSss", None)
+        self.assertAlmostEqual(got[0], 1 / 3)        # one start in his last three
+
+    def test_nailed_starter_stays_nailed(self):
+        self.assertEqual(self.chances("SSSSSSS", True)[1:], [planner.ROLE_BOUNDS[1]] * 4)
+
+    def test_no_history_leaves_the_scorer_alone(self):
+        self.assertEqual(planner.start_chances({"id": 1}, self.Ctx(True), {}, 3), [None] * 3)
+
+
 class BenchBoostTests(unittest.TestCase):
     def chips(self):
         return [{"key": "bboost", "first": 0, "last": H - 1}]

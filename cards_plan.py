@@ -253,7 +253,9 @@ def plan_card(plan, ctx, shirts, badges):
             f"at the end is worth {plan['ft_value']:.1f}. A chip is played only when its "
             f"week beats waiting by {plan['chip_margin']:.0f} points, and an enabler is "
             f"swapped for another bench player only ahead of a planned Bench Boost. "
-            f"Later weeks count for less, "
+            f"Beyond next week's predicted line-up, a player's chance of starting follows "
+            f"his last three matches, drifting a quarter of the way back toward his "
+            f"season-long rate each week. Later weeks count for less, "
             f"because their projections are less certain. Uses the transfer model's "
             f"projections and current prices; the first week's captain follows the "
             f"captaincy card.")

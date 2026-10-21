@@ -717,7 +717,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         scout_fixtures = scout.club_fixture_runs(ctx, proj, next_gw)
     except fplapi.FplError as ex:
         print(f"[scout] skipped: {ex}")
-        scout_pools, scout_fixtures = {}, []
+        scout_live, scout_pools, scout_fixtures = {}, {}, []
     eps = []
     for r in xi + bench:
         ep = analysis.expected_points(r, ctx, proj, next_gw,
@@ -949,16 +949,17 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                               if r.name == top["player"] and r.team == top["team"]), None)
         plan = planner.build(ctx, xi + bench, proj, market, baselines, next_gw, bank,
                              sell_values, free_ts, used if chips_verified else None,
-                             captain_first=cap_first)
+                             captain_first=cap_first, live=scout_live)
         timing_priors = transfers.positional_priors(ctx)
         for sw in swaps:
             sw["timing"] = planner.timing_note(sw["in"], sw["out"].element, plan, ctx, proj,
-                                               market, baselines, timing_priors, next_gw)
+                                               market, baselines, timing_priors, next_gw,
+                                               live=scout_live)
         for pr in pairings:
             for leg in pr["legs"]:
                 leg["timing"] = planner.timing_note(leg["in"], leg["out"].element, plan, ctx,
                                                     proj, market, baselines, timing_priors,
-                                                    next_gw)
+                                                    next_gw, live=scout_live)
     # A genuinely different question from Free Hit's budget-capped "ideal" -
     # see chips.literal_best_xi for why reusing that number here was wrong.
     next_ideal = chips.literal_best_xi(ctx, xi, proj, market, baselines, next_gw)

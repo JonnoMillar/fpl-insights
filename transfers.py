@@ -182,14 +182,17 @@ def _shrink(rate, minutes, prior):
 
 
 def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
-                    league_avg=1.45):
+                    league_avg=1.45, p_start=None):
     """Expected points for any player, from the bootstrap payload alone.
 
     Mirrors analysis.expected_points, but `appearances` and the defensive
     threshold hit-rate normally come from match history. Starts stand in for
     appearances, and the hit rate is approximated from the season rate against
     the threshold - crude, but it only moves defenders and holding midfielders
-    a fraction of a point."""
+    a fraction of a point.
+
+    `p_start` overrides the start probability, for a week the predicted
+    line-up does not describe (see planner.start_chances)."""
     pos = ctx.pos(el)
     club = ctx.team_name(el["team"])
     fixture, mk = ctx.scoring_fixture(el, proj, gw, market)
@@ -199,7 +202,10 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
     minutes_played = el.get("minutes", 0)
     starts = el.get("starts", 0) or 0
     pred = ctx.is_predicted(el)
-    if pred is True:
+    overridden = p_start is not None
+    if overridden:
+        avg_start_minutes = min(90.0, minutes_played / starts) if starts else 75.0
+    elif pred is True:
         p_start, avg_start_minutes = 0.92, 90.0
     elif pred is False:
         p_start, avg_start_minutes = 0.10, 75.0
@@ -221,7 +227,7 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
     # the feed - and pulling him up toward a coin flip scored a reserve
     # keeper with no minutes at all as a half-time starter, which made
     # every non-playing enabler look worth keeping on a Bench Boost.
-    if minutes_played < EVIDENCE_MINUTES and pred is not False:
+    if minutes_played < EVIDENCE_MINUTES and pred is not False and not overridden:
         evidence = minutes_played / EVIDENCE_MINUTES
         p_start = p_start * evidence + 0.5 * (1 - evidence)
 

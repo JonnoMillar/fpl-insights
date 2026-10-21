@@ -204,6 +204,11 @@ def _parse_ffs_predicted(html):
     out = {}
     blocks = re.split(r'(?=<li class="team-news-item")', html)
     for block in blocks:
+        # The text before the first club is page chrome - its sidebar
+        # widgets (watchlists, the app promo) carry player photos too, and
+        # were read as starters for a club called "Download the FFScout app".
+        if not block.startswith('<li class="team-news-item"'):
+            continue
         heading = re.search(r'<h2[^>]*>\s*(.*?)\s*</h2>', block, re.S)
         if not heading:
             continue

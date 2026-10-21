@@ -410,7 +410,42 @@ def baseline(planner):
 
 # --- from the live data -------------------------------------------------
 
-def player_weeks(el, ctx, proj, market, baselines, priors, gws):
+# Start chance beyond what the predicted line-up covers: his last few
+# matches say what his role is now, and each week further out drifts that
+# a quarter of the way back toward his season-long role - a dropped player
+# often wins his place back, a new starter often loses it.
+ROLE_WINDOW = 3
+ROLE_REVERT = 0.75
+ROLE_BOUNDS = (0.10, 0.92)   # the scorer's own benched / nailed values
+
+
+def start_chances(el, ctx, live, n):
+    """Start probability per week for n weeks, None where the scorer's
+    own predicted-line-up reading should stand (the next week, when the
+    line-up feed covers his club). All None without match history."""
+    rows = (live or {}).get(el["id"])
+    if not rows:
+        return [None] * n
+    started = [m.get("status") == "started" for m in rows]
+    pred = ctx.is_predicted(el)
+    known = pred is not None
+    if known:
+        # Next week's predicted line-up is the latest word on his role.
+        started.append(pred)
+    recent = sum(started[-ROLE_WINDOW:]) / len(started[-ROLE_WINDOW:])
+    season = sum(started) / len(started)
+    lo, hi = ROLE_BOUNDS
+    out = []
+    for j in range(n):
+        if j == 0 and known:
+            out.append(None)
+            continue
+        drift = 1 - ROLE_REVERT ** j
+        out.append(min(hi, max(lo, recent + (season - recent) * drift)))
+    return out
+
+
+def player_weeks(el, ctx, proj, market, baselines, priors, gws, live=None):
     """Projected points per gameweek; a blank week is zero.
 
     The scorer reads injury news only through the predicted line-up, so the
@@ -419,8 +454,9 @@ def player_weeks(el, ctx, proj, market, baselines, priors, gws):
     ponytail: flat guess at return dates; parse the news text's "expected
     back" date if this proves too blunt."""
     out = []
-    for gw in gws:
-        s = transfers.candidate_score(el, ctx, proj, gw, market, baselines, priors)
+    for gw, chance in zip(gws, start_chances(el, ctx, live, len(gws))):
+        s = transfers.candidate_score(el, ctx, proj, gw, market, baselines, priors,
+                                      p_start=chance)
         out.append(s["total"] if s else 0.0)
     status = el.get("status")
     if status in ("u", "n"):
@@ -509,7 +545,7 @@ def _total(planner, state):
 
 
 def build(ctx, squad_reports, proj, market, baselines, next_gw, bank,
-          sell_values, free_ts, used=None, captain_first=None):
+          sell_values, free_ts, used=None, captain_first=None, live=None):
     """The plan for the dashboard, or None when it cannot be trusted:
     unknown selling prices or free transfers, or no gameweeks left."""
     if sell_values is None or free_ts is None or next_gw > 38:
@@ -525,7 +561,7 @@ def build(ctx, squad_reports, proj, market, baselines, next_gw, bank,
         pid = el["id"]
         if pid not in squad and not transfers._eligible(el, ctx):
             continue
-        weeks = player_weeks(el, ctx, proj, market, baselines, priors, gws)
+        weeks = player_weeks(el, ctx, proj, market, baselines, priors, gws, live)
         if pid not in squad and sum(weeks[:h]) <= 0:
             continue
         rows[pid] = {"pos": ctx.pos(el), "club": ctx.team_name(el["team"]),
@@ -655,7 +691,7 @@ def describe(planner, best, idle, gws, ctx=None, proj=None, captain_first=None):
 
 
 def timing_note(in_el, out_el, plan, ctx, proj, market, baselines, priors,
-                next_gw, weeks=transfers.TRANSFER_HORIZON_WEEKS):
+                next_gw, weeks=transfers.TRANSFER_HORIZON_WEEKS, live=None):
     """One line on when a listed move is best made: the week the plan makes
     it, or the week it starts paying when the incoming player's next few
     fixtures are clearly worse than the outgoing one's. "" when neither."""
@@ -673,8 +709,8 @@ def timing_note(in_el, out_el, plan, ctx, proj, market, baselines, priors,
             return (f"The transfer plan signs {in_el['web_name']} for "
                     f"{m['out_name']} in GW{gw} instead.")
     gws = [g for g in range(next_gw, next_gw + weeks) if g <= 38]
-    a = player_weeks(in_el, ctx, proj, market, baselines, priors, gws)
-    b = player_weeks(out_el, ctx, proj, market, baselines, priors, gws)
+    a = player_weeks(in_el, ctx, proj, market, baselines, priors, gws, live)
+    b = player_weeks(out_el, ctx, proj, market, baselines, priors, gws, live)
     deltas = [x - y for x, y in zip(a, b)]
     t = max(range(min(3, len(deltas))), key=lambda k: (sum(deltas[k:]), -k))
     loss = -sum(deltas[:t])
