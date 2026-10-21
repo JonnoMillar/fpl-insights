@@ -54,13 +54,11 @@
   --premium:#0b5f4a;
 
   --error:var(--bad); --success:var(--good); --error-container:var(--bad-wash);
-  --surface:var(--white); --surface-variant:#f8f5ef;
+  --surface:var(--white); --surface-variant:#f0e9f3;
   --on-surface:var(--ink); --on-surface-variant:var(--p70);
-  --outline:var(--p30); --outline-variant:var(--p10);
-  /* Warm chalk, not a purple-tinted grey - programme paper under white
-     cards, not the generic SaaS ground the rest of this sheet is trying
-     to avoid. */
-  --ground:#f4f1ea; --bar:var(--p120); --on-bar:var(--white);
+  --outline:#aa8ab7; --outline-variant:#d3c2dd;
+  /* Plum ground separates white data panels from the darker structural bands. */
+  --ground:#ebe5ef; --bar:var(--p120); --on-bar:var(--white);
   --pitch-a:#0e7a3c; --pitch-b:#0a6733;
   /* The content column. It was 1120px, which on a desktop left the page
      using barely a third of the width while every grid inside it was
@@ -228,10 +226,10 @@ a{color:inherit}
 section{margin-bottom:16px}
 .card{
   background:var(--surface); border-radius:var(--radius-m);
-  box-shadow:var(--shadow); overflow:hidden;
+  outline:1px solid var(--outline); outline-offset:-1px; box-shadow:0 2px 0 rgb(55 0 60 / 10%); overflow:hidden;
 }
 .card-head{
-  padding:14px 16px; border-bottom:1px solid var(--outline-variant);
+  padding:14px 16px; border-bottom:1px solid var(--outline); background:#e7daed;
   display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
 }
 .card-head h2{font-size:16px; text-transform:none; font-stretch:100%; letter-spacing:-.005em}
@@ -245,19 +243,19 @@ section{margin-bottom:16px}
    16 nothing told them apart. Worse, which one a section got was arbitrary.
 
    A card title uses 16px sentence case; the chapter above it is larger,
-   expanded on Archivo's width axis and ruled underneath in ink. The width axis
+   expanded on Archivo's width axis on a dark chapter band. The width axis
    is what separates the two, not weight, because both were already bold.
    A bare `card-head` on the ground is now always a mistake. */
 .chapter{
-  margin:30px 0 12px; padding-bottom:6px;
-  border-bottom:2px solid var(--ink);
+  margin:30px 0 12px; padding:12px 16px;
+  background:var(--ink); color:white; border-left:4px solid var(--accent); border-radius:8px;
   display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
 }
 .chapter h2{
   font-size:22px; font-stretch:125%; text-transform:none;
   letter-spacing:-0.01em; line-height:1.2;
 }
-.chapter .sub{font-size:13px; color:var(--on-surface-variant)}
+.chapter .sub{font-size:13px; color:#ddcde4}
 /* The first chapter in a panel already has the tab strip above it. */
 .panel > .chapter:first-child{margin-top:6px}
 @media (max-width:560px){.chapter h2{font-size:19px}}
@@ -659,11 +657,11 @@ th,td{padding:8px 10px; text-align:left; white-space:nowrap}
    where it visually belongs. A plain header cannot do either. */
 thead th{
   font-size:11px; text-transform:uppercase; letter-spacing:0.05em;
-  color:var(--on-surface-variant); border-bottom:1px solid var(--outline);
-  background:var(--surface);
+  color:white; border-bottom:1px solid var(--ink);
+  background:var(--p80);
 }
 th.sortable{cursor:pointer; user-select:none}
-th.sortable:hover{color:var(--on-surface)}
+th.sortable:hover{color:white; background:var(--p90)}
 th.sortable::after{content:"\2195"; opacity:.35; margin-left:4px}
 th.sortable[aria-sort="ascending"]::after{content:"\2191"; opacity:1}
 th.sortable[aria-sort="descending"]::after{content:"\2193"; opacity:1}
@@ -2240,11 +2238,11 @@ details .scroll{padding:0 14px 14px}
 .scoutheatmap td.num{font-variant-numeric:tabular-nums; font-family:var(--mono)}
 .scoutheatmap thead th{
   font-size:11px; text-transform:uppercase; letter-spacing:.04em;
-  color:var(--on-surface-variant); border-bottom:1px solid var(--outline);
+  color:white; border-bottom:1px solid var(--ink);
   cursor:pointer; user-select:none;
-  background:var(--surface);
+  background:var(--p80);
 }
-.scoutheatmap th[data-sort]:hover{color:var(--ink)}
+.scoutheatmap th[data-sort]:hover{color:white; background:var(--p90)}
 .scoutheatmap th:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
 .scoutheatmap tbody tr:hover{outline:1px solid var(--outline)}
 .scoutheatmap tr.scout-highlight{outline:2px solid var(--ink)}
@@ -2312,7 +2310,7 @@ details .scroll{padding:0 14px 14px}
 .scouttickertable th, .scouttickertable td{padding:4px 7px; text-align:center}
 .scouttickertable thead th{
   font-size:10px; text-transform:uppercase; letter-spacing:.03em;
-  color:var(--on-surface-variant); font-weight:600;
+  color:white; font-weight:600;
 }
 .scouttickertable tr.tick-name td{
   text-align:left; padding-top:12px; border-bottom:1px solid var(--outline-variant);
@@ -2470,28 +2468,29 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .squad-overview{display:grid; grid-template-columns:280px minmax(0,1fr); grid-template-areas:"review review" "brief pitch"; gap:14px; align-items:start; margin-bottom:16px}
 .squad-overview>*{min-width:0}
 .squad-overview>.hero{grid-area:review; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; border:0; padding:0; background:none; color:var(--ink); box-shadow:none; overflow:visible; margin:0}
-.score-group{min-width:0; margin:0; overflow:hidden; border-radius:10px; background:#eae3ed; border:1px solid #d9cfdd}
-.score-group h2{font-size:12px; line-height:18px; font-weight:600; font-stretch:100%; text-transform:none; letter-spacing:0; margin:0; padding:4px 14px; border-bottom:1px solid #d9cfdd}
-.score-upcoming{background:#e2ece4; border-color:#cddbcf}
-.score-upcoming h2{border-color:#cddbcf; color:#235d3b}
+.score-group{min-width:0; margin:0; overflow:hidden; border-radius:10px; background:var(--ink); color:white; border:1px solid var(--ink)}
+.score-group h2{font-size:12px; line-height:18px; font-weight:600; font-stretch:100%; text-transform:none; letter-spacing:0; margin:0; padding:4px 14px; border-bottom:1px solid rgb(255 255 255 / 24%)}
+.score-upcoming{background:#edf9f0; color:var(--ink); border-color:var(--accent-ink)}
+.score-upcoming h2{background:var(--accent); border-color:var(--accent-ink); color:var(--ink)}
 .squad-overview .tiles{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; margin:0}
-.squad-overview .tile{border:0; border-right:1px solid #d9cfdd; border-radius:0; background:none; padding:6px 14px; min-width:0}
-.squad-overview .score-upcoming .tile{border-color:#cddbcf}
+.squad-overview .tile{border:0; border-right:1px solid rgb(255 255 255 / 24%); border-radius:0; background:none; padding:6px 14px; min-width:0}
+.squad-overview .score-upcoming .tile{border-color:#bdd6c4}
 .squad-overview .tile:last-child{border-right:0}
 .squad-overview .tile .k{font-size:12px; letter-spacing:0; text-transform:none; color:var(--p80)}
 .squad-overview .tile .v{font-size:25px; line-height:1.2; margin:3px 0; color:var(--ink); gap:6px}
 .squad-overview .tile .n{font-size:12px; color:var(--p80); line-height:1.35; overflow-wrap:anywhere}
-.squad-overview .score-recent .tile:first-child{background:var(--ink); color:white}
-.squad-overview .score-recent .tile:first-child .k,.squad-overview .score-recent .tile:first-child .n{color:#e7d8e9}
-.squad-overview .score-recent .tile:first-child .v{color:#8affc4}
+.squad-overview .score-recent .tile .k,.squad-overview .score-recent .tile .n{color:#e2d0e8}
+.squad-overview .score-recent .tile .v{color:white}
+.squad-overview .score-recent .tile.tile-good .v{color:#8affc4}
+.squad-overview .score-recent .tile.tile-bad .v{color:#ffb2c1}
 .squad-overview .score-upcoming .tile:first-child .v{color:var(--accent-ink)}
 .squad-overview .tile-warn .v{color:var(--attention-ink)}
 .squad-overview .tile .delta-up{color:var(--good-ink); background:var(--good-wash)}
 .squad-overview .tile .delta-down{color:var(--bad-ink); background:var(--bad-wash)}
-.decision-brief{grid-area:brief; background:#eae3ed; border:1px solid var(--outline-variant); border-radius:10px; padding:18px; overflow-wrap:anywhere}
-.brief-heading{display:flex; align-items:center; justify-content:space-between; gap:8px}
+.decision-brief{--brief-y:18px; --brief-x:18px; grid-area:brief; background:#fffdf7; border:1px solid var(--ink); border-radius:10px; padding:var(--brief-y) var(--brief-x); box-shadow:inset 0 0 0 1px var(--ink); overflow:hidden; overflow-wrap:anywhere}
+.brief-heading{display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--ink); color:white; margin:calc(-1 * var(--brief-y)) calc(-1 * var(--brief-x)) 14px; padding:10px var(--brief-x); box-shadow:inset 0 -3px var(--accent)}
 .brief-heading h2{font-size:15px; font-stretch:100%; text-transform:none; letter-spacing:0}
-.brief-heading>span{font:12px var(--mono); color:var(--p80)}
+.brief-heading>span{font:12px var(--mono); color:#e2d0e8}
 .brief-action{font-size:23px; font-stretch:100%; line-height:1.2; letter-spacing:-.03em; margin:14px 0 16px}
 .brief-action a{text-decoration:none}
 .brief-action a:hover{text-decoration:underline; text-underline-offset:4px}
@@ -2521,18 +2520,28 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .brief-caveat{font-size:12px; line-height:1.5; color:var(--p80); border-top:1px solid var(--outline-variant); padding-top:12px; margin:6px 0}
 .brief-links{display:flex; flex-wrap:wrap; gap:0 12px; font-size:12px}
 .brief-links a{display:inline-flex; align-items:center; min-height:36px; text-underline-offset:3px}
-.squad-overview>.squad-pitch{grid-area:pitch; margin:0; --squad-player-height:112px; --pitch-a:#176f48; --pitch-b:#145f40; container-type:inline-size; border-radius:10px; overflow:hidden; background:#eae3ed}
-.team-sheet-head{background:#eae3ed; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--outline-variant)}
+.squad-overview>.squad-pitch{grid-area:pitch; margin:0; --squad-player-height:112px; --pitch-a:#176f48; --pitch-b:#145f40; container-type:inline-size; border-radius:10px; overflow:hidden; background:#f4eef7; outline:2px solid var(--ink); outline-offset:-2px}
+.team-sheet-head{background:var(--ink); color:white; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--outline-variant)}
+.team-sheet-head .card-head{background:transparent}
 .team-sheet-head .pkview{border-bottom:0; align-self:stretch}
 .squad-pitch .card-head{border:0; padding:10px 16px; gap:12px; flex-wrap:wrap}
 .squad-pitch .card-head h2{font-size:16px}
 .squad-pitch .card-head .subvis{display:none}
 .squad-pitch .pkview{padding:0 12px}
 .squad-pitch .pkview>button{font-size:13px; min-height:38px; padding:8px 14px}
-.squad-pitch .pitch-controls{padding:3px 16px; min-height:50px; gap:8px; background:#eae3ed; flex-wrap:nowrap}
+.team-sheet-head .pkview>button{color:#ddc9e4}
+.team-sheet-head .pkview>button[aria-selected="true"]{color:var(--accent)}
+.team-sheet-head .pkview>button:hover{background:rgb(255 255 255 / 10%); color:white}
+.team-sheet-head .pkview::after{background:var(--accent)}
+.team-sheet-head .sub{color:#ece0f0}
+.team-sheet-head .infobtn,thead .infobtn{color:#e1cfe8; border-color:#b899c4}
+.team-sheet-head .infobtn:focus-visible{outline-color:var(--accent)}
+thead small,thead .muted{color:#ddc9e4}
+
+.squad-pitch .pitch-controls{padding:3px 16px; min-height:50px; gap:8px; background:#f4eef7; flex-wrap:nowrap}
 .squad-pitch .pitch-controls .stbtn{font-size:12px; min-height:36px; padding:6px 10px}
 .squad-pitch .pitch-controls .epbtn{font-size:12px}
-.pitch-context{display:grid; padding:5px 16px; border-top:1px solid var(--outline-variant); background:#dedbe1}
+.pitch-context{display:grid; padding:5px 16px; border-top:1px solid var(--outline-variant); background:#dfd1e7}
 .pitch-context>*,.lineup-summaries>*{grid-area:1/1; margin:0}
 .pitch-context>[hidden],.lineup-summaries>[hidden],.lineup-variants>[hidden]{display:block; visibility:hidden; pointer-events:none}
 .pitch-context p{font-size:12px; line-height:1.5; margin:0}
@@ -2551,8 +2560,8 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .squad-pitch .pitch,.squad-pitch .pkstage.ep-on .pitch{display:grid; grid-template-rows:repeat(4,var(--squad-player-height)); gap:6px; padding:8px 12px}
 .squad-pitch .pitch>.row,.squad-pitch .pkstage.ep-on .pitch .row{display:flex; flex-wrap:nowrap; align-items:stretch; margin:0; gap:10px}
 .squad-pitch .row>.pl{display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:40px 20px 28px 24px;
-  flex:0 0 min(90px,calc((100% - 40px)/5)); width:auto; min-width:0; height:var(--squad-player-height); border-radius:6px; background:#faf6ee}
-.squad-pitch .pl .crest{grid-column:1; grid-row:1; height:auto; background:#ede5d8}
+  flex:0 0 min(90px,calc((100% - 40px)/5)); width:auto; min-width:0; height:var(--squad-player-height); border-radius:6px; background:#fffaf0; box-shadow:inset 0 0 0 1px #4a24535c,0 2px 4px #00231140}
+.squad-pitch .pl .crest{grid-column:1; grid-row:1; height:auto; background:#e5dbe8}
 .squad-pitch .pl .crest img.kit,.squad-pitch .pl .crest img.crestimg{width:36px; height:36px}
 .squad-pitch .pl .nm{grid-column:1; grid-row:2; align-self:center; background:none; color:var(--ink); font-size:12px; padding:1px 3px; line-height:18px}
 .squad-pitch .pl:not(.pk) .sc{grid-column:1; grid-row:3 / 5; height:auto; align-self:stretch; align-items:center; justify-content:center}
@@ -2567,8 +2576,8 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .squad-pitch .pk-xp small{font-size:10px; font-weight:400; line-height:1; padding:0}
 .squad-pitch .pl .arm{top:3px; left:3px; width:15px; height:15px; font-size:10px}
 .squad-pitch .pl .pip{top:5px; right:5px; width:7px; height:7px}
-.squad-pitch .benchstrip{padding:4px 12px 8px; border-top:1px solid #bacdbc; background:#dce6dc}
-.squad-pitch .benchstrip .lbl{font-size:11px; text-transform:none; letter-spacing:0; line-height:16px; margin-bottom:2px; color:#405e48}
+.squad-pitch .benchstrip{padding:4px 12px 8px; border-top:1px solid #3c8e63; background:#164a35}
+.squad-pitch .benchstrip .lbl{font-size:11px; text-transform:none; letter-spacing:0; line-height:16px; margin-bottom:2px; color:#e0f4e7}
 .squad-pitch .benchstrip .row{flex-wrap:nowrap; margin:0; gap:10px}
 /* Wide cards spend the available grass on larger shirts and separate data columns. */
 @container(min-width:750px){
@@ -2618,7 +2627,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
     .squad-pitch .pk .pk-fx{padding-bottom:4px; gap:0}
     .squad-pitch .pk-xp{font-size:19px; line-height:21px; padding-bottom:3px}
   }
-  .decision-brief{padding:14px 18px}
+  .decision-brief{--brief-y:14px; --brief-x:18px}
   .brief-action{margin:10px 0}
   .transfer-pair{padding:7px 0}
   .transfer-pairs{margin-bottom:8px}
@@ -2626,7 +2635,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 }
 @media(max-width:1099px){
   .squad-overview{grid-template-columns:245px minmax(0,1fr); gap:12px}
-  .decision-brief{padding:14px}
+  .decision-brief{--brief-y:14px; --brief-x:14px}
   .squad-overview .tile{padding:6px 10px}
   .squad-overview .tile .v{font-size:23px}
   .team-sheet-head{flex-wrap:wrap}
@@ -2637,7 +2646,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 @media(max-width:800px){
   .squad-overview{grid-template-columns:minmax(0,1fr); grid-template-areas:"review" "pitch" "brief"}
   .squad-overview>.hero{grid-template-columns:minmax(0,1fr); gap:8px}
-  .decision-brief{padding:18px}
+  .decision-brief{--brief-y:18px; --brief-x:18px}
   .product-intro{grid-template-columns:minmax(0,1fr)}
   .product-intro .intro-links{grid-column:1; grid-row:auto; gap:20px; justify-content:flex-start}
   .product-intro .about-copy{left:0; right:auto; width:100%}

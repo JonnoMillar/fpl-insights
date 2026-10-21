@@ -1,12 +1,25 @@
 # HANDOFF — FPL Insights
 
-Last updated: 21 October 2026, weekly transfer impact, concise evidence and persistent main tabs verified on `codex/design-density`. Ready for review; not integrated or published.
+Last updated: 21 October 2026, stronger dashboard colour and section contrast verified on `codex/design-density`. Ready for review; not integrated or published.
 
 ## Status
 
 Jonno intends to link the live dashboard on his CV. The first phase was a deep audit of glaring functional, correctness and reliability risks, followed by fixes. That phase is complete and live at [FPL Insights](https://fpl-insights-jm.vercel.app/).
 
 The brand/UI/visitor review is documented in the [design brief and prioritised plan](audits/2026-10-14-design-brief.md). Jonno reviewed the comparison and explicitly requested the implementation below. His feedback supersedes the proposed removal of the review hero: keep it on both desktop and mobile, add linked next actions, stabilise the pitch and improve narrow layouts. The purple/green/warm-paper identity, existing forecast calculations, correctness guards and dependency-free architecture remain. Read the [audit and resolution notes](audits/2026-10-13-cv-readiness.md) for correctness evidence; avoid repeating the completed audit without new evidence.
+
+## Colour and section contrast — 21 October 2026
+
+- Jonno requested stronger, more striking colours across the whole page, clearer colour separation and outlines. This is a CSS-only refinement of the accepted compact layout; no recommendation, data, copy or interaction changes.
+- **Squad:** Just happened is now a full dark-purple scorecard with green positive figures; Up next has a bright FPL-green heading and pale-green figures area. The next-move brief and team sheet have dark-purple headers and stronger outlines. Warm cream player tiles, plum shirt panels and a dark-green bench separate the data from the field. Kept the same shirt/card/field dimensions and desktop fit.
+- **Across tabs:** plum page ground, lavender card headings, clearer purple card outlines, dark chapter bands edged in green, and purple table headers with light text. White remains within dense tables/charts for readability. Existing warning, status and fixture colours retain their meanings. Caught and corrected a nested card-heading background that initially made Starting XI white on lavender; its final header is consistently dark purple.
+- **Verification:** all **85 unittest tests passed**; `git diff --check` passed. Playwright/Chromium at **1897/1440/1280/1100/768/390/320px** passed fixed geometry across all three periods and both lineups, full desktop arrival fit, exact squad/transfer membership, captain/vice, weekly totals, profiles/Escape/focus, reasons, breakdowns, unsupported-source rendering, sticky tabs and no sampled page overflow/errors. Additional checks at **801/701/700px** covered navigation breakpoint edges. All 15 player cards have no sampled content clipping; transfer-switch intermediate animation, rapid toggles and reduced motion passed.
+- Inspected actual screenshots of all four tabs at desktop and phone widths, the full Scout table, and the complete 1280×800 squad. Extra tab checks at **1440/390/320px** passed all Scout positions, team filters, price sorting, league sorting and the dark team-sheet header. The temporary script first targeted a hidden table header; scoping it to the visible league table corrected the check, which then passed. Other browsers, physical devices and comprehensive screen-reader/zoom coverage remain unverified.
+- Uses the same cached **21 October 00:07 UTC** snapshot as the prior checkpoint, rendered with current CSS; no fresh network build was needed for this visual-only change. Tracked generated HTML, projections feed and price history are unchanged. No dependencies added.
+- Review: [updated dashboard](http://127.0.0.1:8768/contrast/after.html). Baseline is `/contrast/before.html`; screenshots, browser scripts/results and cached input are in the visualization folder's `contrast/` subfolder. The **8768** server remains available for review; stop afterwards.
+- Still isolated in the Codex worktree on `codex/design-density`. Main/Claude were not changed, merged or published.
+
+Next gate: Jonno reviews the colour refinement. No push/publication. `/clear` is safe after review; resume from this section.
 
 ## Weekly impact, evidence and persistent navigation — 21 October 2026
 
