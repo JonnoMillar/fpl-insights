@@ -1,0 +1,74 @@
+/* Scoped to the disposable colour study; no production styles are changed. */
+:root{
+  --ground:var(--study-ground); --surface:var(--study-surface); --surface-variant:var(--study-soft);
+  --ink:var(--study-ink); --on-surface:var(--study-ink); --on-surface-variant:var(--study-muted);
+  --p60:var(--study-muted); --p70:var(--study-muted); --p80:var(--study-muted);
+  --p90:var(--study-anchor); --p100:var(--study-anchor); --p110:var(--study-anchor); --p120:var(--study-bar);
+  --p2:var(--study-surface); --p5:var(--study-soft); --p10:var(--study-divider); --p20:var(--study-divider); --p30:var(--study-line);
+  --outline:var(--study-line); --outline-variant:var(--study-divider);
+  --accent:var(--study-accent); --accent-ink:var(--study-accent-ink); --accent-wash:var(--study-accent-wash);
+  --bar:var(--study-bar);
+}
+.palette-picker{margin:0}
+.palette-options{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px}
+.palette-options button{display:flex; align-items:center; justify-content:center; gap:10px; padding:7px 8px; min-height:38px; border:1px solid var(--study-line); border-radius:6px; background:var(--study-surface); color:var(--study-ink); font:600 13px var(--sans); cursor:pointer}
+.palette-options button[aria-pressed="true"]{background:var(--study-anchor); color:#fff; border-color:var(--study-anchor); box-shadow:inset 0 -3px var(--study-accent)}
+.palette-options button:focus-visible{outline:3px solid var(--study-accent-ink); outline-offset:2px}
+.palette-swatches{display:flex; gap:3px; flex:none}
+.palette-swatches i{width:11px; height:16px; border-radius:2px; box-shadow:inset 0 0 0 1px #ffffff45}
+.palette-description{font-size:12px; line-height:16px; margin:4px 0 0; color:var(--study-muted)}
+.topbar .tabs>button{color:#e0dce5}
+.score-group.score-recent{background:var(--study-recent); color:var(--study-ink); border-color:var(--study-line)}
+.score-recent h2{border-color:var(--study-line)}
+.squad-overview .score-recent .tile{border-color:var(--study-line)}
+.squad-overview .score-recent .tile .k,.squad-overview .score-recent .tile .n{color:var(--study-muted)}
+.squad-overview .score-recent .tile .v{color:var(--study-ink)}
+.squad-overview .score-recent .tile.tile-good .v{color:var(--good-ink)}
+.score-group.score-upcoming{background:var(--study-upcoming); color:var(--study-upcoming-ink); border-color:var(--study-upcoming)}
+.score-upcoming h2{background:transparent; color:var(--study-upcoming-ink); border-color:#ffffff30}
+.squad-overview .score-upcoming .tile{border-color:#ffffff30}
+.squad-overview .score-upcoming .tile .k,.squad-overview .score-upcoming .tile .n{color:var(--study-upcoming-muted)}
+.squad-overview .score-upcoming .tile .v{color:var(--study-upcoming-ink)}
+.squad-overview .score-upcoming .tile:first-child .v{color:var(--study-accent)}
+.squad-overview .score-upcoming .tile-warn .v{color:#ffd166}
+.decision-brief{background:var(--study-surface); border-color:var(--study-line); box-shadow:none}
+.brief-heading{background:var(--study-soft); color:var(--study-ink); box-shadow:inset 0 -1px var(--study-line)}
+.brief-heading>span{color:var(--study-muted)}
+.brief-action{border-radius:5px; background:var(--study-accent); color:var(--study-action-ink)}
+.brief-action a{display:block; padding:8px 10px; font-size:20px}
+.transfer-in small{color:var(--good-ink)}
+.preview-on .transfer-in{background:var(--good-wash); color:var(--good-ink)}
+.squad-overview>.squad-pitch{background:var(--study-soft); outline-color:var(--study-line); --pitch-a:var(--study-pitchA); --pitch-b:var(--study-pitchB)}
+.team-sheet-head{background:var(--study-anchor); color:#fff}
+.team-sheet-head .pkview>button,.team-sheet-head .sub{color:var(--study-anchor-muted)}
+.team-sheet-head .pkview>button[aria-selected="true"]{color:var(--study-accent)}
+.team-sheet-head .infobtn{color:var(--study-anchor-muted); border-color:var(--study-anchor-muted)}
+.squad-pitch .pitch-controls{background:var(--study-surface)}
+.pitch-context{background:var(--study-context)}
+.lineup-switch{background:var(--study-line)}
+.lineup-toggle[aria-checked="true"] .lineup-switch{background:var(--good-ink)}
+.squad-pitch .row>.pl{background:var(--study-player); color:var(--study-player-ink)}
+.squad-pitch .pl .crest{background:var(--study-shirt)}
+.squad-pitch .pl .nm,.squad-pitch .pk-market b,.squad-pitch .pk-opponent,.squad-pitch .pk-market,.squad-pitch .pk .fxpill{color:var(--study-player-ink)}
+.squad-pitch .pl .sc{color:var(--study-player-ink)}
+.squad-pitch .benchstrip{background:var(--study-bench); border-color:#ffffff30}
+.squad-pitch .benchstrip .lbl{color:#e0f4e7}
+.squad-pitch .is-incoming{outline-color:var(--good)}
+.squad-pitch .incoming-badge,.squad-pitch .arm{background:var(--good); color:#092c20}
+.card-head{background:var(--study-soft)}
+.team-sheet-head .card-head{background:transparent}
+.chapter,thead th{background:var(--study-anchor)}
+.chapter .sub{color:var(--study-anchor-muted)}
+html[data-palette="floodlights"]{--good-ink:#78efb4; --good-wash:#214a3a; --bad-ink:#ff9eb3; --bad-wash:#482d38; --attention-ink:#ffcf71; --attention-wash:#423b27}
+html[data-palette="floodlights"] .squad-overview .tile .delta-up{color:#78efb4; background:#214a3a}
+html[data-palette="floodlights"] .squad-overview .tile .delta-down{color:#ff9eb3; background:#482d38}
+html[data-palette="floodlights"] .gain-negative,html[data-palette="floodlights"] .transfer-out .player-link{color:#ff9eb3}
+html[data-palette="floodlights"] .lineup-toggle[aria-checked="true"] .lineup-switch{background:#087d4b}
+html[data-palette="floodlights"] .squad-pitch .arm[title="Vice-captain"]{color:white}
+html[data-palette="floodlights"] dialog.pv{background:var(--study-surface); color:var(--study-ink)}
+@media(max-width:700px){
+  .palette-options{grid-template-columns:repeat(6,minmax(0,1fr)); gap:6px}
+  .palette-options button{grid-column:span 2; flex-direction:column; gap:4px; font-size:12px; padding:7px 3px; min-height:57px}
+  .palette-options button:nth-child(4),.palette-options button:nth-child(5){grid-column:span 3}
+  .palette-description{min-height:48px}
+}
