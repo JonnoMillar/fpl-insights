@@ -2435,9 +2435,28 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   .league-standings td:first-child .delta{display:block; width:max-content; margin-top:4px}
 }
 
+/* Primary navigation stays within the sticky chrome on every tab. */
+.topbar-in{padding:6px 16px; flex-wrap:nowrap}
+.topbar .tabs{margin:0 0 0 24px; border:0; flex:none}
+.topbar .tabs::after{background:var(--accent); bottom:0}
+.topbar .tabs>button{min-height:40px; padding:8px 14px; font-size:14px; color:#cdbdd0}
+.topbar .tabs>button[aria-selected="true"]{color:white}
+.topbar .tabs>button:hover{background:rgb(255 255 255 / 10%); color:white}
+.topbar .tabs>button:focus-visible{outline-color:var(--accent)}
+@media(max-width:1000px){.topbar .stamp{display:none}}
+@media(max-width:700px){
+  .topbar-in{flex-wrap:wrap; row-gap:2px; padding:6px 12px 0}
+  .topbar .tabs{order:4; width:100%; margin:0; gap:0}
+  .topbar .tabs>button{flex:1; min-width:0; padding:8px 6px; font-size:13px}
+}
+.toggle-label{display:flex; flex-direction:column; align-items:flex-start; gap:1px; white-space:nowrap}
+.preview-gain{font-size:11px; line-height:14px; font-weight:500}
+.gain-negative{color:#963246}
+.gain-positive{color:var(--accent-ink)}
+.reason-horizon{color:var(--p80)}
 /* Matchday workspace: a score strip, a decision brief and one compact team sheet.
    Plum supplies hierarchy; the field and the transfer preview earn the colour. */
-.product-intro{position:relative; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 24px; padding:0 0 8px; margin-bottom:0}
+.product-intro{position:relative; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 24px; padding:0 0 4px; margin-bottom:0; border:0}
 .product-intro h1{font-size:24px; font-stretch:118%; line-height:1.2; text-wrap:initial}
 .product-intro>p{grid-column:1; font-size:13px; margin:0; color:var(--p80)}
 .product-intro .intro-links{grid-column:2; grid-row:1 / span 2; margin:0; align-self:center; gap:20px}
@@ -2469,8 +2488,6 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .squad-overview .tile-warn .v{color:var(--attention-ink)}
 .squad-overview .tile .delta-up{color:var(--good-ink); background:var(--good-wash)}
 .squad-overview .tile .delta-down{color:var(--bad-ink); background:var(--bad-wash)}
-.squad-overview .hero-line{border:0; border-top:1px solid var(--outline-variant); padding:8px 16px; margin:0; max-width:none; font-size:13px; color:var(--p80)}
-.squad-overview .hero-line b{color:var(--ink)}
 .decision-brief{grid-area:brief; background:#eae3ed; border:1px solid var(--outline-variant); border-radius:10px; padding:18px; overflow-wrap:anywhere}
 .brief-heading{display:flex; align-items:center; justify-content:space-between; gap:8px}
 .brief-heading h2{font-size:15px; font-stretch:100%; text-transform:none; letter-spacing:0}
@@ -2481,26 +2498,23 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .transfer-pairs{list-style:none; padding:0; margin:0}
 .transfer-pair{display:grid; grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr); gap:4px; align-items:center; border-top:1px solid var(--outline-variant); padding:10px 0}
 .transfer-pair small{display:block; font-size:11px; color:var(--p80); margin-bottom:3px}
-.transfer-pair strong{display:block; font-size:14px; font-weight:600}
-.transfer-out strong{color:#94505b}
+.player-link{appearance:none; border:0; background:none; padding:0; font:inherit; font-weight:600; color:inherit; text-align:inherit; cursor:pointer; text-decoration:underline; text-decoration-color:transparent; text-underline-offset:3px}
+.player-link:hover{text-decoration-color:currentColor}
+.player-link:focus-visible{outline:2px solid var(--accent-ink); outline-offset:3px; border-radius:2px}
+.transfer-pair .player-link{display:block; min-height:24px; font-size:14px; overflow-wrap:anywhere}
+.transfer-out .player-link{color:#94505b}
 .transfer-in{border-radius:4px; transition:background .22s, color .22s; padding:4px 6px}
 .transfer-in small{color:var(--accent-ink)}
 .transfer-arrow{color:var(--p60); font-size:19px}
 .preview-on .transfer-in{background:var(--accent-wash); color:var(--accent-ink)}
-.preview-on .transfer-out strong{text-decoration:line-through; text-decoration-thickness:1px}
-.brief-upside{display:flex; gap:10px; align-items:center; margin:-4px 0 12px; color:var(--accent-ink)}
-.brief-upside b{font-size:25px; font-weight:600; letter-spacing:-.04em}
-.brief-upside span{font-size:11px; line-height:1.35}
+.preview-on .transfer-out .player-link{text-decoration:line-through; text-decoration-thickness:1px}
 .transfer-pairs{margin-bottom:12px}
-
-.captain-brief{display:flex; gap:10px; align-items:center; border-top:1px solid var(--outline-variant); padding-top:16px}
+.captain-brief{display:flex; gap:6px; align-items:baseline; border-top:1px solid var(--outline-variant); padding-top:12px; margin:0 0 12px; font-size:15px}
 .captain-brief[hidden]{display:none}
-.captain-disc{display:grid; place-items:center; background:var(--accent); color:var(--ink); width:34px; height:34px; flex:none; border-radius:50%; font-weight:700; font-size:18px}
-.captain-brief small,.captain-brief strong,.captain-brief div>span{display:block}
-.captain-brief small{font-size:12px; color:var(--p80)}
-.captain-brief strong{font-size:20px; line-height:1.4}
-.captain-brief div>span{font-size:12px; color:var(--p80)}
-.brief-chip{font-size:12px; margin:10px 0 6px; color:var(--p80)}
+.captain-brief>span{font-size:13px; color:var(--p80)}
+.projection-values{display:grid}
+.projection-values>*{grid-area:1/1}
+.projection-values>[hidden]{display:block; visibility:hidden; pointer-events:none}
 .brief-reasons{border:0; margin:0}
 .brief-reasons summary{font-size:13px; min-height:36px; padding:9px 0}
 .brief-reasons p{font-size:13px; margin:0 0 12px; line-height:1.6}
@@ -2515,9 +2529,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .squad-pitch .card-head .subvis{display:none}
 .squad-pitch .pkview{padding:0 12px}
 .squad-pitch .pkview>button{font-size:13px; min-height:38px; padding:8px 14px}
-.squad-pitch .pitch-controls{padding:3px 16px; min-height:44px; gap:8px; background:#eae3ed; flex-wrap:nowrap}
-.squad-pitch .pitch-metric{font-size:12px; font-weight:500}
-.squad-pitch:has(.pkbtn[data-view="pk"][aria-selected="true"]) .pitch-metric{display:none}
+.squad-pitch .pitch-controls{padding:3px 16px; min-height:50px; gap:8px; background:#eae3ed; flex-wrap:nowrap}
 .squad-pitch .pitch-controls .stbtn{font-size:12px; min-height:36px; padding:6px 10px}
 .squad-pitch .pitch-controls .epbtn{font-size:12px}
 .pitch-context{display:grid; padding:5px 16px; border-top:1px solid var(--outline-variant); background:#dedbe1}
@@ -2527,7 +2539,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .lineup-summaries,.lineup-variants{display:grid; min-width:0}
 .lineup-variants>*{grid-area:1/1; min-width:0}
 .mobile-exchanges{display:none}
-.lineup-toggle{display:inline-flex; align-items:center; min-height:38px; gap:9px; padding:0; border:0; background:transparent; color:var(--ink); font:600 13px var(--sans); cursor:pointer}
+.lineup-toggle{display:inline-flex; align-items:center; min-height:44px; gap:9px; padding:0; border:0; background:transparent; color:var(--ink); font:600 13px var(--sans); cursor:pointer}
 .lineup-toggle[hidden]{display:none}
 .lineup-switch{display:block; width:40px; height:24px; padding:3px; background:#c3b6c5; border-radius:20px; transition:background .22s ease; flex:none}
 .lineup-thumb{display:block; width:18px; height:18px; border-radius:50%; background:white; box-shadow:0 1px 3px #37003c33; transform:translateX(0); transition:transform .22s cubic-bezier(.22,1,.36,1)}
@@ -2597,12 +2609,6 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .squad-pitch .pkstage.ep-on .pk{height:var(--squad-player-height); animation:none}
 .squad-pitch .pkstage.ep-on .epside{position:absolute; inset:0; width:100%; padding:16px; overflow:auto; background:var(--surface)}
 .squad-pitch .epcname{display:block}
-@media(min-width:1100px){
-  .wrap{display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:28px}
-  .wrap>*{grid-column:1 / -1; min-width:0}
-  .wrap>.product-intro{grid-column:1; grid-row:1; border:0}
-  .wrap>.tabs{grid-column:2; grid-row:1; align-self:center; margin:0}
-}
 @media(min-width:801px) and (max-height:850px){
   @container(min-width:750px){
     .squad-pitch .pitch,.squad-pitch .pkstage.ep-on .pitch,.squad-pitch .benchstrip{--squad-player-height:66px}
@@ -2615,8 +2621,6 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   .decision-brief{padding:14px 18px}
   .brief-action{margin:10px 0}
   .transfer-pair{padding:7px 0}
-  .brief-upside{margin:0 0 8px}
-  .brief-upside b{font-size:22px}
   .transfer-pairs{margin-bottom:8px}
   .captain-brief{padding-top:10px}
 }
@@ -2627,7 +2631,6 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   .squad-overview .tile .v{font-size:23px}
   .team-sheet-head{flex-wrap:wrap}
   .team-sheet-head .pkview{width:100%}
-  .squad-pitch .pitch-metric{display:none}
   .squad-pitch .pitch-controls{justify-content:flex-end}
   .squad-pitch .lineup-toggle{margin-right:auto}
 }

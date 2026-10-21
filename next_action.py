@@ -3,6 +3,52 @@
 import analysis
 
 
+def explain_move(move, ctx, next_gw):
+    """A short factual case, including caveats; no new recommendation policy."""
+    incoming, outgoing = move["in"], move["out"].element
+    name, old_name = incoming["web_name"], outgoing["web_name"]
+    minutes = incoming.get("minutes", 0) or 0
+    old_minutes = outgoing.get("minutes", 0) or 0
+    rate = analysis.f(incoming.get("expected_goal_involvements_per_90"))
+    old_rate = analysis.f(outgoing.get("expected_goal_involvements_per_90"))
+    form, old_form = incoming.get("form"), outgoing.get("form")
+    fixtures = ctx.next_fixtures(incoming["team"], 5, from_event=next_gw)
+    if minutes >= 90 and rate >= old_rate + .1:
+        reason = f"{name}'s chance numbers look promising: {rate:.2f} expected goal involvements per 90"
+        reason += (f", but that's only {minutes} minutes of evidence." if minutes < analysis.THIN_SAMPLE_MINUTES
+                   else f", against {old_name}'s {old_rate:.2f}." if old_minutes >= analysis.THIN_SAMPLE_MINUTES and outgoing.get("expected_goal_involvements_per_90") is not None
+                   else f" across {minutes} minutes.")
+    elif form is not None and old_form is not None and analysis.f(form) >= analysis.f(old_form) + 1:
+        reason = (f"{name} has been returning more FPL points recently "
+                  f"(form {analysis.f(form):.1f} versus {old_name}'s {analysis.f(old_form):.1f}).")
+    elif minutes >= old_minutes + 180 and old_minutes < analysis.THIN_SAMPLE_MINUTES:
+        reason = f"{name} has played {minutes} minutes this season; {old_name} has managed only {old_minutes}, so there's more playing-time evidence to work with."
+    elif fixtures:
+        easy = sum(fx[2] <= 2 for fx in fixtures)
+        reason = (f"{name} has {easy} of his next {len(fixtures)} fixtures rated 2 or easier out of 5."
+                  if easy else f"None of {name}'s next {len(fixtures)} fixtures are rated 2 or easier, so the run doesn't look especially soft.")
+    else:
+        reason = f"There isn't enough fixture or form evidence to give {name} a clear supporting case yet."
+    caveats = []
+    chance = incoming.get("chance_of_playing_next_round")
+    if incoming.get("status") in ("i", "s", "u", "n"):
+        caveats.append("check his availability before committing")
+    elif incoming.get("status") == "d" or (chance is not None and chance < 100):
+        caveats.append("he's currently flagged as a doubt")
+    if fixtures:
+        opp, home, difficulty, _ = fixtures[0]
+        opponent = ctx.teams[opp].get("name", ctx.team_name(opp))
+        fixture = f"{opponent} {'at home' if home else 'away'}"
+        if difficulty >= 4:
+            caveats.append(f"{fixture} is a tough start")
+        elif difficulty <= 2:
+            caveats.append(f"he starts with a kinder fixture against {opponent} {'at home' if home else 'away'}")
+    if caveats:
+        note = "; ".join(caveats)
+        reason += " " + note[0].upper() + note[1:] + "."
+    return reason
+
+
 def choose(swaps, pairs, free, supported, next_gw, chip_options=(), used=None):
     """Conservative presentation policy, not a newly calibrated model.
 

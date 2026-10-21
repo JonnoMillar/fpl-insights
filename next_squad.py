@@ -3,6 +3,20 @@
 import squadbuilder
 
 
+def projected_total(team, scores, blank_ids=(), chip=None):
+    """One verified team's GW points, including captain/chip, before hits."""
+    if not team or chip == "freehit":
+        return None
+    players = team["xi"] + (team["bench"] if chip == "bboost" else [])
+    ids = [r.element["id"] for r in players]
+    if team["captain"] not in [r.element["id"] for r in team["xi"]]:
+        return None
+    if any(pid not in scores and pid not in blank_ids for pid in ids):
+        return None
+    captain = scores.get(team["captain"], {}).get("total", 0)
+    return sum(scores.get(pid, {}).get("total", 0) for pid in ids) + captain * (2 if chip == "3xc" else 1)
+
+
 def _pool(reports, scores):
     return [{"id": r.element["id"], "pos": r.pos, "club": r.element["team"],
              "price": r.price, "value": scores.get(r.element["id"], {}).get("total", 0)}

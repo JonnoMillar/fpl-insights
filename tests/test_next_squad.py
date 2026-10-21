@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import next_squad
 import cards_squad
-from next_action import choose
+from next_action import choose, explain_move
 from tests.test_cv_readiness import make_reports
 from tests.test_transfers import full_fifteen
 
@@ -101,6 +101,58 @@ class NextSquadTests(unittest.TestCase):
             self.assertIn('E&lt;V <small>(A)</small>',html)
             self.assertIn('<span>Team xG</span> <b>1.75</b>',html)
             self.assertIn('Expected team goals',html)
+
+    def test_week_total_counts_the_selected_captain_and_chips(self):
+        team=next_squad.select(self.reports,self.scores)
+        base=sum(self.scores[r.element['id']]['total'] for r in team['xi'])
+        cap=self.scores[team['captain']]['total']
+        bench=sum(self.scores[r.element['id']]['total'] for r in team['bench'])
+        self.assertAlmostEqual(next_squad.projected_total(team,self.scores),base+cap)
+        self.assertAlmostEqual(next_squad.projected_total(team,self.scores,chip='3xc'),base+2*cap)
+        self.assertAlmostEqual(next_squad.projected_total(team,self.scores,chip='bboost'),base+bench+cap)
+        self.assertIsNone(next_squad.projected_total(team,self.scores,chip='freehit'))
+        changed=dict(team,captain=team['vice'])
+        self.assertAlmostEqual(next_squad.projected_total(changed,self.scores),base+self.scores[team['vice']]['total'])
+
+    def test_week_total_withholds_missing_data_but_accepts_a_confirmed_blank(self):
+        team=next_squad.select(self.reports,self.scores)
+        missing=team['xi'][0].element['id']
+        scores={pid:score for pid,score in self.scores.items() if pid!=missing}
+        self.assertIsNone(next_squad.projected_total(team,scores))
+        self.assertIsNotNone(next_squad.projected_total(team,scores,blank_ids={missing}))
+        self.assertIsNone(next_squad.projected_total(None,scores))
+        self.assertIsNone(next_squad.projected_total(dict(team,captain=-1),self.scores))
+        missing_bench=team['bench'][0].element['id']
+        scores={pid:score for pid,score in self.scores.items() if pid!=missing_bench}
+        self.assertIsNotNone(next_squad.projected_total(team,scores))
+        self.assertIsNone(next_squad.projected_total(team,scores,chip='bboost'))
+        self.assertIsNotNone(next_squad.projected_total(team,scores,blank_ids={missing_bench},chip='bboost'))
+
+    def test_transfer_explanation_uses_real_form_and_flags_tough_fixtures(self):
+        old=self.reports[2]
+        old.element.update(web_name='Old',form='2.0',minutes=600,expected_goal_involvements_per_90=.2)
+        new=dict(old.element,web_name='New',form='6.0')
+        ctx=SimpleNamespace(next_fixtures=lambda *a,**k:[('OPP',False,4,8)],
+                            teams={'OPP':{'name':'Liverpool'}},team_name=lambda tid:tid)
+        text=explain_move({'out':old,'in':new},ctx,8)
+        self.assertIn('form 6.0',text)
+        self.assertIn('Liverpool away is a tough start',text)
+        self.assertNotIn('kinder',text)
+
+    def test_transfer_explanation_qualifies_small_samples_and_injury_doubts(self):
+        old=self.reports[2]
+        old.element.update(web_name='Old',minutes=600,expected_goal_involvements_per_90=.1)
+        new=dict(old.element,web_name='New',minutes=180,expected_goal_involvements_per_90=.7,status='d')
+        ctx=SimpleNamespace(next_fixtures=lambda *a,**k:[('OPP',True,2,8)],
+                            teams={'OPP':{'name':'Everton'}},team_name=lambda tid:tid)
+        text=explain_move({'out':old,'in':new},ctx,8)
+        self.assertIn('0.70 expected goal involvements per 90',text)
+        self.assertIn('only 180 minutes',text)
+        self.assertIn('flagged as a doubt',text)
+        self.assertIn('kinder fixture against Everton at home',text)
+        new.update(minutes=600)
+        del old.element['expected_goal_involvements_per_90']
+        self.assertNotIn("against Old's 0.00",explain_move({'out':old,'in':new},ctx,8))
 
     def test_action_exposes_only_the_moves_it_actually_selects(self):
         old=self.reports[2];incoming=self.incoming(old,98,5)

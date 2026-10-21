@@ -10,7 +10,7 @@
     snapshot.classList.toggle('data-warning', stale);
     snapshot.textContent = (stale ? 'Update overdue. ' : 'Snapshot: ') +
       (age < 60 ? age + ' minutes' : Math.floor(age / 60) + ' hours') +
-      ' old · Last published squad and bank; pre-deadline changes are not public.';
+      ' old';
   }
   markFreshness();
   window.setInterval(markFreshness, 60000);
@@ -152,12 +152,9 @@
         var p=document.getElementById(o.dataset.panel);
         if(p) p.hidden = (o!==t);
       });
-      // Panels differ in height. Without this, switching from a long panel to
-      // a short one leaves you scrolled past the end of the new one, staring
-      // at empty background.
-      var bar=t.parentNode;
-      if(bar.getBoundingClientRect().top < 0) bar.scrollIntoView({block:'start'});
       buildRail();
+      // Persistent tabs should open the next section at its beginning.
+      window.scrollTo(0, 0);
       // A tab's own panel may have deferred its first render until it is
       // actually looked at - the Scout tab's per-match history for the
       // whole league is not worth laying out before anyone opens it. This
@@ -221,7 +218,7 @@
   // it agrees with what is under the heading rather than what is centred.
   function markRail(){
     if(!railTargets.length) return;
-    var cut=110, current=railTargets[0];
+    var cut=document.querySelector('.topbar').getBoundingClientRect().height + 8, current=railTargets[0];
     railTargets.forEach(function(t){
       if(t.el.getBoundingClientRect().top <= cut) current=t;
     });
@@ -299,20 +296,9 @@
         var epb = card.querySelector('.epbtn');
         if (epb) { epb.hidden = view !== 'pk' || !card.querySelector('.pkstage .epside'); }
         points(view);
-        updatePitchLabel(card);
       });
     });
   });
-
-  function updatePitchLabel(card){
-    var view = card.querySelector('.pkbtn[aria-selected="true"]').dataset.view;
-    var stat = card.querySelector('.stbtn[aria-pressed="true"]').dataset.stat;
-    var label = view === 'pk' ? 'Next gameweek · projected points' :
-      stat === 'g' ? 'Season · points per appearance' :
-      stat === 'x' ? 'Season · expected goal involvement' :
-      (view === 'gw' ? 'Last gameweek' : 'Season') + ' · points';
-    card.querySelector('.pitch-metric').textContent = label;
-  }
 
   document.querySelectorAll('.lineup-toggle').forEach(function(btn){
     var overview = btn.closest('.squad-overview');
@@ -372,7 +358,6 @@
         if (!wrap) { return; }
         wrap.classList.remove('emph-p', 'emph-g', 'emph-x');
         wrap.classList.add('emph-' + b.dataset.stat);
-        updatePitchLabel(group.closest('.card'));
       });
     });
   });
