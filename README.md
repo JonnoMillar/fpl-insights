@@ -55,7 +55,7 @@ python -m pytest                   the tests
 
 `config.json` holds the FPL ids to report on. The committed one points at my
 own team and mini-league, so everything above runs straight after a clone.
-To use your own:
+To point it at a different team:
 
 ```json
 {
@@ -265,3 +265,7 @@ missing projections are reported rather than replaced by repeated market odds.
 Blank weeks are distinguished from unavailable fixture data in player dialogs.
 The budget-based Free Hit and Wildcard search is approximate; owned-XI selection
 is exact for a legal fifteen. Projections are estimates, not backtested forecasts.
+
+## Licence
+
+© 2026 Jonno Millar, all rights reserved. Public to read, not to reuse (see `LICENSE`).
