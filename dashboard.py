@@ -479,8 +479,7 @@ def render(d, standalone=True):
       <span class="sub">Who to sell, who to buy, and who takes the armband.</span></div>
     {d.get('plan', '')}
     {d['verdicts']}
-    {d['transfers']}
-    {d['pairings']}
+    {components.other_transfer_options(d['transfers'], d['pairings'])}
     {d['captaincy']}
 
     <div class="chapter"><h2>Chips and the weeks ahead</h2>
@@ -1008,6 +1007,13 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         plan = planner.build(ctx, xi + bench, proj, market, baselines, next_gw, bank,
                              sell_values, free_ts, used if chips_verified else None,
                              captain_first=cap_first, live=scout_live)
+        # Portraits for the plan's move cards: the owned side is already
+        # loaded, the signings are a few requests, once each.
+        for week in plan["weeks"] if plan else ():
+            for move in week["moves"]:
+                for pid in (move["out"], move["in"]):
+                    if pid not in photos:
+                        photos[pid] = fplapi.photo_data_uri(ctx.players[pid])
         timing_priors = transfers.positional_priors(ctx)
         for sw in swaps:
             sw["timing"] = planner.timing_note(sw["in"], sw["out"].element, plan, ctx, proj,
@@ -1091,7 +1097,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     return {
         "ctx": ctx,
         "next_action": action,
-        "plan": plan_card(plan, ctx, shirts, badges),
+        "plan": plan_card(plan, ctx, shirts, badges, photos),
         "plan_data": plan,
         "captain_summary": cap_matrix["candidates"][0] if cap_matrix and advice_supported else None,
         "gw": gw,

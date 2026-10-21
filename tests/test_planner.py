@@ -335,3 +335,38 @@ class BenchBoostTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PlanCardRenderTests(unittest.TestCase):
+    """The plan's moves use the suggested-transfer card, keep the week
+    anchors the hero jumps to, and carry the week's gain and bank."""
+
+    class Ctx:
+        def __init__(self, rows):
+            self.rows = rows
+            self.players = {p: {"id": p, "web_name": f"P{p}", "team": p}
+                            for p in rows}
+
+        def pos(self, el):
+            return self.rows[el["id"]]["pos"]
+
+        def team_name(self, team):
+            return f"C{team}"
+
+    def test_moves_render_as_transfer_cards(self):
+        import cards_plan
+        rows, values = squad()
+        rows[100] = {"pos": "DEF", "club": "X", "price": 5.5}
+        values[100] = [2.0, 2.0] + [7.0] * (H - 2)
+        _p, _best, plan = run(rows, values)
+        week = next(w for w in plan["weeks"] if w["moves"])
+        move = week["moves"][0]
+        html = cards_plan.plan_card(plan, self.Ctx(rows), {}, {})
+        self.assertIn(f'id="plan-gw-{week["gw"]}"', html)
+        self.assertEqual(html.count('class="tf-card plan-move"'),
+                         sum(len(w["moves"]) for w in plan["weeks"]))
+        self.assertIn(f"P{move['out']}", html)
+        self.assertIn(f"{week['gain']:+.1f}</b> to your team", html)
+        self.assertIn(f"{week['bank']:.1f}m in the bank", html)
+        self.assertIn(f"{move['in_pts']:.1f}", html)
+        self.assertIn("Waits out", html)

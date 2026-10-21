@@ -375,7 +375,7 @@ pseudo-elements are not available on one div. See the .pmk block in CSS
 for why the boxes are sized the way they are."""
 
 
-def _face(photo, shirt, name, club, price, tone_class, duties=""):
+def tf_face(photo, shirt, name, club, price, tone_class, duties=""):
     """One side of a swap: portrait, club shirt tucked in the corner, name."""
     if photo:
         img = '<img class="tf-photo" src="{}" alt="" width="72" height="92">'.format(photo)
@@ -395,6 +395,25 @@ def _face(photo, shirt, name, club, price, tone_class, duties=""):
         "</div>"
     ).format(tone=tone_class, img=img, kit=kit, duties=duties, name=e(name),
              club=e(club), price=price)
+
+
+def tf_swap(out_face, in_face, bank_delta):
+    """Two faces with the money between them: the shared top half of a
+    suggested transfer and a transfer-plan move. The money is the effect
+    on your bank, so a cheaper replacement reads +0.5m."""
+    money = "free" if abs(bank_delta) < 0.05 else "{:+.1f}m".format(bank_delta)
+    money_class = "tf-free" if abs(bank_delta) < 0.05 else (
+        "tf-save" if bank_delta > 0 else "tf-cost")
+    return (
+        '<div class="tf-swap">{out}'
+        '<div class="tf-mid">'
+        '<span class="tf-arrow" aria-hidden="true">'
+        '<svg viewBox="0 0 40 16"><path d="M0 8h32M26 2l7 6-7 6" fill="none" '
+        'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+        'stroke-linejoin="round"/></svg></span>'
+        '<span class="tf-money {mclass}">{money}</span></div>'
+        "{inp}</div>"
+    ).format(out=out_face, inp=in_face, mclass=money_class, money=money)
 
 
 def transfer_cards(rows, note, lede=""):
@@ -430,12 +449,6 @@ def transfer_cards(rows, note, lede=""):
         out_ep = r["out_score"]["total"]
         in_ep = r["in_score"]["total"]
         span = max(out_ep, in_ep) or 1.0
-        # Shown as the effect on your bank, not the change in squad value:
-        # a cheaper replacement puts money back, so it reads +0.5m.
-        bank_delta = -r["spend"]
-        money = "free" if abs(bank_delta) < 0.05 else "{:+.1f}m".format(bank_delta)
-        money_class = "tf-free" if abs(bank_delta) < 0.05 else (
-            "tf-save" if bank_delta > 0 else "tf-cost")
         elite = ""
         if r.get("elite"):
             elite = ('<span class="tf-elite">{:.0f}% of the top 100 own him</span>'
@@ -453,14 +466,7 @@ def transfer_cards(rows, note, lede=""):
             if shared else "")
         cards.append((
             '<li class="tf-card" id="transfer-{index}" tabindex="-1" style="--gain:{gainpct:.0f}%">'
-            '<div class="tf-swap">{out}'
-            '<div class="tf-mid">'
-            '<span class="tf-arrow" aria-hidden="true">'
-            '<svg viewBox="0 0 40 16"><path d="M0 8h32M26 2l7 6-7 6" fill="none" '
-            'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
-            'stroke-linejoin="round"/></svg></span>'
-            '<span class="tf-money {mclass}">{money}</span></div>'
-            "{inp}</div>"
+            "{swap}"
             '<div class="tf-numbers">'
             '<div class="tf-ep"><span>{oep:.2f}</span>'
             '<span class="tf-track"><i style="width:{opct:.0f}%"></i></span>'
@@ -480,21 +486,23 @@ def transfer_cards(rows, note, lede=""):
                     if r.get("timing") else ""),
             index=len(cards),
             gainpct=r["gain"] / top_gain * 100,
-            out=_face(r["out_photo"], r["out_shirt"], r["out"].name,
-                      r["out"].team, r["out"].price, "tf-out"),
-            inp=_face(r["in_photo"], r["in_shirt"], r["in"]["web_name"],
-                      r["in_club"], r["price"], "tf-in",
-                      duties=duty_badges(r["in"])),
-            mclass=money_class, money=money,
+            # The bank effect, not the change in squad value.
+            swap=tf_swap(
+                tf_face(r["out_photo"], r["out_shirt"], r["out"].name,
+                        r["out"].team, r["out"].price, "tf-out"),
+                tf_face(r["in_photo"], r["in_shirt"], r["in"]["web_name"],
+                        r["in_club"], r["price"], "tf-in",
+                        duties=duty_badges(r["in"])),
+                -r["spend"]),
             oep=out_ep, opct=out_ep / span * 100,
             iep=in_ep, ipct=in_ep / span * 100,
             gain=r["gain"], fixture=e(fixture),
             elite=elite or "same position, within budget",
         ))
     return (
-        '<section class="card"><div class="card-head"><h2>Suggested transfers{}</h2>'
+        '<section class="optblock"><div class="subhead"><h3>Single transfers{}</h3>'
         '<span class="sub" hidden>{}</span></div>'
-        '<div class="card-body">{}<ul class="tflist">{}</ul></div></section>'.format(
+        '{}<ul class="tflist">{}</ul></section>'.format(
             info_btn(), e(note),
             '<p class="tf-lede">{}</p>'.format(e(lede)) if lede else "",
             "".join(cards)
@@ -582,19 +590,38 @@ def pairing_cards(pairings, note, hit=4):
         )
     # Why the biggest number on the whole tab can appear here and nowhere
     # else. A pair reaches players a single transfer cannot afford, so the
-    # top pairing routinely beats every row of Suggested transfers - which
-    # reads as the two cards contradicting each other until you know that
-    # one sale is funding the other.
+    # top pairing routinely beats every single transfer - which reads as the
+    # two lists contradicting each other until you know that one sale is
+    # funding the other.
     return (
-        '<section class="card"><div class="card-head"><h2>Transfer pairings{}</h2>'
+        '<section class="optblock"><div class="subhead"><h3>Transfer pairings{}</h3>'
         '<span class="subvis">Moves a single transfer cannot reach, because '
         'one sale funds the other. That is why a name here can beat '
-        'everything in Suggested transfers above &mdash; those are priced on '
+        'every single transfer above &mdash; those are priced on '
         'your bank alone.</span>'
         '<span class="sub" hidden>{}</span></div>'
-        '<div class="card-body"><ul class="prlist">{}</ul></div></section>'.format(
+        '<ul class="prlist">{}</ul></section>'.format(
             info_btn(), e(note), "".join(cards)
         )
+    )
+
+
+def other_transfer_options(singles, pairs):
+    """The ranked single and paired moves, shut by default under the plan.
+
+    The plan above has already weighed these over eight weeks and chosen
+    when to make them; open by default they read as a second set of
+    instructions competing with it. Kept for comparison - a manager who
+    disagrees with the plan wants the next-best moves - not as headlines."""
+    if not (singles or pairs):
+        return ""
+    return (
+        '<details class="card collapsible other-moves" id="other-transfers">'
+        '<summary class="card-head"><h2>Other transfer options</h2>'
+        '<span class="subvis">Single and paired moves ranked on the next five '
+        'gameweeks if made now. The transfer plan above has already weighed '
+        'these and chosen the week.</span></summary>'
+        '<div class="card-body">{}{}</div></details>'.format(singles, pairs)
     )
 
 

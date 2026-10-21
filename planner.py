@@ -629,11 +629,10 @@ def describe(planner, best, idle, gws, ctx=None, proj=None, captain_first=None):
                            else "in" if c in planner.urgent else None),
                 "out_cheap": is_cheap(planner.rows[o], planner.caps),
                 "in_cheap": is_cheap(planner.rows[c], planner.caps),
-                # His own points against the man he replaces, from this
-                # week to the end of the plan - not the XI effect, which is
-                # the week's `gain`.
-                "own_gain": sum(planner.values[c][j] - planner.values[o][j]
-                                for j in range(i, planner.h)),
+                # Each player's own points from this week to the end of the
+                # plan - not the XI effect, which is the week's `gain`.
+                "out_pts": sum(planner.values[o][j] for j in range(i, planner.h)),
+                "in_pts": sum(planner.values[c][j] for j in range(i, planner.h)),
                 "waited": ({"loss": -early, "from_gw": gws[0], "to_gw": gws[i - 1],
                             "fixtures": [fixture(c, gws[j]) for j in range(i)]}
                            if i and early <= -WAIT_NOTE_MIN else None),

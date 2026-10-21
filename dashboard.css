@@ -1780,7 +1780,7 @@ table td.tick{border:2px solid var(--surface)}
 /* --- suggested transfers --- */
 .tflist{
   list-style:none; margin:0; padding:0; display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:14px;
 }
 .tf-card{
   background:var(--surface-variant); border-radius:var(--radius-m);
@@ -1836,7 +1836,7 @@ table td.tick{border:2px solid var(--surface)}
 }
 .tf-arrow{display:block; width:40px; color:var(--on-surface-variant)}
 .tf-arrow svg{width:40px; height:16px; display:block}
-.tf-money{font-size:12px; font-weight:700; padding:2px 8px; border-radius:9999px}
+.tf-money{font-size:12px; font-weight:700; padding:2px 8px; border-radius:var(--radius-xs)}
 .tf-free{background:var(--outline-variant); color:var(--on-surface-variant)}
 .tf-cost{background:#fde2e7; color:#a3001b}
 .tf-save{background:#d9f7e7; color:#00663a}
@@ -1869,6 +1869,22 @@ table td.tick{border:2px solid var(--surface)}
   background:var(--p5); border-radius:var(--radius-s); padding:9px 12px;
 }
 .tf-elite{font-weight:600; color:var(--good-ink)}
+/* When to make it, or why it fits a plan: the line that turns a ranked
+   swap into advice, so it reads as a note, not body copy. */
+.tf-timing{margin:8px 0 0; font-size:12px; line-height:1.45; text-align:center;
+  color:var(--on-surface-variant)}
+.tf-span{font-size:9px; font-weight:600; line-height:1.3; text-align:center;
+  text-transform:uppercase; letter-spacing:.04em; color:var(--p50)}
+
+/* Other transfer options: single and paired moves inside one shut card.
+   Each block keeps a title, info button and hidden note, without a second
+   purple band inside the first. */
+.subhead{display:flex; align-items:baseline; gap:4px 10px; flex-wrap:wrap; margin:0 0 12px}
+.subhead h3{font-size:15px}
+.subhead .sub,.subhead .subvis{flex-basis:100%; font-size:12px; line-height:1.45;
+  color:var(--on-surface-variant)}
+.optblock + .optblock{margin-top:22px; padding-top:18px; border-top:1px solid var(--outline-variant)}
+.other-moves{margin-bottom:16px}
 
 /* --- expected points, stacked --- */
 .epbar{
@@ -2694,7 +2710,10 @@ thead small,thead .muted{color:#ddc9e4}
    never by hue alone. Tags are squared off, not pills. */
 .plan-lede{margin:0 0 8px; font-size:15px; line-height:1.5}
 .plan-structure,.plan-chips{margin:0 0 8px; font-size:13px; line-height:1.5; color:var(--on-surface-variant); max-width:90ch}
-.plan-weeks{list-style:none; margin:14px 0 0; padding:0; display:grid; gap:8px}
+/* The weeks run left to right as a timeline where there is room, each
+   column its week's one or two cards; on a phone they stack. */
+.plan-weeks{list-style:none; margin:14px 0 0; padding:0; display:grid; gap:8px;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); align-items:start}
 .plan-week{border:1px solid var(--outline-variant); border-radius:var(--radius-s); padding:10px 12px; background:var(--surface)}
 .plan-week:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .plan-week-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; font-size:13px}
@@ -2707,16 +2726,19 @@ thead small,thead .muted{color:#ddc9e4}
 .plan-view:focus-visible{outline:3px solid var(--accent); outline-offset:1px}
 .plan-chip{font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
   background:var(--ink); color:var(--white); border-radius:var(--radius-xs); padding:2px 6px}
-.plan-moves{list-style:none; margin:8px 0 0; padding:0; display:grid; gap:6px}
-.plan-move{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; font-size:14px}
-.plan-move small{font-family:var(--mono); font-size:11px; color:var(--on-surface-variant)}
-.plan-out{color:var(--on-surface-variant)}
-.plan-out s{text-decoration-thickness:1px}
-.plan-in{font-weight:700}
-.plan-money{font-family:var(--mono); font-size:12px}
-.plan-note{flex-basis:100%; margin:0; font-size:12px; line-height:1.45; color:var(--on-surface-variant)}
-.plan-gain{margin:8px 0 0; font-size:13px}
-.plan-gain b{font-family:var(--mono)}
+/* Moves use the suggested-transfer card; a week's one or two cards sit at
+   card width rather than stretching across the page. No rank bar: a plan's
+   moves are a sequence, not a ranking. */
+.plan-moves{margin-top:10px; grid-template-columns:1fr; gap:10px}
+.plan-move::before{display:none}
+@media (max-width:400px){
+  .plan-week{padding:10px 8px}
+  .plan-move{padding:14px 8px 10px}
+  .plan-move .tf-mid{flex-basis:56px}
+}
+.plan-gain{font-size:13px}
+.plan-gain b{font-family:var(--mono); font-size:15px; color:var(--good-ink)}
+.plan-roll .plan-week-head{color:var(--on-surface-variant)}
 .plan-later{margin-top:10px}
 .plan-later > summary{cursor:pointer; font-size:13px; font-weight:600; padding:8px 0}
 .plan-sub{margin:22px 0 8px; font-size:14px; text-transform:uppercase; letter-spacing:.04em}

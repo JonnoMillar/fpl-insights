@@ -62,7 +62,7 @@
   document.addEventListener('click', function(ev){
     var btn = ev.target.closest('.infobtn');
     if (!btn) return;
-    var scope = btn.closest('.card-head, .find');
+    var scope = btn.closest('.card-head, .subhead, .find');
     if (!scope) return;
     var show = btn.getAttribute('aria-expanded') !== 'true';
     scope.querySelectorAll(':scope > .sub, :scope > .note').forEach(function(t){
