@@ -707,9 +707,8 @@ def build_findings(reports, ctx):
     for r in reports:
         if r.appearances >= 2 and r.start_rate < 0.75:
             rot.append(
-                f"{r.name} - started {r.starts} of {r.appearances} "
-                f"appearances, {r.minutes / r.appearances:.0f} minutes per "
-                f"appearance")
+                f"{r.name} - started {r.starts} of {r.appearances}, "
+                f"{r.minutes / r.appearances:.0f} min a game")
         elif (team_games >= 2 and r.minutes
               and r.minutes < DEFCON_MIN_MINUTES
               and r.appearances < team_games):
@@ -769,18 +768,18 @@ def build_findings(reports, ctx):
             # on its own. Guarding only `shots` crashed the entire build
             # when the shots-on-target pages were reset mid-fetch, which is
             # far too much collateral for one missing sub-stat.
-            extra = (f", {shots:g} shots ({sot:g} on target)"
+            extra = (f"{bcm:g} missed from {shots:g} shots ({sot:g} on target)"
                      if shots and sot is not None else
-                     f", {shots:g} shots" if shots else "")
+                     f"{bcm:g} missed from {shots:g} shots" if shots else
+                     f"{bcm:g} missed")
             # A count with nothing to measure it against is not a reading.
             # Two players with two misses each are not in the same position if
             # one took fourteen shots to get there and the other took three;
             # the rate is what says whether the openings are arriving faster
             # than he is wasting them.
-            rate = (f" - one every {shots / bcm:.0f} shots" if shots and bcm else "")
-            missed.append(
-                f"{r.name} - {bcm:g} big {'chance' if bcm == 1 else 'chances'} "
-                f"missed{extra}{rate}")
+            # With one miss, "one every 9 shots" only restates the 9 shots.
+            rate = (f", one every {shots / bcm:.0f}" if shots and bcm > 1 else "")
+            missed.append(f"{r.name} - {extra}{rate}")
     if missed:
         out.append(_finding(
             "bcm", "Big chances missed", "good", missed,
@@ -819,17 +818,14 @@ def build_findings(reports, ctx):
             verdict = (f" He fell {abs(delta):.1f} short of his expected numbers, "
                        f"so the chances were there but the finishing was not.")
         base.append(
-            f"{r.name} - {ls['points']} points last season. "
-            f"{returns} goals and assists from {ls['xgi']:.1f} expected, "
-            f"across {ls['minutes']:,} minutes.{verdict}"
+            f"{r.name} - {ls['points']} pts · "
+            f"{returns} goals + assists from {ls['xgi']:.1f} expected · "
+            f"{ls['minutes']:,} min.{verdict}"
         )
     if base:
         out.append(
             _finding(
                 "baseline", "How they did last season", "info", base,
-                note="One gameweek says almost nothing, so here is a full season "
-                     "of each player for comparison. Expected numbers are goals "
-                     "and assists a player's chances were worth.",
             )
         )
 

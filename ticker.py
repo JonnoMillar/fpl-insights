@@ -408,11 +408,8 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=FIXTURE_GAMES_MAX, market
         'own a player for &mdash; <b>higher is better</b>, the opposite way '
         "round to FPL's own 1-5. <b>CAPITALS are home, lower case away.</b>"
         "</span>"
-        '<span class="sub" hidden>Every club in the league, rated out of ten '
-        "for how good the fixture is to own a player for - "
-        "<b>higher is better</b>, the opposite way round to FPL's 1-5 "
-        "difficulty. Expected goals and clean-sheet odds combined, weighted "
-        "toward attack. A dot means the market priced it. Games sets how "
+        '<span class="sub" hidden>Expected goals and clean-sheet odds combined, '
+        "weighted toward attack. A dot means the market priced it. Games sets how "
         "many of the next fixtures the Rating column averages; Target "
         f"fixtures dims everything below {TARGET_RATING:g} so the genuinely "
         f"good ones stand out. {FIXTURE_PAGE_SIZE} clubs at a time - cycle "

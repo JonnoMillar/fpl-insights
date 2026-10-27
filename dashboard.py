@@ -359,15 +359,15 @@ def render(d, standalone=True):
         weekly_gain = (f'<span class="preview-gain {"gain-negative" if preview_gain < 0 else "gain-positive"}">'
                        f'{e(next_label)} {gain_text} xP{" after hit" if preview_hit else ""}</span>')
     preview_note = d.get("transfer_preview_note", "Transfer preview unavailable.")
-    caveat = ("Based on your last published squad. Check your actual team and bank."
-              if d.get("transfer_pick_pitch") else preview_note)
+    caveat = "" if d.get("transfer_pick_pitch") else preview_note
+    caveat_html = f'<p class="brief-caveat">{e(caveat)}</p>' if caveat else ""
     brief_html = f'''<aside class="decision-brief" aria-labelledby="decision-title">
       <div class="brief-heading"><h2 id="decision-title">The next move</h2><span>{e(next_label)}</span></div>
       <h3 class="brief-action">{action_title}</h3>
       <ul class="transfer-pairs" aria-label="Suggested transfers">{exchange_html}</ul>
       {captain_html}
       <details class="brief-reasons"><summary>Why this move?</summary>{reasons}<div class="brief-links"><a data-dashboard-jump href="#action-method">How it's chosen</a><a data-dashboard-jump href="#chip-planner">Review chips</a></div></details>
-      <p class="brief-caveat">{e(caveat)}</p>
+      {caveat_html}
     </aside>'''
     hero_html = f'''<section class="hero" aria-label="Weekly scorecard">
       {"".join(score_groups)}
@@ -399,7 +399,7 @@ def render(d, standalone=True):
         <div class="about-copy">
           <p>Built by Jonno Millar to turn the numbers behind the points into captain, transfer and chip decisions. Explore the published squad, compare mini-league results, or use Scout to find and compare players.</p>
           <p>Player statistics come from the public Fantasy Premier League API, including Opta's expected goals and expected assists. Their sum, expected goal involvement (xGI), describes the quality of chances a player takes and creates. Fixtures, market odds and predicted line-ups inform the analysis.</p>
-          <p>Projections are estimates. Advice uses the last published squad and bank, so check your actual team before acting. Double-gameweek planning is unsupported. Snapshots refresh on a best-effort schedule; their age and any unavailable sources are shown below.</p>
+          <p>Projections are estimates. Snapshots refresh on a best-effort schedule.</p>
           <a href="https://github.com/JonnoMillar/fpl-insights#how-it-works">Read about the data and approach <span aria-hidden="true">↗</span></a>
         </div>
       </details>
@@ -408,7 +408,8 @@ def render(d, standalone=True):
 
 
   <p class="data-status" role="status" data-generated="{e(d.get('generated_iso', ''))}">
-    Snapshot: {e(d['generated'])}. Squad and bank reflect the last published picks.</p>
+    <span class="data-age">Snapshot: {e(d['generated'])}.</span>
+    Advice uses your last published squad and bank, not changes made since. Double gameweeks are not planned.</p>
 {source_notice(d)}
   <div class="panel" id="p-squad" role="tabpanel">
     <div class="squad-overview">
@@ -416,7 +417,7 @@ def render(d, standalone=True):
     {brief_html}
     <section class="card squad-pitch">
       <div class="team-sheet-head"><div class="card-head"><h2>Starting XI{components.info_btn()}</h2>
-        <span class="sub" hidden>Season and Last gameweek use your last published team. Next gameweek selects the best legal XI from your owned squad, then lets you preview the recommended transfers. Player xP is before captain or chip multipliers. Pitch xP uses match histories; the transfer plan uses its season-based scorer. Projected team totals include captain/chip multipliers and any transfer hit. C is captain, V is vice-captain, and IN marks an incoming transfer. CS is the team clean-sheet chance; team xG is expected team goals. A faded crest means no minutes in GW{d['gw']}.</span>
+        <span class="sub" hidden>Season and Last gameweek use your last published team. Next gameweek selects the best legal XI from your owned squad, then lets you preview the recommended transfers. Player xP is before captain or chip multipliers. Pitch xP uses match histories; the transfer plan uses its season-based scorer. Projected team totals include captain/chip multipliers and any transfer hit. A faded crest means no minutes in GW{d['gw']}.</span>
       </div>
       <div class="pkview tabbar" role="tablist" aria-label="Pitch view">
         <button class="pkbtn" role="tab" aria-selected="true" data-view="ov">Season</button>
@@ -459,37 +460,32 @@ def render(d, standalone=True):
       </summary>
       {d['squad_table']}
     </details>
-    <div class="chapter"><h2>What the numbers say</h2>
-      <span class="sub">Nine readings of the same fifteen players.</span></div>
+    <div class="chapter"><h2>What the numbers say</h2></div>
     <section>{d['findings']}</section>
   </div>
 
   <div class="panel" id="p-market" role="tabpanel" hidden>
     <details class="card action-method" id="action-method"><summary class="card-head"><h2>How the suggested action is chosen</h2></summary>
-      <div class="card-body"><p>The action is the first week of the transfer plan. The plan searches the next eight gameweeks for which moves to make and when: one or two a week, or a roll. Each move must clear a three-point margin on top of any four-point hit; hits are allowed only for an urgent move this week, a free transfer banked at the end is worth 1.5 points, and later weeks count for less because their projections are less certain. It keeps the squad's cheap bench slots: an enabler leaves only for another cheap player, or in a two-move restructure. This is a conservative heuristic, not a calibrated guarantee.</p>
-      <p>Bench Boost and Triple Captain are timed inside the plan when their availability is verified, against their best later week this half. Free Hit is highlighted only when its own planner has a strong next-gameweek case; Wildcard is a longer-window decision in the chip planner. Double gameweeks remain unsupported. Check your actual squad, bank and free transfers before acting.</p></div>
+      <div class="card-body"><p>The action is the first week of the transfer plan. The plan searches the next eight gameweeks for which moves to make and when: one or two a week, or a roll. Each move must clear a three-point margin on top of any four-point hit; hits are allowed only for an urgent move this week (a starter ruled out, or a signing in the top five for his position on xGI per 90 with a fair next fixture), a free transfer banked at the end is worth 1.5 points, and later weeks count for less because their projections are less certain. It keeps the squad's cheap bench slots: an enabler leaves only for another cheap player, or in a two-move restructure. This is a conservative heuristic, not a calibrated guarantee.</p>
+      <p>Bench Boost and Triple Captain are timed inside the plan when their availability is verified, against their best later week this half, and played only when their week beats waiting by two points. Free Hit is highlighted only when its own planner has a strong next-gameweek case; Wildcard is a longer-window decision in the chip planner.</p></div>
     </details>
-    <div class="chapter"><h2>This week</h2>
-      <span class="sub">What the fixtures are priced at, and what you missed.</span></div>
+    <div class="chapter"><h2>This week</h2></div>
     {d['market']}
     {d['best_xi']}
     {d['kneejerk']}
 
-    <div class="chapter"><h2>Your moves</h2>
-      <span class="sub">Who to sell, who to buy, and who takes the armband.</span></div>
+    <div class="chapter"><h2>Your moves</h2></div>
     {d.get('plan', '')}
     {d['verdicts']}
     {components.other_transfer_options(d['transfers'], d['pairings'])}
     {d['captaincy']}
 
-    <div class="chapter"><h2>Chips and the weeks ahead</h2>
-      <span class="sub">Where the fixtures turn, and which chip that is worth.</span></div>
+    <div class="chapter"><h2>Chips and the weeks ahead</h2></div>
     {d['chip_planner'] or '<section class="card" id="chip-planner" tabindex="-1"><div class="card-head"><h2>Chip planner unavailable</h2><span class="subvis">Supported fixture projections and recovered selling prices are required. Check the source status above.</span></div></section>'}
     {d['ticker']}
     {d['fixture_runs']}
 
-    <div class="chapter"><h2>The wider market</h2>
-      <span class="sub">Everyone else's squad, and what it is doing to prices.</span></div>
+    <div class="chapter"><h2>The wider market</h2></div>
     {d['leaders']}
     {d['price_watch']}
     {d['scatter']}
@@ -508,15 +504,13 @@ def render(d, standalone=True):
     </section>
     {d['position_chart']}
 
-    <div class="chapter"><h2>What the league owns</h2>
-      <span class="sub">The squad everyone converges on, and where you leave it.</span></div>
+    <div class="chapter"><h2>What the league owns</h2></div>
     {d['template']}
     {d['carousel']}
     {d['differentials']}
     {d['watchlist']}
 
-    <div class="chapter"><h2>How they are playing it</h2>
-      <span class="sub">Who is scoring against you, and how the eight of you differ.</span></div>
+    <div class="chapter"><h2>How they are playing it</h2></div>
     {d['rivals']}
     <section>{d['ownership']}</section>
     <section class="card">
@@ -533,9 +527,7 @@ def render(d, standalone=True):
 
 
   {d['dialog']}
-  <p class="foot">Built from the public Fantasy Premier League API &middot;
-  expected goals are Opta's, as used by FPL &middot; {e(d['generated'])}
-  &middot; <a href="https://github.com/JonnoMillar/fpl-insights">source and
+  <p class="foot"><a href="https://github.com/JonnoMillar/fpl-insights">source and
   phone alerts</a></p>
 </div>
 """
@@ -1056,7 +1048,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                     fx.get("event") == next_gw and r.element["team"] in (fx["team_h"], fx["team_a"])
                     for fx in ctx.fixtures)}
                 transfer_lineup = next_squad.from_plan(changed, preview_eps, plan["weeks"][0], preview_blanks)
-            preview_note = (f"Preview only · {len(moves)} transfer{'s' if len(moves) != 1 else ''} · {analysis.transfer_cost(len(moves), free_ts)}-point hit. Check your actual squad and bank."
+            preview_note = (f"Preview only · {len(moves)} transfer{'s' if len(moves) != 1 else ''} · {analysis.transfer_cost(len(moves), free_ts)}-point hit."
                             if transfer_lineup else "Transfer preview unavailable: a legal, affordable squad and supported projections are required.")
             fplapi.note("transfer preview", bool(transfer_lineup), "Recommended moves verified" if transfer_lineup else preview_note)
         except fplapi.FplError as ex:
@@ -1145,15 +1137,14 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "market": ticker.odds_insights(market_fixtures, xi, ctx, proj, next_gw),
         "pairings": components.pairing_cards(
             pairings,
-            "Two out, two in - moves a single transfer cannot reach, because "
-            "one sale funds the other and two sales from a club free a slot. "
+            "Two out, two in; two sales from a club free a slot. "
             "Same shape, within budget, three per club respected. "
             + (f"You have {free_ts} free transfer{'s' if free_ts != 1 else ''}, "
                f"so this pair costs {pair_hit}."
                if free_ts is not None else
                "Free-transfer count unavailable, so a pair is priced at 4."),
             hit=pair_hit),
-        "leaders": components.stat_leaders(leader_groups(ctx, squad_ids)),
+        "leaders": components.stat_leaders(leader_groups(ctx, squad_ids), title="Season leaders"),
         "transfers": components.transfer_cards(
             swaps,
             f"Same position, affordable on {bank:.1f}m in the bank, ranked by "
@@ -1165,8 +1156,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             # card. It belongs on the face of the card that lists the moves.
             lede=(f"You have {free_ts} free transfer"
                   f"{'s' if free_ts != 1 else ''} this week. Each further move "
-                  f"costs 4 points. These are moves made now; the transfer plan "
-                  f"above chooses the week."
+                  f"costs 4 points."
                   if free_ts is not None else
                   "Free-transfer count unavailable - price any move beyond "
                   "your first at 4 points.")),

@@ -366,7 +366,7 @@ class PlanCardRenderTests(unittest.TestCase):
         self.assertEqual(html.count('class="tf-card plan-move"'),
                          sum(len(w["moves"]) for w in plan["weeks"]))
         self.assertIn(f"P{move['out']}", html)
-        self.assertIn(f"{week['gain']:+.1f}</b> to your team", html)
+        self.assertIn(f"{week['gain']:+.1f}</b> xP", html)
         self.assertIn(f"{week['bank']:.1f}m in the bank", html)
         self.assertIn(f"{move['in_pts']:.1f}", html)
         self.assertIn("Waits out", html)

@@ -100,14 +100,18 @@ def _move_html(m, w, end_gw, ctx, photos, shirts):
     )
 
 
-def _week_html(w, end_gw, ctx, photos, shirts):
+def _week_html(w, end_gw, ctx, photos, shirts, first_gw, show_bank=True):
     chip = (f'<span class="plan-chip">{e(CHIP_LABEL[w["chip"]])}</span>'
             if w["chip"] else "")
     gain = ""
     if w["moves"] and w["gain"] is not None:
-        window = f"GW{w['gw']}" if w["gw"] == end_gw else f"GW{w['gw']}–{end_gw}"
+        # The range is in the card title; only a week that starts later than
+        # the plan does says its own.
+        window = (f"xP to GW{end_gw}" if w["gw"] == first_gw else
+                  f"xP, GW{w['gw']}" if w["gw"] == end_gw else f"xP, GW{w['gw']}–{end_gw}")
         gain = (f'<span class="plan-gain"><b class="tnum">{w["gain"]:+.1f}</b> '
-                f'to your team, {window}{", after the hit" if w["hits"] else ""}</span>')
+                f'{window}{", after the hit" if w["hits"] else ""}</span>')
+    bank = f"{w['bank']:.1f}m in the bank" if show_bank else ""
     moves = "".join(_move_html(m, w, end_gw, ctx, photos, shirts) for m in w["moves"])
     body = f'<ul class="tflist plan-moves">{moves}</ul>' if moves else ""
     return (
@@ -115,8 +119,8 @@ def _week_html(w, end_gw, ctx, photos, shirts):
         f'tabindex="-1" data-plan-gw="{w["gw"]}">'
         f'<div class="plan-week-head"><b>GW{w["gw"]}</b>'
         f'<span>{_week_summary(w)}</span>{chip}{gain}'
-        f'<span class="plan-bank tnum">{w["bank"]:.1f}m in the bank</span>'
-        f'<button type="button" class="plan-view" data-show-gw="{w["gw"]}">GW{w["gw"]} squad</button></div>'
+        f'<span class="plan-bank tnum">{bank}</span>'
+        f'<button type="button" class="plan-view" data-show-gw="{w["gw"]}">View squad</button></div>'
         f'{body}</li>'
     )
 
@@ -183,16 +187,12 @@ def _pitch_html(w, ctx, shirts, badges):
 
 def _panel_html(w, ctx, shirts, badges, first):
     d, m, f = w["formation"]
-    ins = [ctx.players[x["in"]]["web_name"] for x in w["moves"]]
-    outs = [ctx.players[x["out"]]["web_name"] for x in w["moves"]]
-    changes = (f'<p class="plan-changes"><b>In:</b> {e(", ".join(ins))} &middot; '
-               f'<b>Out:</b> {e(", ".join(outs))}</p>' if ins else
-               '<p class="plan-changes">No transfers this week.</p>')
+    changes = "" if w["moves"] else '<p class="plan-changes">No transfers this week.</p>'
     chip = f" &middot; {e(CHIP_LABEL[w['chip']])}" if w["chip"] else ""
     return (
         f'<div class="plan-panel" id="plan-pitch-{w["gw"]}"{"" if first else " hidden"}>'
-        f'<p class="plan-panel-head"><b>GW{w["gw"]}</b> &middot; '
-        f'<span class="tnum">{w["points"]:.1f}</span> projected &middot; {d}-{m}-{f}{chip}</p>'
+        f'<p class="plan-panel-head"><span class="tnum">{w["points"]:.1f}</span> xP '
+        f'&middot; {d}-{m}-{f}{chip}</p>'
         f'{changes}{_pitch_html(w, ctx, shirts, badges)}</div>'
     )
 
@@ -211,33 +211,32 @@ def plan_card(plan, ctx, shirts, badges, photos=None):
     if abs(plan["gain"]) < 0.05:
         lede = (f"No move clears the margins across {span}: rolling and keeping "
                 f"this squad projects <b class=\"tnum\">{plan['total']:.0f}</b> points.")
-    caps = plan["caps"]
     enablers = plan["enablers"]
     structure = ""
     if enablers:
-        names = ", ".join(f"{x['name']} ({x['pos']} {x['price']:.1f}m)" for x in enablers)
-        structure = (
-            f'<p class="plan-structure">Cheap slots kept: {e(names)}. One leaves only '
-            f'for another cheap player (up to {caps["GKP"]:.1f}m keepers and defenders, '
-            f'{caps["MID"]:.1f}m midfielders and forwards), or in a two-move restructure '
-            f'where a cheap player arrives in another position the same week.</p>')
-    chips = []
-    for w in weeks:
-        if w["chip"]:
-            chips.append(f"{CHIP_LABEL[w['chip']]} in GW{w['gw']}")
-    for c in plan["held_chips"]:
-        chips.append(f"{CHIP_LABEL[c['key']]} held: best projected week GW{c['gw']} "
-                     f"(+{c['gain']:.1f}), after this plan")
+        names = ", ".join(x["name"] for x in enablers)
+        structure = f'<p class="plan-structure">Cheap slots kept: {e(names)}.</p>'
+    # Held chips are the chip planner's to report; here only a chip the plan
+    # actually plays, or the failure to verify chip history.
+    chips = [f"{CHIP_LABEL[w['chip']]} in GW{w['gw']}" for w in weeks if w["chip"]]
     chip_line = ""
     if plan["chips_modelled"]:
-        chip_line = (f'<p class="plan-chips">{e("; ".join(chips) + ".") if chips else "No Bench Boost or Triple Captain available."} '
-                     'Free Hit and Wildcard are not planned here: see the chip planner.</p>')
+        if chips:
+            chip_line = f'<p class="plan-chips">{e("; ".join(chips) + ".")}</p>'
     else:
         chip_line = ('<p class="plan-chips">Chip history could not be verified, so no '
                      'chip is planned.</p>')
 
     end = plan["end_gw"]
-    visible = "".join(_week_html(w, end, ctx, photos, shirts) for w in weeks[:show])
+    first_gw = weeks[0]["gw"]
+    # A roll week that leaves the bank where the week before did has nothing new to say about it.
+    quiet = {w["gw"] for prev, w in zip(weeks, weeks[1:])
+             if not w["moves"] and w["bank"] == prev["bank"]}
+
+    def render(w):
+        return _week_html(w, end, ctx, photos, shirts, first_gw, w["gw"] not in quiet)
+
+    visible = "".join(render(w) for w in weeks[:show])
     later = weeks[show:]
     later_html = ""
     if later:
@@ -245,7 +244,7 @@ def plan_card(plan, ctx, shirts, badges, photos=None):
         later_html = (
             f'<details class="plan-later"><summary>Later gameweeks, GW{later[0]["gw"]}–'
             f'{later[-1]["gw"]} ({_plural(planned, "planned move")})</summary>'
-            f'<ol class="plan-weeks">{"".join(_week_html(w, end, ctx, photos, shirts) for w in later)}</ol></details>')
+            f'<ol class="plan-weeks">{"".join(render(w) for w in later)}</ol></details>')
 
     tabs = "".join(
         f'<button class="plan-gwbtn" role="tab" aria-selected="{"true" if n == 0 else "false"}" '
@@ -264,17 +263,10 @@ def plan_card(plan, ctx, shirts, badges, photos=None):
 
     note = (f"Each week scores the best eleven from your fifteen, the captain twice, and the "
             f"bench by its chance of coming on (all of it on Bench Boost week). A plan may "
-            f"roll, or make one or two moves a week. A hit costs 4 and is taken only this "
-            f"week, only when urgent: a starter ruled out, or a signing top five in his "
-            f"position on xGI per 90 with a fair next fixture. Every move must also "
-            f"clear a {plan['margin']:.0f}-point margin, and a free transfer still banked "
-            f"at the end is worth {plan['ft_value']:.1f}. A chip is played only when its "
-            f"week beats waiting by {plan['chip_margin']:.0f} points, and an enabler is "
-            f"swapped for another bench player only ahead of a planned Bench Boost. "
+            f"roll, or make one or two moves a week. "
             f"Beyond next week's predicted line-up, a player's chance of starting follows "
             f"his last three matches, drifting a quarter of the way back toward his "
-            f"season-long rate each week. Later weeks count for less, "
-            f"because their projections are less certain. Uses the transfer model's "
+            f"season-long rate each week. Uses the transfer model's "
             f"projections and current prices; the first week's captain follows the "
             f"captaincy card.")
     return (

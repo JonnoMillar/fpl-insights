@@ -49,7 +49,8 @@ class DocumentTests(unittest.TestCase):
         self.assertNotIn('<', encoded)
         self.assertEqual(json.loads(encoded), data)
 
-    def test_hosted_output_has_a_real_document_and_metadata(self):
+    @staticmethod
+    def _minimal_data(**extra):
         fields = ["pitch", "pick_pitch", "squad_table", "findings", "market", "best_xi",
                   "kneejerk", "verdicts", "transfers", "pairings", "captaincy", "chip_planner",
                   "ticker", "fixture_runs", "leaders", "price_watch", "scatter", "elite",
@@ -59,12 +60,26 @@ class DocumentTests(unittest.TestCase):
         data.update(ctx=analysis.Ctx(boot={}), team_name="Test squad", manager="Manager",
                     league_name="League", entry_history={}, gw=6, next_gw=7,
                     league_size=8, my_rank=4, generated="14 Oct 2026", source_health={})
-        html = dashboard.render(data, standalone=True)
+        data.update(extra)
+        return data
+
+    def test_hosted_output_has_a_real_document_and_metadata(self):
+        html = dashboard.render(self._minimal_data(), standalone=True)
         self.assertTrue(html.startswith('<!doctype html>'))
         self.assertIn('lang="en"', html)
         self.assertIn('name="viewport"', html)
         self.assertIn('name="description"', html)
         self.assertIn('<title>FPL Insights', html)
+
+    def test_each_standing_caveat_is_printed_once(self):
+        # The copy audit cut these from several places; each must survive once.
+        health = {"bookmaker odds": {"ok": False, "detail": "HTTP 503"}}
+        html = dashboard.render(self._minimal_data(source_health=health), standalone=True)
+        self.assertEqual(html.count("last published squad"), 1)
+        self.assertEqual(html.count("Double gameweeks are not planned"), 1)
+        self.assertEqual(html.count("Some data is unavailable"), 1)
+        # The freshness script rewrites only the age, never the caveat beside it.
+        self.assertIn('<span class="data-age">', html)
 
 
 class SelectionTests(unittest.TestCase):
@@ -200,7 +215,7 @@ class ChipTests(unittest.TestCase):
         html = cards_planning.chip_planner_card(None, tc, None, None, {}, [], [], None, {}, {}, {}, {}, 7)
         self.assertIn('24.0 with Triple Captain', html)
         self.assertIn('8.0 more than a normal captaincy', html)
-        self.assertIn('timing is flexible', html)
+        self.assertIn('Timing flexible', html)
         self.assertNotIn('clearly ahead', html)
 
     def test_bench_boost_checks_full_squad_and_proposes_one_move(self):

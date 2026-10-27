@@ -816,7 +816,7 @@ def verdict_board(ctx, squad_reports, scores, bank=0.0, per_list=4, sell_values=
             "id": r.element["id"], "name": r.name, "pos": r.pos,
             "club": r.team, "price": r.price, "ep": s["total"],
             "opponent": s["opponent"], "home": s["home"],
-            "note": "no meaningful reachable upgrade at {:.1f}m".format(sale_price(r, sell_values) + bank),
+            "note": "",
         })
     keep.sort(key=lambda x: -x["ep"])
 

@@ -80,16 +80,11 @@ def _scout_fixture_card(runs, cfg):
         + "></ol></div>"
         for fl in cfg.fixture_lists
     )
-    modelled = any(fl.get("modelled") for fl in cfg.fixture_lists)
     return (
         '<section class="card scoutfx">'
         f'<div class="card-head"><h2>Fixture runs{components.info_btn()}</h2>'
-        '<span class="sub" hidden>Difficulty runs 1 to 5, lower is kinder, '
-        "and the number is printed in every cell. Capitals are home games."
-        + (" Contribution difficulty is modelled from the opponent's expected "
-           "goals rather than measured, so read it as a steer, not a stat."
-           if modelled else "")
-        + '</span>'
+        '<span class="sub" hidden>Capitals are home games. Difficulty is 1 to 5, '
+        'lower is kinder.</span>'
         f'<label class="sf sf-inline">Horizon<select class="sf-horizon">'
         f"{horizon_opts}</select></label>"
         "</div>"
@@ -120,18 +115,6 @@ def _scout_heatmap_shell(data):
     )
 
 
-# One line under each chapter heading, per position. Short on purpose: the
-# cards below say the rest, and the info buttons carry the method.
-_CHAPTER_SUBS = {
-    "DEF": ("Contributions, threat, solidity and minutes, each ranked on its own.",
-            "Kind runs for clean sheets, and busy ones for defensive contributions."),
-    "MID": ("Goals, chances, defensive work and minutes, each ranked on its own.",
-            "Where the goals are, and where the defensive work is."),
-    "FWD": ("Goals, chances, bonus and minutes, each ranked on its own.",
-            "The runs to buy into, and the runs to steer clear of."),
-}
-
-
 def _scout_position_switch(scout_pools):
     """The three labs as one segmented control, rather than three labs
     stacked down one tab. Stacked, the Scout tab was three times the height
@@ -158,18 +141,15 @@ def _scout_lab(pos, data, fixture_runs, owned_ids):
     """Leaders, fixture runs and the pool explorer for one position."""
     cfg = scout.POSITIONS[pos]
     label = data["label"]
-    singular = label.lower().rstrip("s")
     groups = scout.leader_groups(data["rows"], owned_ids=owned_ids, pos=pos)
     played = max((r["teamMatches"] for r in data["rows"]), default=0)
-    lead_sub, fx_sub = _CHAPTER_SUBS.get(pos, ("", ""))
     return (
         '<div class="chapter"><h2>Worth a look</h2>'
-        f'<span class="sub">{e(lead_sub)}</span>'
         f'<a class="scout-explore" data-dashboard-jump href="#scout-explorer-{e(pos)}">Explore &amp; compare</a></div>'
         + components.stat_leaders(
             groups,
-            title=f"{label} worth a look",
-            sub=("Ranked on each measure on its own, over "
+            title="Leaders",
+            sub=("Ranked over "
                  f"{scout.RATE_MIN_MINUTES} minutes so a cameo cannot top "
                  "a column. Players you already own are marked."),
             # Said on the face of the card, not behind the info button.
@@ -179,12 +159,11 @@ def _scout_lab(pos, data, fixture_runs, owned_ids):
             lede=(f"{played} matches in, at most. A shortlist to look "
                   "into, not a ranking."),
         )
-        + '<div class="chapter"><h2>Fixture runs</h2>'
-        f'<span class="sub">{e(fx_sub)}</span></div>'
+        + '<div class="chapter"><h2>Fixture runs</h2></div>'
         + _scout_fixture_card(fixture_runs, cfg)
         + '<div class="chapter"><h2>Explore the pool</h2>'
-        f'<span class="sub">Every {e(singular)} who has played. Click a '
-        "name for his match log, or tick up to six to compare.</span></div>"
+        '<span class="sub">Click a name for his match log, or tick up to six '
+        'to compare.</span></div>'
         f'<div class="scoutlab" data-pos="{e(pos)}">'
         f'<script type="application/json" class="scout-data" '
         f'data-pos="{e(pos)}">{script_json(data)}</script>'
@@ -195,15 +174,8 @@ def _scout_lab(pos, data, fixture_runs, owned_ids):
         f'<details class="card collapsible scoutexplorer" id="scout-explorer-{e(pos)}" open>'
         f'<summary class="card-head"><h2>All {e(label.lower())}'
         f"{components.info_btn()}</h2>"
-        f'<span class="subvis">{len(data["rows"])} {e(singular)}s, sorted '
-        "by projected points. The start-rate filter hides the fringe.</span>"
-        f'<span class="sub" hidden>The scatter puts '
-        f"{e(scout.METRICS[cfg.hero_y][0])} up the side against "
-        + ("defensive contribution along the bottom"
-           if cfg.hero_x == scout.HERO_X_DEFCON
-           else e(scout.METRICS[cfg.hero_x][0]) + " along the bottom")
-        + f". {e(cfg.size_label)}. Everyone is also one row of the table "
-        "below it, shaded by where he sits in the filtered pool.</span>"
+        '<span class="sub" hidden>Everyone is also one row of the table below '
+        'the scatter, shaded by where he sits in the filtered pool.</span>'
         "</summary>"
         '<div class="card-body">'
         + _scout_filter_bar(data)

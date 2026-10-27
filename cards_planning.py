@@ -2,7 +2,6 @@
 
 
 import components
-from chips import confidence
 import ticker
 import transfers
 from analysis import f
@@ -42,8 +41,8 @@ def price_row(r):
         # which: 99% next to "+106%" reads as a contradiction until you know
         # the first is where he is now and the second is where he is forecast
         # to be in two days, both on a scale that fires at 100.
-        f'<span class="pw-foot">forecast {r["projected"]:+.0f}% in two days '
-        f'&middot; net transfers {net:+,} {"".join(tags)}</span>'
+        f'<span class="pw-foot">forecast {r["projected"]:+.0f}% '
+        f'&middot; net {net:+,} {"".join(tags)}</span>'
         f"</li>"
     )
 
@@ -79,7 +78,7 @@ def price_watch_card(pw):
         'now, the small one is where FPL forecast him in two days. Net '
         'transfers are raw, so a widely-owned player needs far more of them '
         'to move the same distance.</span>'
-        '<span class="sub" hidden>A change fires at 100%. Prices update once a day, so this '
+        '<span class="sub" hidden>Prices update once a day, so this '
         "is only worth anything before it happens. Progress is relative to a "
         "player's own ownership, which is why a small net-transfer figure can "
         "sit above a large one.</span></div>"
@@ -133,8 +132,7 @@ def scatter(points):
     return (
         '<section class="card">'
         f'<div class="card-head"><h2>Value scatter{components.info_btn()}</h2>'
-        '<span class="sub" hidden>Pick any two measures. Hover or click a dot to see the '
-        "player. Your squad and the biggest outliers are always labelled.</span></div>"
+        '<span class="sub" hidden>Pick any two measures.</span></div>'
         '<div class="card-body">'
         '<div class="chartfilter" role="group" aria-label="Chart controls">'
         '<label class="axpick">Y <select class="axis" data-axis="y">'
@@ -297,11 +295,11 @@ def leader_groups(ctx, squad_ids, depth=4, min_minutes=45):
     # for the four attacking measures, premium teal for the one defensive
     # card that flips the ranking (xGC), attention amber for DefCon.
     groups = [
-        build("Expected goals", "xG this season", "ball", "var(--ink)",
+        build("Expected goals", "", "ball", "var(--ink)",
               "expected_goals"),
-        build("Expected assists", "xA this season", "key", "var(--ink)",
+        build("Expected assists", "", "key", "var(--ink)",
               "expected_assists"),
-        build("Goal involvement", "xG plus xA", "spark", "var(--ink)",
+        build("Goal involvement", "", "spark", "var(--ink)",
               "expected_goal_involvements"),
         build_pair(
             "Big chances created",
@@ -588,13 +586,7 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
                 h=max(6.0, v / top * 100), gw=gw, v=v, unit=e(unit))
             for gw, v in series
         )
-        runner_up = max(v for g, v in series if g != best_gw)
-        level = confidence(top, runner_up)
-        read = {"flexible": "close to the next-best week - timing is flexible",
-                "watch": "a modest edge over the next-best week",
-                "strong": "clearly ahead of the next-best week"}[level]
-        return (f'<div class="cpweeks" aria-hidden="true">{bars}</div>'
-                f'<p class="cpweeks-read">{read}</p>')
+        return f'<div class="cpweeks" aria-hidden="true">{bars}</div>'
 
     cards = []
 
@@ -603,8 +595,7 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
         body = (
             f'<p class="cp-gw">GW{fh["gw"]}</p>'
             f'<p class="cp-reason">Suggested XI projects {pt["ideal_value"]:.1f} pts '
-            f'against your XI\'s {pt["ours_value"]:.1f} that week - a gap of '
-            f'{fh["gap"]:.1f}.</p>'
+            f'against your XI\'s {pt["ours_value"]:.1f} that week.</p>'
             f'{week_strip(fh.get("series"), fh["gw"], "pt gap")}'
             f'{conf_pill(fh["confidence"])}'
         )
@@ -764,7 +755,7 @@ def best_xi_card(pt, ctx, squad_ids, next_gw):
                 f"{gap:.1f} ahead across the "
                 f"{11 - owned_n} name{'s' if 11 - owned_n != 1 else ''} you "
                 f"do not own. Read it as where you are behind, not as a "
-                f"target - it is picked with no budget at all.")
+                f"target.")
 
     return (
         '<section class="card bxicard"><div class="card-head">'
@@ -830,8 +821,7 @@ def kneejerk_card(kj, gw):
             f"{e(funder_pair['primary'].name)} and "
             f"{e(funder_pair['second'].name)} together would, backfilled "
             f"by {e(funder_pair['replacement']['web_name'])} at "
-            f"{funder_pair['replacement']['now_cost'] / 10.0:.1f}m - see "
-            f"Suggested pairs below."
+            f"{funder_pair['replacement']['now_cost'] / 10.0:.1f}m."
         )
         tone = "warn"
     elif not funder:
@@ -901,7 +891,7 @@ def verdict_board_card(vb, next_gw):
                 f'<li><span class="vb-top"><b>{e(r["name"])}</b>'
                 f'<span class="vb-ep num">{r["ep"]:.1f}</span></span>'
                 f'<span class="vb-sub">{e(r["club"])} &middot; '
-                f'{r["price"]:.1f}m &middot; {e(r["note"])}</span></li>'
+                f'{r["price"]:.1f}m{" &middot; " + e(r["note"]) if r["note"] else ""}</span></li>'
                 for r in rows
             )
         cols.append(

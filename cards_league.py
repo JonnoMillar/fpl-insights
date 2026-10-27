@@ -54,7 +54,7 @@ def donut(pct, label, center, sub, tone="var(--accent)"):
         f'<circle class="dval" cx="45" cy="45" r="{r}" stroke="{tone}" '
         f'stroke-dasharray="{dash:.1f} {circ - dash:.1f}" '
         f'transform="rotate(-90 45 45)"/>'
-        f'<text class="dnum" x="45" y="43" text-anchor="middle">{e(center)}</text>'
+        f'<text class="dnum" x="45" y="{43 if sub else 49}" text-anchor="middle">{e(center)}</text>'
         f'<text class="dsub" x="45" y="57" text-anchor="middle">{e(sub)}</text>'
         "</svg>"
     )
@@ -94,7 +94,7 @@ def ownership_carousel(own, by_name, ctx, my_name):
         own_flag = '<p class="oyou">You own him</p>' if mine else ""
         cards.append(
             f'<li class="ocard{" mine" if mine else ""}">'
-            f"{donut(pct, aria, f'{owners}/{n}', f'{pct:.0f}%', tone)}"
+            f"{donut(pct, aria, f'{owners}/{n}', '', tone)}"
             f'<p class="oname">{e(el["web_name"])}</p>'
             f'<p class="oteam">{e(ctx.team_name(el["team"]))} &middot; {el["total_points"]} pts</p>'
             f'<p class="onote">{note}</p>'
@@ -105,12 +105,9 @@ def ownership_carousel(own, by_name, ctx, my_name):
             if hidden_n else "")
     return (
         '<section class="card">'
-        f'<div class="card-head"><h2>Who owns whom{components.info_btn()}</h2>'
+        f'<div class="card-head"><h2>Who owns whom</h2>'
         f'<span class="subvis">Share of the {n} managers in <b>this league</b> '
         f'holding each player &mdash; not global FPL ownership.{tail}</span>'
-        f'<span class="sub" hidden>Share of the {n} managers in this league holding each '
-        f"player, most-owned first. Players only one manager owns are left "
-        f"out: at this league size they are punts, not a shared position.</span>"
         '<span class="carnav">'
         '<button class="arrow" data-dir="-1" aria-label="Scroll left">&#8249;</button>'
         '<button class="arrow" data-dir="1" aria-label="Scroll right">&#8250;</button>'
@@ -303,10 +300,8 @@ def differential_watchlist_card(rows, photos, weeks):
     return (
         '<section class="card"><div class="card-head">'
         f'<h2>Differential watchlist{components.info_btn()}</h2>'
-        '<span class="subvis">Nobody in <b>your league</b> owns these. The '
-        'ownership figure beside each one is across <b>all of FPL</b>, which '
-        'is what decides whether he is actually a differential.</span>'
-        '<span class="sub" hidden>Nobody in this league owns these - scored the '
+        '<span class="subvis">Nobody in <b>your league</b> owns these.</span>'
+        '<span class="sub" hidden>Scored the '
         f'same way as every transfer suggestion on the Planning tab, over the '
         f'next {weeks} gameweeks. Capped at two per club so one kind fixture '
         f'cannot fill the list with the same bet.</span></div>'
@@ -364,8 +359,7 @@ def differential_card(own, by_name, ctx, my_name, photos):
         f'{"them" if len(mine) > 1 else "him"}. The percentage is <b>all of '
         f'FPL</b> &mdash; the two answer different questions, and a man 1/8 '
         f'here can still be 20% everywhere.</span>'
-        f'<span class="sub" hidden>Nobody else in this league owns '
-        f'{"them" if len(mine) > 1 else "him"}. Every point '
+        f'<span class="sub" hidden>Every point '
         f'{"they score" if len(mine) > 1 else "he scores"} is a point on the '
         "whole league.</span></div>"
         f'<div class="card-body"><ul class="dflist">{"".join(cards)}</ul></div>'
@@ -530,14 +524,9 @@ def rivals_card(rows, window_rows, rivals, photos, weeks=3):
         return ""
     return (
         '<section class="card"><div class="card-head">'
-        f'<h2>Scoring against you{components.info_btn()}</h2>'
-        '<span class="subvis">Points that went onto other people&rsquo;s '
-        'scores and not yours. A haul <b>one</b> rival owned cost you ground '
-        'on one manager; the same haul <b>most</b> of them owned cost you '
-        'ground on the whole league, so the order weighs both.</span>'
-        '<span class="sub" hidden>Players you did not own who returned for the '
-        "rest of this league. Ranked by points scored and by how many rivals "
-        "actually started him.</span></div>"
+        f'<h2>Scoring against you</h2>'
+        '<span class="subvis">Players you did not own who returned for your '
+        'rivals.</span></div>'
         '<div class="card-body">'
         '<div class="rvtabs tabbar" role="tablist" aria-label="Time range">'
         '<button class="rvtab" role="tab" aria-selected="true" data-rv="now">'
@@ -626,7 +615,7 @@ def league_position_card(data):
         '<section class="card"><div class="card-head">'
         f'<h2>League position over time{components.info_btn()}</h2>'
         '<span class="sub" hidden>Every manager\'s rank in this league, gameweek '
-        'by gameweek - 1st at the top. Toggle to total points instead.</span></div>'
+        'by gameweek - 1st at the top.</span></div>'
         '<div class="card-body">'
         '<div class="lptoggle tabbar" role="group" aria-label="Y axis">'
         '<button class="lpbtn" data-y="position" aria-pressed="true">Position</button>'
@@ -821,32 +810,8 @@ def ownership_cards(own, by_name, ctx, my_name):
         ]
         blocks.append(analysis._finding("g", "The league has these, you do not", "warn", items))
 
-    caps = {}
-    for pid, r in own.items():
-        for c in r["captains"]:
-            caps.setdefault(pid, []).append(c)
-    if caps:
-        items = [
-            f"{nm(pid)} - {len(who)}/{n}: {', '.join(who)} "
-            f"({ctx.players[pid]['event_points']} pts this gameweek)"
-            for pid, who in sorted(caps.items(), key=lambda kv: -len(kv[1]))
-        ]
-        blocks.append(analysis._finding("c", "Captain picks", "info", items))
-
-    # Same "this gameweek's decisions" moment as captain picks above, the
-    # other place a decision this week actually cost points - who left the
-    # most on the bench, from the entry histories already fetched for the
-    # league table and chips table, so no extra requests.
-    bench = sorted(
-        ((name, p.get("entry_history", {}).get("points_on_bench", 0))
-         for name, p in by_name.items()),
-        key=lambda kv: -kv[1],
-    )
-    bench = [kv for kv in bench if kv[1] > 0][:5]
-    if bench:
-        items = [f"{name} - {pts} point{'s' if pts != 1 else ''} benched"
-                 for name, pts in bench]
-        blocks.append(analysis._finding("b", "Points left on the bench", "warn", items))
+    # Captain picks and points left on the bench are the league table's own
+    # Captain and Bench columns, so they are not repeated here as cards.
 
     return findings_cards(blocks)
 

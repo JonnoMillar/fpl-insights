@@ -433,6 +433,9 @@ def transfer_cards(rows, note, lede=""):
     truth. Unlabelled, the row read as broken arithmetic."""
     if not rows:
         return ""
+    # Said once above the list rather than under both bars on every card.
+    BAR_KEY = ("Bars are each player's own projected points over 5 GW; "
+               "the centre figure is the gain to your XI.")
     top_gain = max(r["gain"] for r in rows) or 1.0
     # Which names appear more than once across the list. Six rows read as six
     # things you could do; in practice several of them spend the same player
@@ -469,15 +472,13 @@ def transfer_cards(rows, note, lede=""):
             "{swap}"
             '<div class="tf-numbers">'
             '<div class="tf-ep"><span>{oep:.2f}</span>'
-            '<span class="tf-track"><i style="width:{opct:.0f}%"></i></span>'
-            '<small>his own 5 GW</small></div>'
+            '<span class="tf-track"><i style="width:{opct:.0f}%"></i></span></div>'
             '<div class="tf-gain">{gain:+.2f}'
             '<small>to your XI, 5 GW</small></div>'
             '<div class="tf-ep tf-ep-in"><span>{iep:.2f}</span>'
-            '<span class="tf-track"><i style="width:{ipct:.0f}%"></i></span>'
-            '<small>his own 5 GW</small></div>'
+            '<span class="tf-track"><i style="width:{ipct:.0f}%"></i></span></div>'
             "</div>"
-            '<p class="tf-foot">{fixture} next &middot; {elite}</p>'
+            '<p class="tf-foot">{fixture} next{elite}</p>'
             "{timing}{exclusive}"
             "</li>"
         ).format(
@@ -497,14 +498,14 @@ def transfer_cards(rows, note, lede=""):
             oep=out_ep, opct=out_ep / span * 100,
             iep=in_ep, ipct=in_ep / span * 100,
             gain=r["gain"], fixture=e(fixture),
-            elite=elite or "same position, within budget",
+            elite=" &middot; " + elite if elite else "",
         ))
     return (
         '<section class="optblock"><div class="subhead"><h3>Single transfers{}</h3>'
         '<span class="sub" hidden>{}</span></div>'
         '{}<ul class="tflist">{}</ul></section>'.format(
             info_btn(), e(note),
-            '<p class="tf-lede">{}</p>'.format(e(lede)) if lede else "",
+            '<p class="tf-lede">{}</p>'.format(e(" ".join(filter(None, (lede, BAR_KEY))))),
             "".join(cards)
         )
     )
@@ -683,7 +684,7 @@ STAT_ICONS = {
 
 
 def stat_leaders(groups, title="League leaders",
-                 sub="Who is topping each measure so far. Your players are marked.",
+                 sub="Who is topping each measure this season. Your players are marked.",
                  lede=""):
     """Who leads the league on each measure, a few names deep.
 
@@ -727,10 +728,11 @@ def stat_leaders(groups, title="League leaders",
             '<li class="slcard" style="--accent:{tone}">'
             '<h4><svg viewBox="0 0 24 24" class="slicon" aria-hidden="true">{icon}</svg>'
             "{title}</h4>"
-            '<p class="slnote">{note}</p>'
-            '{body}</li>'.format(
+            '{note}{body}</li>'.format(
                 tone=g["tone"], icon=STAT_ICONS.get(g["icon"], ""),
-                title=e(g["title"]), note=e(g["note"]), body=body,
+                title=e(g["title"]),
+                note='<p class="slnote">{}</p>'.format(e(g["note"])) if g["note"] else "",
+                body=body,
             )
         )
     if not cards:

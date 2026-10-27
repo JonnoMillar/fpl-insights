@@ -482,14 +482,8 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
         ring = split_donut(
             [(starting, "--lc-tone"), (len(unknown), "--attention"),
              (len(out), "--bad")],
-            aria, f"{pct:.0f}%", "",
+            aria, "", "",
         ) if total else ""
-        legend = "".join(
-            f'<span class="lckey"><i class="lck lck-{cls}"></i>{n} {word}</span>'
-            for cls, n, word in (("unk", len(unknown), "no side yet"),
-                                 ("off", len(out), "left out"))
-            if n
-        )
         panels.append(
             f'<div class="lcpanel" data-lcview="{key}" data-lclabel="{e(label)}"'
             f'{" hidden" if i else ""}>'
@@ -498,7 +492,6 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
             f'<div class="lcread">'
             f'<p class="lcfig"><b>{starting}</b><span>of {total}</span></p>'
             f'<p class="lccap">predicted to start</p>'
-            + (f'<p class="lcleg">{legend}</p>' if legend else "")
             + f"</div></div>{body}</div>"
         )
 
@@ -551,10 +544,7 @@ def attacking_returns_card(reports):
         for name, club, pos, total, g, a in rows
     )
     return (
-        f'<div class="find gapcard"><h3>Attacking returns{components.info_btn()}</h3>'
-        '<p class="note" hidden>Goals and assists combined, one number per player. '
-        "A defender's return is marked - the same haul is worth more from the "
-        "back than from the front.</p>"
+        '<div class="find gapcard"><h3>Attacking returns</h3>'
         f'<ul class="arrlist">{items}</ul></div>'
     )
 
@@ -587,7 +577,7 @@ def big_chances_card(reports):
         '{detail}'
         '<span class="arr-total num">{bcc:g}</span></li>'.format(
             nod="" if tac >= bcc else " arr-nodetail",
-            detail=('<span class="arr-detail">of {:g} created</span>'.format(tac)
+            detail=('<span class="arr-detail">of {:g} chances</span>'.format(tac)
                     if tac >= bcc else ""),
             name=e(name), club=e(club), bcc=bcc)
         for name, club, bcc, tac in rows
@@ -597,11 +587,7 @@ def big_chances_card(reports):
     # which. One headline figure with the wider one written out beside it in
     # words, the same shape as every other card in this column.
     return (
-        f'<div class="find gapcard"><h3>Big chances created'
-        f'{components.info_btn()}</h3>'
-        '<p class="note" hidden>The big number is big chances created - a clear '
-        "opening. Beside it is every chance created, of which a big chance is "
-        "a subset: any pass leading to a shot.</p>"
+        '<div class="find gapcard"><h3>Big chances created</h3>'
         f'<ul class="arrlist">{items}</ul></div>'
     )
 
@@ -693,9 +679,9 @@ def findings_section(finds, reports, ctx, proj=None, market=None, next_gw=None,
 
     # Grouped by duty, because the question is "who takes our penalties".
     duties = (
-        ("pens", "On pens", "penalties_order"),
-        ("fk", "On free kicks", "direct_freekicks_order"),
-        ("corners", "On corners", "corners_and_indirect_freekicks_order"),
+        ("pens", "Penalties", "penalties_order"),
+        ("fk", "Free kicks", "direct_freekicks_order"),
+        ("corners", "Corners", "corners_and_indirect_freekicks_order"),
     )
     groups = []
     for key, title, field in duties:

@@ -8,9 +8,10 @@
     var age = Math.max(0, Math.floor((Date.now() - generated) / 60000));
     var stale = age >= 360;
     snapshot.classList.toggle('data-warning', stale);
-    snapshot.textContent = (stale ? 'Update overdue. ' : 'Snapshot: ') +
+    var ageLabel = snapshot.querySelector('.data-age') || snapshot;
+    ageLabel.textContent = (stale ? 'Update overdue. ' : 'Snapshot: ') +
       (age < 60 ? age + ' minutes' : Math.floor(age / 60) + ' hours') +
-      ' old';
+      ' old.';
   }
   markFreshness();
   window.setInterval(markFreshness, 60000);
