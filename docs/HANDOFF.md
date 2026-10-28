@@ -1,6 +1,6 @@
 # HANDOFF — FPL Insights
 
-Last updated: 28 October 2026. Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
+Last updated: 28 October 2026 (final brand draft). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
 
 ## State
 
@@ -9,17 +9,19 @@ Last updated: 28 October 2026. Older checkpoint detail lives in git history (`gi
 - Main holds: Codex's compact UI, Claude's transfer planner, plan moves as transfer cards (`b16cce6`), copy cuts (`d5c10b3`). Last verified: 112 tests, `node --check` on all `.js`, full build with 10 sources OK, headless Chromium at 1440/375/320.
 - Owners: Claude owns frontend and planner. Codex owns the data-research audit under `research/` (entry point `research/log.md`; production code untouched by it).
 
-## Now: brand refresh (awaiting Jonno's pick)
+## Now: brand refresh (final draft awaiting Jonno's review)
 
-Canvas: [FPL Insights brand directions](https://claude.ai/artifact/9paQtGhWZJ4K6NS4gmYzAn). Rows top to bottom: four first directions (Jonno picked C, "FPL flat"), C round 2 (y 8500), Round 3 (y 11800).
+Canvas: [FPL Insights brand directions](https://claude.ai/artifact/9paQtGhWZJ4K6NS4gmYzAn), version 17. Rows top to bottom: first four directions, C round 2 (y 8500), Round 3 (y 11800), **Final draft (y 14900)**.
 
-Round 3, each variant at desktop 1280 and phone 390, real GW9 data:
-- **A Floodlit glass bento:** dark purple, floodlight glows, frosted tiles of mixed spans, timeline of faces and chip coins to GW16.
-- **B Matchday bands:** full-width purple/green/white/black bands, broadcast-style stage with pitch lines and floor rings, working swipe deck of seven suggested moves, chips as casino-chip tokens, full league table.
-- **C App shell:** side rail plus clickable GW9–GW16 week rail; the stage swaps per week (transfer, Bench Boost bench, roll, Free Hit note). Phone has a floating tab bar.
-- B and C are interactive (Play on the canvas). Verified locally in headless Chromium across deck positions and weeks; live canvas runtime and real dragging not tested (Claude's browser isn't signed in to claude.ai).
+Round 3 verdict (28 Oct comments): C best overall (layout, colour balance, click-to-reveal instead of scrolling). Keep from C: transfer card with the old player greyed out, the night-coloured fourth band. Keep from A: big glass crest tiles for fixture runs. Keep from B: the swipe deck for transfer options. B faults: floor rings drawn across the players' legs ("awful"), and Hall's ring should sit behind him.
 
-**Next:** Jonno picks or mixes a layout, style and interaction. Then write the brand kit and `docs/design.md`, then restyle Planning > Your moves against `.cache/ui/moves-before-{1440,375}.png`.
+Final draft, one option:
+- **F-Kit** (1280×3700): colour roles and target balance, Archivo at four settings, rules and never-list, components (week tile states, chip coins, transfer card, captain card with ring behind, glass crest tile, swipe deck), player-image do/don't, motion and shape specs.
+- **F-Desktop** (1280×1794) and **F-Phone** (390×3005), both interactive: C's rail and week stage; captain card with the green ring behind Hall; green panel holding B's deck rebuilt on C's transfer card (purple foil cards, glass opponent plate, ranked list on desktop, face dots on phone); night band with A's glass crest tiles plus worst runs (Hull crest uploaded) and a white last-week card.
+- Verified locally in headless Chromium: deck at positions 1, 3 and 4, weeks GW9/GW12/GW13/GW14; no overflow, clipped text or broken images. Live canvas runtime and real dragging not tested.
+- Generator for F-Desktop/F-Phone was `scratchpad/final/gen.py` (lost on `/clear`); edit the published `.dc.html` files directly after re-reading them.
+
+**Next:** Jonno reviews the final draft. Then write `docs/design.md` from F-Kit and restyle Planning > Your moves against `.cache/ui/moves-before-{1440,375}.png`.
 
 Canvas mechanics:
 - Artboard files live in the session scratchpad and are lost on `/clear`. Re-read with `Artifact read` (url, then `path` of each `project/*.dc.html`). Read the latest version before publishing or it is refused.
@@ -35,13 +37,14 @@ Canvas mechanics:
 - Show the opponent's badge, not the player's own club. Use badges, faces and icons generously.
 - Plan shows transfers and chips, not weekly team xP. Don't cram data into small areas (sparklines).
 - Laptop view needs colour variation between sections.
-- Liked: glassmorphism, C's image spill and colour balance, a swipe deck for suggested transfers (not for the hero or captain card). Fine as is: green rank bars, money tags.
+- Rings, glows and floor marks always sit behind a cut-out, never across the body.
+- Liked: glassmorphism, C's image spill and colour balance, a swipe deck for suggested transfers (not for the hero or captain card), click-to-reveal over scrolling. Fine as is: green rank bars, money tags.
 - References: Instagram stat graphics of @sofascore_football (first) and @gradient_sports, a bit of FotMob. Notes: `docs/audits/2026-10-27-instagram-reference.md`.
 - Copy: low-key, no boasting. Keep the published-squad, no-double-gameweek and data-unavailable caveats visible once each.
 
 ## Awaiting Jonno
 
-1. Round 3 pick (above).
+1. Review the final brand draft (above).
 2. Push/publish (see State).
 3. Build the Wildcard + Bench Boost comparison? (analysis below)
 4. Sanity check on Cherki, sold in GW9 for Palmer.
@@ -99,5 +102,5 @@ Default view: B usually wins, because the Wildcard leaves the template squad. A 
 ## Resume prompt
 
 ```text
-Read AGENTS.md and docs/HANDOFF.md. Work on main in C:/Users/jonno/code/fpl-insights. Brand refresh is waiting on Jonno's round 3 pick from the canvas https://claude.ai/artifact/9paQtGhWZJ4K6NS4gmYzAn. Once he picks: write the brand kit and docs/design.md following "Jonno's design rules", then restyle Planning > Your moves and compare with .cache/ui/moves-before-*.png. Commit by explicit path only (Codex has files staged; never git add -A, stash, reset or checkout). Do not push or publish until Jonno says so.
+Read AGENTS.md and docs/HANDOFF.md. Work on main in C:/Users/jonno/code/fpl-insights. Brand refresh: the final draft (brand kit plus desktop and phone samples) is on the canvas https://claude.ai/artifact/9paQtGhWZJ4K6NS4gmYzAn awaiting Jonno's review; read new comments first. Once approved: write docs/design.md from the F-Kit board following "Jonno's design rules", then restyle Planning > Your moves and compare with .cache/ui/moves-before-*.png. Commit by explicit path only (Codex has files staged; never git add -A, stash, reset or checkout). Do not push or publish until Jonno says so.
 ```
