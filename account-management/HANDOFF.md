@@ -6,6 +6,12 @@ describes the dashboard product, not this experiment's current team.
 
 ## State
 
+- **Google login recovery verified 29 October:** signed out of FPL, signed back
+  in via existing Google session without user input, and confirmed history entry
+  11195024 and unchanged saved squad/finance. See `authentication.md`. Future
+  reviews should try this before reporting an expired FPL session. Google
+  challenges or an expired Google session can still require Jonno.
+
 - **Live account created:** entry **11195024**, Jonno's Team, starts GW9.
   Saved XV £99.6m, £0.4m bank. Signed-in UI and persistence after reload verified.
 - XI **3-5-2**: Trafford; Gabriel, Van Hecke, Muharemović; Belloumi, Rogers,
@@ -51,12 +57,14 @@ describes the dashboard product, not this experiment's current team.
   fallback using the same due guard. It must not adjust its own frequency.
 - Verified: harmless `codex queue` probe accepted for this chat; Windows task
   manual execution returned result **0** and recorded a correct no-review-due
-  decision. Six guard tests passed. Task is limited/interactive, IgnoreNew,
-  StartWhenAvailable, WakeToRun false. Real reboot/sign-in, probe execution,
+  decision. Six guard tests passed. Queued transport probe subsequently ran and
+  was acknowledged in this chat. Task is limited/interactive, IgnoreNew,
+  StartWhenAvailable, WakeToRun false. Real reboot/sign-in,
   due-path execution and unattended browser access remain unverified.
 - The schedule uses the local computer/app and available logged-in browser.
   It cannot promise action if those are asleep, closed, locked/inaccessible,
-  disconnected or require reauthentication. The initial manual account write
+  disconnected or Google reauthentication is required. Normal FPL logout can
+  now be recovered using the tested Google flow. The initial manual account write
   and reload worked; a later unattended run has not yet been observed.
 - No point hits or chip activation under the current starting policy. Those
   limits were announced by the assistant; Jonno has not expressly expanded them.

@@ -86,7 +86,7 @@
     },
     {
       "id": 334,
-      "name": "Muharemović",
+      "name": "MuharemoviÄ‡",
       "club": "LEE",
       "position": "DEF",
       "purchase_price_tenths": 51,
@@ -180,5 +180,13 @@
       "purchase_price_tenths": 50,
       "selling_price_tenths": 50
     }
-  ]
+  ],
+  "authentication": {
+    "method": "Google sign-in",
+    "recovery": "Normal FPL login via existing signed-in Google identity; optional additional permissions left unchecked",
+    "last_recovery_verified_utc": "2026-10-29T01:05:20.470727+00:00",
+    "verified_entry_id": 11195024,
+    "requires_user_when": "Google session expires or presents an authentication challenge",
+    "credential_storage": "None; uses existing browser session"
+  }
 }

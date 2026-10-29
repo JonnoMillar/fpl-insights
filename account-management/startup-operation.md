@@ -43,10 +43,14 @@ inspect the actual team before retrying.
   review: set `last_blocked_utc` and `blocker`, preserve the previous successful
   completion timestamp and legal saved team. Never count an attempted or merely
   queued run as completion. Notify once per distinct actionable blocker.
-- Use the existing browser session. No measured session lifetime is known. Do
+- Use the existing browser session. If FPL is signed out, first follow
+  `authentication.md`: ordinary Google sign-in through Jonno's existing Google
+  session was tested successfully. Ask for help only if recovery is blocked.
+  No measured session lifetime is known. Do
   not promise persistent login, use keep-alive tricks, copy cookies/passwords,
   bypass verification, or reuse the other account's credentials. Ask Jonno to
-  log in normally when needed; after confirmation, retry the blocked review.
+  log in normally when Google itself needs authentication; after confirmation,
+  retry the blocked review.
 - At season end, set `disabled: true` in review-status and disable the Windows
   task and heartbeat.
 
