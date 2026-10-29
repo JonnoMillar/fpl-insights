@@ -37,12 +37,23 @@ describes the dashboard product, not this experiment's current team.
 
 ## Scheduled operation
 
-- Heartbeat ID **manage-fpl-experiment**, active in this chat. Configuration
-  viewed successfully. Baseline reviews **09:00 and 18:00 Europe/London**.
-- Its instructions temporarily increase this same heartbeat to hourly on the
-  hour when within 12h of a deadline, then return to the baseline afterwards.
-  No duplicate schedules. Main review after team news, final check near an hour
-  before the actual FPL deadline. This adaptive behaviour remains untested.
+- **Primary trigger:** Windows task **FPL account catch-up**, installed for the
+  current interactive user. Checks 90 seconds after sign-in and every 30 minutes
+  while available; Python timestamp checks do not invoke an AI on every tick.
+  Per-user Windows Startup shortcut **FPL Codex.lnk** opens the desktop app at
+  sign-in. It does not restore an expired FPL login.
+  Routine reviews due every 56h (roughly three per week), every 6h inside 24h
+  of the deadline, and every 45min inside 2h. Catch up after a missed deadline.
+- Read `startup-operation.md` for duplicate/retry rules and the completion
+  contract. `review-status.json` records real completion separately from queue
+  delivery; ignored `private/startup-dispatch.json` records launcher activity.
+- Heartbeat ID **manage-fpl-experiment** is now a daily **18:00 Europe/London**
+  fallback using the same due guard. It must not adjust its own frequency.
+- Verified: harmless `codex queue` probe accepted for this chat; Windows task
+  manual execution returned result **0** and recorded a correct no-review-due
+  decision. Six guard tests passed. Task is limited/interactive, IgnoreNew,
+  StartWhenAvailable, WakeToRun false. Real reboot/sign-in, probe execution,
+  due-path execution and unattended browser access remain unverified.
 - The schedule uses the local computer/app and available logged-in browser.
   It cannot promise action if those are asleep, closed, locked/inaccessible,
   disconnected or require reauthentication. The initial manual account write
@@ -96,7 +107,7 @@ Do not bypass that guard. In-app browser access has worked since Jonno logged in
 
 ## Next work
 
-1. Confirm the heartbeat's first real run and browser availability. Record actual
+1. Confirm the availability trigger's first real run and browser availability. Record actual
    results, not just ACTIVE configuration. If it fails, preserve the legal saved
    team and report the concrete access problem once.
 2. Refresh Friday's news/press conferences, cup minutes and current live prices.

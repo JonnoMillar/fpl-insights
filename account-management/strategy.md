@@ -124,6 +124,12 @@ cover. Do not bench an attacker just because the opposing GK/DEF is owned.
 
 ## Timing and operating routine
 
+Availability triggers and review completion bookkeeping are defined in
+`startup-operation.md`. Routine reviews aim for three per week with extra
+deadline checks; the Windows task and daily fallback share one due guard.
+These timings below describe desired review stages when the laptop, app and
+authenticated browser are available, not guaranteed executions.
+
 - After each GW: reconcile confirmed scores/holdings; record transfers and chips,
   investigate meaningful minutes/role surprises, refresh the next 8-week picture.
 - Midweek: monitor injuries, suspensions, cup/European minutes and price risk.

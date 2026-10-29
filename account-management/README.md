@@ -6,6 +6,8 @@ site, changes `config.json`, or operates the other account's alert bot.
 
 Preparation and decisions are kept here so a new Codex chat can resume safely.
 Read `HANDOFF.md`, `strategy.md`, `rules.md`, and the latest decision before acting.
+Availability-based startup checks are described in `startup-operation.md`;
+`review-status.json` records completed reviews rather than mere attempts.
 The signed-in FPL account is authoritative for current holdings and allowances;
 the dashboard's public picks are not an authenticated account record.
 
