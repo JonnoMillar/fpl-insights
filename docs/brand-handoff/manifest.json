@@ -7,7 +7,7 @@
     "navigation_icons": "provisionally_accepted_starting_set",
     "sidebar_and_selected_states": "open_for_claude_design",
     "publication": "not_authorised",
-    "additional_dashboard_icons": "draft_pending_user_review"
+    "additional_dashboard_icons": "bulk_pass_superseded_custom_individual_studies_underway"
   },
   "icon_source": "https://github.com/phosphor-icons/core",
   "icon_license": "licenses/PHOSPHOR-MIT.txt",
@@ -174,8 +174,12 @@
       "sha256": "0f3a939d9052471b2199d379242741a670e8a7099c1851073c718585acb30242"
     },
     {
+      "path": "drafts/ICON_RESEARCH.md",
+      "sha256": "5ae7090c97e4ca1ebd08e6118f2dbffd27d5db01aecbd1c09e3d9fbafd21a7f5"
+    },
+    {
       "path": "drafts/README.md",
-      "sha256": "c5a94918ac61c714b05d53b1824fc4298a038036fdc1d40ef526e0e23ade635c"
+      "sha256": "7c38ffc93dc3f360155e57a9e6d7beff87e1e8490b95252fd9ae0ae7fb584722"
     },
     {
       "path": "icons/mini-league.svg",

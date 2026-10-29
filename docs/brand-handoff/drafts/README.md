@@ -1,5 +1,12 @@
 # Pending review
 
+**The bulk icon pass is no longer the intended design approach.** Jonno found
+the library-led batch insufficiently distinctive, and specifically rejected
+the assists (looked like pace), penalties (generic target) and free-kick
+metaphors. Retain these files as historical drafts, not implementation picks.
+The next work is research-led, custom image exploration of one football icon
+at a time. See `ICON_RESEARCH.md`.
+
 The files below are additional dashboard icon proposals, not approved production assets.
 
 - `dashboard-icons/football.html` / `.png`: decisions, chips, availability, performance and set-piece duties.
