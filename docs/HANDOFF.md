@@ -9,6 +9,15 @@ Last updated: 28 October 2026 (final brand draft). Older checkpoint detail lives
 - Main holds: Codex's compact UI, Claude's transfer planner, plan moves as transfer cards (`b16cce6`), copy cuts (`d5c10b3`). Last verified: 112 tests, `node --check` on all `.js`, full build with 10 sources OK, headless Chromium at 1440/375/320.
 - Owners: Claude owns frontend and planner. Codex owns the data-research audit under `research/` (entry point `research/log.md`; production code untouched by it).
 
+## Separate track: managed account experiment
+
+29 October 2026: entry **11195024** has a researched GW9 squad entered and saved,
+verified after reload. All strategy, rules, frozen decisions, live state and
+operating details are isolated in [`account-management/HANDOFF.md`](../account-management/HANDOFF.md).
+An active local review heartbeat is configured; its first unattended execution
+is not yet verified. Dashboard entry/configuration, product code, alert project
+and publication are unchanged. Existing staged research remains separate.
+
 ## Now: brand refresh (final draft awaiting Jonno's review)
 
 Canvas: [FPL Insights brand directions](https://claude.ai/artifact/9paQtGhWZJ4K6NS4gmYzAn), version 17. Rows top to bottom: first four directions, C round 2 (y 8500), Round 3 (y 11800), **Final draft (y 14900)**.

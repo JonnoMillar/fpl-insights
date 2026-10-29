@@ -1,0 +1,790 @@
+{
+  "prepared_utc": "2026-10-29T00:20:14.541511+00:00",
+  "input_generated_utc": "2026-10-29T00:03:43.349811+00:00",
+  "input_cache_read_times_utc": {
+    "1b330191b3e31b91d94d.json": "2026-10-28T23:58:54.404671+00:00",
+    "1c4b25655c120f08afd6.json": "2026-10-28T23:59:25.426911+00:00",
+    "1e56b5a0a729f818299c.json": "2026-10-28T23:57:44.057087+00:00",
+    "2ece61bc902e48046fa6.json": "2026-10-28T23:58:36.040531+00:00",
+    "6c5275141226597187ec.json": "2026-10-28T23:57:49.113275+00:00",
+    "7a88b533c39ee446b3dc.json": "2026-10-28T23:58:43.579688+00:00",
+    "a1ffc118722e25307893.json": "2026-10-28T23:57:47.006717+00:00",
+    "b0d70d611c7e7ad943ae.json": "2026-10-28T23:59:23.663514+00:00",
+    "c4ced8ad41c28f9d497f.json": "2026-10-28T23:58:12.771748+00:00",
+    "d2111847876bef511378.json": "2026-10-28T23:59:28.360445+00:00",
+    "d66f85b75c3a89707f12.json": "2026-10-28T23:59:05.199996+00:00",
+    "dab985ae4be937dac531.json": "2026-10-28T23:59:13.299760+00:00",
+    "df2a205e34fa0ecb7122.json": "2026-10-28T23:57:48.287473+00:00",
+    "f64177ba77d0a60d3c2c.json": "2026-10-28T23:59:08.751855+00:00"
+  },
+  "entry_id": 11195024,
+  "gameweek": 9,
+  "deadline_utc": "2026-10-31T11:00:00Z",
+  "status": "entered_and_saved_verified_after_reload",
+  "source_code_commit_at_start": "6028a33",
+  "input_counts": {
+    "players": 669,
+    "fixtures": 380,
+    "eligible_candidates": 173,
+    "distinct_initial_comparisons": 25
+  },
+  "source_health": "  ok    FPL players          669 players\n  ok    FPL fixtures         380 fixtures\n  ok    predicted line-ups   219 cached starters\n  ok    fixture projections  760 cached club-gameweeks\n  ok    bookmaker odds       20 fixtures, 10 with quoted clean sheets\n  ok    Scout history        8 gameweeks loaded",
+  "window_objective": 401.858,
+  "window_objective_meaning": "Discounted GW9-16 best XI + captain + weighted bench; no transfers/chips; heuristic, not an expected season total",
+  "first_week_history_xp_including_captain": 61.261,
+  "players": [
+    {
+      "id": 385,
+      "name": "Trafford",
+      "club": "LEE",
+      "position": "GKP",
+      "purchase_price_tenths": 50,
+      "selling_price_tenths": 50,
+      "forecast_gw9_candidate": 4.139,
+      "forecast_gw9_history": 4.664,
+      "forecast_candidate_gw9_16": [
+        4.139,
+        4.411,
+        3.929,
+        4.857,
+        3.803,
+        4.763,
+        3.931,
+        4.598
+      ],
+      "recent_minutes": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "status_at_preparation": "a"
+    },
+    {
+      "id": 4,
+      "name": "Gabriel",
+      "club": "ARS",
+      "position": "DEF",
+      "purchase_price_tenths": 79,
+      "selling_price_tenths": 79,
+      "forecast_gw9_candidate": 5.431,
+      "forecast_gw9_history": 4.969,
+      "forecast_candidate_gw9_16": [
+        5.431,
+        7.716,
+        6.207,
+        5.697,
+        5.885,
+        6.032,
+        6.777,
+        6.574
+      ],
+      "recent_minutes": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "status_at_preparation": "a"
+    },
+    {
+      "id": 112,
+      "name": "Van Hecke",
+      "club": "TOT",
+      "position": "DEF",
+      "purchase_price_tenths": 49,
+      "selling_price_tenths": 49,
+      "forecast_gw9_candidate": 5.675,
+      "forecast_gw9_history": 5.462,
+      "forecast_candidate_gw9_16": [
+        5.675,
+        4.638,
+        5.693,
+        5.116,
+        5.48,
+        4.254,
+        5.503,
+        4.068
+      ],
+      "recent_minutes": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "status_at_preparation": "a"
+    },
+    {
+      "id": 334,
+      "name": "Muharemović",
+      "club": "LEE",
+      "position": "DEF",
+      "purchase_price_tenths": 51,
+      "selling_price_tenths": 51,
+      "forecast_gw9_candidate": 4.684,
+      "forecast_gw9_history": 4.325,
+      "forecast_candidate_gw9_16": [
+        4.684,
+        5.553,
+        4.476,
+        6.414,
+        4.038,
+        6.25,
+        4.475,
+        5.925
+      ],
+      "recent_minutes": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "status_at_preparation": "a"
+    },
+    {
+      "id": 286,
+      "name": "Belloumi",
+      "club": "HUL",
+      "position": "MID",
+      "purchase_price_tenths": 52,
+      "selling_price_tenths": 52,
+      "forecast_gw9_candidate": 5.675,
+      "forecast_gw9_history": 4.531,
+      "forecast_candidate_gw9_16": [
+        5.675,
+        4.48,
+        4.934,
+        5.042,
+        5.14,
+        4.733,
+        5.044,
+        4.38
+      ],
+      "recent_minutes": [
+        82,
+        26,
+        90,
+        85
+      ],
+      "status_at_preparation": "a"
+    },
+    {
+      "id": 40,
+      "name": "Rogers",
+      "club": "CHE",
+      "position": "MID",
+      "purchase_price_tenths": 80,
+      "selling_price_tenths": 80,
+      "forecast_gw9_candidate": 6.378,
+      "forecast_gw9_history": 5.43,
+      "forecast_candidate_gw9_16": [
+        6.378,
+        5.903,
+        6.28,
+        5.727,
+        6.437,
+        6.2,
+        4.955,
+        6.397
+      ],
+      "recent_minutes": [
+        90,
+        83,
+        90,
+        90
+      ],
+      "status_at_preparation": "a"
+    },
+    {
+      "id": 154,
+      "name": "Palmer",
+      "club": "CHE",
+      "position": "MID",
+      "purchase_price_tenths": 98,
+      "selling_price_tenths": 98,
+      "forecast_gw9_candidate": 6.27,
+      "forecast_gw9_history": 4.656,
+      "forecast_candidate_gw9_16": [
+        6.27,
+        5.791,
+        6.162,
+        5.616,
+        6.317,
+        6.082,
+        4.853,
+        6.277
+      ],
+      "recent_minutes": [
+        90,
+        87,
+        90,
+        79
+      ],
+      "status_at_preparation": "a"
+    },
+    {
+      "id": 156,
+      "name": "Neto",
+      "club": "CHE",
+      "position": "MID",
+      "purchase_price_tenths": 66,
+      "selling_price_tenths": 66,
+      "forecast_gw9_candidate": 5.988,
+      "forecast_gw9_history": 4.829,
+      "forecast_candidate_gw9_16": [
+        5.988,
+        5.463,
+        5.757,
+        5.315,
+        5.888,
+        5.645,
+        4.633,
+        5.74
+      ],
+      "recent_minutes": [
+        86,
+        82,
+        90,
+        87
+      ],
+      "status_at_preparation": "a"
+    },
+    {
+      "id": 68,
+      "name": "Tavernier",
+      "club": "BOU",
+      "position": "MID",
+      "purchase_price_tenths": 64,
+      "selling_price_tenths": 64,
+      "forecast_gw9_candidate": 6.003,
+      "forecast_gw9_history": 5.424,
+      "forecast_candidate_gw9_16": [
+        6.003,
+        5.45,
+        5.471,
+        5.181,
+        5.232,
+        6.228,
+        4.876,
+        6.179
+      ],
+      "recent_minutes": [
+        74,
+        72,
+        78,
+        86
+      ],
+      "status_at_preparation": "a"
+    },
+    {
+      "id": 411,
+      "name": "Haaland",
+      "club": "MCI",
+      "position": "FWD",
+      "purchase_price_tenths": 158,
+      "selling_price_tenths": 158,
+      "forecast_gw9_candidate": 6.781,
+      "forecast_gw9_history": 6.214,
+      "forecast_candidate_gw9_16": [
+        6.781,
+        6.175,
+        7.504,
+        5.476,
+        6.827,
+        6.033,
+        6.823,
+        8.247
+      ],
+      "recent_minutes": [
+        90,
+        79,
+        90,
+        90
+      ],
+      "status_at_preparation": "a"
+    },
+    {
+      "id": 249,
+      "name": "Barry",
+      "club": "EVE",
+      "position": "FWD",
+      "purchase_price_tenths": 56,
+      "selling_price_tenths": 56,
+      "forecast_gw9_candidate": 4.398,
+      "forecast_gw9_history": 4.543,
+      "forecast_candidate_gw9_16": [
+        4.398,
+        5.975,
+        4.523,
+        5.024,
+        4.725,
+        5.506,
+        4.45,
+        4.634
+      ],
+      "recent_minutes": [
+        90,
+        85,
+        90,
+        90
+      ],
+      "status_at_preparation": "a"
+    },
+    {
+      "id": 496,
+      "name": "Kinsky",
+      "club": "TOT",
+      "position": "GKP",
+      "purchase_price_tenths": 44,
+      "selling_price_tenths": 44,
+      "forecast_gw9_candidate": 4.169,
+      "forecast_gw9_history": 4.086,
+      "forecast_candidate_gw9_16": [
+        4.169,
+        3.602,
+        4.211,
+        3.864,
+        4.056,
+        3.458,
+        4.072,
+        3.279
+      ],
+      "recent_minutes": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "status_at_preparation": "a"
+    },
+    {
+      "id": 31,
+      "name": "Konsa",
+      "club": "ARS",
+      "position": "DEF",
+      "purchase_price_tenths": 47,
+      "selling_price_tenths": 47,
+      "forecast_gw9_candidate": 4.617,
+      "forecast_gw9_history": 4.306,
+      "forecast_candidate_gw9_16": [
+        4.617,
+        6.619,
+        5.19,
+        4.579,
+        4.623,
+        4.638,
+        5.112,
+        4.886
+      ],
+      "recent_minutes": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "status_at_preparation": "a"
+    },
+    {
+      "id": 504,
+      "name": "Vuskovic",
+      "club": "BHA",
+      "position": "DEF",
+      "purchase_price_tenths": 52,
+      "selling_price_tenths": 52,
+      "forecast_gw9_candidate": 4.053,
+      "forecast_gw9_history": 3.444,
+      "forecast_candidate_gw9_16": [
+        4.053,
+        5.275,
+        5.816,
+        5.551,
+        4.823,
+        4.977,
+        5.688,
+        6.125
+      ],
+      "recent_minutes": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "status_at_preparation": "a"
+    },
+    {
+      "id": 599,
+      "name": "Cherif",
+      "club": "COV",
+      "position": "FWD",
+      "purchase_price_tenths": 50,
+      "selling_price_tenths": 50,
+      "forecast_gw9_candidate": 4.251,
+      "forecast_gw9_history": 2.669,
+      "forecast_candidate_gw9_16": [
+        4.251,
+        3.533,
+        3.734,
+        2.769,
+        3.091,
+        2.414,
+        2.566,
+        2.225
+      ],
+      "recent_minutes": [
+        0,
+        77,
+        59,
+        66
+      ],
+      "status_at_preparation": "a"
+    }
+  ],
+  "saved_xi": [
+    385,
+    4,
+    112,
+    334,
+    286,
+    40,
+    154,
+    156,
+    68,
+    411,
+    249
+  ],
+  "saved_reserve_gk": 496,
+  "saved_outfield_bench": [
+    31,
+    504,
+    599
+  ],
+  "saved_captain": 411,
+  "saved_vice": 112,
+  "cash_remaining_tenths": 4,
+  "alternatives": [
+    {
+      "names": [
+        "Gabriel",
+        "Konsa",
+        "Rogers",
+        "Tavernier",
+        "Van Hecke",
+        "Palmer",
+        "Neto",
+        "Barry",
+        "Belloumi",
+        "Muharemović",
+        "Trafford",
+        "Haaland",
+        "Kinsky",
+        "Vuskovic",
+        "Cherif"
+      ],
+      "cost_tenths": 996,
+      "objective": 401.858,
+      "route": "Gabriel",
+      "refined": true
+    },
+    {
+      "names": [
+        "Gabriel",
+        "Konsa",
+        "Rogers",
+        "Tavernier",
+        "Van Hecke",
+        "Palmer",
+        "Neto",
+        "Ndiaye",
+        "Barry",
+        "Muharemović",
+        "Trafford",
+        "Haaland",
+        "Kinsky",
+        "Silva",
+        "Cherif"
+      ],
+      "cost_tenths": 1000,
+      "objective": 401.483,
+      "route": "Neto",
+      "refined": true
+    },
+    {
+      "names": [
+        "Gabriel",
+        "Konsa",
+        "Rogers",
+        "Tavernier",
+        "Verbruggen",
+        "Van Hecke",
+        "Palmer",
+        "Neto",
+        "Ndiaye",
+        "Barry",
+        "Muharemović",
+        "Haaland",
+        "Kinsky",
+        "Vuskovic",
+        "Cherif"
+      ],
+      "cost_tenths": 998,
+      "objective": 401.447,
+      "route": "Gabriel",
+      "refined": true
+    },
+    {
+      "names": [
+        "Raya",
+        "Gabriel",
+        "Konsa",
+        "Rogers",
+        "Tavernier",
+        "Van Hecke",
+        "Palmer",
+        "Ndiaye",
+        "Barry",
+        "Belloumi",
+        "Muharemović",
+        "Haaland",
+        "Kinsky",
+        "Vuskovic",
+        "Cherif"
+      ],
+      "cost_tenths": 1000,
+      "objective": 401.078,
+      "route": "without-Neto",
+      "refined": true
+    },
+    {
+      "names": [
+        "Raya",
+        "Gabriel",
+        "Konsa",
+        "Rogers",
+        "Hill",
+        "Tavernier",
+        "Neto",
+        "Ndiaye",
+        "Emersonn",
+        "Muharemović",
+        "Haaland",
+        "Mbeumo",
+        "Kinsky",
+        "Vuskovic",
+        "Cherif"
+      ],
+      "cost_tenths": 1000,
+      "objective": 399.779,
+      "route": "without-Palmer",
+      "refined": true
+    },
+    {
+      "names": [
+        "Raya",
+        "Gabriel",
+        "Konsa",
+        "Rogers",
+        "Tavernier",
+        "Van Hecke",
+        "Palmer",
+        "Neto",
+        "Barry",
+        "Belloumi",
+        "Muharemović",
+        "Haaland",
+        "Kinsky",
+        "Robertson",
+        "Cherif"
+      ],
+      "cost_tenths": 999,
+      "objective": 399.424,
+      "route": "Neto",
+      "refined": true
+    },
+    {
+      "names": [
+        "Raya",
+        "Gabriel",
+        "Rogers",
+        "Van Hecke",
+        "Palmer",
+        "Neto",
+        "Ndiaye",
+        "Barry",
+        "Belloumi",
+        "Justin",
+        "Muharemović",
+        "Haaland",
+        "Kinsky",
+        "Vuskovic",
+        "Cherif"
+      ],
+      "cost_tenths": 1000,
+      "objective": 399.291,
+      "route": "Neto",
+      "refined": true
+    },
+    {
+      "names": [
+        "Raya",
+        "Gabriel",
+        "Konsa",
+        "Rogers",
+        "Tavernier",
+        "Van Hecke",
+        "Palmer",
+        "Neto",
+        "Barry",
+        "Walton",
+        "Muharemović",
+        "Haaland",
+        "Tonali",
+        "Robertson",
+        "Cherif"
+      ],
+      "cost_tenths": 1000,
+      "objective": 399.213,
+      "route": "Gabriel",
+      "refined": true
+    },
+    {
+      "names": [
+        "Raya",
+        "Gabriel",
+        "Rogers",
+        "Hill",
+        "Tavernier",
+        "Van Hecke",
+        "Palmer",
+        "Neto",
+        "N.Jackson",
+        "Barry",
+        "Muharemović",
+        "Isak",
+        "Trafford",
+        "Mbeumo",
+        "Vuskovic"
+      ],
+      "cost_tenths": 1000,
+      "objective": 398.946,
+      "route": "balanced-no-12m",
+      "refined": true
+    },
+    {
+      "names": [
+        "Raya",
+        "Gabriel",
+        "Rogers",
+        "Hill",
+        "Van Hecke",
+        "Palmer",
+        "Neto",
+        "Barry",
+        "Slater",
+        "Muharemović",
+        "Haaland",
+        "Tonali",
+        "Kinsky",
+        "Vuskovic",
+        "Cherif"
+      ],
+      "cost_tenths": 998,
+      "objective": 397.782,
+      "route": "Gabriel",
+      "refined": true
+    },
+    {
+      "names": [
+        "Raya",
+        "Gabriel",
+        "Konsa",
+        "Hill",
+        "Tavernier",
+        "Palmer",
+        "Neto",
+        "Ndiaye",
+        "Emersonn",
+        "Muharemović",
+        "Haaland",
+        "Barnes",
+        "Kinsky",
+        "Vuskovic",
+        "Cherif"
+      ],
+      "cost_tenths": 1000,
+      "objective": 396.749,
+      "route": "without-Rogers",
+      "refined": true
+    },
+    {
+      "names": [
+        "Raya",
+        "Gabriel",
+        "Konsa",
+        "Rogers",
+        "Tavernier",
+        "Neto",
+        "van Ewijk",
+        "Ndiaye",
+        "McBurnie",
+        "Walton",
+        "Muharemović",
+        "Haaland",
+        "Mbeumo",
+        "Vuskovic",
+        "Cherif"
+      ],
+      "cost_tenths": 984,
+      "objective": 394.012,
+      "route": "without-Palmer",
+      "refined": false
+    }
+  ],
+  "frozen_baselines": {
+    "never_transfer_ids": [
+      4,
+      31,
+      40,
+      68,
+      112,
+      154,
+      156,
+      249,
+      286,
+      334,
+      385,
+      411,
+      496,
+      504,
+      599
+    ],
+    "fixed_captain": 411,
+    "initial_xi": [
+      385,
+      4,
+      112,
+      334,
+      286,
+      40,
+      154,
+      156,
+      68,
+      411,
+      249
+    ],
+    "initial_outfield_bench": [
+      31,
+      504,
+      599
+    ],
+    "note": "Score future outcomes with pre-declared baseline policy; do not substitute later knowledge into old forecasts"
+  },
+  "known_limits": [
+    "Fixture/scoring probabilities not calibrated",
+    "Chelsea triple exposure and Pedro absence need review",
+    "Cherif last three starts 77/59/66 minutes; third bench, not a secure 90-minute starter",
+    "Role-persistence sensitivity changes Manzambi attractiveness",
+    "Two scorers disagree about XI and goalkeeper; no scores mixed to create transfer gains",
+    "Double gameweeks unmodelled",
+    "First unattended scheduled execution unverified"
+  ]
+}

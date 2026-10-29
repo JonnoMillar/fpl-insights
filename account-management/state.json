@@ -1,0 +1,184 @@
+{
+  "entry_id": 11195024,
+  "team_name": "Jonno's Team",
+  "first_scoring_gameweek": 9,
+  "last_verified_utc": "2026-10-29T00:20:14.541511+00:00",
+  "verification": "Signed-in Pick Team page reloaded after Save Your Team; lineup, captain/vice, bench, finance and entry history link checked",
+  "page": "https://fantasy.premierleague.com/en/my-team",
+  "next_deadline_utc": "2026-10-31T11:00:00Z",
+  "squad_ids": [
+    4,
+    31,
+    40,
+    68,
+    112,
+    154,
+    156,
+    249,
+    286,
+    334,
+    385,
+    411,
+    496,
+    504,
+    599
+  ],
+  "xi_ids": [
+    385,
+    4,
+    112,
+    334,
+    286,
+    40,
+    154,
+    156,
+    68,
+    411,
+    249
+  ],
+  "reserve_goalkeeper": 496,
+  "outfield_bench_order": [
+    31,
+    504,
+    599
+  ],
+  "captain": 411,
+  "vice_captain": 112,
+  "bank_tenths": 4,
+  "squad_market_value_tenths": 996,
+  "transfers_this_gameweek": 0,
+  "transfer_allowance": "Unlimited until first deadline; thereafter read authenticated allowance",
+  "active_chip": null,
+  "first_half_chips_used": [],
+  "first_half_wc_fh": "Unavailable in first scoring gameweek, confirmed in UI",
+  "operating_limits": {
+    "points_hits": false,
+    "chip_activation": false,
+    "free_transfers": true,
+    "lineup_and_captaincy": true
+  },
+  "automation_id": "manage-fpl-experiment",
+  "automation_status": "ACTIVE; schedule configuration verified; first unattended execution not yet observed",
+  "players": [
+    {
+      "id": 385,
+      "name": "Trafford",
+      "club": "LEE",
+      "position": "GKP",
+      "purchase_price_tenths": 50,
+      "selling_price_tenths": 50
+    },
+    {
+      "id": 4,
+      "name": "Gabriel",
+      "club": "ARS",
+      "position": "DEF",
+      "purchase_price_tenths": 79,
+      "selling_price_tenths": 79
+    },
+    {
+      "id": 112,
+      "name": "Van Hecke",
+      "club": "TOT",
+      "position": "DEF",
+      "purchase_price_tenths": 49,
+      "selling_price_tenths": 49
+    },
+    {
+      "id": 334,
+      "name": "Muharemović",
+      "club": "LEE",
+      "position": "DEF",
+      "purchase_price_tenths": 51,
+      "selling_price_tenths": 51
+    },
+    {
+      "id": 286,
+      "name": "Belloumi",
+      "club": "HUL",
+      "position": "MID",
+      "purchase_price_tenths": 52,
+      "selling_price_tenths": 52
+    },
+    {
+      "id": 40,
+      "name": "Rogers",
+      "club": "CHE",
+      "position": "MID",
+      "purchase_price_tenths": 80,
+      "selling_price_tenths": 80
+    },
+    {
+      "id": 154,
+      "name": "Palmer",
+      "club": "CHE",
+      "position": "MID",
+      "purchase_price_tenths": 98,
+      "selling_price_tenths": 98
+    },
+    {
+      "id": 156,
+      "name": "Neto",
+      "club": "CHE",
+      "position": "MID",
+      "purchase_price_tenths": 66,
+      "selling_price_tenths": 66
+    },
+    {
+      "id": 68,
+      "name": "Tavernier",
+      "club": "BOU",
+      "position": "MID",
+      "purchase_price_tenths": 64,
+      "selling_price_tenths": 64
+    },
+    {
+      "id": 411,
+      "name": "Haaland",
+      "club": "MCI",
+      "position": "FWD",
+      "purchase_price_tenths": 158,
+      "selling_price_tenths": 158
+    },
+    {
+      "id": 249,
+      "name": "Barry",
+      "club": "EVE",
+      "position": "FWD",
+      "purchase_price_tenths": 56,
+      "selling_price_tenths": 56
+    },
+    {
+      "id": 496,
+      "name": "Kinsky",
+      "club": "TOT",
+      "position": "GKP",
+      "purchase_price_tenths": 44,
+      "selling_price_tenths": 44
+    },
+    {
+      "id": 31,
+      "name": "Konsa",
+      "club": "ARS",
+      "position": "DEF",
+      "purchase_price_tenths": 47,
+      "selling_price_tenths": 47
+    },
+    {
+      "id": 504,
+      "name": "Vuskovic",
+      "club": "BHA",
+      "position": "DEF",
+      "purchase_price_tenths": 52,
+      "selling_price_tenths": 52
+    },
+    {
+      "id": 599,
+      "name": "Cherif",
+      "club": "COV",
+      "position": "FWD",
+      "purchase_price_tenths": 50,
+      "selling_price_tenths": 50
+    }
+  ]
+}
