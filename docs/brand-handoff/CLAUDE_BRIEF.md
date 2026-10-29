@@ -3,6 +3,8 @@
 Read `README.md` in this folder first, then the project's `AGENTS.md` and
 `docs/HANDOFF.md`. This package supports your redesign of the entire FPL
 Insights dashboard; it is not a request to patch branding into the old UI.
+It is a partial working handoff. The 30 additional icons under `drafts/` are
+proposals pending Jonno's review, not an approved extension of the baseline set.
 
 ## What Jonno chose
 

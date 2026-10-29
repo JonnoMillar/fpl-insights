@@ -6,14 +6,17 @@
     "logo_geometry": "draft_not_final",
     "navigation_icons": "provisionally_accepted_starting_set",
     "sidebar_and_selected_states": "open_for_claude_design",
-    "publication": "not_authorised"
+    "publication": "not_authorised",
+    "additional_dashboard_icons": "draft_pending_user_review"
   },
   "icon_source": "https://github.com/phosphor-icons/core",
   "icon_license": "licenses/PHOSPHOR-MIT.txt",
   "icon_modification": "squad.svg has internal sleeve seams removed",
   "review_checks": {
     "desktop_horizontal_overflow": false,
-    "mobile_horizontal_overflow": false
+    "mobile_horizontal_overflow": false,
+    "additional_icons_svg_count": 30,
+    "draft_sheets_desktop_and_390px_no_overflow": true
   },
   "excluded_assets": [
     "eye concepts",
@@ -24,7 +27,155 @@
   "files": [
     {
       "path": "CLAUDE_BRIEF.md",
-      "sha256": "ba2b8eeebb1d54a449a73bc03181967432799373344f9324d32e032c2d8cbcf6"
+      "sha256": "0e58575b618a8964a1cb4bdff84d8426e5d4eb424368f00fbf3496789a5cf0a2"
+    },
+    {
+      "path": "drafts/dashboard-icons/controls.html",
+      "sha256": "fa49fb8520eb896a444c3a254ab1bda88bd180890536aaeab403231524467707"
+    },
+    {
+      "path": "drafts/dashboard-icons/controls.png",
+      "sha256": "84dd9bff30a8559bb00be1641a338343fc621590dec50444985e9dbb8a8640da"
+    },
+    {
+      "path": "drafts/dashboard-icons/football.html",
+      "sha256": "06679cb0f8926ef114a5ca5aca256a0d2d37d05eb4ec205ada132b57b0650ef6"
+    },
+    {
+      "path": "drafts/dashboard-icons/football.png",
+      "sha256": "36b5201357fbd20275e516cef430d81c74df4a1f4f7d70070e39b6eb2894696d"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/assists.svg",
+      "sha256": "8e7c1c5489cec17109ee8d367cf11ba862f5390ee6e6313c85243bcc3a6d6db1"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/available.svg",
+      "sha256": "f176d6bdb54b124a6da9141515984d698b5c35dbe727dda7f8c1b22a2d130e2e"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/bench-boost.svg",
+      "sha256": "04653038fcee9abb70bf4b5d822375d055c0d59f920bb1d4e8272d35ffb6e783"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/captain.svg",
+      "sha256": "5a7496fcb1d85d946e113b6974805e5185986f70b2ba24e716151163e54e19c6"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/close.svg",
+      "sha256": "d540487912a267d83c495954b24ca07981002fda05ee2ea0b492d8fc188d1c3e"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/compare.svg",
+      "sha256": "d59f15294062296bb5c6572894ed00780407e122cf53fcbdf33677e8f572b910"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/corners.svg",
+      "sha256": "3750f68a6852bbfb5715ca464b7dcc6a319ab0fce2201ae8ab7613aa06a7b69d"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/deadline.svg",
+      "sha256": "45cf8bb6e1929b4d7fcbf52d83b35c6d130f4ea12d981db19370392cba724f4a"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/defence.svg",
+      "sha256": "da3d313e3cec48b0cf45865d791f4838b5841df2ef564467d02b15ff20f507f3"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/doubtful.svg",
+      "sha256": "c473db9807bb726638eefcdc70554078cd2a195313d87e28a70498531ec106c0"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/expand.svg",
+      "sha256": "76a97545e1b923bc13bcc15d7bcbb7f5530105e6eaa98a18c1e30d23e3622843"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/external-link.svg",
+      "sha256": "28687c40e5980d0321a33fe5021d2060fa49633d65127f80009f8c44cbe95418"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/filter.svg",
+      "sha256": "e409a5fb3c2c134e46d51e48ac395e392223e04535c5ec664253f3e7e78cd7a9"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/fixtures.svg",
+      "sha256": "d63b977af5aa66f2548ad99fb99610c5103fe8e6b1739669dd5761d3f3bc0ba6"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/free-hit.svg",
+      "sha256": "8b9fe64519b0b2e3dfccefa18d0c76d4a8a8aa3e93ae00437705aaed084c0e3d"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/free-kicks.svg",
+      "sha256": "3239cba4ab661c4d9ef1396e78e2c9aadf34efaeb6001e00d7b8b1dfb80747c1"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/goals.svg",
+      "sha256": "7016c8b5f224a28ede663c7e25823bc890bef696c6629a5fe1610fcf94ffc73d"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/information.svg",
+      "sha256": "b8241eb546c8764cda301e10c63fc2a9c52c36d75a568832ef7244cb10d15d9b"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/injured.svg",
+      "sha256": "b20c64678c89f87462d78bf4fa2384caf43d5f9215c51dd60116877db0a56526"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/next.svg",
+      "sha256": "03cadd956d715541432ec8dc2eda1c53ca341af7d3ccecb8dd32c5b9747e290f"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/penalties.svg",
+      "sha256": "9858ed99bfe1ba4027291aed9dc7ee2073030cf5caf3397b802c1fd890c0be24"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/previous.svg",
+      "sha256": "b78b6f532b53b9847340961848cb9e4f5be7e1da07e9dcf11c60cf64aa3986b7"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/price-fall.svg",
+      "sha256": "853b0a6015fe757cb69bc54418d571121452589e66b4004ceacbbd2d5648fd9f"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/price-rise.svg",
+      "sha256": "eb0256a0f8130f381199b208d7bdc4abb1d82d9ca3cf47c0ec7025321de7ced2"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/roll-transfer.svg",
+      "sha256": "773d814cdf564a4d0db6e0408a60e5bd97c76c90293aaf383c72399ce2e034a1"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/suspended.svg",
+      "sha256": "fba9bed853d84c9fc94860cb3b1504a2077ffa2da2cb99cc9e7e943636097285"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/transfers.svg",
+      "sha256": "3c61b2eab0351f9f873748aa1c139627738aa9350b9654dfa3718509ed98326e"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/triple-captain.svg",
+      "sha256": "90340b1e7ebc03e594e9a86b185c6a2a4a87f12da6f40b7ce912abd7018a5bfa"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/vice-captain.svg",
+      "sha256": "78946d0dcf02259f4b218508c1d8a90ec07b01a5646cce76194be7414a1ed9ed"
+    },
+    {
+      "path": "drafts/dashboard-icons/icons/wildcard.svg",
+      "sha256": "6a5f1c5f067da9a20cac8872c921d61d9c93d571493677c95a159d8f1f952eaf"
+    },
+    {
+      "path": "drafts/dashboard-icons/sources.json",
+      "sha256": "c2799ef2f7369459424af8d4f4c8133c74c926573dd8b8682ddd4c51b31d1ea6"
+    },
+    {
+      "path": "drafts/dashboard-icons/verification.json",
+      "sha256": "0f3a939d9052471b2199d379242741a670e8a7099c1851073c718585acb30242"
+    },
+    {
+      "path": "drafts/README.md",
+      "sha256": "c5a94918ac61c714b05d53b1824fc4298a038036fdc1d40ef526e0e23ade635c"
     },
     {
       "path": "icons/mini-league.svg",
@@ -60,11 +211,12 @@
     },
     {
       "path": "README.md",
-      "sha256": "ef7c048511b19495619a1284381669c4f571dee67a22736bbbfa2e14679735c2"
+      "sha256": "bc471ddc3b902d9514e0eedcfb9937a302533fa58921899507aaa0f92785204b"
     },
     {
       "path": "references/dashboard-direction.png",
       "sha256": "c9b53cf8fb9316c2f7a3618296ebecda437d8260101b03e924f606e972d0cd4c"
     }
-  ]
+  ],
+  "delivery_status": "partial_working_handoff_not_final"
 }

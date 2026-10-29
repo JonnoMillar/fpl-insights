@@ -2,6 +2,10 @@
 
 Prepared 29 October 2026 for Claude's dashboard redesign.
 
+**Partial working handoff — not the finished delivery.** The extended dashboard
+icon set is now proposed under `drafts/`; those proposals need Jonno's review.
+Final logo geometry, production exports and name lockups remain unfinished.
+
 **The goal/chart is the approved logo direction. Its exact geometry is not final.**
 This folder contains starting assets and decisions, not a finished identity or
 an instruction to preserve the current dashboard layout.
@@ -26,6 +30,7 @@ an instruction to preserve the current dashboard layout.
 - `preview.html` and `preview.png`: asset-only reference sheet. No proposed sidebar states are included.
 - `licenses/PHOSPHOR-MIT.txt`: required attribution/licence for the icon assets.
 - `manifest.json`: asset status, source information and file hashes.
+- `drafts/README.md`: status and review guidance for 30 additional dashboard icon proposals, with SVGs and two comparison sheets.
 
 ## Visual foundation
 

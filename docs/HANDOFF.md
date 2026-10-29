@@ -26,6 +26,7 @@ and publication are unchanged. Existing staged research remains separate.
 - Claude should design the sidebar shape/layout and more distinctive selected states as part of the full dashboard redesign. Earlier sample rail dimensions, white selection tiles and green logo containers are not locked requirements.
 - The delivery folder includes only the goal/chart direction, four navigation SVGs, their MIT licence and Jonno's supplied new-dashboard screenshot. All eye concepts and generated whole-page logo mockups are excluded.
 - Package verification: 12 files, five parsed SVGs, desktop/390px preview without horizontal overflow; archive integrity and per-file SHA-256 hashes verified. No application regression suite run because application code is unchanged.
+- Subsequent checkpoint: the handoff is explicitly **partial**, not finished. `brand-handoff/drafts/` now holds 30 additional dashboard icon proposals: 24 Phosphor bold assets and six custom football symbols. Two sheets show 36px artwork plus 18px samples; parsed SVGs and desktop/390px rendering verified. Jonno has not reviewed these new icons yet. The earlier 12-file ZIP remains an older partial snapshot.
 - No application code or production assets were changed by this design exercise. Final logo geometry and integrated sidebar previews need Jonno's review before production exports or implementation. No publishing approval.
 
 ## Now: brand refresh (final dashboard draft awaiting Jonno's review)

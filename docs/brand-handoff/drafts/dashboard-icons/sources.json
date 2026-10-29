@@ -1,0 +1,128 @@
+[
+  {
+    "name": "transfers",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/arrows-left-right-bold.svg"
+  },
+  {
+    "name": "roll-transfer",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/arrow-clockwise-bold.svg"
+  },
+  {
+    "name": "fixtures",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/calendar-dots-bold.svg"
+  },
+  {
+    "name": "deadline",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/clock-bold.svg"
+  },
+  {
+    "name": "wildcard",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/shuffle-bold.svg"
+  },
+  {
+    "name": "free-hit",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/lightning-bold.svg"
+  },
+  {
+    "name": "available",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/check-circle-bold.svg"
+  },
+  {
+    "name": "doubtful",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/warning-bold.svg"
+  },
+  {
+    "name": "injured",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/first-aid-kit-bold.svg"
+  },
+  {
+    "name": "suspended",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/prohibit-bold.svg"
+  },
+  {
+    "name": "goals",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/soccer-ball-bold.svg"
+  },
+  {
+    "name": "assists",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/sneaker-move-bold.svg"
+  },
+  {
+    "name": "defence",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/shield-check-bold.svg"
+  },
+  {
+    "name": "penalties",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/target-bold.svg"
+  },
+  {
+    "name": "filter",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/sliders-horizontal-bold.svg"
+  },
+  {
+    "name": "compare",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/columns-bold.svg"
+  },
+  {
+    "name": "information",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/info-bold.svg"
+  },
+  {
+    "name": "close",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/x-bold.svg"
+  },
+  {
+    "name": "previous",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/caret-left-bold.svg"
+  },
+  {
+    "name": "next",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/caret-right-bold.svg"
+  },
+  {
+    "name": "expand",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/caret-down-bold.svg"
+  },
+  {
+    "name": "external-link",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/arrow-up-right-bold.svg"
+  },
+  {
+    "name": "price-rise",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/trend-up-bold.svg"
+  },
+  {
+    "name": "price-fall",
+    "source": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/bold/trend-down-bold.svg"
+  },
+  {
+    "name": "captain",
+    "source": "Custom SVG drawn for this review",
+    "status": "draft"
+  },
+  {
+    "name": "vice-captain",
+    "source": "Custom SVG drawn for this review",
+    "status": "draft"
+  },
+  {
+    "name": "triple-captain",
+    "source": "Custom SVG drawn for this review",
+    "status": "draft"
+  },
+  {
+    "name": "bench-boost",
+    "source": "Custom SVG drawn for this review",
+    "status": "draft"
+  },
+  {
+    "name": "free-kicks",
+    "source": "Custom SVG drawn for this review",
+    "status": "draft"
+  },
+  {
+    "name": "corners",
+    "source": "Custom SVG drawn for this review",
+    "status": "draft"
+  }
+]
