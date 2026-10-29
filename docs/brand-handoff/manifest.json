@@ -1,0 +1,70 @@
+{
+  "prepared": "2026-10-29",
+  "purpose": "Claude dashboard redesign handoff",
+  "status": {
+    "logo_direction": "approved",
+    "logo_geometry": "draft_not_final",
+    "navigation_icons": "provisionally_accepted_starting_set",
+    "sidebar_and_selected_states": "open_for_claude_design",
+    "publication": "not_authorised"
+  },
+  "icon_source": "https://github.com/phosphor-icons/core",
+  "icon_license": "licenses/PHOSPHOR-MIT.txt",
+  "icon_modification": "squad.svg has internal sleeve seams removed",
+  "review_checks": {
+    "desktop_horizontal_overflow": false,
+    "mobile_horizontal_overflow": false
+  },
+  "excluded_assets": [
+    "eye concepts",
+    "football magnifier concepts",
+    "generated whole-page mockups",
+    "final production favicon or app-icon exports"
+  ],
+  "files": [
+    {
+      "path": "CLAUDE_BRIEF.md",
+      "sha256": "ba2b8eeebb1d54a449a73bc03181967432799373344f9324d32e032c2d8cbcf6"
+    },
+    {
+      "path": "icons/mini-league.svg",
+      "sha256": "a0f8974d38f1ea17839a756a0d6584fa672fc70332d9376486b4f7f715d1af65"
+    },
+    {
+      "path": "icons/planning.svg",
+      "sha256": "b1fc30906c04ab6502a2afaa1c6b1b54a0d1679ab9dfb5b63087e8f797f46363"
+    },
+    {
+      "path": "icons/scout.svg",
+      "sha256": "b73e393b20bff0aaee96b9e325d0276fe1ab5fc81b5080633a95827bd14ebae6"
+    },
+    {
+      "path": "icons/squad.svg",
+      "sha256": "4739d9ee6479cc116c8e337d9e2af7d3e5d5ef163b19dc1bf508668bdbc571ef"
+    },
+    {
+      "path": "licenses/PHOSPHOR-MIT.txt",
+      "sha256": "b5b1f1da112d18ea2147decfd48ddc1bf2b5aeb6c265381579340e95b15a2bb2"
+    },
+    {
+      "path": "logo/goal-chart-draft.svg",
+      "sha256": "25efd6475bc317f1794a7e443742552c4c81370e3328bffab76236a0b6d2c8a4"
+    },
+    {
+      "path": "preview.html",
+      "sha256": "19d2ba7f266a413666be85f337fc27aa2f931ecedaf6f2a812054c48d64d4200"
+    },
+    {
+      "path": "preview.png",
+      "sha256": "b187a361a6b549b41504bbb34d497c939123680caff905d8e53935f32b15da65"
+    },
+    {
+      "path": "README.md",
+      "sha256": "ef7c048511b19495619a1284381669c4f571dee67a22736bbbfa2e14679735c2"
+    },
+    {
+      "path": "references/dashboard-direction.png",
+      "sha256": "c9b53cf8fb9316c2f7a3618296ebecda437d8260101b03e924f606e972d0cd4c"
+    }
+  ]
+}

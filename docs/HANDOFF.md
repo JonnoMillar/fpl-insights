@@ -1,6 +1,6 @@
 # HANDOFF — FPL Insights
 
-Last updated: 28 October 2026 (final brand draft). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
+Last updated: 29 October 2026 (logo/icon handoff; dashboard draft still awaiting review). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
 
 ## State
 
@@ -18,7 +18,17 @@ An active local review heartbeat is configured; its first unattended execution
 is not yet verified. Dashboard entry/configuration, product code, alert project
 and publication are unchanged. Existing staged research remains separate.
 
-## Now: brand refresh (final draft awaiting Jonno's review)
+## Logo and icon handoff for Claude (29 October 2026)
+
+- Delivery entry point: [`brand-handoff/README.md`](brand-handoff/README.md); ready-to-use brief: [`brand-handoff/CLAUDE_BRIEF.md`](brand-handoff/CLAUDE_BRIEF.md).
+- Approved **logo direction**: open-bottom football goal frame with three ascending data bars. Exact geometry remains a draft; no production master or final exports have been approved.
+- Navigation starting point: bold outline shirt (internal sleeve seam lines removed), route, trophy and magnifier. Jonno considers the icons potentially suitable; this is not blanket approval of the sidebar treatment.
+- Claude should design the sidebar shape/layout and more distinctive selected states as part of the full dashboard redesign. Earlier sample rail dimensions, white selection tiles and green logo containers are not locked requirements.
+- The delivery folder includes only the goal/chart direction, four navigation SVGs, their MIT licence and Jonno's supplied new-dashboard screenshot. All eye concepts and generated whole-page logo mockups are excluded.
+- Package verification: 12 files, five parsed SVGs, desktop/390px preview without horizontal overflow; archive integrity and per-file SHA-256 hashes verified. No application regression suite run because application code is unchanged.
+- No application code or production assets were changed by this design exercise. Final logo geometry and integrated sidebar previews need Jonno's review before production exports or implementation. No publishing approval.
+
+## Now: brand refresh (final dashboard draft awaiting Jonno's review)
 
 Canvas: [FPL Insights brand directions](https://claude.ai/artifact/9paQtGhWZJ4K6NS4gmYzAn), version 17. Rows top to bottom: first four directions, C round 2 (y 8500), Round 3 (y 11800), **Final draft (y 14900)**.
 
