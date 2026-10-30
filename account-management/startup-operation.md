@@ -79,6 +79,7 @@ Remove the optional app auto-start shortcut from the Windows Startup folder
 stay within this account directory; only the task registration and this shortcut
 are installed in Windows.
 
-Verified during setup: CLI queue accepted a harmless transport probe; due-check
-boundary tests pass. Reboot/sign-in behaviour, queued probe execution and the
-first real unattended review must be observed before claiming end-to-end success.
+Verified: CLI transport probe executed in this chat; due-check boundary tests
+pass. The first unattended no-change review and Google recovery completed on
+30 October. Windows reboot/sign-in delivery and unattended account writes still
+need separate verification; this is not proof of every execution path.

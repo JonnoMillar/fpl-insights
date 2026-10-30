@@ -2,8 +2,8 @@
   "entry_id": 11195024,
   "team_name": "Jonno's Team",
   "first_scoring_gameweek": 9,
-  "last_verified_utc": "2026-10-29T00:20:14.541511+00:00",
-  "verification": "Signed-in Pick Team page reloaded after Save Your Team; lineup, captain/vice, bench, finance and entry history link checked",
+  "last_verified_utc": "2026-10-30T18:04:19.318143+00:00",
+  "verification": "Unattended review: Google session recovered FPL login; own history link confirmed entry 11195024; unchanged XV/XI/bench/armbands and bank checked; Transfers confirmed unlimited GW9 changes; returned to Pick Team",
   "page": "https://fantasy.premierleague.com/en/my-team",
   "next_deadline_utc": "2026-10-31T11:00:00Z",
   "squad_ids": [
@@ -58,7 +58,7 @@
     "lineup_and_captaincy": true
   },
   "automation_id": "manage-fpl-experiment",
-  "automation_status": "ACTIVE; schedule configuration verified; first unattended execution not yet observed",
+  "automation_status": "ACTIVE; first unattended no-change review and Google recovery verified 30 October; unattended account writes remain untested",
   "players": [
     {
       "id": 385,
@@ -184,9 +184,10 @@
   "authentication": {
     "method": "Google sign-in",
     "recovery": "Normal FPL login via existing signed-in Google identity; optional additional permissions left unchecked",
-    "last_recovery_verified_utc": "2026-10-29T01:05:20.470727+00:00",
+    "last_recovery_verified_utc": "2026-10-30T18:04:19.318143+00:00",
     "verified_entry_id": 11195024,
     "requires_user_when": "Google session expires or presents an authentication challenge",
-    "credential_storage": "None; uses existing browser session"
+    "credential_storage": "None; uses existing browser session",
+    "unattended_recovery_verified": true
   }
 }

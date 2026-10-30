@@ -17,8 +17,15 @@ bench order and £0.4m bank were unchanged. Clicking the account's Gameweek Hist
 link verified **/en/entry/11195024/history**. Screenshot evidence is in ignored
 `.cache/google-relogin.png`. The account was left signed in on Pick Team.
 
+The same recovery succeeded during the unattended 30 October pre-deadline review:
+FPL was signed out and Google remained available; no user input was needed.
 This proves FPL recovery while the existing Google session works. It does not
-prove recovery after Google logs out, after reboot, or in an unattended run.
+prove recovery after Google logs out or establish a guaranteed session lifetime.
+
+Jonno later reported completing the FPL password-reset form. A local DPAPI
+credential helper was prepared, but its Save prompt failed to load the Windows
+PowerShell security module and no credential was saved. Password login remains
+unverified and must not replace the tested Google path until setup is completed.
 
 ## Procedure on future reviews
 

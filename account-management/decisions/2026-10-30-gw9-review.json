@@ -1,0 +1,612 @@
+{
+  "reviewed_utc": "2026-10-30T18:04:19.318143+00:00",
+  "entry_id": 11195024,
+  "deadline_utc": "2026-10-31T11:00:00Z",
+  "decision": "retain",
+  "confirmed_account": {
+    "entry_id": 11195024,
+    "team_name": "Jonno's Team",
+    "first_scoring_gameweek": 9,
+    "last_verified_utc": "2026-10-30T18:04:19.318143+00:00",
+    "verification": "Unattended review: Google session recovered FPL login; own history link confirmed entry 11195024; unchanged XV/XI/bench/armbands and bank checked; Transfers confirmed unlimited GW9 changes; returned to Pick Team",
+    "page": "https://fantasy.premierleague.com/en/my-team",
+    "next_deadline_utc": "2026-10-31T11:00:00Z",
+    "squad_ids": [
+      4,
+      31,
+      40,
+      68,
+      112,
+      154,
+      156,
+      249,
+      286,
+      334,
+      385,
+      411,
+      496,
+      504,
+      599
+    ],
+    "xi_ids": [
+      385,
+      4,
+      112,
+      334,
+      286,
+      40,
+      154,
+      156,
+      68,
+      411,
+      249
+    ],
+    "reserve_goalkeeper": 496,
+    "outfield_bench_order": [
+      31,
+      504,
+      599
+    ],
+    "captain": 411,
+    "vice_captain": 112,
+    "bank_tenths": 4,
+    "squad_market_value_tenths": 996,
+    "transfers_this_gameweek": 0,
+    "transfer_allowance": "Unlimited until first deadline; thereafter read authenticated allowance",
+    "active_chip": null,
+    "first_half_chips_used": [],
+    "first_half_wc_fh": "Unavailable in first scoring gameweek, confirmed in UI",
+    "operating_limits": {
+      "points_hits": false,
+      "chip_activation": false,
+      "free_transfers": true,
+      "lineup_and_captaincy": true
+    },
+    "automation_id": "manage-fpl-experiment",
+    "automation_status": "ACTIVE; first unattended no-change review and Google recovery verified 30 October; unattended account writes remain untested",
+    "players": [
+      {
+        "id": 385,
+        "name": "Trafford",
+        "club": "LEE",
+        "position": "GKP",
+        "purchase_price_tenths": 50,
+        "selling_price_tenths": 50
+      },
+      {
+        "id": 4,
+        "name": "Gabriel",
+        "club": "ARS",
+        "position": "DEF",
+        "purchase_price_tenths": 79,
+        "selling_price_tenths": 79
+      },
+      {
+        "id": 112,
+        "name": "Van Hecke",
+        "club": "TOT",
+        "position": "DEF",
+        "purchase_price_tenths": 49,
+        "selling_price_tenths": 49
+      },
+      {
+        "id": 334,
+        "name": "MuharemoviÄ‡",
+        "club": "LEE",
+        "position": "DEF",
+        "purchase_price_tenths": 51,
+        "selling_price_tenths": 51
+      },
+      {
+        "id": 286,
+        "name": "Belloumi",
+        "club": "HUL",
+        "position": "MID",
+        "purchase_price_tenths": 52,
+        "selling_price_tenths": 52
+      },
+      {
+        "id": 40,
+        "name": "Rogers",
+        "club": "CHE",
+        "position": "MID",
+        "purchase_price_tenths": 80,
+        "selling_price_tenths": 80
+      },
+      {
+        "id": 154,
+        "name": "Palmer",
+        "club": "CHE",
+        "position": "MID",
+        "purchase_price_tenths": 98,
+        "selling_price_tenths": 98
+      },
+      {
+        "id": 156,
+        "name": "Neto",
+        "club": "CHE",
+        "position": "MID",
+        "purchase_price_tenths": 66,
+        "selling_price_tenths": 66
+      },
+      {
+        "id": 68,
+        "name": "Tavernier",
+        "club": "BOU",
+        "position": "MID",
+        "purchase_price_tenths": 64,
+        "selling_price_tenths": 64
+      },
+      {
+        "id": 411,
+        "name": "Haaland",
+        "club": "MCI",
+        "position": "FWD",
+        "purchase_price_tenths": 158,
+        "selling_price_tenths": 158
+      },
+      {
+        "id": 249,
+        "name": "Barry",
+        "club": "EVE",
+        "position": "FWD",
+        "purchase_price_tenths": 56,
+        "selling_price_tenths": 56
+      },
+      {
+        "id": 496,
+        "name": "Kinsky",
+        "club": "TOT",
+        "position": "GKP",
+        "purchase_price_tenths": 44,
+        "selling_price_tenths": 44
+      },
+      {
+        "id": 31,
+        "name": "Konsa",
+        "club": "ARS",
+        "position": "DEF",
+        "purchase_price_tenths": 47,
+        "selling_price_tenths": 47
+      },
+      {
+        "id": 504,
+        "name": "Vuskovic",
+        "club": "BHA",
+        "position": "DEF",
+        "purchase_price_tenths": 52,
+        "selling_price_tenths": 52
+      },
+      {
+        "id": 599,
+        "name": "Cherif",
+        "club": "COV",
+        "position": "FWD",
+        "purchase_price_tenths": 50,
+        "selling_price_tenths": 50
+      }
+    ],
+    "authentication": {
+      "method": "Google sign-in",
+      "recovery": "Normal FPL login via existing signed-in Google identity; optional additional permissions left unchecked",
+      "last_recovery_verified_utc": "2026-10-30T18:04:19.318143+00:00",
+      "verified_entry_id": 11195024,
+      "requires_user_when": "Google session expires or presents an authentication challenge",
+      "credential_storage": "None; uses existing browser session",
+      "unattended_recovery_verified": true
+    }
+  },
+  "source_health": "  ok    FPL players          669 players\n  ok    FPL fixtures         380 fixtures\n  ok    predicted line-ups   220 starters\n  ok    fixture projections  760 club-gameweeks\n  ok    bookmaker odds       20 fixtures, 10 with quoted clean sheets\n  ok    Scout history        8 gameweeks loaded",
+  "model_generated_utc": "2026-10-30T18:00:53.203499+00:00",
+  "candidate_count": 171,
+  "comparison_count": 23,
+  "owned_bootstrap_objective": 399.646,
+  "best_found_objective": 399.797,
+  "history_review": {
+    "players": [
+      {
+        "id": 4,
+        "name": "Gabriel",
+        "pos": "DEF",
+        "club": "ARS",
+        "price": 7.9,
+        "value": 4.907920472537246,
+        "recent_minutes": [
+          90,
+          90,
+          90
+        ]
+      },
+      {
+        "id": 31,
+        "name": "Konsa",
+        "pos": "DEF",
+        "club": "ARS",
+        "price": 4.7,
+        "value": 4.247540896921208,
+        "recent_minutes": [
+          90,
+          90,
+          90
+        ]
+      },
+      {
+        "id": 40,
+        "name": "Rogers",
+        "pos": "MID",
+        "club": "CHE",
+        "price": 8.0,
+        "value": 5.321327967474441,
+        "recent_minutes": [
+          83,
+          90,
+          90
+        ]
+      },
+      {
+        "id": 68,
+        "name": "Tavernier",
+        "pos": "MID",
+        "club": "BOU",
+        "price": 6.4,
+        "value": 5.440544458261068,
+        "recent_minutes": [
+          72,
+          78,
+          86
+        ]
+      },
+      {
+        "id": 112,
+        "name": "Van Hecke",
+        "pos": "DEF",
+        "club": "TOT",
+        "price": 4.9,
+        "value": 5.36336913116308,
+        "recent_minutes": [
+          90,
+          90,
+          90
+        ]
+      },
+      {
+        "id": 154,
+        "name": "Palmer",
+        "pos": "MID",
+        "club": "CHE",
+        "price": 9.8,
+        "value": 4.573098542320071,
+        "recent_minutes": [
+          87,
+          90,
+          79
+        ]
+      },
+      {
+        "id": 156,
+        "name": "Neto",
+        "pos": "MID",
+        "club": "CHE",
+        "price": 6.6,
+        "value": 4.745370516843384,
+        "recent_minutes": [
+          82,
+          90,
+          87
+        ]
+      },
+      {
+        "id": 249,
+        "name": "Barry",
+        "pos": "FWD",
+        "club": "EVE",
+        "price": 5.6,
+        "value": 4.543198129313726,
+        "recent_minutes": [
+          85,
+          90,
+          90
+        ]
+      },
+      {
+        "id": 286,
+        "name": "Belloumi",
+        "pos": "MID",
+        "club": "HUL",
+        "price": 5.2,
+        "value": 4.53347154858019,
+        "recent_minutes": [
+          26,
+          90,
+          85
+        ]
+      },
+      {
+        "id": 334,
+        "name": "Muharemović",
+        "pos": "DEF",
+        "club": "LEE",
+        "price": 5.1,
+        "value": 4.305233703034845,
+        "recent_minutes": [
+          90,
+          90,
+          90
+        ]
+      },
+      {
+        "id": 385,
+        "name": "Trafford",
+        "pos": "GKP",
+        "club": "LEE",
+        "price": 5.0,
+        "value": 4.648229662775882,
+        "recent_minutes": [
+          90,
+          90,
+          90
+        ]
+      },
+      {
+        "id": 411,
+        "name": "Haaland",
+        "pos": "FWD",
+        "club": "MCI",
+        "price": 15.8,
+        "value": 6.123480202985616,
+        "recent_minutes": [
+          79,
+          90,
+          90
+        ]
+      },
+      {
+        "id": 496,
+        "name": "Kinsky",
+        "pos": "GKP",
+        "club": "TOT",
+        "price": 4.4,
+        "value": 4.066166531754493,
+        "recent_minutes": [
+          90,
+          90,
+          90
+        ]
+      },
+      {
+        "id": 504,
+        "name": "Vuskovic",
+        "pos": "DEF",
+        "club": "BHA",
+        "price": 5.2,
+        "value": 3.525592687641823,
+        "recent_minutes": [
+          90,
+          90,
+          90
+        ]
+      },
+      {
+        "id": 599,
+        "name": "Cherif",
+        "pos": "FWD",
+        "club": "COV",
+        "price": 5.0,
+        "value": 0.8027601563087513,
+        "recent_minutes": [
+          77,
+          59,
+          66
+        ]
+      }
+    ],
+    "selection": {
+      "formation": [
+        3,
+        5,
+        2
+      ],
+      "xi": [
+        {
+          "id": 385,
+          "name": "Trafford",
+          "pos": "GKP",
+          "club": "LEE",
+          "price": 5.0,
+          "value": 4.648229662775882,
+          "recent_minutes": [
+            90,
+            90,
+            90
+          ]
+        },
+        {
+          "id": 112,
+          "name": "Van Hecke",
+          "pos": "DEF",
+          "club": "TOT",
+          "price": 4.9,
+          "value": 5.36336913116308,
+          "recent_minutes": [
+            90,
+            90,
+            90
+          ]
+        },
+        {
+          "id": 4,
+          "name": "Gabriel",
+          "pos": "DEF",
+          "club": "ARS",
+          "price": 7.9,
+          "value": 4.907920472537246,
+          "recent_minutes": [
+            90,
+            90,
+            90
+          ]
+        },
+        {
+          "id": 334,
+          "name": "Muharemović",
+          "pos": "DEF",
+          "club": "LEE",
+          "price": 5.1,
+          "value": 4.305233703034845,
+          "recent_minutes": [
+            90,
+            90,
+            90
+          ]
+        },
+        {
+          "id": 68,
+          "name": "Tavernier",
+          "pos": "MID",
+          "club": "BOU",
+          "price": 6.4,
+          "value": 5.440544458261068,
+          "recent_minutes": [
+            72,
+            78,
+            86
+          ]
+        },
+        {
+          "id": 40,
+          "name": "Rogers",
+          "pos": "MID",
+          "club": "CHE",
+          "price": 8.0,
+          "value": 5.321327967474441,
+          "recent_minutes": [
+            83,
+            90,
+            90
+          ]
+        },
+        {
+          "id": 156,
+          "name": "Neto",
+          "pos": "MID",
+          "club": "CHE",
+          "price": 6.6,
+          "value": 4.745370516843384,
+          "recent_minutes": [
+            82,
+            90,
+            87
+          ]
+        },
+        {
+          "id": 154,
+          "name": "Palmer",
+          "pos": "MID",
+          "club": "CHE",
+          "price": 9.8,
+          "value": 4.573098542320071,
+          "recent_minutes": [
+            87,
+            90,
+            79
+          ]
+        },
+        {
+          "id": 286,
+          "name": "Belloumi",
+          "pos": "MID",
+          "club": "HUL",
+          "price": 5.2,
+          "value": 4.53347154858019,
+          "recent_minutes": [
+            26,
+            90,
+            85
+          ]
+        },
+        {
+          "id": 411,
+          "name": "Haaland",
+          "pos": "FWD",
+          "club": "MCI",
+          "price": 15.8,
+          "value": 6.123480202985616,
+          "recent_minutes": [
+            79,
+            90,
+            90
+          ]
+        },
+        {
+          "id": 249,
+          "name": "Barry",
+          "pos": "FWD",
+          "club": "EVE",
+          "price": 5.6,
+          "value": 4.543198129313726,
+          "recent_minutes": [
+            85,
+            90,
+            90
+          ]
+        }
+      ],
+      "bench": [
+        {
+          "id": 31,
+          "name": "Konsa",
+          "pos": "DEF",
+          "club": "ARS",
+          "price": 4.7,
+          "value": 4.247540896921208,
+          "recent_minutes": [
+            90,
+            90,
+            90
+          ]
+        },
+        {
+          "id": 496,
+          "name": "Kinsky",
+          "pos": "GKP",
+          "club": "TOT",
+          "price": 4.4,
+          "value": 4.066166531754493,
+          "recent_minutes": [
+            90,
+            90,
+            90
+          ]
+        },
+        {
+          "id": 504,
+          "name": "Vuskovic",
+          "pos": "DEF",
+          "club": "BHA",
+          "price": 5.2,
+          "value": 3.525592687641823,
+          "recent_minutes": [
+            90,
+            90,
+            90
+          ]
+        },
+        {
+          "id": 599,
+          "name": "Cherif",
+          "pos": "FWD",
+          "club": "COV",
+          "price": 5.0,
+          "value": 0.8027601563087513,
+          "recent_minutes": [
+            77,
+            59,
+            66
+          ]
+        }
+      ],
+      "value": 54.50524433528955,
+      "cost": 99.60000000000001
+    }
+  }
+}

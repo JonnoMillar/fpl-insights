@@ -1,10 +1,16 @@
 # Managed account — current handoff
 
-Last updated 29 October 2026. Keep this work separate from dashboard development
+Last updated 30 October 2026. Keep this work separate from dashboard development
 and the other research chat. Start here for this account; root `docs/HANDOFF.md`
 describes the dashboard product, not this experiment's current team.
 
 ## State
+
+- **First unattended review completed 30 October:** recovered an FPL logout via
+  the existing Google session, verified entry 11195024, actual squad and unlimited
+  GW9 transfers. Fresh model/news review supports retaining the entire saved team.
+  Read `decisions/2026-10-30-gw9-review.md` and `review-status.json` for evidence.
+  Password login remains unconfigured; the credential prompt failed before save.
 
 - **Google login recovery verified 29 October:** signed out of FPL, signed back
   in via existing Google session without user input, and confirmed history entry
@@ -60,12 +66,14 @@ describes the dashboard product, not this experiment's current team.
   decision. Six guard tests passed. Queued transport probe subsequently ran and
   was acknowledged in this chat. Task is limited/interactive, IgnoreNew,
   StartWhenAvailable, WakeToRun false. Real reboot/sign-in,
-  due-path execution and unattended browser access remain unverified.
+  due-path Windows-launcher execution remains unverified. Daily-heartbeat review
+  and unattended browser/Google recovery succeeded on 30 October.
 - The schedule uses the local computer/app and available logged-in browser.
   It cannot promise action if those are asleep, closed, locked/inaccessible,
   disconnected or Google reauthentication is required. Normal FPL logout can
   now be recovered using the tested Google flow. The initial manual account write
-  and reload worked; a later unattended run has not yet been observed.
+  and reload worked; an unattended no-change review is now proved. No unattended
+  transfer or team write has yet been tested.
 - No point hits or chip activation under the current starting policy. Those
   limits were announced by the assistant; Jonno has not expressly expanded them.
   Routine free transfers and team/armband changes are delegated.
