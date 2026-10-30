@@ -1,0 +1,212 @@
+{
+  "status": "vector_review_not_user_approved",
+  "viewBox": [
+    0,
+    0,
+    32,
+    32
+  ],
+  "stroke": 2.4,
+  "icons": [
+    {
+      "name": "goals",
+      "path": "icons/goals.svg",
+      "compact": "compact/goals.svg"
+    },
+    {
+      "name": "assists",
+      "path": "icons/assists.svg",
+      "compact": "compact/assists.svg"
+    },
+    {
+      "name": "penalties",
+      "path": "icons/penalties.svg",
+      "compact": "compact/penalties.svg"
+    },
+    {
+      "name": "free-kicks",
+      "path": "icons/free-kicks.svg",
+      "compact": "compact/free-kicks.svg"
+    },
+    {
+      "name": "corners",
+      "path": "icons/corners.svg",
+      "compact": "compact/corners.svg"
+    },
+    {
+      "name": "clean-sheet",
+      "path": "icons/clean-sheet.svg",
+      "compact": "compact/clean-sheet.svg"
+    },
+    {
+      "name": "saves",
+      "path": "icons/saves.svg",
+      "compact": "compact/saves.svg"
+    },
+    {
+      "name": "minutes",
+      "path": "icons/minutes.svg",
+      "compact": "compact/minutes.svg"
+    },
+    {
+      "name": "yellow-card",
+      "path": "icons/yellow-card.svg",
+      "compact": "compact/yellow-card.svg"
+    },
+    {
+      "name": "red-card",
+      "path": "icons/red-card.svg",
+      "compact": "compact/red-card.svg"
+    },
+    {
+      "name": "injured",
+      "path": "icons/injured.svg",
+      "compact": "compact/injured.svg"
+    },
+    {
+      "name": "doubtful",
+      "path": "icons/doubtful.svg",
+      "compact": "compact/doubtful.svg"
+    },
+    {
+      "name": "available",
+      "path": "icons/available.svg",
+      "compact": "compact/available.svg"
+    },
+    {
+      "name": "captain",
+      "path": "icons/captain.svg",
+      "compact": "compact/captain.svg"
+    },
+    {
+      "name": "vice-captain",
+      "path": "icons/vice-captain.svg",
+      "compact": "compact/vice-captain.svg"
+    },
+    {
+      "name": "bonus",
+      "path": "icons/bonus.svg",
+      "compact": "compact/bonus.svg"
+    },
+    {
+      "name": "squad",
+      "path": "icons/squad.svg",
+      "compact": "compact/squad.svg"
+    },
+    {
+      "name": "planning",
+      "path": "icons/planning.svg",
+      "compact": "compact/planning.svg"
+    },
+    {
+      "name": "mini-league",
+      "path": "icons/mini-league.svg",
+      "compact": "compact/mini-league.svg"
+    },
+    {
+      "name": "scout",
+      "path": "icons/scout.svg",
+      "compact": "compact/scout.svg"
+    },
+    {
+      "name": "transfers",
+      "path": "icons/transfers.svg",
+      "compact": "compact/transfers.svg"
+    },
+    {
+      "name": "roll-transfer",
+      "path": "icons/roll-transfer.svg",
+      "compact": "compact/roll-transfer.svg"
+    },
+    {
+      "name": "fixtures",
+      "path": "icons/fixtures.svg",
+      "compact": "compact/fixtures.svg"
+    },
+    {
+      "name": "deadline",
+      "path": "icons/deadline.svg",
+      "compact": "compact/deadline.svg"
+    },
+    {
+      "name": "wildcard",
+      "path": "icons/wildcard.svg",
+      "compact": "compact/wildcard.svg"
+    },
+    {
+      "name": "free-hit",
+      "path": "icons/free-hit.svg",
+      "compact": "compact/free-hit.svg"
+    },
+    {
+      "name": "bench-boost",
+      "path": "icons/bench-boost.svg",
+      "compact": "compact/bench-boost.svg"
+    },
+    {
+      "name": "triple-captain",
+      "path": "icons/triple-captain.svg",
+      "compact": "compact/triple-captain.svg"
+    },
+    {
+      "name": "filter",
+      "path": "icons/filter.svg",
+      "compact": "compact/filter.svg"
+    },
+    {
+      "name": "compare",
+      "path": "icons/compare.svg",
+      "compact": "compact/compare.svg"
+    },
+    {
+      "name": "information",
+      "path": "icons/information.svg",
+      "compact": "compact/information.svg"
+    },
+    {
+      "name": "close",
+      "path": "icons/close.svg",
+      "compact": "compact/close.svg"
+    },
+    {
+      "name": "previous",
+      "path": "icons/previous.svg",
+      "compact": "compact/previous.svg"
+    },
+    {
+      "name": "next",
+      "path": "icons/next.svg",
+      "compact": "compact/next.svg"
+    },
+    {
+      "name": "expand",
+      "path": "icons/expand.svg",
+      "compact": "compact/expand.svg"
+    },
+    {
+      "name": "external-link",
+      "path": "icons/external-link.svg",
+      "compact": "compact/external-link.svg"
+    },
+    {
+      "name": "price-rise",
+      "path": "icons/price-rise.svg",
+      "compact": "compact/price-rise.svg"
+    },
+    {
+      "name": "price-fall",
+      "path": "icons/price-fall.svg",
+      "compact": "compact/price-fall.svg"
+    },
+    {
+      "name": "defence",
+      "path": "icons/defence.svg",
+      "compact": "compact/defence.svg"
+    },
+    {
+      "name": "suspended",
+      "path": "icons/suspended.svg",
+      "compact": "compact/suspended.svg"
+    }
+  ]
+}

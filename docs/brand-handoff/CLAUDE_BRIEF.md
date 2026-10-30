@@ -3,8 +3,7 @@
 Read `README.md` in this folder first, then the project's `AGENTS.md` and
 `docs/HANDOFF.md`. This package supports your redesign of the entire FPL
 Insights dashboard; it is not a request to patch branding into the old UI.
-It is a partial working handoff. The 30 additional icons under `drafts/` are
-proposals pending Jonno's review, not an approved extension of the baseline set.
+It is a partial working handoff. The current icon deliverable is `vector-suite/`: 40 individual SVGs and compact exports. Read its README and open its preview. Earlier `drafts/` and raster concept sheets are historical proposals. The vector suite still needs Jonno's design review.
 
 ## What Jonno chose
 
@@ -27,9 +26,7 @@ proposals pending Jonno's review, not an approved extension of the baseline set.
 - The rest of the dashboard, its responsive layout, components, interactions
   and any additional functional icons, following the separate design work.
 
-Re-use Phosphor's bold family for additional ordinary UI symbols where it
-fits. Keep licence attribution and avoid introducing an icon-font/runtime
-dependency. Customise only when necessary for clarity or visual consistency.
+Use the vector suite for the supplied icon inventory rather than mixing in unrelated library geometry. Keep the Phosphor licence when using the older navigation starting assets. No icon-font/runtime dependency is needed.
 
 ## Show before finalising
 
@@ -48,4 +45,6 @@ or data semantics. Preserve the repository's functional and publication
 constraints throughout the redesign. Jonno owns the final decisions.
 
 
-Latest icon direction (30 October): use concept-suite/README.md and preview.html. The 40 generated concepts supersede the historical bulk dashboard-icons drafts. Preserve approved-goals-assist.png compositions. Resolve shared vector primitives and small-size optical versions; do not treat generated sheets as production exports. See documented red-card ambiguity and Deadline clock correction.
+Latest icon direction (30 October): use vector-suite/README.md and preview.html. The vectors supersede the historical bulk dashboard-icons drafts. The approved Goals/Assist raster reference remains in concept-suite/approved-goals-assist.png. Do not use generated sheet crops as UI assets.
+
+Vector checkpoint: shared football/goal/arrow construction is now supplied in vector-suite/build.py and exported SVGs. Browser integrity and actual-size previews checked at 16/20/24/32px. Detailed football scenes are clearer at 20–24px; use labels. No user recognition testing or final suite approval is implied. Final logo exports remain separate work.

@@ -7,7 +7,7 @@
     "navigation_icons": "provisionally_accepted_starting_set",
     "sidebar_and_selected_states": "open_for_claude_design",
     "publication": "not_authorised",
-    "additional_dashboard_icons": "40_generated_concepts_full_suite_unreviewed_vectors_and_small_size_checks_pending"
+    "additional_dashboard_icons": "40_vector_masters_and_40_compact_exports_render_verified_user_review_pending"
   },
   "icon_source": "https://github.com/phosphor-icons/core",
   "icon_license": "licenses/PHOSPHOR-MIT.txt",
@@ -16,7 +16,8 @@
     "desktop_horizontal_overflow": false,
     "mobile_horizontal_overflow": false,
     "additional_icons_svg_count": 30,
-    "draft_sheets_desktop_and_390px_no_overflow": true
+    "draft_sheets_desktop_and_390px_no_overflow": true,
+    "vector_suite": "80 parsed SVGs; 160 rendered samples; no empty/border-painted exports; 1280/390px no overflow"
   },
   "excluded_assets": [
     "eye concepts",
@@ -27,7 +28,7 @@
   "files": [
     {
       "path": "CLAUDE_BRIEF.md",
-      "sha256": "29c92ea5cbdde2f5eb67f275a0df3cbaa440b55c5d80317017e08463cd5ca63a"
+      "sha256": "62857776d897ced0d39e7ed5d100eb8bcbd5f4dba2cabd4668b66e3f1f9e1305"
     },
     {
       "path": "concept-suite/approved-goals-assist.png",
@@ -243,11 +244,367 @@
     },
     {
       "path": "README.md",
-      "sha256": "ebf3c5cf3f45ad2a1e5a2a0e0321ad938f1073ae47413a0022824ca8b6ecab16"
+      "sha256": "26bca29746b112500062628469516d0d22def60153ad353b9001545d67872b8e"
     },
     {
       "path": "references/dashboard-direction.png",
       "sha256": "c9b53cf8fb9316c2f7a3618296ebecda437d8260101b03e924f606e972d0cd4c"
+    },
+    {
+      "path": "vector-suite/build.py",
+      "sha256": "1977dbd25fb105e14074af284b71fbd416a92a2a6a45d33316ba0cebd0c46cd9"
+    },
+    {
+      "path": "vector-suite/catalog.json",
+      "sha256": "89fa8fd9d0e1b922a0403c5dfa93f7ff289a19e4d43847cd403f767fc62da6f9"
+    },
+    {
+      "path": "vector-suite/compact/assists.svg",
+      "sha256": "8ac78d9c782f4f71b912742f82a9a5815345e2c31091f05c83dc8bd3a9d9e794"
+    },
+    {
+      "path": "vector-suite/compact/available.svg",
+      "sha256": "40ead8d5d44c63925017f2942886611ecbdf394f523039e9a04215e61e0fd115"
+    },
+    {
+      "path": "vector-suite/compact/bench-boost.svg",
+      "sha256": "75d89e0d1252553973a0fc16f6f4afbcaada8e956276ef0a675b80edac619b0f"
+    },
+    {
+      "path": "vector-suite/compact/bonus.svg",
+      "sha256": "9f6e5ad2634aafd25f828a40d83e41181eaebe532b29a5c0215f3dfe85091790"
+    },
+    {
+      "path": "vector-suite/compact/captain.svg",
+      "sha256": "e1a647b021c8e9547cf9ea949b59471f4e63e4c244142f5aa1758bb48c834095"
+    },
+    {
+      "path": "vector-suite/compact/clean-sheet.svg",
+      "sha256": "db6965b751c4b3d83ead2827566b5ab407cf6903c226c94460b573c16b5ae0f3"
+    },
+    {
+      "path": "vector-suite/compact/close.svg",
+      "sha256": "dc107f63cfc8eab535f66d06d05e2da5d8e3b7118ec2f07dbd1636858171cd80"
+    },
+    {
+      "path": "vector-suite/compact/compare.svg",
+      "sha256": "2e9ffc2fbe43ccdb951ebc8bf328060297905834dc2b0211e449a993c804372c"
+    },
+    {
+      "path": "vector-suite/compact/corners.svg",
+      "sha256": "7a231e4ec35231fad8bb76d6efd879e9905b5776eaa15b19a6fdea463006abe6"
+    },
+    {
+      "path": "vector-suite/compact/deadline.svg",
+      "sha256": "59e8f26c4b7db0d1410f947170b29ab8066261894e3a63783da995d2a5208839"
+    },
+    {
+      "path": "vector-suite/compact/defence.svg",
+      "sha256": "81f02114a943c7a2342a51dc68247bcaf5dcb03daa350ffb4c0e1e903fc06f04"
+    },
+    {
+      "path": "vector-suite/compact/doubtful.svg",
+      "sha256": "bd8e28fc179c43d051fabb5493328d11305dd4d57fbfc967fb140873b58db3b3"
+    },
+    {
+      "path": "vector-suite/compact/expand.svg",
+      "sha256": "60aa635edc0e4f6a4893ec168f6a9856b7534e38507a5c1b837328a01d888179"
+    },
+    {
+      "path": "vector-suite/compact/external-link.svg",
+      "sha256": "b8dccfca9a0de02e19d9175f030e392f75871552b1d7b37866359a1200c9963a"
+    },
+    {
+      "path": "vector-suite/compact/filter.svg",
+      "sha256": "ef4f5967e4096d5694bbf28114edb4ecd0682f296cccb76ad09007b1d2d34519"
+    },
+    {
+      "path": "vector-suite/compact/fixtures.svg",
+      "sha256": "4dce938b5630f71ce502c3a24e4ba57ddd6857b56253bd89bc2b185147946470"
+    },
+    {
+      "path": "vector-suite/compact/free-hit.svg",
+      "sha256": "ec0f750106a4404b9ac986efff96ea67fae2e781859bbe7b06930d9c8a01b5e9"
+    },
+    {
+      "path": "vector-suite/compact/free-kicks.svg",
+      "sha256": "b223b37b4086e012796c20a2666f5b252c5eb7fa5052a8225c0b66d2bda9d4ff"
+    },
+    {
+      "path": "vector-suite/compact/goals.svg",
+      "sha256": "45588854763d4d627faada99ac6f1dc4372fb5fb40a1eaef28d8e974e3af333a"
+    },
+    {
+      "path": "vector-suite/compact/information.svg",
+      "sha256": "bc37759289bce0be0c6d53ed19513085cc1bb560b30d630d381a45e3e95b13ed"
+    },
+    {
+      "path": "vector-suite/compact/injured.svg",
+      "sha256": "63d9490511d29188099e3628755418c91e6986d29ef745c1e63630b391878084"
+    },
+    {
+      "path": "vector-suite/compact/mini-league.svg",
+      "sha256": "0fbfbcb86a7979e56d59e07dbbefb40a4602143a9c74b6698f4c539ee3371e18"
+    },
+    {
+      "path": "vector-suite/compact/minutes.svg",
+      "sha256": "1fbe07f914cea6d97f02af6544cee091425413b9d62a6e733d8c9501c509adc8"
+    },
+    {
+      "path": "vector-suite/compact/next.svg",
+      "sha256": "d667329826b4ecba5d6b573d0f80f9027548b844d2c1c934469a0a050325ea0c"
+    },
+    {
+      "path": "vector-suite/compact/penalties.svg",
+      "sha256": "a9f5bf386380462030545c28471297aa72107c4a87049615baec2ab5a2650439"
+    },
+    {
+      "path": "vector-suite/compact/planning.svg",
+      "sha256": "c0457f5f7da72b87748963d1a5587d9c6f3073e123cd76fa35ac69265398e9c6"
+    },
+    {
+      "path": "vector-suite/compact/previous.svg",
+      "sha256": "e05415583d5ffe772fb274b69249900a0f1dd0195e5d257b19f8218e7069631a"
+    },
+    {
+      "path": "vector-suite/compact/price-fall.svg",
+      "sha256": "7dbad502afb44fd579f9542ea8d9d41c4cb35b9c36e67cc6302a62f4ddbb581e"
+    },
+    {
+      "path": "vector-suite/compact/price-rise.svg",
+      "sha256": "1527cf77a6e0e797ad460870b075851f1a0d213ccf6d92eeda44f85d63cbf11f"
+    },
+    {
+      "path": "vector-suite/compact/red-card.svg",
+      "sha256": "bd84b0d4cd0b0a75af1e9819fc680e6196f77217a0b59bf276de5712f68e160b"
+    },
+    {
+      "path": "vector-suite/compact/roll-transfer.svg",
+      "sha256": "2096fda28b44872d18f8198afab7b4e7ecf9519a71027cddbb856b88e8cb0222"
+    },
+    {
+      "path": "vector-suite/compact/saves.svg",
+      "sha256": "3ba160761502d8b852ff34db342660cc2d88d1f6334760ab383495fc6c6f1221"
+    },
+    {
+      "path": "vector-suite/compact/scout.svg",
+      "sha256": "6f12b9978caee5346a535ab5f084722ec2cbf9f6596e0d349103f24728c9b4f4"
+    },
+    {
+      "path": "vector-suite/compact/squad.svg",
+      "sha256": "340a0867172c0f576b489445d604e8e91496287699f955f4c3c00c3628233c74"
+    },
+    {
+      "path": "vector-suite/compact/suspended.svg",
+      "sha256": "6c80337c03bbe9b697d25bc204057f84fe982d67b074e81aa40938c1eccf29ca"
+    },
+    {
+      "path": "vector-suite/compact/transfers.svg",
+      "sha256": "ff04e23a8dede45ca6a356246cc9299199f93cdce2be04cff48d5724d929a32f"
+    },
+    {
+      "path": "vector-suite/compact/triple-captain.svg",
+      "sha256": "88e9f82e24a81cc94a8cbceef68e5323e4bb70c88160128cb537cfb534f0e602"
+    },
+    {
+      "path": "vector-suite/compact/vice-captain.svg",
+      "sha256": "3efdf7daf5575c949f62a2bec85cea41d635cda394da5077fb7d1dc86749d42d"
+    },
+    {
+      "path": "vector-suite/compact/wildcard.svg",
+      "sha256": "999235e05376937f8c5e3807cd5123d16aa24083d61b8445b57f921820d51276"
+    },
+    {
+      "path": "vector-suite/compact/yellow-card.svg",
+      "sha256": "debd65920e6e02d3ce768db65e09e93914bdde58dc791cce4274d214b2e1185e"
+    },
+    {
+      "path": "vector-suite/icons/assists.svg",
+      "sha256": "8ac78d9c782f4f71b912742f82a9a5815345e2c31091f05c83dc8bd3a9d9e794"
+    },
+    {
+      "path": "vector-suite/icons/available.svg",
+      "sha256": "40ead8d5d44c63925017f2942886611ecbdf394f523039e9a04215e61e0fd115"
+    },
+    {
+      "path": "vector-suite/icons/bench-boost.svg",
+      "sha256": "75d89e0d1252553973a0fc16f6f4afbcaada8e956276ef0a675b80edac619b0f"
+    },
+    {
+      "path": "vector-suite/icons/bonus.svg",
+      "sha256": "d2c3b55c2adc93e1eb71ddec35e27537a885f4548a6811a4090cac89a1e53b2e"
+    },
+    {
+      "path": "vector-suite/icons/captain.svg",
+      "sha256": "e1a647b021c8e9547cf9ea949b59471f4e63e4c244142f5aa1758bb48c834095"
+    },
+    {
+      "path": "vector-suite/icons/clean-sheet.svg",
+      "sha256": "db6965b751c4b3d83ead2827566b5ab407cf6903c226c94460b573c16b5ae0f3"
+    },
+    {
+      "path": "vector-suite/icons/close.svg",
+      "sha256": "dc107f63cfc8eab535f66d06d05e2da5d8e3b7118ec2f07dbd1636858171cd80"
+    },
+    {
+      "path": "vector-suite/icons/compare.svg",
+      "sha256": "2e9ffc2fbe43ccdb951ebc8bf328060297905834dc2b0211e449a993c804372c"
+    },
+    {
+      "path": "vector-suite/icons/corners.svg",
+      "sha256": "7a231e4ec35231fad8bb76d6efd879e9905b5776eaa15b19a6fdea463006abe6"
+    },
+    {
+      "path": "vector-suite/icons/deadline.svg",
+      "sha256": "59e8f26c4b7db0d1410f947170b29ab8066261894e3a63783da995d2a5208839"
+    },
+    {
+      "path": "vector-suite/icons/defence.svg",
+      "sha256": "81f02114a943c7a2342a51dc68247bcaf5dcb03daa350ffb4c0e1e903fc06f04"
+    },
+    {
+      "path": "vector-suite/icons/doubtful.svg",
+      "sha256": "bd8e28fc179c43d051fabb5493328d11305dd4d57fbfc967fb140873b58db3b3"
+    },
+    {
+      "path": "vector-suite/icons/expand.svg",
+      "sha256": "60aa635edc0e4f6a4893ec168f6a9856b7534e38507a5c1b837328a01d888179"
+    },
+    {
+      "path": "vector-suite/icons/external-link.svg",
+      "sha256": "b8dccfca9a0de02e19d9175f030e392f75871552b1d7b37866359a1200c9963a"
+    },
+    {
+      "path": "vector-suite/icons/filter.svg",
+      "sha256": "ef4f5967e4096d5694bbf28114edb4ecd0682f296cccb76ad09007b1d2d34519"
+    },
+    {
+      "path": "vector-suite/icons/fixtures.svg",
+      "sha256": "4dce938b5630f71ce502c3a24e4ba57ddd6857b56253bd89bc2b185147946470"
+    },
+    {
+      "path": "vector-suite/icons/free-hit.svg",
+      "sha256": "ec0f750106a4404b9ac986efff96ea67fae2e781859bbe7b06930d9c8a01b5e9"
+    },
+    {
+      "path": "vector-suite/icons/free-kicks.svg",
+      "sha256": "b223b37b4086e012796c20a2666f5b252c5eb7fa5052a8225c0b66d2bda9d4ff"
+    },
+    {
+      "path": "vector-suite/icons/goals.svg",
+      "sha256": "45588854763d4d627faada99ac6f1dc4372fb5fb40a1eaef28d8e974e3af333a"
+    },
+    {
+      "path": "vector-suite/icons/information.svg",
+      "sha256": "bc37759289bce0be0c6d53ed19513085cc1bb560b30d630d381a45e3e95b13ed"
+    },
+    {
+      "path": "vector-suite/icons/injured.svg",
+      "sha256": "63d9490511d29188099e3628755418c91e6986d29ef745c1e63630b391878084"
+    },
+    {
+      "path": "vector-suite/icons/mini-league.svg",
+      "sha256": "0fbfbcb86a7979e56d59e07dbbefb40a4602143a9c74b6698f4c539ee3371e18"
+    },
+    {
+      "path": "vector-suite/icons/minutes.svg",
+      "sha256": "1fbe07f914cea6d97f02af6544cee091425413b9d62a6e733d8c9501c509adc8"
+    },
+    {
+      "path": "vector-suite/icons/next.svg",
+      "sha256": "d667329826b4ecba5d6b573d0f80f9027548b844d2c1c934469a0a050325ea0c"
+    },
+    {
+      "path": "vector-suite/icons/penalties.svg",
+      "sha256": "a9f5bf386380462030545c28471297aa72107c4a87049615baec2ab5a2650439"
+    },
+    {
+      "path": "vector-suite/icons/planning.svg",
+      "sha256": "c0457f5f7da72b87748963d1a5587d9c6f3073e123cd76fa35ac69265398e9c6"
+    },
+    {
+      "path": "vector-suite/icons/previous.svg",
+      "sha256": "e05415583d5ffe772fb274b69249900a0f1dd0195e5d257b19f8218e7069631a"
+    },
+    {
+      "path": "vector-suite/icons/price-fall.svg",
+      "sha256": "7dbad502afb44fd579f9542ea8d9d41c4cb35b9c36e67cc6302a62f4ddbb581e"
+    },
+    {
+      "path": "vector-suite/icons/price-rise.svg",
+      "sha256": "1527cf77a6e0e797ad460870b075851f1a0d213ccf6d92eeda44f85d63cbf11f"
+    },
+    {
+      "path": "vector-suite/icons/red-card.svg",
+      "sha256": "bd84b0d4cd0b0a75af1e9819fc680e6196f77217a0b59bf276de5712f68e160b"
+    },
+    {
+      "path": "vector-suite/icons/roll-transfer.svg",
+      "sha256": "2096fda28b44872d18f8198afab7b4e7ecf9519a71027cddbb856b88e8cb0222"
+    },
+    {
+      "path": "vector-suite/icons/saves.svg",
+      "sha256": "d09e2d2abda008fd304dc7fe512f9b57bdfb5b146a96e965779188d1dd7aa8b0"
+    },
+    {
+      "path": "vector-suite/icons/scout.svg",
+      "sha256": "6f12b9978caee5346a535ab5f084722ec2cbf9f6596e0d349103f24728c9b4f4"
+    },
+    {
+      "path": "vector-suite/icons/squad.svg",
+      "sha256": "340a0867172c0f576b489445d604e8e91496287699f955f4c3c00c3628233c74"
+    },
+    {
+      "path": "vector-suite/icons/suspended.svg",
+      "sha256": "6c80337c03bbe9b697d25bc204057f84fe982d67b074e81aa40938c1eccf29ca"
+    },
+    {
+      "path": "vector-suite/icons/transfers.svg",
+      "sha256": "ff04e23a8dede45ca6a356246cc9299199f93cdce2be04cff48d5724d929a32f"
+    },
+    {
+      "path": "vector-suite/icons/triple-captain.svg",
+      "sha256": "88e9f82e24a81cc94a8cbceef68e5323e4bb70c88160128cb537cfb534f0e602"
+    },
+    {
+      "path": "vector-suite/icons/vice-captain.svg",
+      "sha256": "3efdf7daf5575c949f62a2bec85cea41d635cda394da5077fb7d1dc86749d42d"
+    },
+    {
+      "path": "vector-suite/icons/wildcard.svg",
+      "sha256": "999235e05376937f8c5e3807cd5123d16aa24083d61b8445b57f921820d51276"
+    },
+    {
+      "path": "vector-suite/icons/yellow-card.svg",
+      "sha256": "debd65920e6e02d3ce768db65e09e93914bdde58dc791cce4274d214b2e1185e"
+    },
+    {
+      "path": "vector-suite/preview-dark.png",
+      "sha256": "04cd6e24c49e301bb84eb68c9ae5624ba81b687b4f689f1429361f22ed0327fe"
+    },
+    {
+      "path": "vector-suite/preview-mobile.png",
+      "sha256": "2e1170ffe4ffe2fcb800cfc14396e529ce799b0bd4ed0bc7d57bb7820d3684a4"
+    },
+    {
+      "path": "vector-suite/preview.html",
+      "sha256": "6a02e2a44a0cb15551df01a2fbdd7181a776a19ea04e97fa5a8b0ce4c16617f2"
+    },
+    {
+      "path": "vector-suite/preview.png",
+      "sha256": "84db1d6d7e4c6ebe1e0b64ade7886b579faa63207303b252969935358a89cbc3"
+    },
+    {
+      "path": "vector-suite/README.md",
+      "sha256": "95ef5c546b880707227d3bffa2b5b96a3480a2f0ddc2d07b4897fab1df4e50d7"
+    },
+    {
+      "path": "vector-suite/verification.json",
+      "sha256": "cad88dffb20b9426818a1231fdb9699e9bd924f9b5a5c5d71a8ca8aeac242d30"
+    },
+    {
+      "path": "vector-suite/verify.py",
+      "sha256": "cc76504cd0a94a74d0262bd16338390ea3c84846c41d6c0444edf155ce779f6e"
     }
   ],
   "delivery_status": "partial_working_handoff_not_final"

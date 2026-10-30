@@ -1,0 +1,16 @@
+{
+  "svg_count": 80,
+  "preview_samples": 160,
+  "sizes": [
+    16,
+    20,
+    24,
+    32
+  ],
+  "parsed": true,
+  "all_images_loaded": true,
+  "render_border_issues": [],
+  "desktop_1280px_overflow": false,
+  "mobile_390px_overflow": false,
+  "recognition": "visual review only; no user recognition testing"
+}

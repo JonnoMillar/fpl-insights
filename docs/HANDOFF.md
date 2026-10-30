@@ -20,6 +20,8 @@ and publication are unchanged. Existing staged research remains separate.
 
 ## Logo and icon handoff for Claude (29 October 2026)
 
+30 October vector checkpoint: `brand-handoff/vector-suite/` supplies 40 SVG masters + 40 compact exports, shared construction source, catalogue, light/dark/mobile previews and Claude usage notes. 80 XML parses; 160 rendered samples loaded; no painted border/empty exports; 1280/390px overflow checks passed. Goals/Assist compositions retained; shared ball/goal/arrow geometry, injury knockout, normal Deadline clock and single filled red card supplied. Complex football scenes remain dense at 16px: prefer 20–24px plus labels. Whole-suite vector geometry awaits Jonno review; final logo geometry/exports remain open. Application unchanged; no publication.
+
 30 October: Jonno requested the whole suite after iterative Goals/Assist and set-piece studies. `brand-handoff/concept-suite/` holds 40 generated labelled proposals across three sheets, original approved Goals/Assist composition reference, latest set-piece study, preview and Claude notes. The new suite supersedes older bulk dashboard-icons drafts. Goals/Assist concepts approved; full suite unreviewed. Production SVG normalization and 16/20/24px recognition remain outstanding. Red-card stacking is semantically ambiguous; Deadline stopwatch should become a normal clock. No application changes or publishing.
 
 - Delivery entry point: [`brand-handoff/README.md`](brand-handoff/README.md); ready-to-use brief: [`brand-handoff/CLAUDE_BRIEF.md`](brand-handoff/CLAUDE_BRIEF.md).

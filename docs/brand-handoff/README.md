@@ -4,11 +4,11 @@ Prepared 29 October 2026 for Claude's dashboard redesign.
 
 **Partial working handoff — not the finished delivery.**
 
-30 October: [complete 40-icon concept suite](concept-suite/README.md) and
-[visual preview](concept-suite/preview.html) now supersede the earlier bulk drafts.
-These are generated reference sheets; individual production SVGs and small-size checks remain outstanding. The extended dashboard
-icon set is now proposed under `drafts/`; those proposals need Jonno's review.
-Final logo geometry, production exports and name lockups remain unfinished.
+30 October: the [vector suite](vector-suite/README.md) supplies 40 individual
+SVGs, compact exports and actual-size checks. [Open the vector preview](vector-suite/preview.html).
+The [concept sheets](concept-suite/README.md) record the visual direction;
+the older `drafts/` proposals are superseded. Final user review, logo geometry,
+logo exports and name lockups remain unfinished.
 
 **The goal/chart is the approved logo direction. Its exact geometry is not final.**
 This folder contains starting assets and decisions, not a finished identity or
