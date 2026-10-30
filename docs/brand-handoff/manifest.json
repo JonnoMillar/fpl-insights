@@ -7,7 +7,7 @@
     "navigation_icons": "provisionally_accepted_starting_set",
     "sidebar_and_selected_states": "open_for_claude_design",
     "publication": "not_authorised",
-    "additional_dashboard_icons": "40_vector_masters_and_40_compact_exports_render_verified_user_review_pending"
+    "additional_dashboard_icons": "CODE_DRAWN_VECTOR_SUITE_REJECTED_image_refinement_underway"
   },
   "icon_source": "https://github.com/phosphor-icons/core",
   "icon_license": "licenses/PHOSPHOR-MIT.txt",
@@ -28,7 +28,7 @@
   "files": [
     {
       "path": "CLAUDE_BRIEF.md",
-      "sha256": "62857776d897ced0d39e7ed5d100eb8bcbd5f4dba2cabd4668b66e3f1f9e1305"
+      "sha256": "114b41028b1fff4616604334e85847015c53fc6e273a388d83eeff1d8a2d4086"
     },
     {
       "path": "concept-suite/approved-goals-assist.png",
@@ -52,7 +52,11 @@
     },
     {
       "path": "concept-suite/README.md",
-      "sha256": "654421cce7579fe30b36187a345c5ae936c10a65e8f84e8f5cdad4c3b3e87afd"
+      "sha256": "54b1cfb9dd35c82ceafcaeec5a3b1f66e02e1b78d381c1c17c995dacc8576934"
+    },
+    {
+      "path": "concept-suite/saves-image-options.png",
+      "sha256": "886f2855f26d9a7c629264062d7601a53041a700a169502aa1e53bff81ff1899"
     },
     {
       "path": "concept-suite/set-piece-study.png",
@@ -244,7 +248,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "26bca29746b112500062628469516d0d22def60153ad353b9001545d67872b8e"
+      "sha256": "4c1e61cf5115e58e6076a9843533bd5d7f7c490033eee911d047436bbf7640f5"
     },
     {
       "path": "references/dashboard-direction.png",
@@ -256,7 +260,7 @@
     },
     {
       "path": "vector-suite/catalog.json",
-      "sha256": "89fa8fd9d0e1b922a0403c5dfa93f7ff289a19e4d43847cd403f767fc62da6f9"
+      "sha256": "56f9c893ffab98725e852384db7067aeaa855d1da1bda2e3803fa38ea1dd8c0b"
     },
     {
       "path": "vector-suite/compact/assists.svg",
@@ -596,7 +600,7 @@
     },
     {
       "path": "vector-suite/README.md",
-      "sha256": "95ef5c546b880707227d3bffa2b5b96a3480a2f0ddc2d07b4897fab1df4e50d7"
+      "sha256": "60506c65cf2c62a8d98acd49efe764d72179163c56f09fcd26833e00cd6b43fd"
     },
     {
       "path": "vector-suite/verification.json",

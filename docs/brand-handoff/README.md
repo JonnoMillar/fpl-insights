@@ -1,3 +1,5 @@
+**LATEST DECISION — 30 October: the code-drawn `vector-suite/` is REJECTED. Do not implement it or use the earlier `-vectors.zip` package. Return to generated artwork and the approved Goals/Assist composition reference. Image refinement is underway; no replacement suite is approved.**
+
 # FPL Insights — brand and icon handoff
 
 Prepared 29 October 2026 for Claude's dashboard redesign.

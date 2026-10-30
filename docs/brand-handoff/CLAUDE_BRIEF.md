@@ -1,3 +1,5 @@
+**LATEST DECISION — 30 October: the code-drawn `vector-suite/` is REJECTED. Do not implement it or use the earlier `-vectors.zip` package. Return to generated artwork and the approved Goals/Assist composition reference. Image refinement is underway; no replacement suite is approved.**
+
 # Brief for Claude
 
 Read `README.md` in this folder first, then the project's `AGENTS.md` and

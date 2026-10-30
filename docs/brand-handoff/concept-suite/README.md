@@ -24,3 +24,6 @@ Claude owns sidebar selection states, layout and interaction. No application cha
 Semantic inspiration: [SkillCorner by Cubedesigners](https://www.cubedesigners.com/portfolio/skillcorner.html) and [Ajax icons by Gino van Lierop](https://dribbble.com/shots/26859779-Ajax-Iconography-Icons). References informed familiar scene construction, not permission to copy a proprietary icon library.
 
 Prompt summary: flat aubergine on white; bold uniform outlines; softened corners; generous open gaps; labelled equal-scale grids. Preserve approved goal/assist scenes, patterned footballs, wall dummies and flag with pitch corner/arc. Use familiar football equipment and conventional controls. No shadows, gradients, decorative mockups or sleeve seams. Built-in image generation was used; editable vector construction remains outstanding.
+
+
+30 October correction: code-drawn vector suite rejected by Jonno. `saves-image-options.png` is a new built-in-image-generated A/B/C comparison, not approved. A upright glove/ball; B angled parry; C cupped hand. Goals/Assist original compositions remain the approved reference. No vector tracing or replacement is authorised by these options.

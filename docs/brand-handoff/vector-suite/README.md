@@ -1,3 +1,11 @@
+# REJECTED — do not implement
+
+30 October 2026: Jonno rejected the code-drawn vector suite, particularly Saves. It does not faithfully preserve the generated artwork. All SVGs, compact variants, screenshots and prior verification here are historical rejected studies, not approved assets. Rendering checks established technical integrity only, not design quality.
+
+Return to the image-generated concept sheets and approved Goals/Assist reference. Refine images first; do not substitute freehand code-drawn icons. Earlier downloadable archives ending in `-vectors.zip` are withdrawn from the handoff recommendation.
+
+---
+
 # FPL Insights — vector suite for review
 
 30 October 2026. Forty individually editable monochrome SVGs, with matching compact exports. These resolve the generated concept sheets into reusable geometry. They are ready for design review and implementation prototyping, not blanket final approval or permission to publish.
