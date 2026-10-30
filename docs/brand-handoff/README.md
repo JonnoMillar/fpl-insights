@@ -2,7 +2,11 @@
 
 Prepared 29 October 2026 for Claude's dashboard redesign.
 
-**Partial working handoff — not the finished delivery.** The extended dashboard
+**Partial working handoff — not the finished delivery.**
+
+30 October: [complete 40-icon concept suite](concept-suite/README.md) and
+[visual preview](concept-suite/preview.html) now supersede the earlier bulk drafts.
+These are generated reference sheets; individual production SVGs and small-size checks remain outstanding. The extended dashboard
 icon set is now proposed under `drafts/`; those proposals need Jonno's review.
 Final logo geometry, production exports and name lockups remain unfinished.
 

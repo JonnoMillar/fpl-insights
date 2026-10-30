@@ -20,6 +20,8 @@ and publication are unchanged. Existing staged research remains separate.
 
 ## Logo and icon handoff for Claude (29 October 2026)
 
+30 October: Jonno requested the whole suite after iterative Goals/Assist and set-piece studies. `brand-handoff/concept-suite/` holds 40 generated labelled proposals across three sheets, original approved Goals/Assist composition reference, latest set-piece study, preview and Claude notes. The new suite supersedes older bulk dashboard-icons drafts. Goals/Assist concepts approved; full suite unreviewed. Production SVG normalization and 16/20/24px recognition remain outstanding. Red-card stacking is semantically ambiguous; Deadline stopwatch should become a normal clock. No application changes or publishing.
+
 - Delivery entry point: [`brand-handoff/README.md`](brand-handoff/README.md); ready-to-use brief: [`brand-handoff/CLAUDE_BRIEF.md`](brand-handoff/CLAUDE_BRIEF.md).
 - Approved **logo direction**: open-bottom football goal frame with three ascending data bars. Exact geometry remains a draft; no production master or final exports have been approved.
 - Navigation starting point: bold outline shirt (internal sleeve seam lines removed), route, trophy and magnifier. Jonno considers the icons potentially suitable; this is not blanket approval of the sidebar treatment.

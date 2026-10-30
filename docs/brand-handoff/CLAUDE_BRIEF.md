@@ -46,3 +46,6 @@ Do not revisit the rejected eye concepts. Do not treat this package as
 approval to deploy or as permission to change recommendation logic, sources
 or data semantics. Preserve the repository's functional and publication
 constraints throughout the redesign. Jonno owns the final decisions.
+
+
+Latest icon direction (30 October): use concept-suite/README.md and preview.html. The 40 generated concepts supersede the historical bulk dashboard-icons drafts. Preserve approved-goals-assist.png compositions. Resolve shared vector primitives and small-size optical versions; do not treat generated sheets as production exports. See documented red-card ambiguity and Deadline clock correction.

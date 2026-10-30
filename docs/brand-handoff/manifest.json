@@ -7,7 +7,7 @@
     "navigation_icons": "provisionally_accepted_starting_set",
     "sidebar_and_selected_states": "open_for_claude_design",
     "publication": "not_authorised",
-    "additional_dashboard_icons": "bulk_pass_superseded_custom_individual_studies_underway"
+    "additional_dashboard_icons": "40_generated_concepts_full_suite_unreviewed_vectors_and_small_size_checks_pending"
   },
   "icon_source": "https://github.com/phosphor-icons/core",
   "icon_license": "licenses/PHOSPHOR-MIT.txt",
@@ -27,7 +27,35 @@
   "files": [
     {
       "path": "CLAUDE_BRIEF.md",
-      "sha256": "0e58575b618a8964a1cb4bdff84d8426e5d4eb424368f00fbf3496789a5cf0a2"
+      "sha256": "29c92ea5cbdde2f5eb67f275a0df3cbaa440b55c5d80317017e08463cd5ca63a"
+    },
+    {
+      "path": "concept-suite/approved-goals-assist.png",
+      "sha256": "d9a43ff6d40e05e510d29c47bb7d2d587e31a99fcc14132881da722e66351d59"
+    },
+    {
+      "path": "concept-suite/controls.png",
+      "sha256": "a98ab8e3daaa39657077b300972ade1a297094f128947030c698e8bbbfd13b7f"
+    },
+    {
+      "path": "concept-suite/football.png",
+      "sha256": "196df5e95d4c504bbab11de8c7ecb0e0f4e1ca807d1d8d570ba0e0a306d69f3b"
+    },
+    {
+      "path": "concept-suite/navigation-planning.png",
+      "sha256": "33aecced3c74840b01a00591a3b897974ce1e65e0e2673b6af9eb343815ae40d"
+    },
+    {
+      "path": "concept-suite/preview.html",
+      "sha256": "cb7d876428f1f196ea1878c6e93e15a97b3e51fd0d9a248433f6f7dd4ac99d72"
+    },
+    {
+      "path": "concept-suite/README.md",
+      "sha256": "654421cce7579fe30b36187a345c5ae936c10a65e8f84e8f5cdad4c3b3e87afd"
+    },
+    {
+      "path": "concept-suite/set-piece-study.png",
+      "sha256": "be378c02039fc8d344f205bb93596242bf4edc3747acba1ba7606c535eac0335"
     },
     {
       "path": "drafts/dashboard-icons/controls.html",
@@ -215,7 +243,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "bc471ddc3b902d9514e0eedcfb9937a302533fa58921899507aaa0f92785204b"
+      "sha256": "ebf3c5cf3f45ad2a1e5a2a0e0321ad938f1073ae47413a0022824ca8b6ecab16"
     },
     {
       "path": "references/dashboard-direction.png",
