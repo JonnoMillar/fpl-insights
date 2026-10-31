@@ -1,10 +1,19 @@
 # Managed account — current handoff
 
-Last updated 30 October 2026. Keep this work separate from dashboard development
+Last updated 31 October 2026. Keep this work separate from dashboard development
 and the other research chat. Start here for this account; root `docs/HANDOFF.md`
 describes the dashboard product, not this experiment's current team.
 
 ## State
+
+- **GW9 locked and verified 31 October:** public event/9/picks exactly matches
+  saved XI, ordered bench, Haaland C/Van Hecke VC; no chip/hit/transfers. Windows
+  catch-up arrived 11:34, after the 11:00 deadline; final-morning review was not
+  completed. See `decisions/2026-10-31-gw9-locked.md`. No changes made.
+- **Next deadline GW10: Friday 6 November 18:30 UK/UTC.** Signed-in Transfers
+  shows 1 FT and 0-point cost, bank £0.4m; squad market value £99.9m. Header
+  still showed GW9, so confirm period before any future submission. Current
+  GW9 and future squad state are separate; do not try to change locked results.
 
 - **First unattended review completed 30 October:** recovered an FPL logout via
   the existing Google session, verified entry 11195024, actual squad and unlimited
@@ -24,9 +33,8 @@ describes the dashboard product, not this experiment's current team.
   Palmer, Neto, Tavernier; Haaland, Barry. C Haaland; VC Van Hecke.
 - Bench GK Kinsky; outfield order Konsa, Vuskovic, Cherif. All four chips unused
   this half; WC/FH unavailable in first scoring week, confirmed in account UI.
-- Upcoming deadline **31 October 2026 11:00 Europe/London (UTC)**. Unlimited
-  initial changes until then, explicitly verified on the live Transfers page.
-  Read live allowance afterwards; do not invent FTs.
+- First deadline **31 October 2026 11:00 Europe/London (UTC)** has passed.
+  Unlimited initial changes ended. Read live allowance; do not invent FTs.
 - `state.json` is the last **confirmed** account record, not an instruction to
   overwrite newer user changes. Read the real signed-in team first.
 - Read `strategy.md` for authority, evidence order, decisions, chips and recovery;
@@ -65,8 +73,9 @@ describes the dashboard product, not this experiment's current team.
   manual execution returned result **0** and recorded a correct no-review-due
   decision. Six guard tests passed. Queued transport probe subsequently ran and
   was acknowledged in this chat. Task is limited/interactive, IgnoreNew,
-  StartWhenAvailable, WakeToRun false. Real reboot/sign-in,
-  due-path Windows-launcher execution remains unverified. Daily-heartbeat review
+  StartWhenAvailable, WakeToRun false. Windows-launcher due-path delivery and
+  execution verified 31 October; exact sign-in/reboot delivery remains unverified.
+  Daily-heartbeat review
   and unattended browser/Google recovery succeeded on 30 October.
 - The schedule uses the local computer/app and available logged-in browser.
   It cannot promise action if those are asleep, closed, locked/inaccessible,
@@ -123,19 +132,17 @@ Do not bypass that guard. In-app browser access has worked since Jonno logged in
 
 ## Next work
 
-1. Confirm the availability trigger's first real run and browser availability. Record actual
-   results, not just ACTIVE configuration. If it fails, preserve the legal saved
-   team and report the concrete access problem once.
-2. Refresh Friday's news/press conferences, cup minutes and current live prices.
-   Reassess Chelsea concentration and Manzambi's sustained role. No automatic
-   change simply because a fractionally different model seed appears.
-3. Finalise GW9 before 31 October 11:00 and recheck saved team/chips after reload.
-4. After GW9 score against the frozen initial baselines and plan GW10 with the
+1. After GW9 score against the frozen initial baselines and plan GW10 with the
    actual authenticated FT/selling prices. Review first-half chips by GW12/GW15;
    get a single clear expansion of chip authority if Jonno wants hands-off chips.
+2. Recheck the Transfers/Pick Team period header against current bootstrap before
+   any GW10 write. Keep the FT while GW9 is still playing unless urgent fresh
+   evidence justifies early action. Deadline 6 November 18:30 UK.
+3. Password-helper setup is unfinished and outside routine review work. Resume
+   only the authorised setup phase; no credentials were saved by the failed prompt.
 
 ## Resume prompt
 
 ```text
-Read account-management/HANDOFF.md, strategy.md and state.json in C:/Users/jonno/code/fpl-insights. Continue managing entry 11195024 only. The GW9 squad is saved and verified, first deadline 31 October 2026 at 11:00 UK. Check the real signed-in team before changes. Verify the first run of heartbeat manage-fpl-experiment; refresh deadline-relevant primary team news and reassess the recorded risks. No hits/chips without expanded authority. Keep all work in account-management, preserve other staged research and dashboard changes, do not publish or repoint config.json or fpl-lineup-alert. Save, reload, verify and log any actual change.
+Read account-management/HANDOFF.md, strategy.md and state.json in C:/Users/jonno/code/fpl-insights. Continue managing entry 11195024 only. GW9 is locked with the recorded team, Haaland captain and Van Hecke vice. Next deadline GW10 on 6 November 2026 at 18:30 UK. Read current authenticated holdings, bank, selling prices, allowance and correct gameweek before any write; the page header lagged during rollover. Evaluate GW9 results once final and retain frozen forecasts. No hits/chips without expanded authority. Keep all work in account-management, preserve other staged research and dashboard changes, do not publish or repoint config.json or fpl-lineup-alert. Save, reload, verify and log any actual change.
 ```

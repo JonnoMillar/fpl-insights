@@ -1,0 +1,264 @@
+{
+  "reviewed_utc": "2026-10-31T13:28:22.523883+00:00",
+  "entry_id": 11195024,
+  "decision": "retain; GW9 locked, no early GW10 changes",
+  "missed_final_check": true,
+  "launcher_queued_utc": "2026-10-31T11:34:15.070219+00:00",
+  "published_gw9": {
+    "active_chip": null,
+    "automatic_subs": [],
+    "entry_history": {
+      "event": 9,
+      "points": 0,
+      "total_points": 0,
+      "rank": null,
+      "rank_sort": null,
+      "overall_rank": null,
+      "percentile_rank": null,
+      "overall_rank_percentage": null,
+      "bank": 4,
+      "value": 1003,
+      "event_transfers": 0,
+      "event_transfers_cost": 0,
+      "points_on_bench": 0
+    },
+    "picks": [
+      {
+        "element": 385,
+        "position": 1,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 1
+      },
+      {
+        "element": 4,
+        "position": 2,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 2
+      },
+      {
+        "element": 112,
+        "position": 3,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": true,
+        "element_type": 2
+      },
+      {
+        "element": 334,
+        "position": 4,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 2
+      },
+      {
+        "element": 286,
+        "position": 5,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 3
+      },
+      {
+        "element": 40,
+        "position": 6,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 3
+      },
+      {
+        "element": 154,
+        "position": 7,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 3
+      },
+      {
+        "element": 156,
+        "position": 8,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 3
+      },
+      {
+        "element": 68,
+        "position": 9,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 3
+      },
+      {
+        "element": 411,
+        "position": 10,
+        "multiplier": 2,
+        "is_captain": true,
+        "is_vice_captain": false,
+        "element_type": 4
+      },
+      {
+        "element": 249,
+        "position": 11,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 4
+      },
+      {
+        "element": 496,
+        "position": 12,
+        "multiplier": 0,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 1
+      },
+      {
+        "element": 31,
+        "position": 13,
+        "multiplier": 0,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 2
+      },
+      {
+        "element": 504,
+        "position": 14,
+        "multiplier": 0,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 2
+      },
+      {
+        "element": 599,
+        "position": 15,
+        "multiplier": 0,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 4
+      }
+    ]
+  },
+  "next_deadline_utc": "2026-11-06T18:30:00Z",
+  "authenticated_observations": {
+    "free_transfers": 1,
+    "transfer_cost": 0,
+    "bank_tenths": 4,
+    "squad_market_value_tenths": 999,
+    "period_header_lag": "GW9 label after API rollover to GW10"
+  },
+  "source_read_utc": "2026-10-31T11:35:26.855836+00:00",
+  "flags": [
+    {
+      "id": 4,
+      "name": "Gabriel",
+      "status": "a",
+      "news": "",
+      "price": 80
+    },
+    {
+      "id": 31,
+      "name": "Konsa",
+      "status": "a",
+      "news": "",
+      "price": 47
+    },
+    {
+      "id": 68,
+      "name": "Tavernier",
+      "status": "a",
+      "news": "",
+      "price": 65
+    },
+    {
+      "id": 504,
+      "name": "Vuskovic",
+      "status": "a",
+      "news": "",
+      "price": 52
+    },
+    {
+      "id": 40,
+      "name": "Rogers",
+      "status": "a",
+      "news": "",
+      "price": 81
+    },
+    {
+      "id": 154,
+      "name": "Palmer",
+      "status": "a",
+      "news": "",
+      "price": 98
+    },
+    {
+      "id": 156,
+      "name": "Neto",
+      "status": "a",
+      "news": "",
+      "price": 66
+    },
+    {
+      "id": 599,
+      "name": "Cherif",
+      "status": "a",
+      "news": "",
+      "price": 50
+    },
+    {
+      "id": 249,
+      "name": "Barry",
+      "status": "a",
+      "news": "",
+      "price": 56
+    },
+    {
+      "id": 286,
+      "name": "Belloumi",
+      "status": "a",
+      "news": "",
+      "price": 52
+    },
+    {
+      "id": 334,
+      "name": "Muharemović",
+      "status": "a",
+      "news": "",
+      "price": 51
+    },
+    {
+      "id": 385,
+      "name": "Trafford",
+      "status": "a",
+      "news": "",
+      "price": 50
+    },
+    {
+      "id": 411,
+      "name": "Haaland",
+      "status": "a",
+      "news": "",
+      "price": 158
+    },
+    {
+      "id": 112,
+      "name": "Van Hecke",
+      "status": "a",
+      "news": "",
+      "price": 49
+    },
+    {
+      "id": 496,
+      "name": "Kinsky",
+      "status": "a",
+      "news": "",
+      "price": 44
+    }
+  ]
+}

@@ -2,10 +2,10 @@
   "entry_id": 11195024,
   "team_name": "Jonno's Team",
   "first_scoring_gameweek": 9,
-  "last_verified_utc": "2026-10-30T18:04:19.318143+00:00",
-  "verification": "Unattended review: Google session recovered FPL login; own history link confirmed entry 11195024; unchanged XV/XI/bench/armbands and bank checked; Transfers confirmed unlimited GW9 changes; returned to Pick Team",
+  "last_verified_utc": "2026-10-31T13:28:22.523883+00:00",
+  "verification": "Post-deadline: published GW9 exact picks/roles/bench matched; signed-in own-history link identified entry; Transfers 1 FT/0-point cost and bank reconciled. UI header lags GW9; verify period before write.",
   "page": "https://fantasy.premierleague.com/en/my-team",
-  "next_deadline_utc": "2026-10-31T11:00:00Z",
+  "next_deadline_utc": "2026-11-06T18:30:00Z",
   "squad_ids": [
     4,
     31,
@@ -45,12 +45,12 @@
   "captain": 411,
   "vice_captain": 112,
   "bank_tenths": 4,
-  "squad_market_value_tenths": 996,
+  "squad_market_value_tenths": 999,
   "transfers_this_gameweek": 0,
-  "transfer_allowance": "Unlimited until first deadline; thereafter read authenticated allowance",
+  "transfer_allowance": "1 FT observed after first deadline; Transfers header still GW9, so verify period before any write",
   "active_chip": null,
   "first_half_chips_used": [],
-  "first_half_wc_fh": "Unavailable in first scoring gameweek, confirmed in UI",
+  "first_half_wc_fh": "Controls available after first deadline, observed 31 October; activation outside current authority",
   "operating_limits": {
     "points_hits": false,
     "chip_activation": false,
@@ -58,7 +58,7 @@
     "lineup_and_captaincy": true
   },
   "automation_id": "manage-fpl-experiment",
-  "automation_status": "ACTIVE; first unattended no-change review and Google recovery verified 30 October; unattended account writes remain untested",
+  "automation_status": "ACTIVE; heartbeat and Windows availability queue execution verified; final pre-GW9 morning check missed; no unattended team write tested",
   "players": [
     {
       "id": 385,
@@ -66,7 +66,8 @@
       "club": "LEE",
       "position": "GKP",
       "purchase_price_tenths": 50,
-      "selling_price_tenths": 50
+      "selling_price_tenths": 50,
+      "market_price_tenths": 50
     },
     {
       "id": 4,
@@ -74,7 +75,8 @@
       "club": "ARS",
       "position": "DEF",
       "purchase_price_tenths": 79,
-      "selling_price_tenths": 79
+      "selling_price_tenths": 79,
+      "market_price_tenths": 80
     },
     {
       "id": 112,
@@ -82,15 +84,17 @@
       "club": "TOT",
       "position": "DEF",
       "purchase_price_tenths": 49,
-      "selling_price_tenths": 49
+      "selling_price_tenths": 49,
+      "market_price_tenths": 49
     },
     {
       "id": 334,
-      "name": "MuharemoviÄ‡",
+      "name": "Muharemović",
       "club": "LEE",
       "position": "DEF",
       "purchase_price_tenths": 51,
-      "selling_price_tenths": 51
+      "selling_price_tenths": 51,
+      "market_price_tenths": 51
     },
     {
       "id": 286,
@@ -98,7 +102,8 @@
       "club": "HUL",
       "position": "MID",
       "purchase_price_tenths": 52,
-      "selling_price_tenths": 52
+      "selling_price_tenths": 52,
+      "market_price_tenths": 52
     },
     {
       "id": 40,
@@ -106,7 +111,8 @@
       "club": "CHE",
       "position": "MID",
       "purchase_price_tenths": 80,
-      "selling_price_tenths": 80
+      "selling_price_tenths": 80,
+      "market_price_tenths": 81
     },
     {
       "id": 154,
@@ -114,7 +120,8 @@
       "club": "CHE",
       "position": "MID",
       "purchase_price_tenths": 98,
-      "selling_price_tenths": 98
+      "selling_price_tenths": 98,
+      "market_price_tenths": 98
     },
     {
       "id": 156,
@@ -122,7 +129,8 @@
       "club": "CHE",
       "position": "MID",
       "purchase_price_tenths": 66,
-      "selling_price_tenths": 66
+      "selling_price_tenths": 66,
+      "market_price_tenths": 66
     },
     {
       "id": 68,
@@ -130,7 +138,8 @@
       "club": "BOU",
       "position": "MID",
       "purchase_price_tenths": 64,
-      "selling_price_tenths": 64
+      "selling_price_tenths": 64,
+      "market_price_tenths": 65
     },
     {
       "id": 411,
@@ -138,7 +147,8 @@
       "club": "MCI",
       "position": "FWD",
       "purchase_price_tenths": 158,
-      "selling_price_tenths": 158
+      "selling_price_tenths": 158,
+      "market_price_tenths": 158
     },
     {
       "id": 249,
@@ -146,7 +156,8 @@
       "club": "EVE",
       "position": "FWD",
       "purchase_price_tenths": 56,
-      "selling_price_tenths": 56
+      "selling_price_tenths": 56,
+      "market_price_tenths": 56
     },
     {
       "id": 496,
@@ -154,7 +165,8 @@
       "club": "TOT",
       "position": "GKP",
       "purchase_price_tenths": 44,
-      "selling_price_tenths": 44
+      "selling_price_tenths": 44,
+      "market_price_tenths": 44
     },
     {
       "id": 31,
@@ -162,7 +174,8 @@
       "club": "ARS",
       "position": "DEF",
       "purchase_price_tenths": 47,
-      "selling_price_tenths": 47
+      "selling_price_tenths": 47,
+      "market_price_tenths": 47
     },
     {
       "id": 504,
@@ -170,7 +183,8 @@
       "club": "BHA",
       "position": "DEF",
       "purchase_price_tenths": 52,
-      "selling_price_tenths": 52
+      "selling_price_tenths": 52,
+      "market_price_tenths": 52
     },
     {
       "id": 599,
@@ -178,7 +192,8 @@
       "club": "COV",
       "position": "FWD",
       "purchase_price_tenths": 50,
-      "selling_price_tenths": 50
+      "selling_price_tenths": 50,
+      "market_price_tenths": 50
     }
   ],
   "authentication": {
@@ -189,5 +204,135 @@
     "requires_user_when": "Google session expires or presents an authentication challenge",
     "credential_storage": "None; uses existing browser session",
     "unattended_recovery_verified": true
+  },
+  "next_gameweek": 10,
+  "free_transfers_observed": 1,
+  "locked_gameweek": {
+    "event": 9,
+    "deadline_utc": "2026-10-31T11:00:00Z",
+    "picks": [
+      {
+        "element": 385,
+        "position": 1,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 1
+      },
+      {
+        "element": 4,
+        "position": 2,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 2
+      },
+      {
+        "element": 112,
+        "position": 3,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": true,
+        "element_type": 2
+      },
+      {
+        "element": 334,
+        "position": 4,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 2
+      },
+      {
+        "element": 286,
+        "position": 5,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 3
+      },
+      {
+        "element": 40,
+        "position": 6,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 3
+      },
+      {
+        "element": 154,
+        "position": 7,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 3
+      },
+      {
+        "element": 156,
+        "position": 8,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 3
+      },
+      {
+        "element": 68,
+        "position": 9,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 3
+      },
+      {
+        "element": 411,
+        "position": 10,
+        "multiplier": 2,
+        "is_captain": true,
+        "is_vice_captain": false,
+        "element_type": 4
+      },
+      {
+        "element": 249,
+        "position": 11,
+        "multiplier": 1,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 4
+      },
+      {
+        "element": 496,
+        "position": 12,
+        "multiplier": 0,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 1
+      },
+      {
+        "element": 31,
+        "position": 13,
+        "multiplier": 0,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 2
+      },
+      {
+        "element": 504,
+        "position": 14,
+        "multiplier": 0,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 2
+      },
+      {
+        "element": 599,
+        "position": 15,
+        "multiplier": 0,
+        "is_captain": false,
+        "is_vice_captain": false,
+        "element_type": 4
+      }
+    ],
+    "active_chip": null,
+    "verified_utc": "2026-10-31T13:28:22.523883+00:00"
   }
 }
