@@ -1,3 +1,5 @@
+**1 November update: previews use genuine Noto Sans (bundled in ../fonts/ with OFL licence). The previous corner is rejected; review ../noto-study/preview.html for two generated replacement treatments. Noto Sans is the proposed page font, not an application change.**
+
 # FPL Insights — transparent generated icon suite
 
 1 November 2026. Current deliverable: 40 image-generated icons in three transparent PNG atlases, with 40 named CSS views. Use this suite instead of the rejected vector redraws. The PNG pixel data is copied unchanged from the image-generation outputs. CSS selects and colours the artwork; it does not draw replacement shapes.

@@ -1,0 +1,62 @@
+[
+  {
+    "option": "A",
+    "name": "Goals",
+    "rect": [
+      105,
+      2,
+      442,
+      442
+    ]
+  },
+  {
+    "option": "A",
+    "name": "Saves",
+    "rect": [
+      694,
+      0,
+      444,
+      444
+    ]
+  },
+  {
+    "option": "A",
+    "name": "Corners",
+    "rect": [
+      1290,
+      66,
+      378,
+      378
+    ]
+  },
+  {
+    "option": "B",
+    "name": "Goals",
+    "rect": [
+      106,
+      444,
+      443,
+      443
+    ]
+  },
+  {
+    "option": "B",
+    "name": "Saves",
+    "rect": [
+      694,
+      444,
+      443,
+      443
+    ]
+  },
+  {
+    "option": "B",
+    "name": "Corners",
+    "rect": [
+      1291,
+      464,
+      373,
+      373
+    ]
+  }
+]
