@@ -1,3 +1,5 @@
+**CURRENT DELIVERABLE — 1 November: [transparent generated icon suite](transparent-suite/README.md), with [working preview](transparent-suite/preview.html). Forty named CSS views use the actual transparent PNG artwork. Use this instead of the rejected vector redraws. Saves B is a working selection.**
+
 **LATEST DECISION — 30 October: the code-drawn `vector-suite/` is REJECTED. Do not implement it or use the earlier `-vectors.zip` package. Return to generated artwork and the approved Goals/Assist composition reference. Image refinement is underway; no replacement suite is approved.**
 
 # Brief for Claude

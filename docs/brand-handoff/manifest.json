@@ -7,7 +7,7 @@
     "navigation_icons": "provisionally_accepted_starting_set",
     "sidebar_and_selected_states": "open_for_claude_design",
     "publication": "not_authorised",
-    "additional_dashboard_icons": "CODE_DRAWN_VECTOR_SUITE_REJECTED_image_refinement_underway"
+    "additional_dashboard_icons": "40_generated_transparent_CSS_views_available_vector_redraws_REJECTED"
   },
   "icon_source": "https://github.com/phosphor-icons/core",
   "icon_license": "licenses/PHOSPHOR-MIT.txt",
@@ -28,7 +28,7 @@
   "files": [
     {
       "path": "CLAUDE_BRIEF.md",
-      "sha256": "114b41028b1fff4616604334e85847015c53fc6e273a388d83eeff1d8a2d4086"
+      "sha256": "ab33d2a61049eb4362194ac8aad59c02f8e62ef11afe88312a0a99f341dad038"
     },
     {
       "path": "concept-suite/approved-goals-assist.png",
@@ -248,11 +248,55 @@
     },
     {
       "path": "README.md",
-      "sha256": "4c1e61cf5115e58e6076a9843533bd5d7f7c490033eee911d047436bbf7640f5"
+      "sha256": "8eda7441f5d4fc75e796e7d9bed03dfd3fa2e16efb66486c924eca610f8764df"
     },
     {
       "path": "references/dashboard-direction.png",
       "sha256": "c9b53cf8fb9316c2f7a3618296ebecda437d8260101b03e924f606e972d0cd4c"
+    },
+    {
+      "path": "transparent-suite/catalog.json",
+      "sha256": "cacd7fedf887bc08da369a63a80f427d24811ed85e506262dcee188720a249ee"
+    },
+    {
+      "path": "transparent-suite/controls.png",
+      "sha256": "729e6716884006df8d0c5f6f6f641de31ee1c52b45058530a552c40bb1ca7aaa"
+    },
+    {
+      "path": "transparent-suite/football.png",
+      "sha256": "c0449f92f3fe8d4fda0fd4acb5e877bc79a47d10ea5e71647ed9beba22527e96"
+    },
+    {
+      "path": "transparent-suite/icons.css",
+      "sha256": "7e4b87f847135ca5ed14f59aed8aba5cf941e19f574a32b61725fb6e54a18c9d"
+    },
+    {
+      "path": "transparent-suite/navigation-planning.png",
+      "sha256": "4c83ed7e242f6cceba43bb84d8372f4ca683b5f73a669797f16975d5980dd8e8"
+    },
+    {
+      "path": "transparent-suite/preview-aubergine.png",
+      "sha256": "62d8f963769ceacc70bf57192198ece2a7c3d374959d6408480624719f52c043"
+    },
+    {
+      "path": "transparent-suite/preview-green.png",
+      "sha256": "0b2d7d87e7ec337f280da1f83be42350c7aea08972599aec8e6755d6e60cdd86"
+    },
+    {
+      "path": "transparent-suite/preview-white.png",
+      "sha256": "45302b69df56086e704a12ad892488785140be95b5554330829b3728c3b90cb6"
+    },
+    {
+      "path": "transparent-suite/preview.html",
+      "sha256": "1907d58a518ec1ef741e8c9db6597a4bb9a8c03a4da4162e21768749f6a81f16"
+    },
+    {
+      "path": "transparent-suite/README.md",
+      "sha256": "100c8b813b5bc4da386b5760eca724424476223e3640f71248b945bd4866d1f6"
+    },
+    {
+      "path": "transparent-suite/transparency-check.json",
+      "sha256": "740308d961970c1893144dc55ad5637a646034d7401e5f01e4ffcf77fdc0f790"
     },
     {
       "path": "vector-suite/build.py",

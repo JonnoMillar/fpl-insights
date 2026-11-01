@@ -1,0 +1,41 @@
+[
+  {
+    "file": "football.png",
+    "dimensions": [
+      1254,
+      1254
+    ],
+    "alpha_zero_pixels": 1241394,
+    "alpha_range": [
+      0,
+      255
+    ],
+    "file_identical_to_generated_source": true
+  },
+  {
+    "file": "navigation-planning.png",
+    "dimensions": [
+      1536,
+      1024
+    ],
+    "alpha_zero_pixels": 1284880,
+    "alpha_range": [
+      0,
+      254
+    ],
+    "file_identical_to_generated_source": true
+  },
+  {
+    "file": "controls.png",
+    "dimensions": [
+      1536,
+      1024
+    ],
+    "alpha_zero_pixels": 1345256,
+    "alpha_range": [
+      0,
+      254
+    ],
+    "file_identical_to_generated_source": true
+  }
+]

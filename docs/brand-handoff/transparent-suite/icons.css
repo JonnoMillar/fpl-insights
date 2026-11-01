@@ -1,0 +1,43 @@
+:root{--fpl-atlas-football:url("football.png");--fpl-atlas-navigation-planning:url("navigation-planning.png");--fpl-atlas-controls:url("controls.png")}
+/* Generated artwork, displayed through CSS alpha masks. No vector redraw. */
+.fpl-icon{display:inline-block;flex:none;width:var(--icon-size,24px);height:var(--icon-size,24px);background-color:currentColor;vertical-align:middle;-webkit-mask-image:var(--icon-atlas);mask-image:var(--icon-atlas);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:var(--icon-scale);mask-size:var(--icon-scale);-webkit-mask-position:var(--icon-position);mask-position:var(--icon-position)}
+.fpl-goals{--icon-atlas:var(--fpl-atlas-football);--icon-scale:449.462366% 449.462366%;--icon-position:3.589744% 3.589744%}
+.fpl-assists{--icon-atlas:var(--fpl-atlas-football);--icon-scale:480.459770% 480.459770%;--icon-position:34.944612% 5.337362%}
+.fpl-penalties{--icon-atlas:var(--fpl-atlas-football);--icon-scale:461.029412% 461.029412%;--icon-position:65.071283% 4.276986%}
+.fpl-free-kicks{--icon-atlas:var(--fpl-atlas-football);--icon-scale:423.648649% 423.648649%;--icon-position:98.121086% 1.878914%}
+.fpl-corners{--icon-atlas:var(--fpl-atlas-football);--icon-scale:457.664234% 457.664234%;--icon-position:3.469388% 35.408163%}
+.fpl-clean-sheet{--icon-atlas:var(--fpl-atlas-football);--icon-scale:443.109541% 443.109541%;--icon-position:34.397528% 34.809475%}
+.fpl-saves{--icon-atlas:var(--fpl-atlas-football);--icon-scale:451.079137% 451.079137%;--icon-position:65.266393% 35.758197%}
+.fpl-minutes{--icon-atlas:var(--fpl-atlas-football);--icon-scale:459.340659% 459.340659%;--icon-position:95.820591% 35.474006%}
+.fpl-yellow-card{--icon-atlas:var(--fpl-atlas-football);--icon-scale:577.880184% 577.880184%;--icon-position:6.268081% 65.284474%}
+.fpl-red-card{--icon-atlas:var(--fpl-atlas-football);--icon-scale:577.880184% 577.880184%;--icon-position:35.294118% 65.477338%}
+.fpl-injured{--icon-atlas:var(--fpl-atlas-football);--icon-scale:422.222222% 422.222222%;--icon-position:65.830721% 67.189133%}
+.fpl-doubtful{--icon-atlas:var(--fpl-atlas-football);--icon-scale:499.601594% 499.601594%;--icon-position:95.114656% 65.802592%}
+.fpl-available{--icon-atlas:var(--fpl-atlas-football);--icon-scale:524.686192% 524.686192%;--icon-position:4.926108% 93.596059%}
+.fpl-captain{--icon-atlas:var(--fpl-atlas-football);--icon-scale:454.347826% 454.347826%;--icon-position:34.560327% 96.114519%}
+.fpl-vice-captain{--icon-atlas:var(--fpl-atlas-football);--icon-scale:441.549296% 441.549296%;--icon-position:66.185567% 96.907216%}
+.fpl-bonus{--icon-atlas:var(--fpl-atlas-football);--icon-scale:482.307692% 482.307692%;--icon-position:95.372233% 94.567404%}
+.fpl-squad{--icon-atlas:var(--fpl-atlas-navigation-planning);--icon-scale:450.439883% 300.293255%;--icon-position:3.598326% 0.000000%}
+.fpl-planning{--icon-atlas:var(--fpl-atlas-navigation-planning);--icon-scale:450.439883% 300.293255%;--icon-position:32.133891% 0.000000%}
+.fpl-mini-league{--icon-atlas:var(--fpl-atlas-navigation-planning);--icon-scale:466.869301% 311.246201%;--icon-position:63.877382% 1.726619%}
+.fpl-scout{--icon-atlas:var(--fpl-atlas-navigation-planning);--icon-scale:522.448980% 348.299320%;--icon-position:94.444444% 6.438356%}
+.fpl-transfers{--icon-atlas:var(--fpl-atlas-navigation-planning);--icon-scale:524.232082% 349.488055%;--icon-position:7.160097% 51.436389%}
+.fpl-roll-transfer{--icon-atlas:var(--fpl-atlas-navigation-planning);--icon-scale:527.835052% 351.890034%;--icon-position:36.305221% 51.432469%}
+.fpl-fixtures{--icon-atlas:var(--fpl-atlas-navigation-planning);--icon-scale:524.232082% 349.488055%;--icon-position:63.555913% 50.889193%}
+.fpl-deadline{--icon-atlas:var(--fpl-atlas-navigation-planning);--icon-scale:537.062937% 358.041958%;--icon-position:93.440000% 51.490515%}
+.fpl-wildcard{--icon-atlas:var(--fpl-atlas-navigation-planning);--icon-scale:474.074074% 316.049383%;--icon-position:4.950495% 97.571429%}
+.fpl-free-hit{--icon-atlas:var(--fpl-atlas-navigation-planning);--icon-scale:571.003717% 380.669145%;--icon-position:35.990529% 90.596026%}
+.fpl-bench-boost{--icon-atlas:var(--fpl-atlas-navigation-planning);--icon-scale:450.439883% 300.293255%;--icon-position:64.267782% 100.000000%}
+.fpl-triple-captain{--icon-atlas:var(--fpl-atlas-navigation-planning);--icon-scale:459.880240% 306.586826%;--icon-position:95.840266% 98.985507%}
+.fpl-filter{--icon-atlas:var(--fpl-atlas-controls);--icon-scale:464.048338% 309.365559%;--icon-position:4.398340% 1.443001%}
+.fpl-compare{--icon-atlas:var(--fpl-atlas-controls);--icon-scale:522.448980% 348.299320%;--icon-position:35.104670% 6.438356%}
+.fpl-information{--icon-atlas:var(--fpl-atlas-controls);--icon-scale:537.062937% 358.041958%;--icon-position:64.800000% 7.452575%}
+.fpl-close{--icon-atlas:var(--fpl-atlas-controls);--icon-scale:595.348837% 396.899225%;--icon-position:93.114241% 9.399478%}
+.fpl-previous{--icon-atlas:var(--fpl-atlas-controls);--icon-scale:642.677824% 428.451883%;--icon-position:5.397070% 50.445860%}
+.fpl-next{--icon-atlas:var(--fpl-atlas-controls);--icon-scale:645.378151% 430.252101%;--icon-position:36.363636% 50.381679%}
+.fpl-expand{--icon-atlas:var(--fpl-atlas-controls);--icon-scale:588.505747% 392.337165%;--icon-position:64.549020% 51.900393%}
+.fpl-external-link{--icon-atlas:var(--fpl-atlas-controls);--icon-scale:600.000000% 400.000000%;--icon-position:93.828125% 49.739583%}
+.fpl-price-rise{--icon-atlas:var(--fpl-atlas-controls);--icon-scale:484.542587% 323.028391%;--icon-position:4.347826% 96.605375%}
+.fpl-price-fall{--icon-atlas:var(--fpl-atlas-controls);--icon-scale:512.000000% 341.333333%;--icon-position:36.084142% 94.337017%}
+.fpl-defence{--icon-atlas:var(--fpl-atlas-controls);--icon-scale:538.947368% 359.298246%;--icon-position:64.668265% 92.422192%}
+.fpl-suspended{--icon-atlas:var(--fpl-atlas-controls);--icon-scale:540.845070% 360.563380%;--icon-position:95.047923% 92.432432%}

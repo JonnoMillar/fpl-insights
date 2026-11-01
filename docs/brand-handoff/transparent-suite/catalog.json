@@ -1,0 +1,645 @@
+{
+  "type": "generated_transparent_png_atlases_with_CSS_views",
+  "icons": [
+    {
+      "name": "goals",
+      "atlas": "football.png",
+      "source_rect": [
+        35,
+        35,
+        279,
+        279
+      ],
+      "cell": [
+        0,
+        0,
+        314,
+        314
+      ]
+    },
+    {
+      "name": "assists",
+      "atlas": "football.png",
+      "source_rect": [
+        347,
+        53,
+        261,
+        261
+      ],
+      "cell": [
+        314,
+        0,
+        627,
+        314
+      ]
+    },
+    {
+      "name": "penalties",
+      "atlas": "football.png",
+      "source_rect": [
+        639,
+        42,
+        272,
+        272
+      ],
+      "cell": [
+        627,
+        0,
+        940,
+        314
+      ]
+    },
+    {
+      "name": "free-kicks",
+      "atlas": "football.png",
+      "source_rect": [
+        940,
+        18,
+        296,
+        296
+      ],
+      "cell": [
+        940,
+        0,
+        1254,
+        314
+      ]
+    },
+    {
+      "name": "corners",
+      "atlas": "football.png",
+      "source_rect": [
+        34,
+        347,
+        274,
+        274
+      ],
+      "cell": [
+        0,
+        314,
+        314,
+        627
+      ]
+    },
+    {
+      "name": "clean-sheet",
+      "atlas": "football.png",
+      "source_rect": [
+        334,
+        338,
+        283,
+        283
+      ],
+      "cell": [
+        314,
+        314,
+        627,
+        627
+      ]
+    },
+    {
+      "name": "saves",
+      "atlas": "football.png",
+      "source_rect": [
+        637,
+        349,
+        278,
+        278
+      ],
+      "cell": [
+        627,
+        314,
+        940,
+        627
+      ]
+    },
+    {
+      "name": "minutes",
+      "atlas": "football.png",
+      "source_rect": [
+        940,
+        348,
+        273,
+        273
+      ],
+      "cell": [
+        940,
+        314,
+        1254,
+        627
+      ]
+    },
+    {
+      "name": "yellow-card",
+      "atlas": "football.png",
+      "source_rect": [
+        65,
+        677,
+        217,
+        217
+      ],
+      "cell": [
+        0,
+        627,
+        314,
+        940
+      ]
+    },
+    {
+      "name": "red-card",
+      "atlas": "football.png",
+      "source_rect": [
+        366,
+        679,
+        217,
+        217
+      ],
+      "cell": [
+        314,
+        627,
+        627,
+        940
+      ]
+    },
+    {
+      "name": "injured",
+      "atlas": "football.png",
+      "source_rect": [
+        630,
+        643,
+        297,
+        297
+      ],
+      "cell": [
+        627,
+        627,
+        940,
+        940
+      ]
+    },
+    {
+      "name": "doubtful",
+      "atlas": "football.png",
+      "source_rect": [
+        954,
+        660,
+        251,
+        251
+      ],
+      "cell": [
+        940,
+        627,
+        1254,
+        940
+      ]
+    },
+    {
+      "name": "available",
+      "atlas": "football.png",
+      "source_rect": [
+        50,
+        950,
+        239,
+        239
+      ],
+      "cell": [
+        0,
+        940,
+        314,
+        1254
+      ]
+    },
+    {
+      "name": "captain",
+      "atlas": "football.png",
+      "source_rect": [
+        338,
+        940,
+        276,
+        276
+      ],
+      "cell": [
+        314,
+        940,
+        627,
+        1254
+      ]
+    },
+    {
+      "name": "vice-captain",
+      "atlas": "football.png",
+      "source_rect": [
+        642,
+        940,
+        284,
+        284
+      ],
+      "cell": [
+        627,
+        940,
+        940,
+        1254
+      ]
+    },
+    {
+      "name": "bonus",
+      "atlas": "football.png",
+      "source_rect": [
+        948,
+        940,
+        260,
+        260
+      ],
+      "cell": [
+        940,
+        940,
+        1254,
+        1254
+      ]
+    },
+    {
+      "name": "squad",
+      "atlas": "navigation-planning.png",
+      "source_rect": [
+        43,
+        0,
+        341,
+        341
+      ],
+      "cell": [
+        0,
+        0,
+        384,
+        341
+      ]
+    },
+    {
+      "name": "planning",
+      "atlas": "navigation-planning.png",
+      "source_rect": [
+        384,
+        0,
+        341,
+        341
+      ],
+      "cell": [
+        384,
+        0,
+        768,
+        341
+      ]
+    },
+    {
+      "name": "mini-league",
+      "atlas": "navigation-planning.png",
+      "source_rect": [
+        771,
+        12,
+        329,
+        329
+      ],
+      "cell": [
+        768,
+        0,
+        1152,
+        341
+      ]
+    },
+    {
+      "name": "scout",
+      "atlas": "navigation-planning.png",
+      "source_rect": [
+        1173,
+        47,
+        294,
+        294
+      ],
+      "cell": [
+        1152,
+        0,
+        1536,
+        341
+      ]
+    },
+    {
+      "name": "transfers",
+      "atlas": "navigation-planning.png",
+      "source_rect": [
+        89,
+        376,
+        293,
+        293
+      ],
+      "cell": [
+        0,
+        341,
+        384,
+        683
+      ]
+    },
+    {
+      "name": "roll-transfer",
+      "atlas": "navigation-planning.png",
+      "source_rect": [
+        452,
+        377,
+        291,
+        291
+      ],
+      "cell": [
+        384,
+        341,
+        768,
+        683
+      ]
+    },
+    {
+      "name": "fixtures",
+      "atlas": "navigation-planning.png",
+      "source_rect": [
+        790,
+        372,
+        293,
+        293
+      ],
+      "cell": [
+        768,
+        341,
+        1152,
+        683
+      ]
+    },
+    {
+      "name": "deadline",
+      "atlas": "navigation-planning.png",
+      "source_rect": [
+        1168,
+        380,
+        286,
+        286
+      ],
+      "cell": [
+        1152,
+        341,
+        1536,
+        683
+      ]
+    },
+    {
+      "name": "wildcard",
+      "atlas": "navigation-planning.png",
+      "source_rect": [
+        60,
+        683,
+        324,
+        324
+      ],
+      "cell": [
+        0,
+        683,
+        384,
+        1024
+      ]
+    },
+    {
+      "name": "free-hit",
+      "atlas": "navigation-planning.png",
+      "source_rect": [
+        456,
+        684,
+        269,
+        269
+      ],
+      "cell": [
+        384,
+        683,
+        768,
+        1024
+      ]
+    },
+    {
+      "name": "bench-boost",
+      "atlas": "navigation-planning.png",
+      "source_rect": [
+        768,
+        683,
+        341,
+        341
+      ],
+      "cell": [
+        768,
+        683,
+        1152,
+        1024
+      ]
+    },
+    {
+      "name": "triple-captain",
+      "atlas": "navigation-planning.png",
+      "source_rect": [
+        1152,
+        683,
+        334,
+        334
+      ],
+      "cell": [
+        1152,
+        683,
+        1536,
+        1024
+      ]
+    },
+    {
+      "name": "filter",
+      "atlas": "controls.png",
+      "source_rect": [
+        53,
+        10,
+        331,
+        331
+      ],
+      "cell": [
+        0,
+        0,
+        384,
+        341
+      ]
+    },
+    {
+      "name": "compare",
+      "atlas": "controls.png",
+      "source_rect": [
+        436,
+        47,
+        294,
+        294
+      ],
+      "cell": [
+        384,
+        0,
+        768,
+        341
+      ]
+    },
+    {
+      "name": "information",
+      "atlas": "controls.png",
+      "source_rect": [
+        810,
+        55,
+        286,
+        286
+      ],
+      "cell": [
+        768,
+        0,
+        1152,
+        341
+      ]
+    },
+    {
+      "name": "close",
+      "atlas": "controls.png",
+      "source_rect": [
+        1190,
+        72,
+        258,
+        258
+      ],
+      "cell": [
+        1152,
+        0,
+        1536,
+        341
+      ]
+    },
+    {
+      "name": "previous",
+      "atlas": "controls.png",
+      "source_rect": [
+        70,
+        396,
+        239,
+        239
+      ],
+      "cell": [
+        0,
+        341,
+        384,
+        683
+      ]
+    },
+    {
+      "name": "next",
+      "atlas": "controls.png",
+      "source_rect": [
+        472,
+        396,
+        238,
+        238
+      ],
+      "cell": [
+        384,
+        341,
+        768,
+        683
+      ]
+    },
+    {
+      "name": "expand",
+      "atlas": "controls.png",
+      "source_rect": [
+        823,
+        396,
+        261,
+        261
+      ],
+      "cell": [
+        768,
+        341,
+        1152,
+        683
+      ]
+    },
+    {
+      "name": "external-link",
+      "atlas": "controls.png",
+      "source_rect": [
+        1201,
+        382,
+        256,
+        256
+      ],
+      "cell": [
+        1152,
+        341,
+        1536,
+        683
+      ]
+    },
+    {
+      "name": "price-rise",
+      "atlas": "controls.png",
+      "source_rect": [
+        53,
+        683,
+        317,
+        317
+      ],
+      "cell": [
+        0,
+        683,
+        384,
+        1024
+      ]
+    },
+    {
+      "name": "price-fall",
+      "atlas": "controls.png",
+      "source_rect": [
+        446,
+        683,
+        300,
+        300
+      ],
+      "cell": [
+        384,
+        683,
+        768,
+        1024
+      ]
+    },
+    {
+      "name": "defence",
+      "atlas": "controls.png",
+      "source_rect": [
+        809,
+        683,
+        285,
+        285
+      ],
+      "cell": [
+        768,
+        683,
+        1152,
+        1024
+      ]
+    },
+    {
+      "name": "suspended",
+      "atlas": "controls.png",
+      "source_rect": [
+        1190,
+        684,
+        284,
+        284
+      ],
+      "cell": [
+        1152,
+        683,
+        1536,
+        1024
+      ]
+    }
+  ]
+}
