@@ -776,3 +776,111 @@ def sparkline(values, width=104, height=26, tone="var(--accent)"):
             w=width, h=height, p=path, c=tone, x=lx, y=ly
         )
     )
+
+
+def _opp_plate(opp):
+    if not opp:
+        return ""
+    crest = f'<img src="{opp["crest"]}" alt="">' if opp.get("crest") else ""
+    return (f'<span class="opp-plate">{crest}{e(opp["name"])}, '
+            f'{"home" if opp["home"] else "away"}</span>')
+
+
+def transfer_deck(singles, pairs, hit=4):
+    """Other transfer options as a swipe deck on the green panel.
+
+    Each option is a purple card: the outgoing player greyed, the incoming one
+    standing on the photo panel's edge, the opponent's crest on a glass
+    plate, then the name and one big gain. Ranked by gain, best first, pairs
+    and singles together; a pair is priced after whatever hit it costs. The
+    ranked list beside the deck (faces on a phone) jumps straight to any
+    card. The plan above has already weighed these and chosen the week, so
+    this is for browsing the alternatives, never for the headline move."""
+    options = []
+    for r in singles or []:
+        options.append(("single", r["gain"], r))
+    for p in pairs or []:
+        options.append(("pair", p["gain"] - hit, p))
+    if not options:
+        return ""
+    options.sort(key=lambda o: -o[1])
+    cards, index = [], []
+    for k, (kind, gain, r) in enumerate(options):
+        if kind == "single":
+            out_name, in_name = r["out"].name, r["in"]["web_name"]
+            photo_out = (f'<img class="cut deck-old" src="{r["out_photo"]}" alt="">'
+                         if r.get("out_photo") else "")
+            photo_in = (f'<img class="cut deck-new" src="{r["in_photo"]}" alt="">'
+                        if r.get("in_photo") else "")
+            arrow = f'<span class="deck-arrow">{icon("next")}</span>'
+            plate = _opp_plate(r.get("opp"))
+            label = ""
+            title = e(in_name)
+            spend = -r["spend"]
+            money = "free swap" if abs(spend) < 0.05 else f"bank {spend:+.1f}m"
+            meta = (f'{e(r["in_club"])} &middot; {r["price"]:.1f}m, for {e(out_name)}'
+                    f'<br>{money}')
+            words = (f'His <b class="tnum">{r["in_score"]["total"]:.1f}</b> against '
+                     f'{e(out_name)}\'s <span class="tnum">{r["out_score"]["total"]:.1f}</span>.')
+            unit = "to your XI, next<br>five weeks"
+            faces = [r.get("in_photo")]
+            short = in_name
+            notes = [r["timing"]] if r.get("timing") else []
+            if r.get("elite"):
+                notes.append(f'{r["elite"]["elite"]:.0f}% of the top 100 own him.')
+        else:
+            legs = r["legs"]
+            photo_out = ""
+            photo_in = "".join(
+                f'<img class="cut deck-pair deck-pair-{n}" src="{leg["in_photo"]}" alt="">'
+                for n, leg in enumerate(legs[:2]) if leg.get("in_photo"))
+            arrow = ""
+            old = "".join(f'<img class="face" src="{leg["out_photo"]}" alt="">'
+                          for leg in legs if leg.get("out_photo"))
+            plate = (f'<span class="opp-plate"><span class="faces">{old}</span>'
+                     f'{"Both free" if hit == 0 else f"−{hit} hit"}</span>')
+            label = f'<span class="lab">{e(r.get("tag") or "Pair")}</span>'
+            title = " + ".join(e(leg["in"]["web_name"]) for leg in legs)
+            meta = (f'for {" and ".join(e(leg["out"].name) for leg in legs)}'
+                    f'<br>{r["bank_after"]:.1f}m left in the bank')
+            words = ""
+            unit = ("together, next<br>five weeks" if hit == 0
+                    else f"after the −{hit},<br>next five weeks")
+            faces = [leg.get("in_photo") for leg in legs]
+            short = " + ".join(leg["in"]["web_name"] for leg in legs)
+            notes = [leg["timing"] for leg in legs if leg.get("timing")]
+        note_html = "".join(f"<p>{e(n)}</p>" for n in notes[:1])
+        cards.append(
+            f'<article class="deck-card deck-{kind}" data-k="{k}" aria-roledescription="slide" '
+            f'aria-label="{k + 1} of {len(options)}: {e(short)}">'
+            f'<div class="deck-photo">{photo_out}{arrow}{photo_in}{plate}</div>'
+            f'<div class="foil" aria-hidden="true"></div>'
+            f'<div class="deck-body">{label}<b class="disp deck-name">{title}</b>'
+            f'<span class="deck-meta">{meta}</span>'
+            f'<div class="deck-words">{words}{note_html}</div>'
+            f'<div class="deck-gain"><b class="big tnum">{gain:+.1f}</b><span>{unit}</span></div>'
+            f'</div></article>')
+        face_html = "".join(f'<img class="face" src="{ph}" alt="">' for ph in faces if ph)
+        index.append(
+            f'<li><button class="deck-idx" type="button" data-k="{k}" '
+            f'aria-current="{"true" if k == 0 else "false"}">'
+            f'<span class="faces">{face_html}</span><b>{e(short)}</b>'
+            f'<span class="tnum">{gain:+.1f}</span></button></li>')
+    n = len(options)
+    count = {1: "ONE", 2: "TWO", 3: "THREE", 4: "FOUR", 5: "FIVE", 6: "SIX", 7: "SEVEN",
+             8: "EIGHT", 9: "NINE", 10: "TEN", 11: "ELEVEN", 12: "TWELVE"}.get(n, str(n))
+    return (
+        '<section class="deck-panel" id="other-transfers" aria-labelledby="deck-title">'
+        '<div class="deck-intro"><span class="lab">Other transfer options</span>'
+        f'<h2 class="disp" id="deck-title">{count} MORE WORTH A LOOK.</h2>'
+        '<p class="deck-lede">Ranked on the next five gameweeks if made now. The plan '
+        'has already weighed them and picked its week.</p>'
+        f'<span class="deck-pos tnum" aria-live="polite"><b>1</b> of {n}</span>'
+        '<div class="deck-btns">'
+        f'<button class="deck-btn" type="button" data-step="-1" aria-label="Previous option">{icon("previous")}</button>'
+        f'<button class="deck-btn" type="button" data-step="1" aria-label="Next option">{icon("next")}</button>'
+        '</div></div>'
+        f'<div class="deck" aria-roledescription="carousel" aria-label="Other transfer options" tabindex="0">'
+        f'{"".join(cards)}</div>'
+        f'<ol class="deck-list">{"".join(index)}</ol></section>'
+    )

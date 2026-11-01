@@ -5,7 +5,7 @@ import components
 import ticker
 import transfers
 from analysis import f
-from cards_common import e, pos_fixture_pill, script_json
+from cards_common import e, icon, pos_fixture_pill, script_json
 
 
 def price_row(r):
@@ -501,14 +501,18 @@ def bench_boost_pitch(bb, bench_reports, ctx, badges, shirts, proj, market,
 
 def _cp_card(label, used_gw, body_html, level=None):
     key = {"Free Hit": "freehit", "Triple Captain": "3xc", "Bench Boost": "bboost", "Wildcard": "wildcard"}[label]
+    ico = {"freehit": "free-hit", "3xc": "triple-captain", "bboost": "bench-boost", "wildcard": "wildcard"}[key]
+    # The chip coin: green when the chip has a strong week, purple when it
+    # is available, struck through (not just greyed) once used.
     if used_gw:
         return (
-            f'<div class="cp used"><p class="cp-label">{e(label)}</p>'
+            f'<div class="cp used"><span class="chip-coin chip-used">{icon(ico)}</span>'
+            f'<p class="cp-label">{e(label)}</p>'
             f'<p class="cp-used-tag">Already used, GW{used_gw}</p></div>'
         )
     tone = f" cp-{level}" if level else ""
-    return (f'<div class="cp{tone}" id="chip-{key}" tabindex="-1"><p class="cp-label">{e(label)}</p>'
-            f'{body_html}</div>')
+    return (f'<div class="cp{tone}" id="chip-{key}" tabindex="-1"><span class="chip-coin">{icon(ico)}</span>'
+            f'<p class="cp-label">{e(label)}</p>{body_html}</div>')
 
 
 def _plan_bench_boost(plan):
@@ -846,7 +850,9 @@ def kneejerk_card(kj, gw):
 
     return (
         f'<section class="card kjcard kj-{tone}">'
-        '<div class="kj-tag">The knee-jerk</div>'
+        + ('<svg class="ring" aria-hidden="true" viewBox="0 0 200 200"><circle cx="100" cy="100" r="78"/></svg>'
+           f'<img class="cut" src="{kj["photo"]}" alt="">' if kj.get("photo") else "")
+        + '<div class="kj-tag">The knee-jerk</div>'
         '<div class="kj-body">'
         f'<p class="kj-lead">You did not own <b>{e(kj["name"])}</b>, and he '
         f'scored</p>'
@@ -864,6 +870,7 @@ def kneejerk_card(kj, gw):
     )
 
 
+VERDICT_ICON = {"buy": "price-rise", "sell": "transfers", "keep": "defence", "avoid": "suspended"}
 VERDICT_COLS = [
     ("buy", "Buy", "good", "Not yours, reachable, projects highest."),
     ("sell", "Sell", "bad", "A named replacement projects meaningfully more."),
@@ -895,7 +902,7 @@ def verdict_board_card(vb, next_gw):
                 for r in rows
             )
         cols.append(
-            f'<div class="vb-col vb-{tone}"><h4>{e(label)}</h4>'
+            f'<div class="vb-col vb-{tone}"><h4>{icon(VERDICT_ICON[key])}{e(label)}</h4>'
             f'<p class="vb-rule">{e(sub)}</p><ul>{items}</ul></div>'
         )
     return (

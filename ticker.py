@@ -33,6 +33,7 @@ when you glance down a row.
 import html
 
 import components
+from cards_common import icon
 import ffs
 
 # Anchors for the two components. Roughly the 10th and 90th percentile of a
@@ -422,7 +423,7 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=FIXTURE_GAMES_MAX, market
     )
 
 
-def fixture_run_summary(reports, ctx, proj, market, next_gw, weeks=6, n=3):
+def fixture_run_summary(reports, ctx, proj, market, next_gw, weeks=6, n=3, badges=None):
     """The best and worst fixture runs in the whole league, not just yours.
 
     Two rankings, not one, because they answer different questions. Our own
@@ -433,7 +434,12 @@ def fixture_run_summary(reports, ctx, proj, market, next_gw, weeks=6, n=3):
     FPL's own 1-5 difficulty is scored from the opponent alone, so it can
     and does disagree. Showing only the model's answer would quietly bake
     in "bad teams have bad fixtures" as if it were a fact about the
-    schedule rather than a fact about the team."""
+    schedule rather than a fact about the team.
+
+    Drawn as the page's night band: the three kindest runs as glass tiles
+    with the club crest breaking out of the corner, the three hardest as a
+    row beneath, and the two rankings behind a switch."""
+    badges = badges or {}
     owned = {}
     for r in reports:
         owned[r.element["team"]] = owned.get(r.element["team"], 0) + 1
@@ -454,56 +460,60 @@ def fixture_run_summary(reports, ctx, proj, market, next_gw, weeks=6, n=3):
     if not model_rows and not fdr_rows:
         return ""
 
-    def rowline(tid, club, val, tone, fmt):
+    def tile(tid, val, fmt, big):
+        crest = badges.get(tid)
+        name = ctx.teams[tid]["name"]
         count = owned.get(tid, 0)
-        mine = ""
-        if count:
-            dots = '<span class="fro-dot"></span>' * count
-            mine = (f'<span class="fro-mine"><span class="fro-dots">{dots}'
-                    f'</span>{count} owned</span>')
-        return (f'<li class="fro-row fro-{tone}"><span class="fro-club">'
-                f"{e(club)}</span><span class=\"fro-val\">{fmt(val)}</span>"
-                f"{mine}</li>")
+        own = f" &middot; you own {count}" if count else ""
+        img = f'<img src="{crest}" alt="">' if crest else ""
+        if big:
+            return (f'<li class="glass crest-tile">{img}<b class="big tnum">{fmt(val)}</b>'
+                    f'<span>{e(name)}{own}</span></li>')
+        return (f'<li class="glass crest-row">{img}<span>{e(name)}{own}</span>'
+                f'<b class="tnum">{fmt(val)}</b></li>')
 
-    def block(rows, title, note, kindest_first, fmt):
+    def block(key, rows, note, kindest_first, fmt, first):
         if not rows:
             return ""
         ranked = sorted(rows, key=lambda x: x[2], reverse=kindest_first)
         best, worst = ranked[:n], ranked[-n:][::-1]
-        # Best and worst used to differ only by a near-white background
-        # tint, which read as barely different at a glance, especially
-        # side by side. A labelled header plus a solid colour edge on each
-        # row make the two columns unmistakable without needing to read
-        # every number first.
         return (
-            f'<div class="frogroup"><h4>{e(title)}</h4>'
-            f'<p class="fronote">{e(note)}</p><div class="frocols">'
-            '<div class="frocol fro-col-good"><h5>Best</h5><ul class="frolist">'
-            + "".join(rowline(t, c, v, "good", fmt) for t, c, v in best)
-            + '</ul></div><div class="frocol fro-col-bad"><h5>Worst</h5>'
-            '<ul class="frolist">'
-            + "".join(rowline(t, c, v, "bad", fmt) for t, c, v in worst)
-            + "</ul></div></div></div>"
+            f'<div class="fro-panel" data-fro="{key}"{"" if first else " hidden"}>'
+            f'<p class="fronote">{e(note)}</p>'
+            '<ul class="crest-tiles">'
+            + "".join(tile(t, v, fmt, True) for t, _c, v in best)
+            + '</ul><div class="crest-worst"><span class="lab">Worst</span><ul>'
+            + "".join(tile(t, v, fmt, False) for t, _c, v in worst)
+            + "</ul></div></div>"
         )
 
-    parts = (
-        block(model_rows, "Expected output",
-              "Attack and defence combined, out of ten, in absolute terms - "
-              "a genuinely strong side reads as a good run here even against "
-              "tough opponents. Higher is better.",
-              True, lambda v: f"{v:.1f}")
-        + block(fdr_rows, "FPL's own difficulty",
-                "FPL's 1-5 rating, unadjusted for either side's own quality "
-                "- lower is easier.", False, lambda v: f"{v:.1f}")
-    )
+    groups = [g for g in (
+        ("model", "Expected output", model_rows,
+         "Attack and defence combined, out of ten, in absolute terms: a strong "
+         "side reads as a good run even against tough opponents. Higher is better.",
+         True, lambda v: f"{v:.1f}"),
+        ("fdr", "FPL difficulty", fdr_rows,
+         "FPL's own 1-5 rating, from the opponent alone. Lower is easier.",
+         False, lambda v: f"{v:.1f}")) if g[2]]
+    tabs = "".join(
+        f'<button type="button" role="tab" aria-selected="{"true" if i == 0 else "false"}" '
+        f'data-fro="{key}">{e(label)}</button>'
+        for i, (key, label, *_rest) in enumerate(groups))
+    parts = "".join(block(key, rows, note, kind, fmt, i == 0)
+                    for i, (key, _label, rows, note, kind, fmt) in enumerate(groups))
     return (
-        '<section class="card"><div class="card-head">'
-        f'<h2>Best and worst fixture runs{components.info_btn()}</h2>'
-        f'<span class="sub" hidden>Next {weeks} gameweeks, every club in the '
-        'league - not just yours. "Owned" counts how many of your 15 play '
-        'for that club.</span></div>'
-        f'<div class="card-body frowrap">{parts}</div></section>'
+        '<section class="night-band fro-band" aria-labelledby="fro-title">'
+        '<div class="glow" aria-hidden="true"><i></i><i></i><i></i></div>'
+        '<div class="fro-head"><div><span class="lab">Next '
+        f'{weeks} gameweeks, every club</span>'
+        '<h2 class="disp" id="fro-title">Best fixture runs</h2></div>'
+        f'<div class="frotabs" role="tablist" aria-label="Fixture rating">{tabs}</div></div>'
+        f'{parts}</section>'
     )
+
+
+ODDS_ICON = {"shield": "clean-sheet", "key": "compare", "spark": "goals", "ball": "goals",
+             "flame": "goals", "target": "penalties"}
 
 
 def odds_insights(fixtures, reports, ctx, proj, next_gw):
@@ -620,12 +630,12 @@ def odds_insights(fixtures, reports, ctx, proj, next_gw):
         return ""
     cards = "".join(
         '<li class="oi oi-{tone}">'
-        '<svg viewBox="0 0 24 24" class="oi-icon" aria-hidden="true">{icon}</svg>'
+        '{icon}'
         '<p class="oi-label">{label}</p>'
         '<p class="oi-value">{value}<small>{unit}</small></p>'
         '<p class="oi-who">{who}</p>'
         '<p class="oi-detail">{detail}</p></li>'.format(
-            tone=it["tone"], icon=ICON_PATHS.get(it["icon"], ""),
+            tone=it["tone"], icon=icon(ODDS_ICON.get(it["icon"], "information"), "oi-icon"),
             label=e(it["label"]), value=e(it["value"]), unit=e(it["unit"]),
             who=e(it["who"]), detail=it["detail"])
         for it in items

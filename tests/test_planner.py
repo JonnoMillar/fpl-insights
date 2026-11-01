@@ -338,8 +338,8 @@ if __name__ == "__main__":
 
 
 class PlanCardRenderTests(unittest.TestCase):
-    """The plan's moves use the suggested-transfer card, keep the week
-    anchors the hero jumps to, and carry the week's gain and bank."""
+    """The plan's moves use the transfer card, keep the week anchors the
+    hero jumps to, and carry the week's gain and bank."""
 
     class Ctx:
         def __init__(self, rows):
@@ -363,7 +363,7 @@ class PlanCardRenderTests(unittest.TestCase):
         move = week["moves"][0]
         html = cards_plan.plan_card(plan, self.Ctx(rows), {}, {})
         self.assertIn(f'id="plan-gw-{week["gw"]}"', html)
-        self.assertEqual(html.count('class="tf-card plan-move"'),
+        self.assertEqual(html.count('class="move-slot plan-move"'),
                          sum(len(w["moves"]) for w in plan["weeks"]))
         self.assertIn(f"P{move['out']}", html)
         self.assertIn(f"{week['gain']:+.1f}</b> xP", html)

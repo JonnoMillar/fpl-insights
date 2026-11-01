@@ -508,31 +508,31 @@ def render(d, standalone=True):
   </div>
 
   <div class="panel" id="p-market" role="tabpanel" hidden>
-    <details class="card action-method" id="action-method"><summary class="card-head"><h2>How the suggested action is chosen</h2></summary>
-      <div class="card-body"><p>The action is the first week of the transfer plan. The plan searches the next eight gameweeks for which moves to make and when: one or two a week, or a roll. Each move must clear a three-point margin on top of any four-point hit; hits are allowed only for an urgent move this week (a starter ruled out, or a signing in the top five for his position on xGI per 90 with a fair next fixture), a free transfer banked at the end is worth 1.5 points, and later weeks count for less because their projections are less certain. It keeps the squad's cheap bench slots: an enabler leaves only for another cheap player, or in a two-move restructure. This is a conservative heuristic, not a calibrated guarantee.</p>
-      <p>Bench Boost and Triple Captain are timed inside the plan when their availability is verified, against their best later week this half, and played only when their week beats waiting by two points. Free Hit is highlighted only when its own planner has a strong next-gameweek case; Wildcard is a longer-window decision in the chip planner.</p></div>
-    </details>
+    <div class="chapter"><h2>Your moves</h2></div>
+    {d.get('plan', '')}
+    {d.get('deck') or components.other_transfer_options(d['transfers'], d['pairings'])}
+    {d['captaincy']}
+    {d['verdicts']}
+
+    <div class="chapter"><h2>Chips and the weeks ahead</h2></div>
+    {d['chip_planner'] or '<section class="card" id="chip-planner" tabindex="-1"><div class="card-head"><h2>Chip planner unavailable</h2><span class="subvis">Supported fixture projections and recovered selling prices are required. Check the source status above.</span></div></section>'}
+    {d['fixture_runs']}
+    {d['ticker']}
+
     <div class="chapter"><h2>This week</h2></div>
     {d['market']}
     {d['best_xi']}
     {d['kneejerk']}
-
-    <div class="chapter"><h2>Your moves</h2></div>
-    {d.get('plan', '')}
-    {d['verdicts']}
-    {components.other_transfer_options(d['transfers'], d['pairings'])}
-    {d['captaincy']}
-
-    <div class="chapter"><h2>Chips and the weeks ahead</h2></div>
-    {d['chip_planner'] or '<section class="card" id="chip-planner" tabindex="-1"><div class="card-head"><h2>Chip planner unavailable</h2><span class="subvis">Supported fixture projections and recovered selling prices are required. Check the source status above.</span></div></section>'}
-    {d['ticker']}
-    {d['fixture_runs']}
 
     <div class="chapter"><h2>The wider market</h2></div>
     {d['leaders']}
     {d['price_watch']}
     {d['scatter']}
     {d['elite']}
+    <details class="card collapsible action-method" id="action-method"><summary class="card-head"><h2>How the suggested action is chosen</h2></summary>
+      <div class="card-body"><p>The action is the first week of the transfer plan. The plan searches the next eight gameweeks for which moves to make and when: one or two a week, or a roll. Each move must clear a three-point margin on top of any four-point hit; hits are allowed only for an urgent move this week (a starter ruled out, or a signing in the top five for his position on xGI per 90 with a fair next fixture), a free transfer banked at the end is worth 1.5 points, and later weeks count for less because their projections are less certain. It keeps the squad's cheap bench slots: an enabler leaves only for another cheap player, or in a two-move restructure. This is a conservative heuristic, not a calibrated guarantee.</p>
+      <p>Bench Boost and Triple Captain are timed inside the plan when their availability is verified, against their best later week this half, and played only when their week beats waiting by two points. Free Hit is highlighted only when its own planner has a strong next-gameweek case; Wildcard is a longer-window decision in the chip planner.</p></div>
+    </details>
   </div>
 
   <div class="panel" id="p-league" role="tabpanel" hidden>
@@ -877,6 +877,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         sw["out_shirt"] = shirts.get(
             (sw["out"].element["team"], sw["out"].pos == "GKP"))
         sw["in_shirt"] = shirts.get((el["team"], ctx.pos(el) == "GKP"))
+        sw["opp"] = next_opponent(ctx, el["team"], next_gw, badges)
 
     pairings = transfers.pair_suggestions(
         ctx, xi + bench, proj, next_gw, market, baselines,
@@ -965,6 +966,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         ctx, proj, next_gw, market, baselines,
         always={r.element["id"] for r in xi + bench})
     kj = transfers.kneejerk(ctx, xi + bench, lg_scores, bank=bank, sell_values=sell_values) if moves_available else None
+    if kj:
+        kj["photo"] = fplapi.photo_data_uri(ctx.players[kj["id"]])
     vb = transfers.verdict_board(ctx, xi + bench, lg_scores, bank=bank, sell_values=sell_values) if moves_available else None
 
     # The knee-jerk card states in prose that a pair reaches him, but
@@ -1159,6 +1162,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "ctx": ctx,
         "next_action": action,
         "plan": plan_card(plan, ctx, shirts, badges, photos),
+        "deck": components.transfer_deck(swaps, pairings, pair_hit),
         "plan_data": plan,
         "captain_summary": cap_matrix["candidates"][0] if cap_matrix and advice_supported else None,
         "gw": gw,
@@ -1204,7 +1208,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "ticker": ticker.fixture_ticker(xi + bench, ctx, proj, next_gw,
                                         market=market),
         "fixture_runs": ticker.fixture_run_summary(xi + bench, ctx, proj,
-                                                    market, next_gw, weeks=6),
+                                                    market, next_gw, weeks=6,
+                                                    badges=badges),
         "market": ticker.odds_insights(market_fixtures, xi, ctx, proj, next_gw),
         "pairings": components.pairing_cards(
             pairings,

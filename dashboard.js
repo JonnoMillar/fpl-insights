@@ -132,6 +132,18 @@
     });
   });
 
+  // Fixture runs: the model's rating or FPL's own, one panel at a time.
+  document.querySelectorAll('.frotabs').forEach(function(tabs){
+    var band = tabs.closest('.fro-band');
+    var buttons = tabs.querySelectorAll('button');
+    buttons.forEach(function(b){
+      b.addEventListener('click', function(){
+        buttons.forEach(function(o){ o.setAttribute('aria-selected', String(o===b)); });
+        band.querySelectorAll('.fro-panel').forEach(function(p){ p.hidden = p.dataset.fro !== b.dataset.fro; });
+      });
+    });
+  });
+
   // Scoring against you: this week vs the last few weeks summed.
   document.querySelectorAll('.rvtabs').forEach(function(tabs){
     var card = tabs.closest('.card');
@@ -249,6 +261,9 @@
       var panel = target.closest('.panel');
       var tab = panel && document.querySelector('.tab[data-panel="'+panel.id+'"]');
       if (tab) tab.click();
+      // A week of the plan, or any other panel behind a tab: open it first.
+      var ctl = target.hidden && document.querySelector('[aria-controls="' + target.id + '"]');
+      if (ctl) ctl.click();
       if (target.tagName === 'DETAILS') target.open = true;
       var details = target.closest('details');
       if (details) details.open = true;
