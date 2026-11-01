@@ -6,7 +6,7 @@
 // runs 1-at-the-top, since rank 1 is the thing worth reading as "up".
 (function () {
   var NS = 'http://www.w3.org/2000/svg';
-  var W = 1040, H = 460, ML = 40, MR = 16, MT = 16, MB = 34;
+  var W = 1040, H = 460, ML = 40, MR = 170, MT = 16, MB = 34;
 
   function node(tag, attrs, text) {
     var n = document.createElementNS(NS, tag);
@@ -15,17 +15,11 @@
     return n;
   }
 
-  // A fixed hue rotation rather than a hand-picked palette - a league can
-  // have anywhere from a handful of managers to the full standings limit,
-  // and a palette sized for one league would run out or repeat on another.
-  // Rotation starts at --rival's own hue (#1b5ce0, ~220deg) rather than at
-  // red, so the first rival on the chart lands on the same blue the rest
-  // of the page already uses for "not you".
-  var RIVAL_HUE = 220;
+  // You in purple and heavy; every rival the same grey. Eight hues cannot be
+  // told apart by a colour-blind reader, so each line is named at its end
+  // instead, and hovering a line or a name brings it forward in night.
   function colourFor(i, n, mine) {
-    if (mine) { return 'var(--accent-ink)'; }
-    var hue = (RIVAL_HUE + Math.round((360 / Math.max(1, n)) * i)) % 360;
-    return 'hsl(' + hue + ', 55%, 48%)';
+    return mine ? '#37003c' : '#b3aab8';
   }
 
   // Ticks land on whole numbers only, and always include both ends of the
@@ -101,7 +95,7 @@
       });
       svg.appendChild(grid);
 
-      var lines = node('g', { 'class': 'lplines' });
+      var lines = node('g', { 'class': 'lplines' }), mineG = null;
       series.forEach(function (s, i) {
         var pts = [];
         gws.forEach(function (gw, gi) {
@@ -121,7 +115,7 @@
         }));
         g.appendChild(node('polyline', {
           points: pts.join(' '), fill: 'none',
-          stroke: colourFor(i, n, s.mine), 'stroke-width': s.mine ? 3 : 1.6,
+          stroke: colourFor(i, n, s.mine), 'stroke-width': s.mine ? 4 : 2, 'class': 'lpstroke',
         }));
         gws.forEach(function (gw, gi) {
           var v = s[yMode][gi];
@@ -143,8 +137,21 @@
             fill: colourFor(i, n, s.mine),
           }, v));
         });
-        lines.appendChild(g);
+        var last = null;
+        gws.forEach(function (gw, gi) {
+          var v = s[yMode][gi];
+          if (v !== null && v !== undefined) { last = [sx(gw), sy(v)]; }
+        });
+        if (last) {
+          g.appendChild(node('text', {
+            'class': 'lpend', x: last[0] + 10, y: last[1] + 4,
+            fill: s.mine ? '#37003c' : '#5b4e60',
+          }, s.name));
+        }
+        // Your line is drawn last, so it sits on top of every rival.
+        if (s.mine) { mineG = g; } else { lines.appendChild(g); }
       });
+      if (mineG) { lines.appendChild(mineG); }
       svg.appendChild(lines);
     }
 

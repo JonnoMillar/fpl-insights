@@ -257,6 +257,37 @@ def source_notice(d):
             + '<span>Some data is unavailable. ' + e("; ".join(missing)) + '</span></p>')
 
 
+def league_hero(d):
+    """Where you stand in the mini-league: the place, and the two gaps that
+    decide what next week can change - to the leader and to the next place."""
+    rows = d.get("standings") or []
+    me = next((r for r in rows if r["mine"]), None)
+    if not me:
+        return ""
+    leader = rows[0]
+    above = next((r for r in reversed(rows) if r["rank"] < me["rank"]), None)
+    below = next((r for r in rows if r["rank"] > me["rank"]), None)
+    n = me["rank"]
+    place = f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+    tiles = []
+    if leader is not me:
+        tiles.append(("To the top", leader["total"] - me["total"], f"behind {leader['name']}"))
+    else:
+        tiles.append(("Lead", me["total"] - (below["total"] if below else me["total"]),
+                      f"ahead of {below['name']}" if below else "alone at the top"))
+    if above and above is not leader:
+        tiles.append(("Next place up", above["total"] - me["total"], f"behind {above['name']}"))
+    if below:
+        tiles.append(("Cushion", me["total"] - below["total"], f"ahead of {below['name']}"))
+    tile_html = "".join(
+        f'<div class="stat-tile"><span class="lab">{e(k)}</span><span class="big tnum">{v}</span>'
+        f'<span class="stat-note">points {e(note)}</span></div>' for k, v, note in tiles[:2])
+    return (f'<section class="league-top" aria-label="Your place in the league">'
+            f'<div class="league-place"><span class="lab">{e(d["league_name"])}</span>'
+            f'<span class="big tnum">{place}</span><span class="stat-note">of {len(rows)}, '
+            f'{me["total"]} points</span>{icon("mini-league", "league-cup")}</div>{tile_html}</section>')
+
+
 def render(d, standalone=True):
     ctx = d["ctx"]
     title = d["team_name"]
@@ -536,6 +567,7 @@ def render(d, standalone=True):
   </div>
 
   <div class="panel" id="p-league" role="tabpanel" hidden>
+    {league_hero(d)}
     <section class="card">
       <div class="card-head"><h2>{e(d['league_name'])}{components.info_btn()}</h2>
         <span class="sub" hidden>XI xGI is each starter's expected goal involvement per 90, damped down
@@ -548,14 +580,13 @@ def render(d, standalone=True):
     {d['position_chart']}
 
     <div class="chapter"><h2>What the league owns</h2></div>
-    {d['template']}
+    <div class="own-row">{d['template']}<div class="own-side">{d['ownership']}</div></div>
     {d['carousel']}
     {d['differentials']}
     {d['watchlist']}
 
     <div class="chapter"><h2>How they are playing it</h2></div>
     {d['rivals']}
-    <section>{d['ownership']}</section>
     <section class="card">
       <div class="card-head"><h2>Chips used{components.info_btn()}</h2>
         <span class="sub" hidden>Two of each per season - one before GW20, one after.</span>
@@ -1173,6 +1204,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "league_name": league_name,
         "league_size": len(rows),
         "my_rank": my_row["rank"] if my_row else None,
+        "standings": [{"rank": r["rank"], "name": r["entry_name"], "total": r["total"],
+                       "mine": r["entry"] == entry_id} for r in rows],
         # Standings carry last week's position, so the mini-league gets the
         # same movement arrow the overall rank has. Positive is a climb, to
         # match rank_move - both are "places gained", not "rank delta".

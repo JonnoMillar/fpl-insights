@@ -512,18 +512,20 @@ th,td{padding:8px 10px; text-align:left; white-space:nowrap}
    once the offset is set by JS after load, putting the header far from
    where it visually belongs. A plain header cannot do either. */
 thead th{
-  font-size:11px; text-transform:uppercase; letter-spacing:0.05em;
-  color:white; border-bottom:1px solid var(--ink);
-  background:var(--p80);
+  font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.1em;
+  color:var(--muted); border-bottom:2px solid var(--line); background:var(--white);
 }
 th.sortable{cursor:pointer; user-select:none}
-th.sortable:hover{color:white; background:var(--p90)}
+th.sortable:hover{color:var(--purple)}
 th.sortable::after{content:"\2195"; opacity:.35; margin-left:4px}
 th.sortable[aria-sort="ascending"]::after{content:"\2191"; opacity:1}
 th.sortable[aria-sort="descending"]::after{content:"\2193"; opacity:1}
-tbody tr{border-bottom:1px solid var(--outline-variant)}
-tbody tr:hover{background:var(--surface-variant)}
-tbody tr.me{background:#fff0f7}
+tbody tr{border-bottom:1px solid var(--line)}
+tbody tr:hover{background:var(--mist)}
+/* Your row: purple, white type, heavier - not a tint alone. */
+tbody tr.me{background:var(--purple); color:var(--white); font-weight:800}
+tbody tr.me td{color:inherit}
+tbody tr.me .league-manager{color:rgb(255 255 255 / 80%)}
 td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .pos{
   display:inline-block; min-width:34px; text-align:center; font-size:11px; font-weight:700;
@@ -625,6 +627,10 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .lpgrid text{fill:var(--on-surface-variant); font-size:10px; font-variant-numeric:tabular-nums}
 .lpline{transition:opacity .15s}
 .lpline.dim{opacity:.15}
+.lpend{font-size:13px; font-weight:800; font-family:var(--sans)}
+.lpline.lp-mine .lpend{font-weight:900; font-size:14px}
+.lpline.active:not(.lp-mine) .lpstroke{stroke:var(--night)}
+.lpline.active:not(.lp-mine) circle,.lpline.active:not(.lp-mine) .lpend,.lpline.active:not(.lp-mine) .lpval{fill:var(--night)}
 .lphit{cursor:pointer}
 .lpval{
   font-size:10px; font-weight:700; font-variant-numeric:tabular-nums;
@@ -779,7 +785,7 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
   background:var(--surface-variant); border-radius:var(--radius-m);
   padding:12px 8px; border:2px solid transparent;
 }
-.ocard.mine{border-color:var(--accent); background:var(--surface)}
+.ocard.mine{border-color:var(--green); background:var(--surface)}
 .donut{width:90px; height:90px; display:block; margin:0 auto}
 .dtrack{fill:none; stroke:var(--outline-variant); stroke-width:9}
 .dval{fill:none; stroke-width:9; stroke-linecap:round}
@@ -1416,7 +1422,7 @@ table td.tick{border:2px solid var(--surface)}
 .mcard{background:var(--surface-variant); border-radius:var(--radius-m); padding:13px}
 .mteams{display:flex; align-items:baseline; gap:7px; margin-bottom:9px}
 .mt{font-weight:700; font-size:15px}
-.mt.mine{color:var(--accent)}
+.mt.mine{color:var(--purple); text-decoration:underline; text-decoration-thickness:3px; text-decoration-color:var(--green)}
 .mvs{font-size:11px; color:var(--on-surface-variant)}
 .mtotal{margin-left:auto; font-size:17px; font-weight:700;
   display:flex; flex-direction:column; align-items:flex-end; line-height:1}
@@ -2682,3 +2688,25 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   .deck-idx{flex-direction:column; gap:4px; padding:8px; width:auto}
   .deck-idx b{display:none}
 }
+
+/* --- League: the template pitch with what you are missing beside it ------ */
+.own-row{display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:16px; align-items:start; margin-bottom:16px}
+.own-row>*{margin:0; min-width:0}
+.own-side .finds{grid-template-columns:minmax(0,1fr)}
+.own-side .find{background:var(--night); color:var(--white)}
+.own-side .find h3{color:var(--green)}
+.own-side .find .det{color:rgb(255 255 255 / 85%); font-size:14px}
+.own-side .find .lead{font-size:16px; font-weight:900}
+.own-side .find li{margin-bottom:12px}
+@media (max-width:1100px){.own-row{grid-template-columns:minmax(0,1fr)}}
+.league-top{display:grid; grid-template-columns:minmax(0,1.3fr) repeat(2,minmax(0,1fr)); gap:16px; margin-bottom:16px}
+.league-top .big{font-size:56px}
+.league-place{position:relative; border-radius:var(--radius-m); background:var(--purple); color:var(--white); padding:22px;
+  display:flex; flex-direction:column; gap:8px; overflow:hidden}
+.league-place .lab{color:var(--green)}
+.league-place .big{font-size:80px; margin-top:8px}
+.league-cup{position:absolute; right:-18px; bottom:-26px; --ico:170px; color:rgb(255 255 255 / 10%)}
+@media (max-width:900px){.league-top{grid-template-columns:repeat(2,minmax(0,1fr))}.league-place{grid-column:1 / -1}}
+/* Starters you also field are tagged in words, not only outlined. */
+.tpl-mine::after{content:"You"; position:absolute; top:3px; right:3px; z-index:2; padding:1px 4px; border-radius:4px;
+  background:var(--green); color:var(--night); font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:.04em}
