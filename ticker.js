@@ -74,11 +74,11 @@
   // average never reads a different colour than the same value would have
   // been given at build time.
   var SCALE = [
-    [2.0, '#a4133c', '#ffffff'],
-    [4.0, '#f4845f', '#40190e'],
-    [6.0, '#eae7ec', '#37003c'],
-    [8.0, '#7ac9a0', '#0d3b26'],
-    [10.1, '#17876a', '#ffffff']
+    [2.0, '#16001a', '#ffffff'],
+    [4.0, '#6e6474', '#ffffff'],
+    [6.0, '#eeecef', '#16001a'],
+    [8.0, '#00ff87', '#16001a'],
+    [10.1, '#2fbf7a', '#16001a']
   ];
   var PREMIUM_RATING = 9.0;
 

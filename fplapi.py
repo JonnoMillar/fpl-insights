@@ -356,9 +356,11 @@ def photo_data_uri(photo_field, max_bytes=14000):
 
     The Premier League serve these as 96 KB PNGs, which across a squad would
     add well over a megabyte to a page you open on a phone. Pillow, if it is
-    installed, re-encodes to a small JPEG on a white ground - a portrait does
-    not need alpha. Without Pillow the raw PNG is embedded instead, so the
-    feature degrades rather than disappears."""
+    installed, re-encodes to WebP, which keeps the transparency the page's
+    cut-outs stand on (players sit on coloured cards, so a flattened
+    background would show as a box) and is still smaller than a JPEG. Without
+    WebP support it falls back to a JPEG on the mist ground; without Pillow
+    the raw PNG is embedded, so the feature degrades rather than disappears."""
     if isinstance(photo_field, dict):
         pid = ("placeholder" if photo_field.get("has_temporary_code") else
                str(photo_field.get("code") or str(photo_field.get("photo", "")).split(".")[0]))
@@ -376,10 +378,17 @@ def photo_data_uri(photo_field, max_bytes=14000):
     try:
         import io
 
-        from PIL import Image
+        from PIL import Image, features
 
         img = Image.open(io.BytesIO(raw)).convert("RGBA")
-        flat = Image.new("RGB", img.size, (245, 242, 245))
+        if features.check("webp"):
+            for quality in (72, 60, 48):
+                buf = io.BytesIO()
+                img.save(buf, format="WEBP", quality=quality, method=6)
+                if buf.tell() <= max_bytes:
+                    break
+            return "data:image/webp;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+        flat = Image.new("RGB", img.size, (244, 242, 245))
         flat.paste(img, mask=img.split()[-1])
         for quality in (78, 66, 55, 45):
             buf = io.BytesIO()

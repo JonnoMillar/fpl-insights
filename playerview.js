@@ -30,11 +30,11 @@
   // Same five-step scale the fixture ticker uses, so a fixture reads the same
   // wherever it appears on the page.
   function csTone(cs) {
-    if (cs >= 45) { return ['#1e0021', '#fff']; }
-    if (cs >= 36) { return ['#41054b', '#fff']; }
-    if (cs >= 28) { return ['#7d5980', '#fff']; }
-    if (cs >= 20) { return ['#af99b1', '#37003c']; }
-    return ['#ebe5eb', '#37003c'];
+    if (cs >= 45) { return ['#16001a', '#fff']; }
+    if (cs >= 36) { return ['#37003c', '#fff']; }
+    if (cs >= 28) { return ['#6e6474', '#fff']; }
+    if (cs >= 20) { return ['#d3cdd6', '#16001a']; }
+    return ['#eeecef', '#16001a'];
   }
 
   // Same ramp, thresholds rescaled to a team's expected goals instead of
@@ -42,11 +42,11 @@
   // but a midfielder's or forward's hinge on their side scoring, so shading
   // every position by clean-sheet odds told attackers the wrong story.
   function xgTone(xg) {
-    if (xg >= 1.9) { return ['#1e0021', '#fff']; }
-    if (xg >= 1.6) { return ['#41054b', '#fff']; }
-    if (xg >= 1.3) { return ['#7d5980', '#fff']; }
-    if (xg >= 1.0) { return ['#af99b1', '#37003c']; }
-    return ['#ebe5eb', '#37003c'];
+    if (xg >= 1.9) { return ['#16001a', '#fff']; }
+    if (xg >= 1.6) { return ['#37003c', '#fff']; }
+    if (xg >= 1.3) { return ['#6e6474', '#fff']; }
+    if (xg >= 1.0) { return ['#d3cdd6', '#16001a']; }
+    return ['#eeecef', '#16001a'];
   }
 
   function sparkline(values, tone) {

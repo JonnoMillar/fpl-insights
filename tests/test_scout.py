@@ -440,7 +440,7 @@ class GreyscaleAccessibilityTests(unittest.TestCase):
             self.assertTrue(bg.startswith("#") and fg.startswith("#"))
 
     def test_ticker_scale_still_passes_greyscale(self):
-        # The shipped rose-teal ramp this section deliberately reuses for
+        # The shipped fixture ramp this section deliberately reuses for
         # fixture difficulty (plan §2.5) - if this ever regresses, both the
         # existing ticker and this section's fixture rows lose the property
         # at once.

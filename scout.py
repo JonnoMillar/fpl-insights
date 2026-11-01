@@ -243,11 +243,11 @@ POSITIONS = {
 # direction on the compare bars is carried by which side of centre the bar
 # sits, which needs no colour at all.
 PERCENTILE_SCALE = [
-    (20.0, "#faf9fa", "#37003c"),
-    (40.0, "#ebe5eb", "#37003c"),
-    (60.0, "#d7ccd8", "#37003c"),
-    (80.0, "#af99b1", "#37003c"),
-    (100.1, "#7d5980", "#ffffff"),
+    (20.0, "#f8f7f9", "#37003c"),
+    (40.0, "#e6e2e8", "#37003c"),
+    (60.0, "#b3aab8", "#37003c"),
+    (80.0, "#6e6474", "#ffffff"),
+    (100.1, "#37003c", "#ffffff"),
 ]
 
 

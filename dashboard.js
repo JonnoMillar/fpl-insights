@@ -45,12 +45,12 @@
     }
     group.addEventListener('click', sync);
     group.addEventListener('keydown', function(ev) {
-      if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(ev.key)) return;
+      if (!['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp', 'Home', 'End'].includes(ev.key)) return;
       var i = buttons.indexOf(ev.target);
       if (i < 0) return;
       ev.preventDefault();
       i = ev.key === 'Home' ? 0 : ev.key === 'End' ? buttons.length - 1 :
-        (i + (ev.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
+        (i + (ev.key === 'ArrowRight' || ev.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
       buttons[i].focus();
       buttons[i].click();
     });

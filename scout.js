@@ -51,14 +51,14 @@
   // must read the same number and colour wherever it appears. Difficulty
   // here is 1..5 with higher meaning harder, the reverse of ticker.py's
   // 0..10 "higher is better" rating, so the five steps are ticker.SCALE's
-  // own five (bg, fg) pairs in reverse: 1 (easiest) is teal, 5 (hardest)
-  // is rose. If ticker.SCALE ever changes, update this to match.
+  // own five (bg, fg) pairs in reverse: 1 (easiest) is deep green, 5
+  // (hardest) is night. If ticker.SCALE ever changes, update this to match.
   var FIXTURE_TONES = [
-    ['#17876a', '#ffffff'],
-    ['#7ac9a0', '#0d3b26'],
-    ['#eae7ec', '#37003c'],
-    ['#f4845f', '#40190e'],
-    ['#a4133c', '#ffffff'],
+    ['#2fbf7a', '#16001a'],
+    ['#00ff87', '#16001a'],
+    ['#eeecef', '#16001a'],
+    ['#6e6474', '#ffffff'],
+    ['#16001a', '#ffffff'],
   ];
 
   // The page's own purple ramp, matching scout.py's PERCENTILE_SCALE. A
@@ -67,11 +67,11 @@
   // and the one that keeps this section inside the palette the rest of
   // the dashboard already uses.
   var PERCENTILE_SCALE = [
-    [20.0, '#faf9fa', '#37003c'],
-    [40.0, '#ebe5eb', '#37003c'],
-    [60.0, '#d7ccd8', '#37003c'],
-    [80.0, '#af99b1', '#37003c'],
-    [100.1, '#7d5980', '#ffffff'],
+    [20.0, '#f8f7f9', '#37003c'],
+    [40.0, '#e6e2e8', '#37003c'],
+    [60.0, '#b3aab8', '#37003c'],
+    [80.0, '#6e6474', '#ffffff'],
+    [100.1, '#37003c', '#ffffff'],
   ];
 
   function percentileTone(pct) {

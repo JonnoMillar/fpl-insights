@@ -18,31 +18,29 @@ Kept apart from dashboard.py so the page assembly stays readable.
 
 import html
 
+from cards_common import icon
+
 
 def e(x):
     return html.escape(str(x), quote=True)
 
 
-# Segment colours for expected points, ordered as the scoring order a
-# manager thinks in. One family (the purples) for the "who scores" terms -
-# goals in full ink, assists a step lighter - then three role hues for the
-# rest: premium teal for the clean sheet, market teal for saves and the
-# goals-conceded deduction (the same "priced event" the market card uses),
-# attention amber for DefCon, mine magenta for bonus. The grey for
-# appearance points fails a chroma floor on purpose - turning up is the
-# unremarkable part of a score and should read that way. gc and cards are
-# deductions and so never render as a positive-width segment, only as a
-# legend entry and a signed number in the itemised list.
+# Segment colours for expected points, in the order a manager thinks of a
+# score. Seven parts cannot be told apart by lightness alone, so every bar
+# that uses them also prints an itemised, signed list in words; the colours
+# only make the parts visible. Appearance points are a pale grey on purpose:
+# turning up is the unremarkable part of a score. gc and cards are
+# deductions and never draw as a positive segment.
 EP_PARTS = (
-    ("goals", "Goals", "var(--ink)"),
-    ("assists", "Assists", "var(--p70)"),
-    ("defence", "Clean sheet", "var(--premium)"),
-    ("saves", "Saves", "var(--market)"),
-    ("appearance", "Appearance", "var(--p20)"),
-    ("defcon", "DefCon", "var(--attention)"),
-    ("bonus", "Bonus", "var(--mine)"),
-    ("gc", "Goals conceded", "var(--market)"),
-    ("cards", "Cards", "var(--bad)"),
+    ("goals", "Goals", "#16001a"),
+    ("assists", "Assists", "#7b2f86"),
+    ("defence", "Clean sheet", "#00ff87"),
+    ("saves", "Saves", "#1b5ce0"),
+    ("appearance", "Appearance", "#d3cdd6"),
+    ("defcon", "DefCon", "#ffb000"),
+    ("bonus", "Bonus", "#8e8494"),
+    ("gc", "Goals conceded", "#1b5ce0"),
+    ("cards", "Cards", "#16001a"),
 )
 
 
@@ -110,16 +108,17 @@ def info_btn():
     doing the work at a glance; the JS toggle lives once in JS, keyed off
     this class, rather than per-card."""
     return ('<button class="infobtn" type="button" aria-label="More information" '
-            'aria-expanded="false">i</button>')
+            'aria-expanded="false">' + icon("information") + '</button>')
 
 
 def gap_chart(rows, title, note, left_label, right_label):
     """A dumbbell chart: two dots joined by a line, one row per player.
 
     `rows` is [(name, actual, expected)]. The line between the dots is the
-    thing being measured, so it carries the colour: green where the player is
-    under-performing his chances (they are arriving, the finishing will come),
-    amber where he is over-performing them."""
+    thing being measured, so it carries the direction twice: a solid green
+    line where the player is under-performing his chances (they are arriving,
+    the finishing will come), a striped dark line where he is over-performing
+    them. The stripes are the part a colour-blind reader relies on."""
     if not rows:
         return ""
     top = max(max(a, b) for _n, a, b in rows) or 1.0
@@ -133,19 +132,19 @@ def gap_chart(rows, title, note, left_label, right_label):
         # dot's radius on both ends regardless of the track's actual width.
         fa, fx = actual / top, expected / top
         lo, hi = min(fa, fx), max(fa, fx)
-        colour = "var(--success)" if actual < expected else "var(--warn)"
+        tone = "gap-under" if actual < expected else "gap-over"
         items.append(
             '<li class="gap"><span class="gapname">{}</span>'
             '<span class="gaptrack">'
-            '<span class="gapline" style="left:calc(5.5px + (100% - 11px) * {:.4f});'
-            'width:calc((100% - 11px) * {:.4f});background:{}"></span>'
+            '<span class="gapline {}" style="left:calc(5.5px + (100% - 11px) * {:.4f});'
+            'width:calc((100% - 11px) * {:.4f})"></span>'
             '<span class="gapdot d-a" style="left:calc(5.5px + (100% - 11px) * {:.4f})" '
             'title="{} {:g}"></span>'
             '<span class="gapdot d-x" style="left:calc(5.5px + (100% - 11px) * {:.4f})" '
             'title="{} {:.2f}"></span>'
             "</span>"
             '<span class="gapnum tnum">{:g} v {:.2f}</span></li>'.format(
-                e(name), lo, hi - lo, colour,
+                e(name), tone, lo, hi - lo,
                 fa, e(left_label), actual,
                 fx, e(right_label), expected,
                 actual, expected,
@@ -161,7 +160,7 @@ def gap_chart(rows, title, note, left_label, right_label):
         '<span class="epkey"><i class="k-over"></i>running hot</span>'
         if both else "")
     return (
-        '<div class="find gapcard"><h3>{}{}</h3><p class="note" hidden>{}</p>'
+        '<div class="find gapcard"><h3>' + icon("goals") + '{}{}</h3><p class="note" hidden>{}</p>'
         '<ul class="gaplist">{}</ul>'
         '<p class="eplegend"><span class="epkey"><i class="k-a"></i>{}</span>'
         '<span class="epkey"><i class="k-x"></i>{}</span>{}</p></div>'.format(
@@ -214,7 +213,7 @@ def defcon_bars(rows):
     if not items:
         return ""
     return (
-        '<div class="find gapcard"><h3>Defensive contribution{}</h3>'
+        '<div class="find gapcard"><h3>' + icon("defence") + 'Defensive contribution{}</h3>'
         '<p class="note" hidden>Two points a match at the threshold. The notch is the '
         "threshold; the bar is the rate per 90.</p>"
         '<ul class="dclist">{}</ul></div>'.format(info_btn(), "".join(items))
@@ -279,7 +278,7 @@ def set_piece_card(groups):
     if not blocks:
         return ""
     return (
-        '<div class="find gapcard"><h3>Set pieces{}</h3>'
+        '<div class="find gapcard"><h3>' + icon("free-kicks") + 'Set pieces{}</h3>'
         '<p class="note" hidden>Who takes them, in the order the club lists them.</p>'
         '<div class="spwrap">{}</div></div>'.format(info_btn(), "".join(blocks))
     )
@@ -336,7 +335,7 @@ def price_move_card(moves):
         )
 
     return (
-        '<div class="find gapcard"><h3>Price movement{}</h3>'
+        '<div class="find gapcard"><h3>' + icon("price-rise") + 'Price movement{}</h3>'
         '<p class="note" hidden>Over the last 7 days. The season-long change for '
         "any one player is on their own card, in the squad view.</p>"
         '<div class="pmwrap">{}{}</div></div>'.format(

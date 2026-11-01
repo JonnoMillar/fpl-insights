@@ -9,26 +9,24 @@ import ffs
 import pulse
 import ticker
 from analysis import f
-from cards_common import TONE_COLOR, e, meter, script_json
+from cards_common import TONE_COLOR, e, icon, meter, script_json
 
 
-# FPL's own five-step difficulty scale, background and text, straight from
-# their stylesheet. Difficulty is ordinal and diverging - kind through neutral
-# to brutal - so the grey midpoint is correct rather than a gap in the
-# palette. Every pill also carries the opponent and the number, which is what
-# actually makes it readable: steps 2 and 3 sit at 1.35:1 and 1.2:1 against
-# white, so the fill alone was never carrying the meaning.
+# FPL's five-step difficulty scale, redrawn in the page's own ramp: brand
+# greens for the kindest fixtures, through paper, to night for the hardest.
+# Every pill also prints the opponent and the number, which is what makes it
+# readable; the fill only shows a run.
 FDR = {
-    1: ("#375523", "#ffffff"),
-    2: ("#01fc7a", "#37003c"),
-    3: ("#e7e7e7", "#37003c"),
-    4: ("#ff1751", "#000000"),
-    5: ("#80072d", "#ffffff"),
+    1: ("#2fbf7a", "#16001a"),
+    2: ("#00ff87", "#16001a"),
+    3: ("#eeecef", "#16001a"),
+    4: ("#6e6474", "#ffffff"),
+    5: ("#16001a", "#ffffff"),
 }
 
 
 def fdr_pill(opp, home, diff):
-    bg, fg = FDR.get(diff, ("#ebe5eb", "#37003c"))
+    bg, fg = FDR.get(diff, ("#eeecef", "#16001a"))
     label = opp.upper() if home else opp.lower()
     venue = "home" if home else "away"
     return (
@@ -452,13 +450,10 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
         total = len(rows)
         starting = total - len(out) - len(unknown)
         pct = (starting / total * 100) if total else 0.0
-        # A clean sweep gets the same bright accent green as the set-piece
-        # card's "1" badge - the colour this page already uses to say "this
-        # one's the best of its kind" - rather than the duller ink tone that
-        # merely clearing 90% gets.
-        tone = ("var(--accent)" if starting == total and total else
-                "var(--good-ink)" if pct >= 90 else
-                "var(--attention-ink)" if pct >= 60 else "var(--bad-ink)")
+        # The named share is purple, or brand green for a clean sweep; the
+        # unknown and left-out arcs are amber and night, so each state also
+        # differs in lightness, and the count is printed beside the ring.
+        tone = "var(--green)" if starting == total and total else "var(--purple)"
         if not total:
             body = '<p class="lc-clear">Nobody in this group.</p>'
         elif not out and not unknown:
@@ -510,7 +505,7 @@ def lineup_card(reports, ctx, proj, market, next_gw, xi_ids=None):
     )
 
     return (
-        f'<div class="find gapcard lccard"><h3>Predicted line-ups'
+        f'<div class="find gapcard lccard"><h3>{icon("available")}Predicted line-ups'
         f'{components.info_btn()}</h3>'
         f'<p class="note" hidden>Fantasy Football Scout\'s predicted elevens. '
         f'They are re-tuned after each press conference, so they sharpen '
@@ -544,7 +539,7 @@ def attacking_returns_card(reports):
         for name, club, pos, total, g, a in rows
     )
     return (
-        '<div class="find gapcard"><h3>Attacking returns</h3>'
+        f'<div class="find gapcard"><h3>{icon("goals")}Attacking returns</h3>'
         f'<ul class="arrlist">{items}</ul></div>'
     )
 
@@ -587,7 +582,7 @@ def big_chances_card(reports):
     # which. One headline figure with the wider one written out beside it in
     # words, the same shape as every other card in this column.
     return (
-        '<div class="find gapcard"><h3>Big chances created</h3>'
+        f'<div class="find gapcard"><h3>{icon("assists")}Big chances created</h3>'
         f'<ul class="arrlist">{items}</ul></div>'
     )
 
@@ -640,7 +635,7 @@ def fixture_swings_card(reports, ctx, proj, market, next_gw):
 
     body = block(kind, "fsw-kind", "Kind run") + block(hard, "fsw-hard", "Hard run")
     return (
-        f'<div class="find gapcard"><h3>Fixture swings{components.info_btn()}</h3>'
+        f'<div class="find gapcard"><h3>{icon("fixtures")}Fixture swings{components.info_btn()}</h3>'
         '<p class="note" hidden>FPL\'s own 1-5 difficulty rating, averaged over '
         'the next 3 gameweeks - the fixtures behind a "kind" or "hard" run, '
         "not just the number that summarises it.</p>"
@@ -714,10 +709,10 @@ def findings_section(finds, reports, ctx, proj=None, market=None, next_gw=None,
         cards.append(components.gap_chart(
             gaps,
             "Goals against expected goals",
-            "The line is the gap. Green means the chances are arriving and "
-            "the finishing has not caught up - he is owed goals. Amber means "
-            "he has scored more than the chances merited, which is the half "
-            "of this card that does not repeat.",
+            "The line is the gap. A solid green line means the chances are "
+            "arriving and the finishing has not caught up - he is owed goals. "
+            "A striped line means he has scored more than the chances "
+            "merited, which is the half of this card that does not repeat.",
             "Scored", "Expected",
         ))
     if dc_rows:
@@ -767,8 +762,14 @@ def _figures(text):
                        e(text))
 
 
+FINDING_ICON = {"availability": "injured", "rotation": "minutes", "bcm": "goals",
+                "setpieces": "free-kicks", "defcon": "defence", "price": "price-rise",
+                "fixtures": "fixtures", "sample": "information"}
+
+
 def finding_card(fnd):
     tone = TONE_COLOR.get(fnd["tone"], "var(--p60)")
+    ico = icon(FINDING_ICON[fnd["key"]]) if fnd["key"] in FINDING_ICON else ""
     items = []
     for raw in fnd["items"]:
         lead, sep, detail = raw.partition(" - ")
@@ -789,7 +790,7 @@ def finding_card(fnd):
     infobtn = components.info_btn() if fnd["note"] else ""
     return (
         f'<div class="find" style="--tone:{tone}">'
-        f"<h3>{e(fnd['title'])}{infobtn}</h3>{note}"
+        f"<h3>{ico}{e(fnd['title'])}{infobtn}</h3>{note}"
         f"<ul class=\"filist\">{''.join(items)}</ul></div>"
     )
 

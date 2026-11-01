@@ -18,6 +18,18 @@ def e(x):
     return html.escape(str(x), quote=True)
 
 
+def icon(name, cls=""):
+    """One of the generated icons (assets/icons.css), decorative: the label
+    beside it, or the control's own accessible name, carries the meaning."""
+    return f'<span class="ico ico-{name}{" " + cls if cls else ""}" aria-hidden="true"></span>'
+
+
+# The goal-and-bars mark (docs/brand-handoff/logo, still a draft geometry).
+LOGO_SVG = ('<svg viewBox="0 0 100 62" fill="currentColor" aria-hidden="true">'
+            '<path d="M0 62V0H100V62H90V10H10V62Z"/>'
+            '<path d="M16.5 40H34.5V62H16.5ZM41 32H59V62H41ZM65.5 20H83.5V62H65.5Z"/></svg>')
+
+
 def script_json(value):
     """Escape the HTML boundary as well as JSON syntax."""
     return json.dumps(value).replace("<", "\\u003c")
@@ -29,11 +41,11 @@ def script_json(value):
 # forward's on their side scoring, so each is shaded by the stat that
 # actually decides it. Kept as one scale in two places rather than derived,
 # so a fixture reads the same color wherever a player appears on the page.
-CS_TONE = [(45, "#1e0021", "#fff"), (36, "#41054b", "#fff"),
-          (28, "#7d5980", "#fff"), (20, "#af99b1", "#37003c")]
-XG_TONE = [(1.9, "#1e0021", "#fff"), (1.6, "#41054b", "#fff"),
-          (1.3, "#7d5980", "#fff"), (1.0, "#af99b1", "#37003c")]
-TONE_FALLBACK = ("#ebe5eb", "#37003c")
+CS_TONE = [(45, "#16001a", "#fff"), (36, "#37003c", "#fff"),
+          (28, "#6e6474", "#fff"), (20, "#d3cdd6", "#16001a")]
+XG_TONE = [(1.9, "#16001a", "#fff"), (1.6, "#37003c", "#fff"),
+          (1.3, "#6e6474", "#fff"), (1.0, "#d3cdd6", "#16001a")]
+TONE_FALLBACK = ("#eeecef", "#16001a")
 
 
 def _step_tone(value, steps):

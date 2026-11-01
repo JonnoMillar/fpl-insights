@@ -40,6 +40,7 @@ daylight before a deadline, and carrying a second full palette meant every
 new colour had to be drawn twice and kept in step.
 """
 
+import base64
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -61,7 +62,7 @@ import scout
 import ticker
 import transfers
 from analysis import f
-from cards_common import e
+from cards_common import LOGO_SVG, e, icon
 from cards_squad import (findings_section, pick_team_pitch, pitch,
     player_dialog, player_payload, squad_table)
 from cards_planning import (best_xi_card, captaincy_card, chip_planner_card,
@@ -88,6 +89,17 @@ PLANVIEW_JS = (Path(__file__).with_name("planview.js")).read_text(encoding="utf-
 
 JS = (Path(__file__).with_name("dashboard.js")).read_text(encoding="utf-8")
 
+# The generated icon set, packed by scripts/pack_icons.py into one sprite and
+# embedded so the page stays self-contained (CSS masks will not load a file://
+# image). A missing sheet leaves the icons blank, never the page.
+_ASSETS = Path(__file__).with_name("assets")
+try:
+    ICON_CSS = (":root{--ico-sheet:url(data:image/png;base64,"
+                + base64.b64encode((_ASSETS / "icons.png").read_bytes()).decode("ascii")
+                + ")}" + (_ASSETS / "icons.css").read_text(encoding="utf-8"))
+except OSError:
+    ICON_CSS = ""
+
 # Inline rather than a file so the page stays self-contained: it works opened
 # from disk, and the body-only artifact the live site serves carries it too.
 # Link previews need an absolute image URL, so this points at the deployed
@@ -109,9 +121,10 @@ SOCIAL_META = (
 FAVICON = (
     '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,' + quote(
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
-        '<rect width="32" height="32" rx="7" fill="#37003c"/>'
-        '<path d="M7 22l6-7 5 4 7-10" fill="none" stroke="#01fc7a" '
-        'stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>'
+        '<rect width="32" height="32" rx="8" fill="#00ff87"/>'
+        '<g transform="translate(5 9.2) scale(.22)" fill="#37003c">'
+        '<path d="M0 62V0H100V62H90V10H10V62Z"/>'
+        '<path d="M16.5 40H34.5V62H16.5ZM41 32H59V62H41ZM65.5 20H83.5V62H65.5Z"/></g>'
         '</svg>') + '">'
 )
 
@@ -220,6 +233,19 @@ def week_verdict(ctx, gw, squad_ids, captain_id, points, average, pending):
     return frame
 
 
+def next_opponent(ctx, team_id, gw, badges):
+    """The club's single fixture in gameweek gw: who, where, and the crest."""
+    fxs = [fx for fx in ctx.fixtures
+           if fx.get("event") == gw and team_id in (fx["team_h"], fx["team_a"])]
+    if len(fxs) != 1:
+        return None
+    fx = fxs[0]
+    home = fx["team_h"] == team_id
+    opp = fx["team_a"] if home else fx["team_h"]
+    return {"name": ctx.teams[opp]["name"], "short": ctx.team_name(opp),
+            "home": home, "crest": badges.get(opp)}
+
+
 # --- page -----------------------------------------------------------------
 
 def source_notice(d):
@@ -227,8 +253,8 @@ def source_notice(d):
                if not row["ok"]]
     if not missing:
         return ""
-    return ('<p class="data-status data-warning" role="status">Some data is unavailable. '
-            + e("; ".join(missing)) + '</p>')
+    return ('<p class="data-status data-warning" role="status">' + icon("doubtful")
+            + '<span>Some data is unavailable. ' + e("; ".join(missing)) + '</span></p>')
 
 
 def render(d, standalone=True):
@@ -237,160 +263,179 @@ def render(d, standalone=True):
     next_label = f"GW{d['next_gw']}" if d["next_gw"] <= 38 else "no upcoming gameweek"
     eh = d["entry_history"]
 
-    # What belongs here is what you would act on, not what happened. Squad
-    # value and points-on-bench were retrospective, and XI xGI was the weakest
-    # number on the page - a season total over one match, never adjusted for
-    # minutes. Replaced by the two forward-looking things: what the squad is
-    # projected to score, and who is not going to play.
     week = d.get("week_projection") or {}
     projected = week.get("owned")
     preview_gain = week.get("gain")
     preview_hit = week.get("hit", 0)
     attention = d.get("attention") or []
-
-    # A score with no average beside it, and a rank with no direction, are
-    # both half a fact. Both go in as delta chips - the same component the
-    # rest of the page uses - deliberately smaller than the figure they
-    # qualify, so the tile still reads as one number at a glance.
-    # The average belongs beside the score as a number, not as a difference
-    # from it - "89 against a 79 average" is a comparison anyone makes
-    # instantly, where "10 v avg" made them do the arithmetic backwards to
-    # find out what the average even was.
     avg = d.get("gw_average")
-    gw_note = f"GW{d['gw']} &middot; {avg} average" if avg else f"GW{d['gw']}"
-
-    move = d.get("rank_move")
-    rank_chip = ""
-    if move:
-        # Positive means the rank number fell, which is a climb.
-        rank_chip = (f'<span class="delta delta-{"up" if move > 0 else "down"}">'
-                     f'{compact_rank(move)}</span>')
-    lg_move = d.get("league_move")
-    lg_chip = ""
-    if lg_move:
-        lg_chip = (f'<span class="delta delta-{"up" if lg_move > 0 else "down"}">'
-                   f'{abs(lg_move)}</span>')
-
-    # Two of the six tiles get a tone - not all of them, since a hero row
-    # in six different colours would just be noise. These are the two
-    # where the number alone already answers "good or bad", so the colour
-    # repeats a judgement the reader is about to make anyway rather than
-    # asserting a new one: the gameweek score against the average sitting
-    # right beside it, and whether anything actually needs the manager's
-    # attention this week.
     gw_pts = eh.get("points")
-    gw_tone = ""
-    if isinstance(gw_pts, (int, float)) and avg:
-        gw_tone = "tile-good" if gw_pts >= avg else "tile-bad"
-    attn_tone = "tile-warn" if attention else "tile-good"
 
-    tiles = [
-        ("Gameweek", eh.get("points", "-"), gw_note, "", gw_tone),
-        # "up 1.5m" beside "1,218,139 overall" read as a contradiction - two
-        # millions, one a movement and one a position, neither saying which.
-        # The chip says what it is.
-        ("Total", eh.get("total_points", "-"),
-         f"rank {d['overall_rank']:,}" if d.get("overall_rank") else "points",
-         rank_chip, ""),
-        ("League", f"{d['my_rank']}/{d['league_size']}" if d["my_rank"] else "-",
-         e(d["league_name"]), lg_chip, ""),
-        ("Projected", f"{projected:.1f}" if projected else "-",
-         f"{next_label}, with captain", "", ""),
-        ("XI needs a look", len(attention),
-         "; ".join(f"{nm} &mdash; {why}" for nm, why in attention[:2])
-         + ("&hellip;" if len(attention) > 2 else "")
-         if attention else "nobody flagged", "", attn_tone),
-        # Sell value, not list value. What the squad would cost to buy today
-        # is not what you can spend: FPL gives back purchase price plus half
-        # of any rise, which is the number the chip planner already budgets
-        # against, and two different squad values on one page is one too many.
-        ("In the bank", f"{eh.get('bank', 0) / 10:.1f}m",
-         (f"squad sells for {d['sell_value']:.1f}m"
-          if d.get("sell_value") else
-          f"squad {eh.get('value', 0) / 10:.1f}m"), "", ""),
-    ]
-    score_groups = []
-    for group_id, label, group_tiles in (("recent", "Just happened", tiles[:3]),
-                                         ("upcoming", "Up next", tiles[3:])):
-        tile_rows = []
-        for k, v, n, chip, tone in group_tiles:
-            value_html = e(v)
-            note_html = n
-            if k == "Projected" and week.get("transfers") is not None:
-                value_html = (f'<span class="projection-values"><span data-lineup="owned">{e(v)}</span>'
-                              f'<span data-lineup="transfers" hidden>{week["transfers"]:.1f}</span></span>')
-                note_html = (f'<span class="projection-values"><span data-lineup="owned">{e(next_label)}, with captain</span>'
-                             f'<span data-lineup="transfers" hidden>{e(next_label)}, {f"after {preview_hit}-point hit" if preview_hit else "with captain"}</span></span>')
-            tile_rows.append(f'<div class="tile {"tile-primary" if k in ("Gameweek", "Projected") else "tile-secondary"} {tone}"><div class="k">{e(k)}</div>'
-                             f'<div class="v tnum">{value_html}{chip}</div><div class="n">{note_html}</div></div>')
-        tile_html = "".join(tile_rows)
-        score_groups.append(f'<section class="score-group score-{group_id}" aria-labelledby="score-{group_id}">'
-                            f'<h2 id="score-{group_id}">{label}</h2><div class="tiles">{tile_html}</div></section>')
+    def chip(move, text):
+        if not move:
+            return ""
+        return (f'<span class="delta delta-{"up" if move > 0 else "down"}" '
+                f'title="{"up" if move > 0 else "down"} {e(text)}">{e(text)}</span>')
+
+    # Rank and league movement: positive means the rank number fell, a climb.
+    rank_move = d.get("rank_move")
+    rank_chip = chip(rank_move, compact_rank(rank_move) if rank_move else "")
+    lg_move = d.get("league_move")
+    lg_chip = chip(lg_move, (f"{abs(lg_move)} place{'s' if abs(lg_move) != 1 else ''}"
+                             if lg_move else ""))
+    gap = ""
+    if isinstance(gw_pts, (int, float)) and avg:
+        diff = gw_pts - avg
+        gap = (f'<span class="delta delta-{"up" if diff >= 0 else "down"}">'
+               f'{abs(diff)} {"above" if diff >= 0 else "below"}</span>')
+    verdict = f'<p class="score-line">{d["verdict"]}</p>' if d.get("verdict") else ""
+    my_rank, size = d.get("my_rank"), d.get("league_size")
+
+    def ordinal(n):
+        return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+
+    projected_html = e(f"{projected:.1f}") if projected else "&ndash;"
+    projected_note = f"{e(next_label)}, with captain"
+    if projected and week.get("transfers") is not None:
+        projected_html = (f'<span data-lineup="owned">{projected:.1f}</span>'
+                          f'<span data-lineup="transfers" hidden>{week["transfers"]:.1f}</span>')
+        hit_words = f"after a {preview_hit}-point hit" if preview_hit else "with the transfers"
+        projected_note = (f'<span data-lineup="owned">{e(next_label)}, with captain</span>'
+                          f'<span data-lineup="transfers" hidden>{e(next_label)}, {hit_words}</span>')
+    if attention:
+        looks = "".join(f'<li>{icon("doubtful")}<span><b>{e(nm)}</b> {e(why)}</span></li>'
+                        for nm, why in attention[:3])
+        looks = (f'<div class="next-look"><span class="lab">{len(attention)} to check</span>'
+                 f'<ul>{looks}</ul></div>')
+    else:
+        looks = (f'<div class="next-look"><span class="lab">Team news</span>'
+                 f'<ul><li>{icon("available")}<span>Nobody in the eleven is flagged.</span></li></ul></div>')
+    bank_note = (f"squad sells for {d['sell_value']:.1f}m" if d.get("sell_value")
+                 else f"squad {eh.get('value', 0) / 10:.1f}m")
+    rank_note = f"rank {d['overall_rank']:,}" if d.get("overall_rank") else "points"
+    avg_note = f"<br>{avg} average" if avg else ""
+
+    hero_html = f'''<section class="squad-top" aria-label="Weekly scorecard">
+      <div class="score-card">
+        <div class="glow" aria-hidden="true"><i></i><i></i></div>
+        <span class="lab">Gameweek {d['gw']}</span>
+        <div class="score-big"><span class="big tnum">{e(gw_pts if gw_pts is not None else "–")}</span>
+          <span class="score-of">points{avg_note}</span>{gap}</div>
+        {verdict}
+      </div>
+      <div class="stat-tile"><span class="lab">Season</span>
+        <span class="big tnum">{e(eh.get("total_points", "–"))}</span>
+        <span class="stat-note">{rank_note} {rank_chip}</span></div>
+      <div class="stat-tile"><span class="lab">{e(d['league_name'])}</span>
+        <span class="big tnum">{ordinal(my_rank) if my_rank else "–"}</span>
+        <span class="stat-note">{f"of {size}" if size else ""} {lg_chip}</span></div>
+      <div class="next-card">
+        <div class="next-main"><span class="lab">Up next &middot; {e(next_label)}</span>
+          <span class="big tnum">{projected_html}</span>
+          <span class="stat-note">projected points, {projected_note}</span></div>
+        {looks}
+        <div class="next-bank"><span class="big tnum">{eh.get('bank', 0) / 10:.1f}m</span>
+          <span class="stat-note">in the bank, {e(bank_note)}</span></div>
+      </div>
+    </section>'''
+
     action = d.get("next_action") or {}
     moves = action.get("moves", [])
-    exchange_html = "".join(
-        f'<li class="transfer-pair"><span class="transfer-out"><small>Out</small><button type="button" class="player-link" data-player="{move["out"].element["id"]}" title="View profile">{e(move["out"].name)}</button></span>'
-        f'<span class="transfer-arrow" aria-hidden="true">→</span>'
-        f'<span class="transfer-in"><small>In</small><button type="button" class="player-link" data-player="{move["in"]["id"]}" title="View profile">{e(move["in"]["web_name"])}</button></span></li>'
-        for move in moves
-    )
     target = action.get("target")
-    action_title = (f'<a data-dashboard-jump href="#{e(target)}">{e(action["label"])} <span aria-hidden="true">↗</span></a>'
+    action_title = (f'<a data-dashboard-jump href="#{e(target)}">{e(action["label"])}</a>'
                     if target else e(action.get("label", "Advice unavailable")))
+
+    def opp_words(opp):
+        if not opp:
+            return "no fixture"
+        return f"{opp['name']}, {'home' if opp['home'] else 'away'}"
+
+    slots = []
+    for m in d.get("brief_moves") or []:
+        out_img = (f'<img class="cut move-old" src="{m["out_photo"]}" alt="">'
+                   if m.get("out_photo") else "")
+        in_img = (f'<img class="cut move-new" src="{m["in_photo"]}" alt="">'
+                  if m.get("in_photo") else "")
+        crest = (f'<img src="{m["opp"]["crest"]}" alt="">'
+                 if m.get("opp") and m["opp"].get("crest") else "")
+        slots.append(
+            f'<li class="move-slot">{out_img}<span class="move-arrow">{icon("next")}</span>{in_img}'
+            f'<div class="move-names"><span class="move-out">{e(m["out_name"])} out</span>'
+            f'<button type="button" class="player-link disp" data-player="{m["in_id"]}">'
+            f'{e(m["in_name"])}</button>'
+            f'<span>{e(m["in_club"])} &middot; {m["in_price"]:.1f}m</span></div>'
+            f'<p class="move-caption">{crest}<span><b>v {e(opp_words(m["opp"]))}.</b> '
+            f'{e(m["reason"])}</span></p></li>')
+    moves_html = (f'<ul class="move-slots" aria-label="Suggested transfers">{"".join(slots)}</ul>'
+                  if slots else "")
+    detail = ("" if slots else
+              f'<p class="move-detail">{e(action.get("detail", "Supported projections are required."))}</p>')
+    gain = action.get("projected_gain")
+    gain_html = (f'<span class="move-gain"><b class="big tnum">+{gain:.1f}</b>'
+                 f'<span>over {action["horizon"]} gameweeks, after hits</span></span>'
+                 if gain is not None else "")
+    preview_note = d.get("transfer_preview_note", "Transfer preview unavailable.")
+    caveat = "" if d.get("transfer_pick_pitch") else preview_note
+    caveat_html = f'<p class="brief-caveat">{e(caveat)}</p>' if caveat else ""
+    brief_html = f'''<section class="move-stage" aria-labelledby="decision-title">
+      <div class="move-head"><div><span class="lab" id="decision-title">The next move &middot; {e(next_label)}</span>
+        <h3 class="brief-action disp">{action_title}</h3></div>{gain_html}</div>
+      {detail}{moves_html}
+      <div class="brief-links"><a data-dashboard-jump href="#action-method">How it's chosen</a>
+        <a data-dashboard-jump href="#transfer-plan">The full plan</a>
+        <a data-dashboard-jump href="#chip-planner">Chips</a></div>
+      {caveat_html}
+    </section>'''
+
     captain_html = ""
     for mode in ("owned", "transfers"):
-        brief = d.get(mode + "_brief") or {}
-        name = brief.get("captain")
-        player_id = brief.get("captain_id")
-        captain_name = (f'<button type="button" class="player-link" data-player="{player_id}" title="View profile">{e(name)}</button>'
-                        if player_id else e(name or "Unavailable"))
-        captain_html += (f'<p class="captain-brief" data-lineup="{mode}" {"hidden" if mode == "transfers" else ""}>'
-                         f'<span>Captain:</span> {captain_name}</p>')
-    reasons = "".join(f'<p>{e(reason)}</p>' for reason in d.get("transfer_reasons", []))
-    if not reasons:
-        reasons = f'<p>{e(action.get("detail", "Supported projections are required."))}</p>'
-    gain = action.get("projected_gain")
-    if gain is not None:
-        reasons += f'<p class="reason-horizon">The model estimates +{gain:.1f} points over {action["horizon"]} gameweeks, after hits.</p>'
+        c = (d.get("captains") or {}).get(mode)
+        if not c:
+            continue
+        photo = f'<img class="cut" src="{c["photo"]}" alt="">' if c.get("photo") else ""
+        crest = (f'<img src="{c["opp"]["crest"]}" alt="">'
+                 if c.get("opp") and c["opp"].get("crest") else "")
+        xp = f'{c["xp"]:.1f}' if c.get("xp") is not None else "&ndash;"
+        hidden = " hidden" if mode == "transfers" else ""
+        captain_html += (
+            f'<section class="captain-card" data-lineup="{mode}"{hidden} aria-label="Captain">'
+            f'<svg class="ring" aria-hidden="true" viewBox="0 0 200 200"><circle cx="100" cy="100" r="78"/></svg>'
+            f'{photo}<span class="lab">{icon("captain")} Captain</span>'
+            f'<button type="button" class="player-link disp" data-player="{c["id"]}">{e(c["name"])}</button>'
+            f'<span class="cap-opp">{crest}v {e(opp_words(c["opp"]))}</span>'
+            f'<span class="cap-xp"><b class="big tnum">{xp}</b><span>projected,<br>before doubling</span></span>'
+            f'</section>')
     weekly_gain = ""
     if preview_gain is not None:
         gain_text = f"{preview_gain:+.1f}".replace("-", "−")
         weekly_gain = (f'<span class="preview-gain {"gain-negative" if preview_gain < 0 else "gain-positive"}">'
                        f'{e(next_label)} {gain_text} xP{" after hit" if preview_hit else ""}</span>')
-    preview_note = d.get("transfer_preview_note", "Transfer preview unavailable.")
-    caveat = "" if d.get("transfer_pick_pitch") else preview_note
-    caveat_html = f'<p class="brief-caveat">{e(caveat)}</p>' if caveat else ""
-    brief_html = f'''<aside class="decision-brief" aria-labelledby="decision-title">
-      <div class="brief-heading"><h2 id="decision-title">The next move</h2><span>{e(next_label)}</span></div>
-      <h3 class="brief-action">{action_title}</h3>
-      <ul class="transfer-pairs" aria-label="Suggested transfers">{exchange_html}</ul>
-      {captain_html}
-      <details class="brief-reasons"><summary>Why this move?</summary>{reasons}<div class="brief-links"><a data-dashboard-jump href="#action-method">How it's chosen</a><a data-dashboard-jump href="#chip-planner">Review chips</a></div></details>
-      {caveat_html}
-    </aside>'''
-    hero_html = f'''<section class="hero" aria-label="Weekly scorecard">
-      {"".join(score_groups)}
-    </section>'''
 
+    tab_buttons = "".join(
+        f'<button class="tab" role="tab" aria-selected="{"true" if n == 0 else "false"}" '
+        f'data-panel="{panel}">{icon(ico)}<span>{label}</span></button>'
+        for n, (panel, ico, label) in enumerate((
+            ("p-squad", "squad", "Squad"), ("p-market", "planning", "Planning"),
+            ("p-league", "mini-league", "League"), ("p-scout", "scout", "Scout"))))
     body = f"""
+<nav class="side" aria-label="Dashboard">
+  <span class="brand"><span class="brand-mark">{LOGO_SVG}</span>FPL<br>Insights</span>
+  <div class="tabs" role="tablist" aria-label="Dashboard sections" aria-orientation="vertical">{tab_buttons}</div>
+  <span class="side-gw">GW<b class="tnum">{d['gw']}</b></span>
+</nav>
+<div class="main">
 <header class="topbar"><div class="topbar-in">
-  <span class="wordmark"><span class="dot"></span>FPL Insights</span>
-  <div class="tabs tabbar" role="tablist" aria-label="Dashboard sections">
-    <button class="tab" role="tab" aria-selected="true" data-panel="p-squad">Squad</button>
-    <button class="tab" role="tab" aria-selected="false" data-panel="p-market">Planning</button>
-    <button class="tab" role="tab" aria-selected="false" data-panel="p-league">Mini-league</button>
-    <button class="tab" role="tab" aria-selected="false" data-panel="p-scout">Scout</button>
-  </div>
-  <span class="gw-chip">Gameweek {d['gw']}</span>
-  <span class="stamp">{e(d['generated'])}</span>
-</div>
-<div class="railwrap" hidden><nav class="rail" aria-label="Sections on this tab"></nav></div>
-</header>
+  <span class="wordmark">{LOGO_SVG}FPL Insights</span>
+  <div class="railwrap" hidden><nav class="rail" aria-label="Sections on this tab"></nav></div>
+  <span class="stamp">Gameweek {d['gw']} &middot; {e(d['generated'])}</span>
+</div></header>
 
 <div class="wrap">
   <section class="product-intro" aria-labelledby="product-purpose">
-    <h1 id="product-purpose">{e(title)}</h1>
-    <p>{e(d['manager'])}’s Fantasy Premier League squad</p>
+    <div>
+      <span class="lab">{e(d['manager'])}’s Fantasy Premier League squad</span>
+      <h1 id="product-purpose" class="disp">{e(title)}</h1>
+    </div>
     <div class="intro-links">
       <a href="https://github.com/JonnoMillar/fpl-insights">Source code <span aria-hidden="true">↗</span></a>
       <details class="about-methods">
@@ -405,15 +450,14 @@ def render(d, standalone=True):
     </div>
   </section>
 
-
-  <p class="data-status" role="status" data-generated="{e(d.get('generated_iso', ''))}">
-    <span class="data-age">Snapshot: {e(d['generated'])}.</span>
-    Advice uses your last published squad and bank, not changes made since. Double gameweeks are not planned.</p>
+  <p class="data-status" role="status" data-generated="{e(d.get('generated_iso', ''))}">{icon("information")}
+    <span><span class="data-age">Snapshot: {e(d['generated'])}.</span>
+    Advice uses your last published squad and bank, not changes made since. Double gameweeks are not planned.</span></p>
 {source_notice(d)}
   <div class="panel" id="p-squad" role="tabpanel">
     <div class="squad-overview">
     {hero_html}
-    {brief_html}
+    <div class="move-row">{brief_html}<div class="captain-slot">{captain_html}</div></div>
     <section class="card squad-pitch">
       <div class="team-sheet-head"><div class="card-head"><h2>Starting XI{components.info_btn()}</h2>
         <span class="sub" hidden>Season and Last gameweek use your last published team. Next gameweek selects the best legal XI from your owned squad, then lets you preview the recommended transfers. Player xP is before captain or chip multipliers. Pitch xP uses match histories; the transfer plan uses its season-based scorer. Projected team totals include captain/chip multipliers and any transfer hit. A faded crest means no minutes in GW{d['gw']}.</span>
@@ -529,16 +573,17 @@ def render(d, standalone=True):
   <p class="foot"><a href="https://github.com/JonnoMillar/fpl-insights">source and
   phone alerts</a></p>
 </div>
+</div>
 """
-    # Noto Sans is requested as a weight range: the CSS uses 400 to 800, and a
+    # Noto Sans is requested as a weight range: the CSS uses 400 to 900, and a
     # narrower request would silently synthesise the heavy weights.
     fonts = (
         '<link rel="preconnect" href="https://fonts.googleapis.com">'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
         '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
-        "family=Noto+Sans:wght@400..800&display=swap\">"
+        "family=Noto+Sans:wght@400..900&display=swap\">"
     )
-    head = f"<title>FPL Insights · {e(title)}</title>{FAVICON}{SOCIAL_META}{fonts}<style>{CSS}</style>"
+    head = f"<title>FPL Insights · {e(title)}</title>{FAVICON}{SOCIAL_META}{fonts}<style>{CSS}{ICON_CSS}</style>"
     page = (
         f"{head}{body}<script>{JS}</script><script>{SCATTER_JS}</script>"
         f"<script>{PLAYERVIEW_JS}</script><script>{CAPTAINCY_JS}</script>"
@@ -1083,6 +1128,33 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
 
     dialog_eps = eps + [(r, preview_eps.get(r.element["id"])) for r in preview_reports]
 
+    # The faces and crests the Squad tab's move and captain cards stand on.
+    brief_moves = []
+    for move, reason in zip(moves, [next_action.explain_move(m, ctx, next_gw) for m in moves]):
+        out_el, in_el = move["out"].element, move["in"]
+        brief_moves.append({
+            "out_id": out_el["id"], "out_name": out_el["web_name"],
+            "out_photo": photos.get(out_el["id"]),
+            "in_id": in_el["id"], "in_name": in_el["web_name"],
+            "in_photo": photos.get(in_el["id"]) or fplapi.photo_data_uri(in_el),
+            "in_club": ctx.team_name(in_el["team"]), "in_price": in_el["now_cost"] / 10,
+            "opp": next_opponent(ctx, in_el["team"], next_gw, badges),
+            "reason": reason,
+        })
+    captains = {}
+    for mode, team, scores in (("owned", owned_lineup, eps_by_id),
+                               ("transfers", transfer_lineup, preview_eps)):
+        if not team or action.get("chip") == "freehit":
+            continue
+        player = next(r for r in team["xi"] if r.element["id"] == team["captain"])
+        ep = scores.get(player.element["id"]) or {}
+        captains[mode] = {
+            "id": player.element["id"], "name": player.name,
+            "photo": photos.get(player.element["id"]),
+            "opp": next_opponent(ctx, player.element["team"], next_gw, badges),
+            "xp": ep.get("total"),
+        }
+
     return {
         "ctx": ctx,
         "next_action": action,
@@ -1112,7 +1184,9 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "owned_brief": team_brief(owned_lineup),
         "transfers_brief": team_brief(transfer_lineup),
         "week_projection": week_projection,
-        "transfer_reasons": [next_action.explain_move(move, ctx, next_gw) for move in moves],
+        "transfer_reasons": [m["reason"] for m in brief_moves],
+        "brief_moves": brief_moves,
+        "captains": captains,
         "chip_note": chip_note,
         "owned_lineup_note": team_note(owned_lineup, "Current squad"),
         "transfer_lineup_note": team_note(transfer_lineup, "Transfer preview"),

@@ -48,24 +48,17 @@ ATTACK_WEIGHT = 0.55
 # nudges it, it never overturns it.
 BLEND_WEIGHT = 0.7
 
-# Five light steps. Deliberately pale: the number carries the value, the fill
-# only has to make a pattern visible down a column.
-# Five solid bands rather than a wash. Distinct blocks make a run of good or
-# bad fixtures obvious at a glance down a column, and the rating is printed in
-# every cell so the colour is never the only thing carrying the value. Red
-# through neutral to green is diverging with a genuine middle, which is what
-# "difficulty" is.
-# Rose through a warm neutral to teal. Deliberately not the red-amber-green
-# traffic light: those three are so overused they stop being read, and the
-# warm neutral in the middle sits far better against the purple the rest of
-# the page is built from. The rating is printed in every cell, so the colour
-# only has to make a run of good or bad fixtures visible down a column.
+# Five solid bands, dark to bright: night for the hardest run, a grey, the
+# paper neutral, then brand green and a deeper green for the kindest
+# (adjacent steps differ in luminance - see scout.greyscale_readable). Lightness and
+# saturation make a run visible down a column; the rating is printed in every
+# cell, so the fill never carries the value alone. No red-to-green ramp.
 SCALE = [
-    (2.0, "#a4133c", "#ffffff"),
-    (4.0, "#f4845f", "#40190e"),
-    (6.0, "#eae7ec", "#37003c"),
-    (8.0, "#7ac9a0", "#0d3b26"),
-    (10.1, "#17876a", "#ffffff"),
+    (2.0, "#16001a", "#ffffff"),
+    (4.0, "#6e6474", "#ffffff"),
+    (6.0, "#eeecef", "#16001a"),
+    (8.0, "#00ff87", "#16001a"),
+    (10.1, "#2fbf7a", "#16001a"),
 ]
 
 
