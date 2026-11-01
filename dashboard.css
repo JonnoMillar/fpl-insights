@@ -104,7 +104,7 @@ a{color:inherit}
   background:radial-gradient(circle at 50% 100%,transparent 58px,#fff 59px,#fff 61px,transparent 62px);
 }
 .brand{display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:18px;
-  font-size:11px; font-weight:900; letter-spacing:.1em; text-transform:uppercase; text-align:center; line-height:1.15}
+  font-size:12px; font-weight:900; letter-spacing:.1em; text-transform:uppercase; text-align:center; line-height:1.15}
 .brand-mark{width:48px; height:48px; border-radius:14px; background:var(--green); color:var(--purple);
   display:flex; align-items:center; justify-content:center}
 .brand-mark svg{width:30px; height:auto}
@@ -130,7 +130,7 @@ a{color:inherit}
 }
 .side .tab:focus-visible{outline:3px solid var(--green); outline-offset:2px}
 .side-gw{margin-top:auto; display:flex; flex-direction:column; align-items:center;
-  font-size:11px; font-weight:800; letter-spacing:.12em; color:rgb(255 255 255 / 70%)}
+  font-size:12px; font-weight:800; letter-spacing:.12em; color:rgb(255 255 255 / 70%)}
 .side-gw b{font-size:28px; letter-spacing:-.02em; color:var(--white); line-height:1}
 .main{margin-left:var(--side); min-width:0}
 
@@ -164,7 +164,7 @@ a{color:inherit}
     border-top:1px solid rgb(255 255 255 / 14%)}
   .side::before,.brand,.side-gw{display:none}
   .side .tabs{flex-direction:row; padding:0; gap:4px}
-  .side .tab{flex:1; padding:7px 2px 6px; gap:3px; font-size:11px; border-radius:14px}
+  .side .tab{flex:1; padding:7px 2px 6px; gap:3px; font-size:12px; border-radius:14px}
   .side .tab .ico{--ico:22px}
   .side .tab[aria-selected="true"]{transform:none}
   .side .tab[aria-selected="true"]::before{left:30%; right:30%; top:-7px; bottom:auto; width:auto; height:4px; border-radius:0 0 4px 4px}
@@ -385,7 +385,7 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:8px; vertical-align:middle}
 .stbtn{
   appearance:none; border:0; background:none; cursor:pointer;
   color:var(--on-surface-variant); font:inherit; font-family:var(--num);
-  font-size:11px; font-weight:500; padding:5px 6px; border-radius:var(--radius-xs);
+  font-size:12px; font-weight:500; padding:5px 6px; border-radius:var(--radius-xs);
 }
 .stbtn[aria-pressed="true"]{color:var(--purple); background:var(--white); font-weight:900; box-shadow:0 1px 3px rgb(22 0 26 / 14%)}
 .pitch-controls .stbtn{font-size:13px; padding:9px 12px}
@@ -417,7 +417,7 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:8px; vertical-align:middle}
 .pk-spark{width:11px; height:11px; vertical-align:-1px; margin-right:2px}
 .benchstrip{background:var(--night); padding:12px 10px}
 .benchstrip .lbl{
-  font-size:11px; text-transform:uppercase; letter-spacing:0.12em;
+  font-size:12px; text-transform:uppercase; letter-spacing:0.12em;
   color:rgb(255 255 255 / 78%); text-align:center; margin-bottom:8px; font-weight:800;
 }
 .bbpitch{padding:16px 10px}
@@ -528,7 +528,7 @@ tbody tr.me td{color:inherit}
 tbody tr.me .league-manager{color:rgb(255 255 255 / 80%)}
 td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .pos{
-  display:inline-block; min-width:34px; text-align:center; font-size:11px; font-weight:700;
+  display:inline-block; min-width:34px; text-align:center; font-size:12px; font-weight:700;
   border-radius:var(--radius-xs); padding:2px 5px;
   background:var(--surface-variant); color:var(--on-surface-variant);
 }
@@ -542,10 +542,10 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
   background:var(--outline-variant); vertical-align:middle; overflow:hidden;
 }
 .meter-fill{display:block; height:100%; background:var(--accent); border-radius:9999px}
-.flag{font-size:11px; font-weight:700; color:var(--error)}
+.flag{font-size:12px; font-weight:700; color:var(--error)}
 
 /* --- price watch --- */
-.pw-cols{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px}
+.pw-cols{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:20px}
 .pw-h{font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--on-surface-variant); margin-bottom:8px}
 .pw-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px}
 .pw-top{display:flex; align-items:baseline; gap:8px}
@@ -574,7 +574,7 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .scatter{width:100%; min-width:560px; max-width:1040px; height:auto;
   display:block; margin:0 auto}
 .scatter .grid line{stroke:var(--outline-variant); stroke-width:1}
-.scatter .axlab text{fill:var(--on-surface-variant); font-size:11px; font-variant-numeric:tabular-nums}
+.scatter .axlab text{fill:var(--on-surface-variant); font-size:12px; font-variant-numeric:tabular-nums}
 .scatter .axtitle{fill:var(--on-surface-variant); font-size:12px; font-weight:600}
 .scatter .mkt circle{fill:var(--mark-mkt); opacity:.55}
 .scatter .mine circle{fill:var(--mark-mine); stroke:var(--night); stroke-width:1.5}
@@ -587,7 +587,7 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .scatter .pt{cursor:pointer}
 .scatter .pt:hover circle{opacity:1; stroke:var(--on-surface); stroke-width:2}
 .scatter .ptlabel{
-  fill:var(--on-surface); font-size:11px; font-weight:600; pointer-events:none;
+  fill:var(--on-surface); font-size:12px; font-weight:600; pointer-events:none;
   paint-order:stroke; stroke:var(--surface); stroke-width:3px; stroke-linejoin:round;
 }
 .scatter .ptlabel.outlier-label{fill:var(--mark-outlier)}
@@ -790,10 +790,10 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .dtrack{fill:none; stroke:var(--outline-variant); stroke-width:9}
 .dval{fill:none; stroke-width:9; stroke-linecap:round}
 .dnum{fill:var(--on-surface); font-size:19px; font-weight:700}
-.dsub{fill:var(--on-surface-variant); font-size:11px}
+.dsub{fill:var(--on-surface-variant); font-size:12px}
 .oname{margin:8px 0 0; font-weight:700; font-size:14px}
-.oteam,.onote{margin:1px 0 0; font-size:11px; color:var(--on-surface-variant)}
-.oyou{margin:4px 0 0; font-size:11px; font-weight:700; color:var(--good-ink)}
+.oteam,.onote{margin:1px 0 0; font-size:12px; color:var(--on-surface-variant)}
+.oyou{margin:4px 0 0; font-size:12px; font-weight:700; color:var(--good-ink)}
 .tnote{
   margin:18px 0 8px; font-size:13px; font-weight:600;
   color:var(--on-surface-variant);
@@ -827,7 +827,7 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .tktable thead th{white-space:nowrap}
 .tick{
   text-align:center; padding:5px 7px; border-radius:var(--radius-xs);
-  font-size:11px; font-weight:600; line-height:1.25; min-width:52px;
+  font-size:12px; font-weight:600; line-height:1.25; min-width:52px;
 }
 .tk-opp{display:block; font-weight:700}
 .tk-val{display:block; opacity:.88; font-variant-numeric:tabular-nums}
@@ -858,7 +858,7 @@ table td.tick{border:2px solid var(--surface)}
 }
 .pmgroup h4{
   display:flex; align-items:center; gap:6px; margin:0 0 8px;
-  font-size:11px; text-transform:uppercase; letter-spacing:0.06em;
+  font-size:12px; text-transform:uppercase; letter-spacing:0.06em;
 }
 .pm-up h4{color:var(--good-ink)}
 .pm-down h4{color:var(--bad-ink)}
@@ -867,7 +867,7 @@ table td.tick{border:2px solid var(--surface)}
   flex-direction:column; gap:8px}
 .pmname{display:block; font-size:13px; font-weight:600}
 .pmprice{
-  display:block; font-family:var(--num); font-size:11px;
+  display:block; font-family:var(--num); font-size:12px;
   color:var(--on-surface-variant); letter-spacing:-0.02em;
 }
 .pmprice i{font-style:normal; padding:0 4px; opacity:.65}
@@ -877,13 +877,13 @@ table td.tick{border:2px solid var(--surface)}
 .splist{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:5px}
 .splist li{display:flex; align-items:baseline; gap:8px; font-size:13px}
 .sprank{
-  flex:none; width:19px; height:19px; border-radius:50%; font-size:11px;
+  flex:none; width:19px; height:19px; border-radius:50%; font-size:12px;
   font-weight:700; display:grid; place-items:center;
   background:var(--surface-variant); color:var(--on-surface-variant);
 }
 .splist li.first .sprank{background:var(--accent); color:#fff}
 .spname{font-weight:600}
-.spteam{margin-left:auto; color:var(--on-surface-variant); font-size:11px}
+.spteam{margin-left:auto; color:var(--on-surface-variant); font-size:12px}
 .mkt-cs,.mkt-xg{color:var(--market); font-weight:700}
 
 /* --- pick team: the eleven fold into a column, the bars extend beside it ---
@@ -916,7 +916,7 @@ table td.tick{border:2px solid var(--surface)}
   color:var(--on-surface-variant); align-items:flex-end; padding-bottom:8px;
 }
 .pkstage.ep-on .pkboard-head{display:flex}
-.epside-k,.epside-u{font-size:10px; font-weight:700; text-transform:uppercase;
+.epside-k,.epside-u{font-size:12px; font-weight:700; text-transform:uppercase;
   letter-spacing:.06em; color:var(--on-surface-variant)}
 .epside-head b{font-size:24px; line-height:1}
 /* The 12px is the pitch's own top padding, which sits between the left
@@ -968,7 +968,7 @@ table td.tick{border:2px solid var(--surface)}
 .epbtn{
   appearance:none; border:0; background:none; cursor:pointer; margin-left:auto;
   color:var(--on-surface-variant); font:inherit; font-family:var(--num);
-  font-size:11px; font-weight:500; padding:5px 6px;
+  font-size:12px; font-weight:500; padding:5px 6px;
   border-radius:var(--radius-xs);
 }
 .epbtn::before{
@@ -1085,7 +1085,7 @@ table td.tick{border:2px solid var(--surface)}
 .lcring .dseg{fill:none; stroke-width:11; stroke-linecap:butt}
 .lcring-n{fill:var(--on-surface); font-size:23px; font-weight:700;
   font-family:var(--num); letter-spacing:-0.03em}
-.lcring-s{fill:var(--on-surface-variant); font-size:11px}
+.lcring-s{fill:var(--on-surface-variant); font-size:12px}
 .lcread{min-width:0; flex:1 1 130px}
 .lcfig{
   margin:0; display:flex; align-items:baseline; gap:6px;
@@ -1104,7 +1104,7 @@ table td.tick{border:2px solid var(--surface)}
 .lc-block + .lc-block{margin-top:10px}
 .lc-block h4{
   margin:0 0 5px; padding:0 14px; display:flex; align-items:center; gap:6px;
-  font-size:11px; font-weight:700; text-transform:uppercase;
+  font-size:12px; font-weight:700; text-transform:uppercase;
   letter-spacing:.05em;
 }
 .lc-block h4 .ic{width:14px; height:14px; flex:none}
@@ -1113,7 +1113,7 @@ table td.tick{border:2px solid var(--surface)}
 .lc-block ul{list-style:none; margin:0; padding:0; display:grid; gap:5px}
 .lc-block li{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
 .lc-name{font-size:13px; font-weight:600}
-.lc-club{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
+.lc-club{font-size:12px; text-transform:uppercase; letter-spacing:.04em;
   color:var(--p60)}
 .lc-fx{margin-left:auto; display:flex; gap:3px}
 
@@ -1188,13 +1188,13 @@ table td.tick{border:2px solid var(--surface)}
 }
 .wcstat{display:flex; align-items:baseline; gap:6px; flex-wrap:wrap}
 .wcstat-k{
-  font-size:10px; font-weight:700; text-transform:uppercase;
+  font-size:12px; font-weight:700; text-transform:uppercase;
   letter-spacing:.05em; color:var(--on-surface-variant); flex-basis:100%;
 }
 .wcstat-b{font-family:var(--num); font-size:13px; color:var(--on-surface-variant)}
 .wcstat-arrow{color:var(--p40); font-size:12px}
 .wcstat-a{font-family:var(--num); font-size:15px; font-weight:700}
-.wcstat-d{font-family:var(--num); font-size:11px; margin-left:2px}
+.wcstat-d{font-family:var(--num); font-size:12px; margin-left:2px}
 .wcstat-d.wc-up{color:var(--good-ink)}
 .wcstat-d.wc-down{color:var(--bad-ink)}
 .wcstat-d.wc-flat{color:var(--on-surface-variant)}
@@ -1209,23 +1209,22 @@ table td.tick{border:2px solid var(--surface)}
 }
 .bxi-big{display:flex; align-items:baseline; gap:7px}
 .bxi-big .num{font-size:34px; font-weight:700; line-height:1}
-.bxi-big small{font-size:10px; font-weight:700; text-transform:uppercase;
+.bxi-big small{font-size:12px; font-weight:700; text-transform:uppercase;
   letter-spacing:.06em; color:var(--on-surface-variant); max-width:6em}
 .bxi-own{margin:0; display:inline-flex; align-items:center; gap:5px;
   font-size:13px; color:var(--on-surface-variant)}
 .bxi-own .ic{width:15px; height:15px; color:var(--good-ink)}
 .bxi-own b{color:var(--on-surface)}
 .bxi-cost{
-  margin:0; font-size:12px; color:var(--warn-ink); font-weight:600;
-  background:var(--attention-wash); border-radius:var(--radius-xs);
-  padding:4px 9px;
+  margin:0; font-size:13px; color:var(--white); font-weight:700;
+  background:var(--night); border-radius:10px; padding:6px 10px;
 }
-.bxi-read{margin:0; flex:1 1 260px; font-size:12px;
+.bxi-read{margin:0; flex:1 1 260px; font-size:14px;
   color:var(--on-surface-variant); line-height:1.45}
 .bxi-grid{display:grid; gap:14px 22px;
-  grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
 .bxi-group h4{
-  margin:0 0 5px; font-size:10px; font-weight:700; text-transform:uppercase;
+  margin:0 0 5px; font-size:12px; font-weight:700; text-transform:uppercase;
   letter-spacing:.07em; color:var(--on-surface-variant);
 }
 .bxi-group ul{list-style:none; margin:0; padding:0}
@@ -1236,7 +1235,7 @@ table td.tick{border:2px solid var(--surface)}
 .bxi-mark .ic{width:13px; height:13px; color:var(--good-ink)}
 .bxi-name{font-size:13px; font-weight:600; overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap}
-.bxi-club{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
+.bxi-club{font-size:12px; text-transform:uppercase; letter-spacing:.04em;
   color:var(--p60)}
 .bxi-bar{display:block; height:5px; border-radius:3px; background:var(--p10)}
 .bxi-bar i{display:block; height:100%; border-radius:3px; background:var(--p30)}
@@ -1303,9 +1302,8 @@ table td.tick{border:2px solid var(--surface)}
 }
 @media (max-width:560px){.slwrap{grid-template-columns:minmax(0,1fr)}}
 .sllede{
-  margin:0 0 12px; font-size:12px; line-height:1.45;
-  color:var(--warn-ink); background:var(--attention-wash);
-  border-radius:var(--radius-s); padding:8px 11px;
+  margin:0 0 14px; font-size:14px; font-weight:600; line-height:1.45;
+  color:var(--night); background:var(--mist); border-radius:14px; padding:10px 14px;
 }
 
 /* --- fixture difficulty --- */
@@ -1418,12 +1416,12 @@ table td.tick{border:2px solid var(--surface)}
 
 /* --- priced round --- */
 .mlist{list-style:none; margin:0; padding:0; display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px}
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr)); gap:12px}
 .mcard{background:var(--surface-variant); border-radius:var(--radius-m); padding:13px}
 .mteams{display:flex; align-items:baseline; gap:7px; margin-bottom:9px}
 .mt{font-weight:700; font-size:15px}
 .mt.mine{color:var(--purple); text-decoration:underline; text-decoration-thickness:3px; text-decoration-color:var(--green)}
-.mvs{font-size:11px; color:var(--on-surface-variant)}
+.mvs{font-size:12px; color:var(--on-surface-variant)}
 .mtotal{margin-left:auto; font-size:17px; font-weight:700;
   display:flex; flex-direction:column; align-items:flex-end; line-height:1}
 .mtotal small{font-size:9px; font-weight:600; text-transform:uppercase;
@@ -1433,7 +1431,7 @@ table td.tick{border:2px solid var(--surface)}
 .mbar .mb-seg{display:block; height:100%; box-shadow:inset -2px 0 0 var(--surface-variant)}
 .mbar .mb-seg:last-child{box-shadow:none}
 .mkeys{display:flex; justify-content:space-between; margin-top:4px;
-  font-size:10px; color:var(--on-surface-variant);
+  font-size:12px; color:var(--on-surface-variant);
   font-variant-numeric:tabular-nums}
 .mstats{margin:11px 0 0; display:grid;
   grid-template-columns:repeat(auto-fit,minmax(78px,1fr)); gap:7px}
@@ -1442,7 +1440,7 @@ table td.tick{border:2px solid var(--surface)}
   color:var(--on-surface-variant)}
 .mstat dd{margin:0; font-size:15px; font-weight:700;
   font-variant-numeric:tabular-nums}
-.mfoot{margin:10px 0 0; font-size:10px; color:var(--on-surface-variant)}
+.mfoot{margin:10px 0 0; font-size:12px; color:var(--on-surface-variant)}
 
 /* --- transfer pairings --- */
 .prlist{list-style:none; margin:0; padding:0; display:grid;
@@ -1482,7 +1480,7 @@ table td.tick{border:2px solid var(--surface)}
 .pr-arrow svg{width:28px; height:12px; display:block}
 .pr-gain{flex:none; font-size:12px; font-weight:700; color:var(--good-ink);
   font-variant-numeric:tabular-nums}
-.pr-foot{margin:12px 0 0; font-size:11px}
+.pr-foot{margin:12px 0 0; font-size:12px}
 .pr-yes{color:var(--good-ink); font-weight:700}
 .pr-no{color:var(--on-surface-variant)}
 
@@ -1491,7 +1489,7 @@ table td.tick{border:2px solid var(--surface)}
 .tplpitch .pl .sc .p{font-size:11px}
 .pl.tpl-mine{outline:2px solid var(--mine); outline-offset:1px}
 .dflist{list-style:none; margin:0; padding:0; display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px}
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:12px}
 .df-card{display:flex; gap:14px; align-items:center;
   background:var(--surface-variant); border-radius:var(--radius-m); padding:12px}
 .df-frame{position:relative; flex:none}
@@ -1505,7 +1503,7 @@ table td.tick{border:2px solid var(--surface)}
 .df-meta{margin:2px 0 10px; font-size:12px; color:var(--on-surface-variant)}
 .df-stats{margin:0; display:flex; gap:16px}
 .df-stats div{display:flex; flex-direction:column}
-.df-stats dt{font-size:10px; text-transform:uppercase; letter-spacing:.05em;
+.df-stats dt{font-size:12px; text-transform:uppercase; letter-spacing:.05em;
   color:var(--on-surface-variant)}
 .df-stats dd{margin:0; font-size:17px; font-weight:700;
   font-variant-numeric:tabular-nums}
@@ -1533,14 +1531,14 @@ table td.tick{border:2px solid var(--surface)}
 .rv-who{grid-area:who; min-width:0; display:flex; flex-direction:column}
 .rv-who b{font-size:14px; overflow:hidden; text-overflow:ellipsis;
   white-space:nowrap}
-.rv-who span{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
+.rv-who span{font-size:12px; text-transform:uppercase; letter-spacing:.04em;
   color:var(--p60)}
 .rv-pts{grid-area:pts; font-size:19px; font-weight:700; text-align:right;
   color:var(--bad-ink)}
 .rv-track{grid-area:track; height:9px; border-radius:5px;
   background:var(--outline-variant); overflow:hidden}
 .rv-track i{display:block; height:100%; border-radius:5px; background:var(--rival)}
-.rv-note{grid-area:note; font-size:11px; color:var(--on-surface-variant)}
+.rv-note{grid-area:note; font-size:12px; color:var(--on-surface-variant)}
 @media (max-width:620px){
   .rv-row{grid-template-columns:44px minmax(0,1fr) 34px;
     grid-template-areas:"face who pts" "face track track" ". note note"}
@@ -1573,12 +1571,12 @@ table td.tick{border:2px solid var(--surface)}
 }
 .slicon{color:var(--accent)}
 .slicon{width:17px; height:17px; flex:none}
-.slnote{margin:2px 0 8px; font-size:11px; color:var(--on-surface-variant)}
+.slnote{margin:2px 0 8px; font-size:12px; color:var(--on-surface-variant)}
 .sllist{list-style:none; margin:0; padding:0; display:flex;
   flex-direction:column; gap:4px}
 .sllist li{display:flex; align-items:baseline; gap:6px; font-size:13px}
 .slrank{
-  flex:none; width:16px; height:16px; border-radius:50%; font-size:10px;
+  flex:none; width:16px; height:16px; border-radius:50%; font-size:12px;
   font-weight:700; display:grid; place-items:center;
   background:var(--outline-variant); color:var(--on-surface-variant);
 }
@@ -1589,7 +1587,7 @@ table td.tick{border:2px solid var(--surface)}
 .sllist li.mine .slname{font-weight:700; color:var(--on-surface)}
 .sllist li.mine .slval{color:var(--good-ink)}
 .slname{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.slteam{font-size:10px; color:var(--on-surface-variant)}
+.slteam{font-size:12px; color:var(--on-surface-variant)}
 .slval{margin-left:auto; font-weight:700; font-variant-numeric:tabular-nums}
 /* A paired stat (big chances, chances) reads as one bold headline number
    with the second figure along for context, not two numbers of equal
@@ -1652,7 +1650,7 @@ table td.tick{border:2px solid var(--surface)}
 .pr-frame .duty-badges .spicon{width:8px; height:8px}
 .tf-name{margin:10px 0 0; font-weight:700; font-size:14px;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.tf-meta{margin:1px 0 0; font-size:11px; color:var(--on-surface-variant)}
+.tf-meta{margin:1px 0 0; font-size:12px; color:var(--on-surface-variant)}
 .tf-mid{
   flex:0 0 76px; display:flex; flex-direction:column; align-items:center;
   gap:6px; padding-top:32px;
@@ -1681,11 +1679,11 @@ table td.tick{border:2px solid var(--surface)}
   font-size:19px; font-weight:700; color:var(--good-ink); text-align:center;
   line-height:1.05; font-variant-numeric:tabular-nums;
 }
-.tf-gain small{display:block; font-size:10px; font-weight:600;
+.tf-gain small{display:block; font-size:12px; font-weight:600;
   text-transform:uppercase; letter-spacing:.04em; color:var(--on-surface-variant)}
-.tf-foot{margin:12px 0 0; font-size:11px; color:var(--on-surface-variant);
+.tf-foot{margin:12px 0 0; font-size:12px; color:var(--on-surface-variant);
   text-align:center}
-.tf-excl{margin:6px 0 0; font-size:11px; text-align:center;
+.tf-excl{margin:6px 0 0; font-size:12px; text-align:center;
   color:var(--warn-ink); font-weight:600}
 .tf-lede{
   margin:0 0 14px; font-size:13px; font-weight:600; color:var(--ink);
@@ -1767,7 +1765,7 @@ table td.tick{border:2px solid var(--surface)}
   white-space:nowrap;
 }
 .dchits{
-  font-family:var(--num); font-size:11px; color:var(--on-surface-variant);
+  font-family:var(--num); font-size:12px; color:var(--on-surface-variant);
   text-align:right; white-space:nowrap;
 }
 .dcr .good-pill,.dcr .bad-pill,.dcr .warn-pill{white-space:nowrap; justify-self:end}
@@ -1818,7 +1816,7 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
 }
 .pv-block{margin-top:20px}
 .pv-block h3{
-  font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+  font-size:12px; text-transform:uppercase; letter-spacing:.06em;
   color:var(--on-surface-variant); margin-bottom:8px;
   display:flex; align-items:center; gap:10px;
 }
@@ -1827,10 +1825,10 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
 .pv-big-n{font-size:13px; font-weight:400; color:var(--on-surface-variant)}
 .pv-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px}
 .pvs{background:var(--surface-variant); border-radius:var(--radius-s); padding:9px 11px}
-.pvs-k{display:block; font-size:11px; text-transform:uppercase;
+.pvs-k{display:block; font-size:12px; text-transform:uppercase;
   letter-spacing:.05em; color:var(--on-surface-variant)}
 .pvs-v{display:block; font-size:19px; font-weight:700; font-variant-numeric:tabular-nums}
-.pvs-n{display:block; font-size:11px; color:var(--on-surface-variant)}
+.pvs-n{display:block; font-size:12px; color:var(--on-surface-variant)}
 .pv-fx{display:flex; gap:6px; flex-wrap:wrap}
 .fxcell{
   display:flex; flex-direction:column; align-items:center; gap:1px;
@@ -1894,7 +1892,7 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
   flex-direction:column; gap:7px}
 .arr{display:flex; align-items:center; gap:9px; font-size:13px}
 .arr-name{font-weight:600; display:flex; align-items:center; gap:6px}
-.arr-club{font-size:10px; text-transform:uppercase; letter-spacing:.04em;
+.arr-club{font-size:12px; text-transform:uppercase; letter-spacing:.04em;
   color:var(--p60)}
 .arr-detail{
   margin-left:auto; color:var(--on-surface-variant); font-size:12px;
@@ -1964,7 +1962,7 @@ details .scroll{padding:0 14px 14px}
 .scoutpos > button:focus-visible{outline:3px solid var(--accent); outline-offset:-3px}
 .scoutpos > button[aria-selected="true"]{background:var(--ink); color:var(--white)}
 .scoutpos-code{
-  flex:none; font-family:var(--num); font-size:11px; font-weight:700;
+  flex:none; font-family:var(--num); font-size:12px; font-weight:700;
   letter-spacing:.04em; padding:3px 7px; border-radius:var(--radius-xs);
   background:var(--p10); color:var(--ink);
 }
@@ -1991,7 +1989,7 @@ details .scroll{padding:0 14px 14px}
   padding:12px 14px; margin-bottom:16px; background:var(--surface-variant);
   border-radius:var(--radius-m);
 }
-.sf{display:flex; flex-direction:column; gap:4px; font-size:11px; font-weight:600;
+.sf{display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:600;
   color:var(--on-surface-variant); text-transform:uppercase; letter-spacing:.05em}
 .sf input, .sf select{
   font:inherit; font-size:13px; font-weight:400; text-transform:none;
@@ -2012,7 +2010,7 @@ details .scroll{padding:0 14px 14px}
   color:var(--on-surface-variant); font-variant-numeric:tabular-nums}
 
 /* --- fixture runs --- */
-.fxruns{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:22px}
+.fxruns{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:22px}
 .fxrun-col h4{
   font-size:11px; text-transform:uppercase; letter-spacing:.06em;
   color:var(--on-surface-variant); margin:0 0 8px;
@@ -2036,15 +2034,15 @@ details .scroll{padding:0 14px 14px}
 .scoutscatter{width:100%; min-width:520px; max-width:1040px; height:auto;
   display:block; margin:4px auto 0}
 .scoutscatter .grid line{stroke:var(--outline-variant); stroke-width:1}
-.scoutscatter .axlab text{fill:var(--on-surface-variant); font-size:11px;
+.scoutscatter .axlab text{fill:var(--on-surface-variant); font-size:12px;
   font-variant-numeric:tabular-nums}
 .scoutscatter .axtitle{fill:var(--on-surface-variant); font-size:12px; font-weight:600}
 .scoutscatter .crosshair{stroke:var(--outline-variant); stroke-width:1; stroke-dasharray:3 4}
 .scoutscatter .isoxgi line{stroke:var(--p20); stroke-width:1; stroke-dasharray:1 5; stroke-linecap:round}
-.scoutscatter .isoxgi text{fill:var(--p60); font-size:10px; font-family:var(--num)}
-.scoutscatter .quadlabel{fill:var(--on-surface-variant); font-size:10px; font-style:italic}
+.scoutscatter .isoxgi text{fill:var(--p60); font-size:12px; font-family:var(--num)}
+.scoutscatter .quadlabel{fill:var(--on-surface-variant); font-size:12px; font-style:italic}
 .scoutscatter .threshline{stroke:var(--attention); stroke-width:1.5; stroke-dasharray:4 3}
-.scoutscatter .threshlabel{fill:var(--attention-ink); font-size:10px; font-weight:600}
+.scoutscatter .threshlabel{fill:var(--attention-ink); font-size:12px; font-weight:600}
 /* Fill style is the accessible channel, not hue: solid clears the minutes
    floor, hollow does not. Both are the same ink, so the plot reads the
    same in greyscale as in colour. */
@@ -2058,7 +2056,7 @@ details .scroll{padding:0 14px 14px}
 .scoutpt .hit{fill:transparent; stroke:none}
 .scoutpt:focus{outline:none}
 .scoutscatter .ptlabel{
-  fill:var(--on-surface); font-size:11px; font-weight:600; pointer-events:none;
+  fill:var(--on-surface); font-size:12px; font-weight:600; pointer-events:none;
   paint-order:stroke; stroke:var(--surface); stroke-width:3px; stroke-linejoin:round;
 }
 .scoutscatter .sel .selring{fill:none; stroke:var(--ink); stroke-width:2}
@@ -2073,7 +2071,7 @@ details .scroll{padding:0 14px 14px}
 .scoutheatmap td.num, .scoutheatmap th[data-sort]{text-align:right}
 .scoutheatmap td.num{font-variant-numeric:tabular-nums; font-family:var(--num)}
 .scoutheatmap thead th{
-  font-size:11px; text-transform:uppercase; letter-spacing:.04em;
+  font-size:12px; text-transform:uppercase; letter-spacing:.04em;
   color:white; border-bottom:1px solid var(--ink);
   cursor:pointer; user-select:none;
   background:var(--p80);
@@ -2121,7 +2119,7 @@ details .scroll{padding:0 14px 14px}
 
 /* --- shortlist compare --- */
 .scoutsub{
-  font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+  font-size:12px; text-transform:uppercase; letter-spacing:.06em;
   color:var(--on-surface-variant); margin:22px 0 10px;
 }
 .zband{margin-bottom:16px}
@@ -2140,21 +2138,21 @@ details .scroll{padding:0 14px 14px}
 .zrow-bar{position:absolute; top:2px; bottom:2px; border-radius:2px; background:var(--p60)}
 .zrow-bar-neg{background:var(--p30)}
 .zrow-val{font-variant-numeric:tabular-nums; color:var(--on-surface-variant);
-  font-family:var(--num); font-size:11px}
+  font-family:var(--num); font-size:12px}
 
 .scouttickertable{border-collapse:collapse; width:100%; font-size:12px}
 .scouttickertable th, .scouttickertable td{padding:4px 7px; text-align:center}
 .scouttickertable thead th{
-  font-size:10px; text-transform:uppercase; letter-spacing:.03em;
+  font-size:12px; text-transform:uppercase; letter-spacing:.03em;
   color:white; font-weight:600;
 }
 .scouttickertable tr.tick-name td{
   text-align:left; padding-top:12px; border-bottom:1px solid var(--outline-variant);
 }
 .scouttickertable .tick-label{
-  text-align:left; font-size:11px; color:var(--on-surface-variant); white-space:nowrap;
+  text-align:left; font-size:12px; color:var(--on-surface-variant); white-space:nowrap;
 }
-.scouttickertable .tick-opp{font-size:10px; opacity:.85}
+.scouttickertable .tick-opp{font-size:12px; opacity:.85}
 .scouttickertable td.tick-blank{color:var(--on-surface-variant); background:var(--surface-variant)}
 
 /* --- player card ---
@@ -2182,22 +2180,22 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .scpv-flags{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 0; padding:0; list-style:none}
 .scpv-flag{
   background:var(--surface-variant); border-radius:var(--radius-xs); padding:3px 10px;
-  font-size:11px; color:var(--on-surface-variant);
+  font-size:12px; color:var(--on-surface-variant);
 }
 .scpv-block{margin-top:20px}
 .scpv-block h3{
-  font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+  font-size:12px; text-transform:uppercase; letter-spacing:.06em;
   color:var(--on-surface-variant); margin-bottom:8px;
   display:flex; align-items:center; gap:10px; flex-wrap:wrap;
 }
-.scpv-key{font-size:10px; text-transform:none; letter-spacing:normal; font-weight:400}
+.scpv-key{font-size:12px; text-transform:none; letter-spacing:normal; font-weight:400}
 .scpv-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(108px,1fr)); gap:10px}
 .scpv-tile{background:var(--surface-variant); border-radius:var(--radius-s); padding:9px 11px}
-.scpv-tile-label{font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+.scpv-tile-label{font-size:12px; text-transform:uppercase; letter-spacing:.05em;
   color:var(--on-surface-variant)}
 .scpv-tile-num{font-size:19px; font-weight:700; margin-top:2px;
   font-variant-numeric:tabular-nums}
-.scpv-tile-note{font-size:11px; color:var(--on-surface-variant); margin-top:2px}
+.scpv-tile-note{font-size:12px; color:var(--on-surface-variant); margin-top:2px}
 .scpv-bullet{position:relative; height:6px; border-radius:9999px;
   background:var(--outline-variant); margin-top:6px; overflow:visible}
 .scpv-bullet-fill{display:block; height:100%; border-radius:9999px; background:var(--p70)}
@@ -2331,7 +2329,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   font-size:13px; font-weight:600; line-height:1.35}
 .move-caption img{width:30px; height:30px; object-fit:contain; flex:none}
 .move-caption b{font-weight:900}
-.move-caption span{display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+.move-caption > span{display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
 .brief-links{position:relative; display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; font-size:14px; font-weight:800}
 .brief-links a{display:inline-flex; align-items:center; min-height:40px; padding:0 14px; border-radius:12px;
   background:var(--mist); text-decoration:none; color:var(--purple)}
@@ -2710,3 +2708,13 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 /* Starters you also field are tagged in words, not only outlined. */
 .tpl-mine::after{content:"You"; position:absolute; top:3px; right:3px; z-index:2; padding:1px 4px; border-radius:4px;
   background:var(--green); color:var(--night); font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:.04em}
+@media (max-width:400px){
+  .move-names{right:92px}
+  .move-names .player-link,.move-names .move-in{font-size:20px; overflow-wrap:break-word}
+  .move-new{width:150px; height:191px}
+  .captain-card .cut{width:180px; height:229px; right:-34px}
+  .captain-card .ring{width:210px; height:210px; right:-60px; bottom:60px}
+  .captain-card .player-link{font-size:24px; max-width:58%}
+  .cap-opp{max-width:48%}
+  .fxrun-chips{flex-wrap:wrap}
+}

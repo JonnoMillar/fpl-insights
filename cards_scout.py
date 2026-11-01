@@ -82,7 +82,7 @@ def _scout_fixture_card(runs, cfg):
     )
     return (
         '<section class="card scoutfx">'
-        f'<div class="card-head"><h2>Fixture runs{components.info_btn()}</h2>'
+        f'<div class="card-head"><h2>Kindest and toughest runs{components.info_btn()}</h2>'
         '<span class="sub" hidden>Capitals are home games. Difficulty is 1 to 5, '
         'lower is kinder.</span>'
         f'<label class="sf sf-inline">Horizon<select class="sf-horizon">'

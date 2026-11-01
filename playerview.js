@@ -101,15 +101,17 @@
 
     if (p.ep) {
       var parts = [
-        ['Goals', p.ep.goals, '#953bff'],
-        ['Assists', p.ep.assists, '#00b3d6'],
-        ['Clean sheet', p.ep.defence, '#00a35c'],
+        // Same parts and colours as components.EP_PARTS; the signed list
+        // below the bar names every part, so colour never carries it alone.
+        ['Goals', p.ep.goals, '#16001a'],
+        ['Assists', p.ep.assists, '#7b2f86'],
+        ['Clean sheet', p.ep.defence, '#00ff87'],
         ['Saves', p.ep.saves, '#1b5ce0'],
-        ['Appearance', p.ep.appearance, '#87668a'],
-        ['DefCon', p.ep.defcon, '#e07b00'],
-        ['Bonus', p.ep.bonus, '#d81b8c'],
-        ['Goals conceded', p.ep.gc, 'var(--bad)'],
-        ['Cards', p.ep.cards, 'var(--bad)']
+        ['Appearance', p.ep.appearance, '#d3cdd6'],
+        ['DefCon', p.ep.defcon, '#ffb000'],
+        ['Bonus', p.ep.bonus, '#8e8494'],
+        ['Goals conceded', p.ep.gc, '#1b5ce0'],
+        ['Cards', p.ep.cards, '#16001a']
       ];
       // The bar fills to the sum of the positive parts, not p.ep.total -
       // total nets out the goals-conceded/cards deductions, and dividing by
