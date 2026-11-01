@@ -1,6 +1,6 @@
 # HANDOFF — FPL Insights
 
-Last updated: 29 October 2026 (logo/icon handoff; dashboard draft still awaiting review). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
+Last updated: 1 November 2026 (redesign direction agreed; design.md written; icon set assessed). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
 
 ## State
 
@@ -18,39 +18,23 @@ An active local review heartbeat is configured; its first unattended execution
 is not yet verified. Dashboard entry/configuration, product code, alert project
 and publication are unchanged. Existing staged research remains separate.
 
-## Logo and icon handoff for Claude (29 October 2026)
+## Now: full redesign (direction agreed 1 November 2026)
 
-CURRENT — 1 November: `brand-handoff/transparent-suite/` supplies 40 generated icons as 3 transparent PNG atlases plus 40 CSS alpha-mask views, source rectangles, local preview and white/aubergine/green browser captures. Actual generated pixels retained; no code-drawn shapes. Alpha verified; preview checked at 1200/390px with no overflow. Saves B selected by Codex as working choice, not user approval. Clean `fpl-insights-generated-icons-2026-11-01.zip` excludes rejected vector redraws. Full visual approval and final logo exports remain open. Application unchanged.
+Spec: [`docs/design.md`](design.md), written from the F-Kit board with Noto Sans in place of Archivo, plus the icon-set assessment. Boards copied to `docs/design-reference/` (F-Kit, F-Desktop, F-Phone; images are canvas blob ids and don't render locally). Canvas comments are all from 27-28 Oct and already folded into the rules below; none on the final draft.
 
-LATEST — 30 October: Jonno rejected the code-drawn vector suite as visually poor, especially Saves. Its technical rendering checks are not design approval. `vector-suite/` and the old `-vectors.zip` must not be implemented. Resume built-in image generation using the approved Goals/Assist image reference. Three new Saves alternatives are in `brand-handoff/concept-suite/saves-image-options.png`, unreviewed. Do not substitute freehand SVG geometry. Application unchanged.
+Icon set (`brand-handoff/transparent-suite/`, 40 generated icons, Codex delivery of 1 Nov): good fit, adopt it, with four pack-time fixes listed in design.md (Planning crop, faint strokes on corners/saves/free kicks/injured, yellow card's phone-like bar, 3.19MB of atlases packed to one 56KB sprite). Rejected `vector-suite/` and old `drafts/` stay unused. Logo geometry still a draft.
 
-30 October vector checkpoint: `brand-handoff/vector-suite/` supplies 40 SVG masters + 40 compact exports, shared construction source, catalogue, light/dark/mobile previews and Claude usage notes. 80 XML parses; 160 rendered samples loaded; no painted border/empty exports; 1280/390px overflow checks passed. Goals/Assist compositions retained; shared ball/goal/arrow geometry, injury knockout, normal Deadline clock and single filled red card supplied. Complex football scenes remain dense at 16px: prefer 20–24px plus labels. Whole-suite vector geometry awaits Jonno review; final logo geometry/exports remain open. Application unchanged; no publication.
+Build order (one phase per session, commit at each gate, nothing pushed until Jonno says):
 
-30 October: Jonno requested the whole suite after iterative Goals/Assist and set-piece studies. `brand-handoff/concept-suite/` holds 40 generated labelled proposals across three sheets, original approved Goals/Assist composition reference, latest set-piece study, preview and Claude notes. The new suite supersedes older bulk dashboard-icons drafts. Goals/Assist concepts approved; full suite unreviewed. Production SVG normalization and 16/20/24px recognition remain outstanding. Red-card stacking is semantically ambiguous; Deadline stopwatch should become a normal clock. No application changes or publishing.
+0. Integrate origin first: local main was 33 ahead / 35 behind (bot commits). Fetch, merge, regenerate generated files, run tests. Then the icon packer: `assets/icons.png` + names, embedded by `dashboard.py` as a data URI; `.ico` classes. Unit test that every name resolves to a non-empty cell.
+1. Foundation: replace the CSS tokens with design.md's (drop lilac scale and every hue-coded state token), Noto 400-900, shape/shadow/motion variables; rail with logo and icon tabs plus distinct selected state; phone bottom tab bar. Check logo at 16/24/32px.
+2. Planning tab to F-Desktop/F-Phone: week stage, hero transfer card, captain card, green panel with swipe deck, night band with crest tiles, last-week card. Compare with `.cache/ui/moves-before-{1440,375}.png`. **Show Jonno the live build here before rolling out.**
+3. Squad tab, 4. Mini-league, 5. Scout: no boards exist; build from the kit components, absorb the "Seen, not fixed" layout items, show Jonno each.
+6. Clean-up: delete dead CSS (dashboard.css is 2,758 lines), regenerate `docs/og.png`, update README, full build, tests, browser checks at 1440/375/320.
 
-- Delivery entry point: [`brand-handoff/README.md`](brand-handoff/README.md); ready-to-use brief: [`brand-handoff/CLAUDE_BRIEF.md`](brand-handoff/CLAUDE_BRIEF.md).
-- Approved **logo direction**: open-bottom football goal frame with three ascending data bars. Exact geometry remains a draft; no production master or final exports have been approved.
-- Navigation starting point: bold outline shirt (internal sleeve seam lines removed), route, trophy and magnifier. Jonno considers the icons potentially suitable; this is not blanket approval of the sidebar treatment.
-- Claude should design the sidebar shape/layout and more distinctive selected states as part of the full dashboard redesign. Earlier sample rail dimensions, white selection tiles and green logo containers are not locked requirements.
-- The delivery folder includes only the goal/chart direction, four navigation SVGs, their MIT licence and Jonno's supplied new-dashboard screenshot. All eye concepts and generated whole-page logo mockups are excluded.
-- Package verification: 12 files, five parsed SVGs, desktop/390px preview without horizontal overflow; archive integrity and per-file SHA-256 hashes verified. No application regression suite run because application code is unchanged.
-- Subsequent checkpoint: the handoff is explicitly **partial**, not finished. `brand-handoff/drafts/` now holds 30 additional dashboard icon proposals: 24 Phosphor bold assets and six custom football symbols. Two sheets show 36px artwork plus 18px samples; parsed SVGs and desktop/390px rendering verified. Jonno has not reviewed these new icons yet. The earlier 12-file ZIP remains an older partial snapshot.
-- Latest feedback supersedes the batch approach: Jonno found the additional set insufficiently distinctive and rejected the assists/penalties/free-kick semantics. These are historical drafts, not implementation choices. Research is recorded in `brand-handoff/drafts/ICON_RESEARCH.md`; proceed with one carefully developed custom image-generated football icon at a time, starting with assists. The new custom assists studies are not yet user-reviewed or verified at small size.
-- No application code or production assets were changed by this design exercise. Final logo geometry and integrated sidebar previews need Jonno's review before production exports or implementation. No publishing approval.
-
-## Now: brand refresh (final dashboard draft awaiting Jonno's review)
-
-Canvas: [FPL Insights brand directions](https://claude.ai/artifact/9paQtGhWZJ4K6NS4gmYzAn), version 17. Rows top to bottom: first four directions, C round 2 (y 8500), Round 3 (y 11800), **Final draft (y 14900)**.
-
-Round 3 verdict (28 Oct comments): C best overall (layout, colour balance, click-to-reveal instead of scrolling). Keep from C: transfer card with the old player greyed out, the night-coloured fourth band. Keep from A: big glass crest tiles for fixture runs. Keep from B: the swipe deck for transfer options. B faults: floor rings drawn across the players' legs ("awful"), and Hall's ring should sit behind him.
-
-Final draft, one option:
-- **F-Kit** (1280×3700): colour roles and target balance, Archivo at four settings, rules and never-list, components (week tile states, chip coins, transfer card, captain card with ring behind, glass crest tile, swipe deck), player-image do/don't, motion and shape specs.
-- **F-Desktop** (1280×1794) and **F-Phone** (390×3005), both interactive: C's rail and week stage; captain card with the green ring behind Hall; green panel holding B's deck rebuilt on C's transfer card (purple foil cards, glass opponent plate, ranked list on desktop, face dots on phone); night band with A's glass crest tiles plus worst runs (Hull crest uploaded) and a white last-week card.
-- Verified locally in headless Chromium: deck at positions 1, 3 and 4, weeks GW9/GW12/GW13/GW14; no overflow, clipped text or broken images. Live canvas runtime and real dragging not tested.
-- Generator for F-Desktop/F-Phone was `scratchpad/final/gen.py` (lost on `/clear`); edit the published `.dc.html` files directly after re-reading them.
-
-**Next:** Jonno reviews the final draft. Then write `docs/design.md` from F-Kit and restyle Planning > Your moves against `.cache/ui/moves-before-{1440,375}.png`.
+Decisions needed from Jonno (recommendation first):
+- Faint icons: thicken corners, saves, free kicks and injured at pack time (dilation keeps the generated drawing) vs regenerate them.
+- Yellow card: drop the inner bar so it reads as a card, not a phone.
 
 Canvas mechanics:
 - Artboard files live in the session scratchpad and are lost on `/clear`. Re-read with `Artifact read` (url, then `path` of each `project/*.dc.html`). Read the latest version before publishing or it is refused.
@@ -73,7 +57,7 @@ Canvas mechanics:
 
 ## Awaiting Jonno
 
-1. Review the final brand draft (above).
+1. Two icon decisions (see "Now: full redesign").
 2. Push/publish (see State).
 3. Build the Wildcard + Bench Boost comparison? (analysis below)
 4. Sanity check on Cherki, sold in GW9 for Palmer.
@@ -131,5 +115,5 @@ Default view: B usually wins, because the Wildcard leaves the template squad. A 
 ## Resume prompt
 
 ```text
-Read AGENTS.md and docs/HANDOFF.md. Work on main in C:/Users/jonno/code/fpl-insights. Brand refresh: the final draft (brand kit plus desktop and phone samples) is on the canvas https://claude.ai/artifact/9paQtGhWZJ4K6NS4gmYzAn awaiting Jonno's review; read new comments first. Once approved: write docs/design.md from the F-Kit board following "Jonno's design rules", then restyle Planning > Your moves and compare with .cache/ui/moves-before-*.png. Commit by explicit path only (Codex has files staged; never git add -A, stash, reset or checkout). Do not push or publish until Jonno says so.
+Read AGENTS.md, docs/HANDOFF.md and docs/design.md. Work on main in C:/Users/jonno/code/fpl-insights. Redesign direction is agreed; start the next phase in "Now: full redesign" (phase 0 first: integrate origin, then the icon packer). Commit by explicit path only (Codex has files staged; never git add -A, stash, reset or checkout). Do not push or publish until Jonno says so.
 ```
