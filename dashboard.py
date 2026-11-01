@@ -541,7 +541,7 @@ def render(d, standalone=True):
   <div class="panel" id="p-market" role="tabpanel" hidden>
     <div class="chapter"><h2>Your moves</h2></div>
     {d.get('plan', '')}
-    {d.get('deck') or components.other_transfer_options(d['transfers'], d['pairings'])}
+    {d.get('deck', '')}
     {d['captaincy']}
     {d['verdicts']}
 
@@ -1244,31 +1244,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                                                     market, next_gw, weeks=6,
                                                     badges=badges),
         "market": ticker.odds_insights(market_fixtures, xi, ctx, proj, next_gw),
-        "pairings": components.pairing_cards(
-            pairings,
-            "Two out, two in; two sales from a club free a slot. "
-            "Same shape, within budget, three per club respected. "
-            + (f"You have {free_ts} free transfer{'s' if free_ts != 1 else ''}, "
-               f"so this pair costs {pair_hit}."
-               if free_ts is not None else
-               "Free-transfer count unavailable, so a pair is priced at 4."),
-            hit=pair_hit),
         "leaders": components.stat_leaders(leader_groups(ctx, squad_ids), title="Season leaders"),
-        "transfers": components.transfer_cards(
-            swaps,
-            f"Same position, affordable on {bank:.1f}m in the bank, ranked by "
-            f"projected gain if made this week, over the next {transfers.TRANSFER_HORIZON_WEEKS} "
-            f"gameweeks (plus a small form/xGI nudge). Selling price comes from "
-            f"recovered purchase history - read these as prompts, not instructions.",
-            # How many of these you can actually take is the first thing you
-            # need and it used to live only in a collapsed note on a different
-            # card. It belongs on the face of the card that lists the moves.
-            lede=(f"You have {free_ts} free transfer"
-                  f"{'s' if free_ts != 1 else ''} this week. Each further move "
-                  f"costs 4 points."
-                  if free_ts is not None else
-                  "Free-transfer count unavailable - price any move beyond "
-                  "your first at 4 points.")),
         "dialog": player_dialog([
             player_payload(r, ctx, proj, ep, next_gw, photos) for r, ep in dialog_eps
         ] + [

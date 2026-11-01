@@ -54,8 +54,7 @@ h1,h2,h3{margin:0; font-weight:800; text-wrap:balance; line-height:1.15}
 h2{font-size:17px}
 a{color:inherit}
 .tnum{font-variant-numeric:tabular-nums}
-.num,.tnum,.stat-v,.delta,.fxc-score,.fxavg,.oi-value,.pr-total,.pr-hit,
-.pr-bank,.cp-num,.hero-num{font-family:var(--num); font-variant-numeric:tabular-nums}
+.num,.tnum,.delta,.fxc-score,.fxavg,.oi-value{font-family:var(--num); font-variant-numeric:tabular-nums}
 /* Display: heavy capitals. Labels: small tracked capitals, one per card. */
 .disp{font-weight:900; text-transform:uppercase; letter-spacing:-.01em; line-height:.95}
 .lab{font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
@@ -1442,48 +1441,6 @@ table td.tick{border:2px solid var(--surface)}
   font-variant-numeric:tabular-nums}
 .mfoot{margin:10px 0 0; font-size:12px; color:var(--on-surface-variant)}
 
-/* --- transfer pairings --- */
-.prlist{list-style:none; margin:0; padding:0; display:grid;
-  /* Four pairings divide as 2x2 for the same reason. */
-  grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px}
-@media (max-width:900px){.prlist{grid-template-columns:minmax(0,1fr)}}
-.pr-card{background:var(--surface-variant); border-radius:var(--radius-m); padding:14px}
-.pr-tag{
-  margin:0 0 8px; font-size:10px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.06em; color:var(--attention-ink);
-}
-.pr-head{display:flex; gap:14px; align-items:flex-end; margin-bottom:12px}
-.pr-total,.pr-hit,.pr-bank{display:flex; flex-direction:column;
-  font-variant-numeric:tabular-nums; line-height:1.05}
-.pr-total{font-size:24px; font-weight:700; color:var(--good-ink)}
-.pr-hit{font-size:15px; font-weight:700; color:var(--on-surface-variant)}
-.pr-bank{font-size:15px; font-weight:700; margin-left:auto; color:var(--on-surface-variant)}
-.pr-head small{font-size:9px; font-weight:600; text-transform:uppercase;
-  letter-spacing:.05em; color:var(--on-surface-variant); margin-top:2px}
-.pr-legs{list-style:none; margin:0; padding:0; display:flex;
-  flex-direction:column; gap:10px}
-.pr-leg{display:flex; align-items:center; gap:8px}
-.pr-face{display:flex; align-items:center; gap:7px; flex:1 1 0; min-width:0}
-.pr-frame{position:relative; flex:none}
-.pr-photo{width:44px; height:56px; border-radius:var(--radius-xs);
-  object-fit:cover; background:var(--surface); display:block}
-.pr-blank{display:grid; place-items:center; font-size:19px; font-weight:700;
-  background:var(--surface-variant); border:1px solid var(--outline-variant);
-  color:var(--p60)}
-.pr-blank img{width:30px; height:30px; object-fit:contain; display:block}
-.pr-kit{position:absolute; right:-5px; bottom:-4px; width:18px; height:18px;
-  border-radius:50%; background:var(--surface); padding:1px}
-.pr-out .pr-photo{filter:grayscale(.75) opacity(.7)}
-.pr-name{font-size:12px; font-weight:600; overflow:hidden;
-  text-overflow:ellipsis; white-space:nowrap}
-.pr-arrow{flex:none; width:28px; color:var(--on-surface-variant)}
-.pr-arrow svg{width:28px; height:12px; display:block}
-.pr-gain{flex:none; font-size:12px; font-weight:700; color:var(--good-ink);
-  font-variant-numeric:tabular-nums}
-.pr-foot{margin:12px 0 0; font-size:12px}
-.pr-yes{color:var(--good-ink); font-weight:700}
-.pr-no{color:var(--on-surface-variant)}
-
 /* --- league template pitch + differentials --- */
 .tplpitch .pl{width:86px}
 .tplpitch .pl .sc .p{font-size:11px}
@@ -1598,105 +1555,6 @@ table td.tick{border:2px solid var(--surface)}
   color:var(--night); background:var(--mist); border-radius:14px;
 }
 
-/* --- suggested transfers --- */
-.tflist{
-  list-style:none; margin:0; padding:0; display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:14px;
-}
-.tf-card{
-  background:var(--surface-variant); border-radius:var(--radius-m);
-  padding:16px 14px 12px; position:relative; overflow:hidden;
-}
-/* A quiet bar along the top, scaled to how big this swap is against the
-   biggest on offer - rank without another number to read. */
-.tf-card::before{
-  content:""; position:absolute; top:0; left:0; height:3px; width:var(--gain);
-  background:linear-gradient(90deg,var(--accent),#01fc7a);
-}
-.tf-swap{display:flex; align-items:flex-start; gap:8px}
-.tf-face{flex:1 1 0; text-align:center; min-width:0}
-.tf-frame{position:relative; width:72px; margin:0 auto}
-.tf-photo{
-  width:72px; height:92px; border-radius:var(--radius-s); object-fit:cover;
-  background:var(--surface); display:block;
-}
-/* A player with no portrait used to draw as a white box on a white card
-   with a letter floating in it - indistinguishable from an image that had
-   failed to load, and four of them sat in one row of suggested transfers.
-   The club kit is an asset we already have for that player, so a missing
-   face falls back to the shirt on the same warm ground the pitch cards use
-   for a crest, and only a player with neither gets the letter. */
-.tf-blank{
-  display:grid; place-items:center; font-size:30px; font-weight:700;
-  background:var(--surface-variant); border:1px solid var(--outline-variant);
-  color:var(--p60);
-}
-.tf-blank img{width:48px; height:48px; object-fit:contain; display:block}
-.tf-kit{
-  position:absolute; right:-8px; bottom:-6px; width:26px; height:26px;
-  border-radius:50%; background:var(--surface); padding:2px;
-  box-shadow:0 1px 4px rgb(0 0 0 / 25%);
-}
-.tf-out .tf-photo{filter:grayscale(.75) opacity(.72)}
-/* Set-piece duties on a suggested target - who takes pens, free kicks or
-   corners is worth knowing right next to the signing, not only on the
-   set-piece card three sections away. */
-.duty-badges{display:inline-flex; gap:2px; vertical-align:middle}
-.duty-badges .spicon{width:11px; height:11px; color:var(--accent-ink)}
-.tf-frame .duty-badges,.pr-frame .duty-badges,.df-frame .duty-badges{
-  position:absolute; top:-4px; left:-4px; background:var(--surface);
-  border-radius:var(--radius-xs); padding:2px; box-shadow:0 1px 3px rgb(0 0 0 / 20%);
-}
-.pr-frame .duty-badges .spicon{width:8px; height:8px}
-.tf-name{margin:10px 0 0; font-weight:700; font-size:14px;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.tf-meta{margin:1px 0 0; font-size:12px; color:var(--on-surface-variant)}
-.tf-mid{
-  flex:0 0 76px; display:flex; flex-direction:column; align-items:center;
-  gap:6px; padding-top:32px;
-}
-.tf-arrow{display:block; width:40px; color:var(--on-surface-variant)}
-.tf-arrow svg{width:40px; height:16px; display:block}
-.tf-money{font-size:12px; font-weight:700; padding:2px 8px; border-radius:var(--radius-xs)}
-.tf-free{background:var(--outline-variant); color:var(--on-surface-variant)}
-.tf-cost{background:#fde2e7; color:#a3001b}
-.tf-save{background:#d9f7e7; color:#00663a}
-.tf-numbers{
-  display:grid; grid-template-columns:1fr auto 1fr; align-items:center;
-  gap:10px; margin-top:14px;
-}
-.tf-ep{display:flex; flex-direction:column; gap:4px; font-size:12px;
-  color:var(--on-surface-variant); font-variant-numeric:tabular-nums}
-.tf-ep small{font-size:9px; text-transform:uppercase; letter-spacing:.04em;
-  color:var(--p50); font-weight:600}
-.tf-ep-in{text-align:right}
-.tf-track{display:block; height:5px; border-radius:9999px;
-  background:var(--outline-variant); overflow:hidden}
-.tf-track i{display:block; height:100%; background:var(--p40); border-radius:9999px}
-.tf-ep-in .tf-track{transform:scaleX(-1)}
-.tf-ep-in .tf-track i{background:var(--accent)}
-.tf-gain{
-  font-size:19px; font-weight:700; color:var(--good-ink); text-align:center;
-  line-height:1.05; font-variant-numeric:tabular-nums;
-}
-.tf-gain small{display:block; font-size:12px; font-weight:600;
-  text-transform:uppercase; letter-spacing:.04em; color:var(--on-surface-variant)}
-.tf-foot{margin:12px 0 0; font-size:12px; color:var(--on-surface-variant);
-  text-align:center}
-.tf-excl{margin:6px 0 0; font-size:12px; text-align:center;
-  color:var(--warn-ink); font-weight:600}
-.tf-lede{
-  margin:0 0 14px; font-size:13px; font-weight:600; color:var(--ink);
-  background:var(--p5); border-radius:var(--radius-s); padding:9px 12px;
-}
-.tf-elite{font-weight:600; color:var(--good-ink)}
-/* When to make it, or why it fits a plan: the line that turns a ranked
-   swap into advice, so it reads as a note, not body copy. */
-.tf-timing{margin:8px 0 0; font-size:12px; line-height:1.45; text-align:center;
-  color:var(--on-surface-variant)}
-.tf-span{font-size:9px; font-weight:600; line-height:1.3; text-align:center;
-  text-transform:uppercase; letter-spacing:.04em; color:var(--p50)}
-
 /* Other transfer options: single and paired moves inside one shut card.
    Each block keeps a title, info button and hidden note, without a second
    purple band inside the first. */
@@ -1704,8 +1562,6 @@ table td.tick{border:2px solid var(--surface)}
 .subhead h3{font-size:15px}
 .subhead .sub,.subhead .subvis{flex-basis:100%; font-size:12px; line-height:1.45;
   color:var(--on-surface-variant)}
-.optblock + .optblock{margin-top:22px; padding-top:18px; border-top:1px solid var(--outline-variant)}
-.other-moves{margin-bottom:16px}
 
 /* --- expected points, stacked --- */
 .epbar{
@@ -2225,15 +2081,12 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .scpv-spark{width:100px; height:24px; display:block}
 
 .action-method p{font-size:15px; line-height:1.6; max-width:85ch}
-.slcard,.pr-card{min-width:0}
-.slname{min-width:0}.slval{flex-shrink:0}.pr-head{flex-wrap:wrap}
+.slcard{min-width:0}
+.slname{min-width:0}.slval{flex-shrink:0}
 .league-manager{display:block; font-size:13px; font-weight:500; color:var(--muted); margin-top:3px}
 .league-standings td:nth-child(2){min-width:144px; white-space:normal}
-.pr-head small{line-height:1.3}
 @media(max-width:560px){
   .card-head{padding:18px 16px 4px}.card-body{padding:14px 16px 18px}
-  .pr-leg{gap:5px}.pr-face{flex-direction:column; align-items:flex-start; gap:5px}
-  .pr-name{max-width:100%; white-space:normal; overflow-wrap:anywhere}
   .league-standings th,.league-standings td{padding:12px 7px}
   .league-standings td:first-child .delta{display:block; width:max-content; margin-top:4px}
 }
@@ -2642,6 +2495,10 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   border-radius:12px; background:rgb(22 0 26 / 42%); -webkit-backdrop-filter:blur(14px) saturate(160%); backdrop-filter:blur(14px) saturate(160%);
   border:1px solid rgb(255 255 255 / 20%); box-shadow:inset 0 1px 0 rgb(255 255 255 / 28%); font-size:14px; font-weight:800}
 .opp-plate img{width:26px; height:26px; object-fit:contain}
+.deck-duties{position:absolute; left:12px; top:60px; display:flex; gap:6px}
+.deck-duties span{width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  background:rgb(22 0 26 / 50%); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); color:var(--green)}
+.deck-duties .ico{--ico:24px}
 .opp-plate .faces .face{width:26px; height:26px; filter:grayscale(1); box-shadow:none}
 .opp-plate .faces .face + .face{margin-left:-8px}
 .foil{position:absolute; inset:0; pointer-events:none; mix-blend-mode:color-dodge; opacity:.3;
