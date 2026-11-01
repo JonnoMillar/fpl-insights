@@ -67,18 +67,18 @@
     },
     {
       "name": "corners",
-      "atlas": "football.png",
+      "atlas": "corners.png",
       "source_rect": [
-        34,
-        347,
-        274,
-        274
+        412,
+        278,
+        562,
+        562
       ],
       "cell": [
         0,
-        314,
-        314,
-        627
+        0,
+        1387,
+        1134
       ]
     },
     {

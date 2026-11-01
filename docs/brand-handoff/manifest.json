@@ -7,9 +7,9 @@
     "navigation_icons": "provisionally_accepted_starting_set",
     "sidebar_and_selected_states": "open_for_claude_design",
     "publication": "not_authorised",
-    "additional_dashboard_icons": "40_generated_transparent_CSS_views_available_vector_redraws_REJECTED",
+    "additional_dashboard_icons": "40_generated_transparent_CSS_views_packaged_latest_reference_corner_Noto_Sans",
     "typography": "Noto_Sans_preview_proposed_page_font",
-    "corner": "previous_corner_rejected_two_generated_replacements_pending_review"
+    "corner": "latest_reference_based_generated_corner_supplied"
   },
   "icon_source": "https://github.com/phosphor-icons/core",
   "icon_license": "licenses/PHOSPHOR-MIT.txt",
@@ -30,7 +30,7 @@
   "files": [
     {
       "path": "CLAUDE_BRIEF.md",
-      "sha256": "a262c198e34e38c49c9053d1116f8e79cd46f550243f5d7fcdc0dda63d4151ac"
+      "sha256": "1fc167d6955ab06cf0c6cc943622b04fe5f84aa178d6828a23866a201e34932d"
     },
     {
       "path": "concept-suite/approved-goals-assist.png",
@@ -282,7 +282,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "4f7564dabaedaa4989acf2e4408a8af62f3902c72473bbbebe39fca9a84c51d0"
+      "sha256": "46fe1fec1c5ca7b6fbcafc36bf1418bf984c9d057bb31966618b26bb1d48bed8"
     },
     {
       "path": "references/dashboard-direction.png",
@@ -290,11 +290,15 @@
     },
     {
       "path": "transparent-suite/catalog.json",
-      "sha256": "cacd7fedf887bc08da369a63a80f427d24811ed85e506262dcee188720a249ee"
+      "sha256": "9d0f67c90563bdc5d508c342265b77dec449f94083a025bf91ed15822be6dbf0"
     },
     {
       "path": "transparent-suite/controls.png",
       "sha256": "729e6716884006df8d0c5f6f6f641de31ee1c52b45058530a552c40bb1ca7aaa"
+    },
+    {
+      "path": "transparent-suite/corners.png",
+      "sha256": "9a02b1aad4fee02e818d7c56223e17e469167097fcc33e3639b557294e2c23ee"
     },
     {
       "path": "transparent-suite/football.png",
@@ -302,7 +306,7 @@
     },
     {
       "path": "transparent-suite/icons.css",
-      "sha256": "7e4b87f847135ca5ed14f59aed8aba5cf941e19f574a32b61725fb6e54a18c9d"
+      "sha256": "2e4d42981ce302c6ac398abb7d53ae45c9ed78be6b81114457741b36bc9c898b"
     },
     {
       "path": "transparent-suite/navigation-planning.png",
@@ -310,27 +314,27 @@
     },
     {
       "path": "transparent-suite/preview-aubergine.png",
-      "sha256": "c6ad7fca4bea8ddcf4719784ac3512c58b4f4ef3e8178fef919ecd7a7af13de0"
+      "sha256": "880b3c8c362b6531a2eab1148814001776ac8fcdb136330bfa9d84e92a57549c"
     },
     {
       "path": "transparent-suite/preview-green.png",
-      "sha256": "9ada35c99356e4b711cbc551134265d443ff106668896a5c54526cfcee18b14e"
+      "sha256": "bb5b926be42a63c053bd0a1d58085da4d7d16f4b28713b65906e8f32968fb81a"
     },
     {
       "path": "transparent-suite/preview-white.png",
-      "sha256": "01638816b47cbfa6136c373f2d409ebf8e962b06d1e5f29aa62350711ac749d0"
+      "sha256": "8bd4a7d5909124a0580ad672bd092d6af4e3fb8b59f4e60b02da1b9b9457fdeb"
     },
     {
       "path": "transparent-suite/preview.html",
-      "sha256": "f7a355be17b9a320e650119d158d24061aadc23ef6868ae21b7a864d4ff763bd"
+      "sha256": "c59567a6bf8bee660f5f73f51273ab51657b34d8c184255e2cd8bcd7ea555d39"
     },
     {
       "path": "transparent-suite/README.md",
-      "sha256": "ee69784c8c537facef37056b7eceb022bd576d2e2ca1fbec5566f044b6f7b37c"
+      "sha256": "0a8064cad04aac52b49f17d2eef4b7d622d56c680ab310755e06afdd9676bc69"
     },
     {
       "path": "transparent-suite/transparency-check.json",
-      "sha256": "740308d961970c1893144dc55ad5637a646034d7401e5f01e4ffcf77fdc0f790"
+      "sha256": "337866530c88b3e5978334bd073e2174454048148b12da94d02863b3ae9634da"
     },
     {
       "path": "vector-suite/build.py",

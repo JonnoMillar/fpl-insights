@@ -37,5 +37,18 @@
       254
     ],
     "file_identical_to_generated_source": true
+  },
+  {
+    "file": "corners.png",
+    "dimensions": [
+      1387,
+      1134
+    ],
+    "alpha_zero_pixels": 1540227,
+    "alpha_range": [
+      0,
+      255
+    ],
+    "file_identical_to_generated_source": true
   }
 ]

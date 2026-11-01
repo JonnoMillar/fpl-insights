@@ -1,3 +1,4 @@
+:root{--fpl-corner-art:url("corners.png")}
 :root{--fpl-atlas-football:url("football.png");--fpl-atlas-navigation-planning:url("navigation-planning.png");--fpl-atlas-controls:url("controls.png")}
 /* Generated artwork, displayed through CSS alpha masks. No vector redraw. */
 .fpl-icon{display:inline-block;flex:none;width:var(--icon-size,24px);height:var(--icon-size,24px);background-color:currentColor;vertical-align:middle;-webkit-mask-image:var(--icon-atlas);mask-image:var(--icon-atlas);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:var(--icon-scale);mask-size:var(--icon-scale);-webkit-mask-position:var(--icon-position);mask-position:var(--icon-position)}
@@ -5,7 +6,7 @@
 .fpl-assists{--icon-atlas:var(--fpl-atlas-football);--icon-scale:480.459770% 480.459770%;--icon-position:34.944612% 5.337362%}
 .fpl-penalties{--icon-atlas:var(--fpl-atlas-football);--icon-scale:461.029412% 461.029412%;--icon-position:65.071283% 4.276986%}
 .fpl-free-kicks{--icon-atlas:var(--fpl-atlas-football);--icon-scale:423.648649% 423.648649%;--icon-position:98.121086% 1.878914%}
-.fpl-corners{--icon-atlas:var(--fpl-atlas-football);--icon-scale:457.664234% 457.664234%;--icon-position:3.469388% 35.408163%}
+.fpl-corners{--icon-atlas:var(--fpl-corner-art);--icon-scale:246.797153% 201.779359%;--icon-position:49.939394% 48.601399%}
 .fpl-clean-sheet{--icon-atlas:var(--fpl-atlas-football);--icon-scale:443.109541% 443.109541%;--icon-position:34.397528% 34.809475%}
 .fpl-saves{--icon-atlas:var(--fpl-atlas-football);--icon-scale:451.079137% 451.079137%;--icon-position:65.266393% 35.758197%}
 .fpl-minutes{--icon-atlas:var(--fpl-atlas-football);--icon-scale:459.340659% 459.340659%;--icon-position:95.820591% 35.474006%}

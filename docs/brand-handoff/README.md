@@ -1,3 +1,5 @@
+**CURRENT SET — 1 November: use [transparent-suite/](transparent-suite/README.md). It contains all 40 generated icons, Noto Sans preview typography and the latest reference-based corner flag. The older corner studies and code-drawn vectors are excluded from the clean delivery ZIP.**
+
 **TYPOGRAPHY / CORNER UPDATE — 1 November: Jonno requested Noto Sans for previews and is considering it for the page. Use the locally bundled font for preview work. Previous corner is rejected; [two generated Noto pairing studies](noto-study/preview.html) await review. No application typography was changed.**
 
 **CURRENT DELIVERABLE — 1 November: [transparent generated icon suite](transparent-suite/README.md), with [working preview](transparent-suite/preview.html). Forty named CSS views use the actual transparent PNG artwork. Use this instead of the rejected vector redraws. Saves B is a working selection.**
