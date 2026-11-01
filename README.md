@@ -94,8 +94,8 @@ Four tabs:
 Styling follows FPL's own stylesheet: brand purple `#37003c` as ink, their
 bright green `#01fc7a` as the single accent, their five-step fixture-difficulty
 colours. Light theme only. FPL's typeface is a licensed Monotype face, so the
-page uses Archivo (on its width axis, expanded for headings) with IBM Plex Mono
-for every figure so columns of numbers align. Difficulty pills always carry a
+page uses Noto Sans throughout, with tabular figures so columns of numbers
+align. Difficulty pills always carry a
 visible opponent and number, because two of FPL's steps sit at 1.35:1 and
 1.2:1 against white and colour alone would not be readable.
 

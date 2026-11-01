@@ -69,28 +69,27 @@
   --shadow:0 1px 2px rgb(55 0 60 / 10%), 0 1px 8px rgb(55 0 60 / 6%);
 }
 
-/* One family for words, one for numbers. Archivo carries a width axis, so
-   headings can be genuinely expanded rather than merely bolder - the wide
-   caps read like the lettering on a perimeter board, and the contrast against
-   normal-width body text does the work a second typeface would otherwise do.
-   Every figure on the page is set in Plex Mono at tabular width, so columns
-   of stats line up on the digit the way a results service does. */
+/* One family, Noto Sans: plain letters and numbers, crisp, with a plain zero
+   (no slash or dot). It carries real weights up to 800, so figures stay solid
+   rather than thin. Figures are tabular on the whole page (set on body), so
+   columns of stats line up on the digit the way a results service does.
+   --num names the figure role; it is the same face as --sans. */
 :root{
-  --sans:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --sans:'Noto Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --num:var(--sans);
 }
 *{box-sizing:border-box}
 .data-status{font-size:13px;line-height:1.5;color:var(--p80);margin:12px 0}
 .data-warning{background:var(--attention-wash);color:var(--attention-ink);padding:12px;border-radius:var(--radius-s)}
 body{
   margin:0; background:var(--ground); color:var(--on-surface);
-  font-family:var(--sans);
+  font-family:var(--sans); font-variant-numeric:tabular-nums;
   font-size:15px; line-height:1.45;
   -webkit-font-smoothing:antialiased;
 }
 h1,h2,h3{
   margin:0; font-weight:700; text-wrap:balance;
-  font-stretch:118%; letter-spacing:-0.005em; line-height:1.15;
+  letter-spacing:-0.005em; line-height:1.15;
 }
 h2{font-size:17px; text-transform:uppercase; letter-spacing:0.04em}
 a{color:inherit}
@@ -98,7 +97,7 @@ a{color:inherit}
 /* Figures. `num` already marks every numeric cell in the tables. */
 .num,.tnum,.stat-v,.delta,.fxc-score,.fxavg,.oi-value,.pr-total,.pr-hit,
 .pr-bank,.cp-num,.hero-num{
-  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-family:var(--num); font-variant-numeric:tabular-nums;
   letter-spacing:-0.02em;
 }
 
@@ -134,18 +133,18 @@ a{color:inherit}
    pills, so "this is notable" already reads as a pill on this page. */
 .good-pill{
   display:inline-flex; align-items:center; gap:4px; padding:1px 7px;
-  border-radius:9999px; font-family:var(--mono); font-size:12px;
+  border-radius:9999px; font-family:var(--num); font-size:12px;
   font-weight:600; background:var(--good-wash); color:var(--good-ink);
 }
 .bad-pill{
   display:inline-flex; align-items:center; gap:4px; padding:1px 7px;
-  border-radius:9999px; font-family:var(--mono); font-size:12px;
+  border-radius:9999px; font-family:var(--num); font-size:12px;
   font-weight:600; background:var(--bad-wash); color:var(--bad-ink);
 }
 /* The one surviving warn-ink usage: "borderline", not "needs a look". */
 .warn-pill{
   display:inline-flex; align-items:center; gap:4px; padding:1px 7px;
-  border-radius:9999px; font-family:var(--mono); font-size:12px;
+  border-radius:9999px; font-family:var(--num); font-size:12px;
   font-weight:600; background:var(--attention-wash); color:var(--warn-ink);
 }
 
@@ -206,7 +205,7 @@ a{color:inherit}
 
 .wrap{max-width:var(--shell);margin:0 auto;padding:16px}
 .product-intro{padding:8px 0 16px; border-bottom:1px solid var(--outline-variant)}
-.product-intro h1{font-size:clamp(26px,3vw,32px); font-stretch:125%; overflow-wrap:anywhere}
+.product-intro h1{font-size:clamp(26px,3vw,32px); overflow-wrap:anywhere}
 .product-intro>p{max-width:80ch; margin:10px 0 4px; line-height:1.5}
 .intro-links{display:flex; align-items:flex-start; gap:8px 24px; flex-wrap:wrap; font-size:13px}
 .intro-links>a,.about-methods>summary{min-height:44px; display:flex; align-items:center; gap:6px}
@@ -232,7 +231,7 @@ section{margin-bottom:16px}
   padding:14px 16px; border-bottom:1px solid var(--outline); background:#e7daed;
   display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
 }
-.card-head h2{font-size:16px; text-transform:none; font-stretch:100%; letter-spacing:-.005em}
+.card-head h2{font-size:16px; text-transform:none; letter-spacing:-.005em}
 
 /* --- chapter ---
    A screen section, above the cards it groups.
@@ -243,8 +242,8 @@ section{margin-bottom:16px}
    16 nothing told them apart. Worse, which one a section got was arbitrary.
 
    A card title uses 16px sentence case; the chapter above it is larger,
-   expanded on Archivo's width axis on a dark chapter band. The width axis
-   is what separates the two, not weight, because both were already bold.
+   larger, on a dark chapter band. The band and the size separate the two,
+   not weight, because both were already bold.
    A bare `card-head` on the ground is now always a mistake. */
 .chapter{
   margin:30px 0 12px; padding:12px 16px;
@@ -252,7 +251,7 @@ section{margin-bottom:16px}
   display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
 }
 .chapter h2{
-  font-size:22px; font-stretch:125%; text-transform:none;
+  font-size:22px; text-transform:none;
   letter-spacing:-0.01em; line-height:1.2;
 }
 .chapter .sub{font-size:13px; color:#ddcde4}
@@ -309,7 +308,7 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
   color:var(--white); border-radius:var(--radius-m); padding:22px 18px;
   box-shadow:var(--shadow); position:relative; overflow:hidden;
 }
-.hero-title{font-size:clamp(23px,4vw,34px); font-stretch:125%; font-weight:700; text-transform:none; letter-spacing:-.005em}
+.hero-title{font-size:clamp(23px,4vw,34px); font-weight:700; text-transform:none; letter-spacing:-.005em}
 .hero .mgr{color:rgb(255 255 255 / 66%); font-size:14px; margin-top:3px}
 /* The one sentence that says whether the week was good. Sits between the
    name and the numbers because it is the thing you read first and the
@@ -320,7 +319,7 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
   padding-left:11px;
 }
 .hero-line b{
-  font-family:var(--mono); font-weight:600; color:var(--white);
+  font-family:var(--num); font-weight:600; color:var(--white);
   letter-spacing:-0.02em;
 }
 /* Chips inside a tile qualify the number, so they must not compete with it. */
@@ -340,7 +339,7 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
 }
 .tile .k{font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:rgb(255 255 255 / 62%)}
 .tile .v{
-  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-family:var(--num); font-variant-numeric:tabular-nums;
   font-size:25px; font-weight:600; line-height:1.1; margin-top:3px;
   letter-spacing:-0.03em;
 }
@@ -510,8 +509,8 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
   color:var(--on-surface); font-weight:700; font-size:17px; flex-grow:1.7;
   display:block; border:0;
   /* The one figure in front on a shirt card is set the way a number on a
-     shirt is: tight, heavy and slightly taller than it is wide. Plex Mono
-     has no width axis, so the squeeze is a transform on the cell rather
+     shirt is: tight, heavy and slightly taller than it is wide. Noto Sans
+     has no width axis here, so the squeeze is a transform on the cell rather
      than a face - which also keeps every card's three cells on the same
      baseline grid, since a scaled glyph takes no extra line box. */
   letter-spacing:-0.05em; transform:scaleX(.92); transform-origin:center;
@@ -528,7 +527,7 @@ h2 .infobtn,h3 .infobtn,h4 .infobtn{margin-left:6px; vertical-align:middle}
 .statsel[hidden]{display:none}
 .stbtn{
   appearance:none; border:0; background:none; cursor:pointer;
-  color:var(--on-surface-variant); font:inherit; font-family:var(--mono);
+  color:var(--on-surface-variant); font:inherit; font-family:var(--num);
   font-size:11px; font-weight:500; padding:5px 6px; border-radius:var(--radius-xs);
 }
 .stbtn[aria-pressed="true"]{color:var(--ink); background:var(--accent); font-weight:700}
@@ -1003,7 +1002,7 @@ table td.tick{border:2px solid var(--surface)}
   flex-direction:column; gap:8px}
 .pmname{display:block; font-size:13px; font-weight:600}
 .pmprice{
-  display:block; font-family:var(--mono); font-size:11px;
+  display:block; font-family:var(--num); font-size:11px;
   color:var(--on-surface-variant); letter-spacing:-0.02em;
 }
 .pmprice i{font-style:normal; padding:0 4px; opacity:.65}
@@ -1103,7 +1102,7 @@ table td.tick{border:2px solid var(--surface)}
    should never look like two sets of tabs. */
 .epbtn{
   appearance:none; border:0; background:none; cursor:pointer; margin-left:auto;
-  color:var(--on-surface-variant); font:inherit; font-family:var(--mono);
+  color:var(--on-surface-variant); font:inherit; font-family:var(--num);
   font-size:11px; font-weight:500; padding:5px 6px;
   border-radius:var(--radius-xs);
 }
@@ -1203,7 +1202,7 @@ table td.tick{border:2px solid var(--surface)}
   background:var(--outline);
 }
 .cpw em{font-style:normal; font-size:8px; color:var(--p50);
-  font-family:var(--mono)}
+  font-family:var(--num)}
 .cpw-on i{background:var(--accent)}
 .cpw-on em{color:var(--ink); font-weight:700}
 .cpweeks-read{margin:0 0 2px; font-size:11px; color:var(--on-surface-variant)}
@@ -1243,12 +1242,12 @@ table td.tick{border:2px solid var(--surface)}
 .lcring .dtrack{stroke-width:11}
 .lcring .dseg{fill:none; stroke-width:11; stroke-linecap:butt}
 .lcring-n{fill:var(--on-surface); font-size:23px; font-weight:700;
-  font-family:var(--mono); letter-spacing:-0.03em}
+  font-family:var(--num); letter-spacing:-0.03em}
 .lcring-s{fill:var(--on-surface-variant); font-size:11px}
 .lcread{min-width:0; flex:1 1 130px}
 .lcfig{
   margin:0; display:flex; align-items:baseline; gap:6px;
-  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-family:var(--num); font-variant-numeric:tabular-nums;
 }
 .lcfig b{font-size:28px; font-weight:700; line-height:1;
   letter-spacing:-0.04em; color:var(--lc-tone,var(--on-surface))}
@@ -1284,7 +1283,7 @@ table td.tick{border:2px solid var(--surface)}
 .fsw-hard h4{color:var(--bad-ink)}
 .fsw-row{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
 .fsw-club{font-size:13px; font-weight:600}
-.fsw-fdr{font-size:10px; font-family:var(--mono); color:var(--on-surface-variant)}
+.fsw-fdr{font-size:10px; font-family:var(--num); color:var(--on-surface-variant)}
 .fsw-fx{margin-left:auto; display:flex; gap:3px; flex-wrap:wrap}
 
 /* --- fixture run summary ------------------------------------------------
@@ -1310,7 +1309,7 @@ table td.tick{border:2px solid var(--surface)}
 .fro-row.fro-good{background:var(--good-wash); border-left-color:var(--good)}
 .fro-row.fro-bad{background:var(--bad-wash); border-left-color:var(--bad)}
 .fro-club{font-size:13px; font-weight:600; flex:1}
-.fro-val{font-family:var(--mono); font-size:13px; font-weight:600}
+.fro-val{font-family:var(--num); font-size:13px; font-weight:600}
 .fro-row.fro-good .fro-val{color:var(--good-ink)}
 .fro-row.fro-bad .fro-val{color:var(--bad-ink)}
 .fro-mine{
@@ -1343,10 +1342,10 @@ table td.tick{border:2px solid var(--surface)}
   font-size:10px; font-weight:700; text-transform:uppercase;
   letter-spacing:.05em; color:var(--on-surface-variant); flex-basis:100%;
 }
-.wcstat-b{font-family:var(--mono); font-size:13px; color:var(--on-surface-variant)}
+.wcstat-b{font-family:var(--num); font-size:13px; color:var(--on-surface-variant)}
 .wcstat-arrow{color:var(--p40); font-size:12px}
-.wcstat-a{font-family:var(--mono); font-size:15px; font-weight:700}
-.wcstat-d{font-family:var(--mono); font-size:11px; margin-left:2px}
+.wcstat-a{font-family:var(--num); font-size:15px; font-weight:700}
+.wcstat-d{font-family:var(--num); font-size:11px; margin-left:2px}
 .wcstat-d.wc-up{color:var(--good-ink)}
 .wcstat-d.wc-down{color:var(--bad-ink)}
 .wcstat-d.wc-flat{color:var(--on-surface-variant)}
@@ -1928,12 +1927,12 @@ table td.tick{border:2px solid var(--surface)}
 .gapdot.d-a{background:var(--on-surface)}
 .gapdot.d-x{background:var(--surface); border:2px solid var(--on-surface-variant)}
 .gapnum,.dcnum{
-  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-family:var(--num); font-variant-numeric:tabular-nums;
   font-size:12px; text-align:right; color:var(--on-surface-variant);
   white-space:nowrap; letter-spacing:-0.02em;
 }
 .dchits{
-  font-family:var(--mono); font-size:11px; color:var(--on-surface-variant);
+  font-family:var(--num); font-size:11px; color:var(--on-surface-variant);
   text-align:right; white-space:nowrap;
 }
 .dcr .good-pill,.dcr .bad-pill,.dcr .warn-pill{white-space:nowrap; justify-self:end}
@@ -1975,7 +1974,7 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
 .pv-head{display:flex; align-items:flex-start; gap:12px; padding-right:38px}
 .pv-head h2{font-size:22px}
 .pv-sub{margin:2px 0 0; font-size:13px; color:var(--on-surface-variant)}
-.pv-pricechange{font-family:var(--mono); font-size:12px}
+.pv-pricechange{font-family:var(--num); font-size:12px}
 .pv-pricechange.up{color:var(--good-ink)}
 .pv-pricechange.down{color:var(--bad)}
 .pv-alert{
@@ -2033,7 +2032,7 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
 }
 .find h3{
   font-size:12px; text-transform:uppercase; letter-spacing:0.06em;
-  font-stretch:112%; padding:11px 14px 9px;
+  padding:11px 14px 9px;
   border-top:3px solid var(--tone,var(--p60));
 }
 .find .note{padding:0 14px 10px; font-size:13px; color:var(--on-surface-variant); margin-top:-4px}
@@ -2055,7 +2054,7 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
 }
 /* A row with no subject is a plain sentence and should read as one. */
 .fi-det:only-child{margin-left:0; text-align:left}
-.fnum{font-family:var(--mono); font-weight:600; letter-spacing:-0.02em}
+.fnum{font-family:var(--num); font-weight:600; letter-spacing:-0.02em}
 
 /* --- attacking returns ---------------------------------------------------
    Goals and assists as the one number FPL managers already mean by
@@ -2069,7 +2068,7 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
   color:var(--p60)}
 .arr-detail{
   margin-left:auto; color:var(--on-surface-variant); font-size:12px;
-  font-family:var(--mono);
+  font-family:var(--num);
 }
 .arr-total{font-size:16px; font-weight:700; min-width:1.4em; text-align:right}
 .arr-def{
@@ -2135,17 +2134,17 @@ details .scroll{padding:0 14px 14px}
 .scoutpos > button:focus-visible{outline:3px solid var(--accent); outline-offset:-3px}
 .scoutpos > button[aria-selected="true"]{background:var(--ink); color:var(--white)}
 .scoutpos-code{
-  flex:none; font-family:var(--mono); font-size:11px; font-weight:700;
+  flex:none; font-family:var(--num); font-size:11px; font-weight:700;
   letter-spacing:.04em; padding:3px 7px; border-radius:var(--radius-xs);
   background:var(--p10); color:var(--ink);
 }
 .scoutpos > button[aria-selected="true"] .scoutpos-code{background:var(--accent)}
 .scoutpos-label{
-  font-weight:700; font-size:16px; font-stretch:118%; letter-spacing:-0.005em;
+  font-weight:700; font-size:16px; letter-spacing:-0.005em;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .scoutpos-n{
-  margin-left:auto; font-family:var(--mono); font-size:12px;
+  margin-left:auto; font-family:var(--num); font-size:12px;
   color:var(--on-surface-variant);
 }
 .scoutpos > button[aria-selected="true"] .scoutpos-n{color:var(--p30)}
@@ -2197,7 +2196,7 @@ details .scroll{padding:0 14px 14px}
   flex-direction:column; gap:8px}
 .fxrun-list li{display:flex; align-items:center; gap:9px; font-size:13px}
 .fxrun-club{font-weight:700; min-width:38px}
-.fxrun-avg{font-family:var(--mono); font-size:11px; color:var(--on-surface-variant)}
+.fxrun-avg{font-family:var(--num); font-size:11px; color:var(--on-surface-variant)}
 .fxrun-chips{display:flex; flex-wrap:wrap; gap:3px; margin-left:auto}
 .fxrun-chips .rpill{margin-right:0}
 .rpill.fxr-blank{background:var(--surface-variant); color:var(--on-surface-variant)}
@@ -2212,7 +2211,7 @@ details .scroll{padding:0 14px 14px}
 .scoutscatter .axtitle{fill:var(--on-surface-variant); font-size:12px; font-weight:600}
 .scoutscatter .crosshair{stroke:var(--outline-variant); stroke-width:1; stroke-dasharray:3 4}
 .scoutscatter .isoxgi line{stroke:var(--p20); stroke-width:1; stroke-dasharray:1 5; stroke-linecap:round}
-.scoutscatter .isoxgi text{fill:var(--p60); font-size:10px; font-family:var(--mono)}
+.scoutscatter .isoxgi text{fill:var(--p60); font-size:10px; font-family:var(--num)}
 .scoutscatter .quadlabel{fill:var(--on-surface-variant); font-size:10px; font-style:italic}
 .scoutscatter .threshline{stroke:var(--attention); stroke-width:1.5; stroke-dasharray:4 3}
 .scoutscatter .threshlabel{fill:var(--attention-ink); font-size:10px; font-weight:600}
@@ -2242,7 +2241,7 @@ details .scroll{padding:0 14px 14px}
 .scoutheatmap{border-collapse:collapse; width:100%; font-size:13px}
 .scoutheatmap th, .scoutheatmap td{padding:6px 9px; text-align:left; white-space:nowrap}
 .scoutheatmap td.num, .scoutheatmap th[data-sort]{text-align:right}
-.scoutheatmap td.num{font-variant-numeric:tabular-nums; font-family:var(--mono)}
+.scoutheatmap td.num{font-variant-numeric:tabular-nums; font-family:var(--num)}
 .scoutheatmap thead th{
   font-size:11px; text-transform:uppercase; letter-spacing:.04em;
   color:white; border-bottom:1px solid var(--ink);
@@ -2311,7 +2310,7 @@ details .scroll{padding:0 14px 14px}
 .zrow-bar{position:absolute; top:2px; bottom:2px; border-radius:2px; background:var(--p60)}
 .zrow-bar-neg{background:var(--p30)}
 .zrow-val{font-variant-numeric:tabular-nums; color:var(--on-surface-variant);
-  font-family:var(--mono); font-size:11px}
+  font-family:var(--num); font-size:11px}
 
 .scouttickertable{border-collapse:collapse; width:100%; font-size:12px}
 .scouttickertable th, .scouttickertable td{padding:4px 7px; text-align:center}
@@ -2375,7 +2374,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .scpv-bullet-tick{position:absolute; left:50%; top:-2px; bottom:-2px; width:1.5px;
   background:var(--on-surface)}
 .scpv-strip{max-width:100%; height:auto; display:block}
-.mk-ga{font-family:var(--mono); font-size:9px; font-weight:700; fill:var(--mine-ink); color:var(--mine-ink)}
+.mk-ga{font-family:var(--num); font-size:9px; font-weight:700; fill:var(--mine-ink); color:var(--mine-ink)}
 .mk-key-dot, .mk-key-tri{display:inline-block; vertical-align:middle}
 .mk-key-dot{width:6px; height:6px; border-radius:50%; background:var(--ink)}
 .mk-key-tri{width:0; height:0; border-left:3.5px solid transparent;
@@ -2462,7 +2461,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 /* Matchday workspace: a score strip, a decision brief and one compact team sheet.
    Plum supplies hierarchy; the field and the transfer preview earn the colour. */
 .product-intro{position:relative; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 24px; padding:0 0 4px; margin-bottom:0; border:0}
-.product-intro h1{font-size:24px; font-stretch:118%; line-height:1.2; text-wrap:initial}
+.product-intro h1{font-size:24px; line-height:1.2; text-wrap:initial}
 .product-intro>p{grid-column:1; font-size:13px; margin:0; color:var(--p80)}
 .product-intro .intro-links{grid-column:2; grid-row:1 / span 2; margin:0; align-self:center; gap:20px}
 .product-intro .about-methods{flex:none; min-width:0}
@@ -2476,7 +2475,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .squad-overview>*{min-width:0}
 .squad-overview>.hero{grid-area:review; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; border:0; padding:0; background:none; color:var(--ink); box-shadow:none; overflow:visible; margin:0}
 .score-group{min-width:0; margin:0; overflow:hidden; border-radius:10px; background:var(--ink); color:white; border:1px solid var(--ink)}
-.score-group h2{font-size:12px; line-height:18px; font-weight:600; font-stretch:100%; text-transform:none; letter-spacing:0; margin:0; padding:4px 14px; border-bottom:1px solid rgb(255 255 255 / 24%)}
+.score-group h2{font-size:12px; line-height:18px; font-weight:600; text-transform:none; letter-spacing:0; margin:0; padding:4px 14px; border-bottom:1px solid rgb(255 255 255 / 24%)}
 .score-upcoming{background:#edf9f0; color:var(--ink); border-color:var(--accent-ink)}
 .score-upcoming h2{background:var(--accent); border-color:var(--accent-ink); color:var(--ink)}
 .squad-overview .tiles{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; margin:0}
@@ -2496,9 +2495,9 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .squad-overview .tile .delta-down{color:var(--bad-ink); background:var(--bad-wash)}
 .decision-brief{--brief-y:18px; --brief-x:18px; grid-area:brief; background:#fffdf7; border:1px solid var(--ink); border-radius:10px; padding:var(--brief-y) var(--brief-x); box-shadow:inset 0 0 0 1px var(--ink); overflow:hidden; overflow-wrap:anywhere}
 .brief-heading{display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--ink); color:white; margin:calc(-1 * var(--brief-y)) calc(-1 * var(--brief-x)) 14px; padding:10px var(--brief-x); box-shadow:inset 0 -3px var(--accent)}
-.brief-heading h2{font-size:15px; font-stretch:100%; text-transform:none; letter-spacing:0}
-.brief-heading>span{font:12px var(--mono); color:#e2d0e8}
-.brief-action{font-size:23px; font-stretch:100%; line-height:1.2; letter-spacing:-.03em; margin:14px 0 16px}
+.brief-heading h2{font-size:15px; text-transform:none; letter-spacing:0}
+.brief-heading>span{font:12px var(--num); color:#e2d0e8}
+.brief-action{font-size:23px; line-height:1.2; letter-spacing:-.03em; margin:14px 0 16px}
 .brief-action a{text-decoration:none}
 .brief-action a:hover{text-decoration:underline; text-underline-offset:4px}
 .transfer-pairs{list-style:none; padding:0; margin:0}
@@ -2708,7 +2707,7 @@ thead small,thead .muted{color:#ddc9e4}
 .plan-week{border:1px solid var(--outline-variant); border-radius:var(--radius-s); padding:10px 12px; background:var(--surface)}
 .plan-week:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .plan-week-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; font-size:13px}
-.plan-week-head b{font-family:var(--mono); font-size:14px}
+.plan-week-head b{font-family:var(--num); font-size:14px}
 .plan-bank{margin-left:auto; color:var(--on-surface-variant); font-size:12px}
 .plan-view{appearance:none; font:inherit; font-size:12px; font-weight:600; cursor:pointer;
   border:1px solid var(--outline); background:var(--surface); color:var(--ink);
@@ -2728,20 +2727,20 @@ thead small,thead .muted{color:#ddc9e4}
   .plan-move .tf-mid{flex-basis:56px}
 }
 .plan-gain{font-size:13px}
-.plan-gain b{font-family:var(--mono); font-size:15px; color:var(--good-ink)}
+.plan-gain b{font-family:var(--num); font-size:15px; color:var(--good-ink)}
 .plan-roll .plan-week-head{color:var(--on-surface-variant)}
 .plan-later{margin-top:10px}
 .plan-later > summary{cursor:pointer; font-size:13px; font-weight:600; padding:8px 0}
 .plan-sub{margin:22px 0 8px; font-size:14px; text-transform:uppercase; letter-spacing:.04em}
-.plan-gwtabs > button small{font-family:var(--mono); font-size:10px; font-weight:800; margin-left:4px}
+.plan-gwtabs > button small{font-family:var(--num); font-size:10px; font-weight:800; margin-left:4px}
 .plan-panel{margin-top:10px}
 .plan-panel[hidden]{display:none}
 .plan-panel-head{margin:0 0 4px; font-size:14px}
-.plan-panel-head .tnum{font-family:var(--mono); font-weight:700}
+.plan-panel-head .tnum{font-family:var(--num); font-weight:700}
 .plan-changes{margin:0 0 10px; font-size:13px; color:var(--on-surface-variant)}
 .plan-pl{width:96px}
 .plan-fx{font-size:10px; text-align:center; color:var(--on-surface-variant); padding:0 3px}
-.plan-pts{font-family:var(--mono); font-size:12px; font-weight:700; text-align:center; padding:1px 0 5px}
+.plan-pts{font-family:var(--num); font-size:12px; font-weight:700; text-align:center; padding:1px 0 5px}
 .plan-pl .arm.plan-vice{background:var(--p20)}
 .plan-in-tag{position:absolute; top:3px; right:3px; z-index:2; padding:1px 4px;
   border-radius:2px; background:var(--ink); color:var(--white);

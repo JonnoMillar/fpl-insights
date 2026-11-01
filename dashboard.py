@@ -17,10 +17,9 @@ dashboard, and it was the thing that made this one look generated. It is
 gone. Purple is now structure and ink, green is one accent used flat, and
 the character comes from type and layout instead of from a colour wash:
 
-* Type is Archivo across its width axis - expanded for headings, normal for
-  body, so the contrast comes from width rather than from a second family -
-  with IBM Plex Mono on every figure, tabular, so columns of stats align on
-  the digit the way a results service does.
+* Type is Noto Sans throughout - plain letters and numbers, plain zero, real
+  weights up to 800 - with tabular figures on the whole page, so columns of
+  stats align on the digit the way a results service does.
 * One delta chip carries every number that has a good or bad reading, rather
   than each card inventing its own arrow.
 * Findings read as a mono subject tag beside ordinary prose, not as a bold
@@ -531,15 +530,13 @@ def render(d, standalone=True):
   phone alerts</a></p>
 </div>
 """
-    # Archivo is requested across its width axis as well as its weight axis -
-    # the expanded headings are the point, and asking only for weights would
-    # silently render them at normal width.
+    # Noto Sans is requested as a weight range: the CSS uses 400 to 800, and a
+    # narrower request would silently synthesise the heavy weights.
     fonts = (
         '<link rel="preconnect" href="https://fonts.googleapis.com">'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
         '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
-        "family=Archivo:wdth,wght@62..125,400..700&"
-        "family=IBM+Plex+Mono:wght@400;500;600&display=swap\">"
+        "family=Noto+Sans:wght@400..800&display=swap\">"
     )
     head = f"<title>FPL Insights · {e(title)}</title>{FAVICON}{SOCIAL_META}{fonts}<style>{CSS}</style>"
     page = (

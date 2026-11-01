@@ -60,7 +60,7 @@ Canvas mechanics:
 ## Jonno's design rules (from all feedback to 28 Oct)
 
 - Red-green colourblind: no meaning by hue alone (lightness, shape, text; blue/orange if two hues). No pill tags. Sofascore's red-orange-green rating scale is out.
-- Type: Archivo only. Never IBM Plex Mono (dotted zero).
+- Type: Noto Sans only, chosen 1 Nov 2026 (plain letters and numbers, plain zero, real weights; tabular figures page-wide). Never a face with a slashed or dotted zero (IBM Plex Mono), nor thin figures (Schibsted at 500), nor Archivo.
 - Tacky, never again: cards with one edge in a different colour; purple chapter bands with a green edge; lilac, and lilac inside lilac; small grey help or info lines; ticket-stub shapes; large decorative gradient washes.
 - Cut-outs never end in a hard edge inside a card (sit on the edge or fade). Breakouts only on large hero cards.
 - Show the opponent's badge, not the player's own club. Use badges, faces and icons generously.
