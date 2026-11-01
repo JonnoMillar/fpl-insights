@@ -38,7 +38,8 @@ and a pipeline that has to keep running unattended.
 - **GitHub Actions** rebuilds it on a schedule; **Vercel** serves it and
   redeploys on every commit.
 - **pytest** for the tests. **Pillow** is optional: when installed it shrinks
-  player photos from ~96 KB PNGs to ~14 KB JPEGs; without it the build still
+  player photos from ~96 KB PNGs to ~10 KB WebPs that keep their transparency
+  (the page stands players on coloured cards); without it the build still
   works, the page is just heavier. CI installs it.
 
 Built with Claude Code as a pair programmer.
@@ -78,26 +79,29 @@ whenever you want current numbers. `--artifact` also writes a complete HTML copy
 
 Four tabs:
 
-- **Squad**: pitch view (Overview, a Pick Team view with next-fixture and form
-  context, and last gameweek), a sortable detail table, and findings cards.
+- **Squad**: the week's score, the next move drawn as transfer cards with the
+  opponent's crest, the captain, the pitch (season, next gameweek with a
+  transfer preview, last gameweek), a sortable detail table and findings cards.
   Click any player for their match-by-match log and Opta stats.
-- **Planning**: what the bookmaker odds imply for the next gameweek, the
-  highest projected XI, transfer suggestions and pairs, captaincy, a chip
-  planner (Free Hit, Triple Captain, Bench Boost, Wildcard), a fixture ticker,
-  price-change watch and elite-manager ownership.
-- **Mini-league**: standings with each rival's gameweek score, captain, chip
-  and the underlying xGI of their starting XI, position over time, the league
-  template, differentials and what rivals are scoring from.
+- **Planning**: the eight-week transfer plan as week tiles over one stage,
+  other transfer options as a swipe deck, captaincy, Buy/Sell/Keep/Avoid, a
+  chip planner (Free Hit, Triple Captain, Bench Boost, Wildcard), the best and
+  worst fixture runs, a fixture ticker, what the odds say, price-change watch
+  and elite-manager ownership.
+- **League**: your place and the gaps around it, standings with each rival's
+  gameweek score, captain, chip and the underlying xGI of their starting XI,
+  position over time, the league template, differentials and what rivals are
+  scoring from.
 - **Scout**: position-by-position labs for finding players, filterable by
   price, minutes and team, with fixture runs.
 
-Styling follows FPL's own stylesheet: brand purple `#37003c` as ink, their
-bright green `#01fc7a` as the single accent, their five-step fixture-difficulty
-colours. Light theme only. FPL's typeface is a licensed Monotype face, so the
-page uses Noto Sans throughout, with tabular figures so columns of numbers
-align. Difficulty pills always carry a
-visible opponent and number, because two of FPL's steps sit at 1.35:1 and
-1.2:1 against white and colour alone would not be readable.
+The design system is in [docs/design.md](docs/design.md): FPL purple `#37003c`,
+night `#16001a`, green `#00ff87`, white and a paper ground, Noto Sans with
+tabular figures, and a generated icon set packed into one embedded sprite
+(`scripts/pack_icons.py`). Nothing on the page means something by hue alone:
+gains carry a sign or arrow, states change fill, weight or shape, and fixture
+pills print the opponent and the number on a dark-to-green ramp that stays
+readable in greyscale.
 
 ## Phone alerts
 
@@ -145,6 +149,7 @@ dashboard.py        page assembly: build() gathers data and cards, render() wrap
 cards_*.py          one module per tab (squad, planning, league, scout) plus shared helpers
 components.py       chart-like building blocks shared across cards
 dashboard.css/.js   the page's styles and script; the other .js files are per-feature
+assets/             the packed icon sprite (scripts/pack_icons.py rebuilds it)
 cli.py              the command-line entry point
 ```
 

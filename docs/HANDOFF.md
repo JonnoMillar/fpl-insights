@@ -1,12 +1,12 @@
 # HANDOFF — FPL Insights
 
-Last updated: 1 November 2026 (redesign direction agreed; design.md written; icon set assessed). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
+Last updated: 1 November 2026 (full redesign built on main, all four tabs; not pushed). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
 
 ## State
 
-- Live: [fpl-insights-jm.vercel.app](https://fpl-insights-jm.vercel.app/), built by GitHub Actions from origin/main. It does not yet have the redesigned UI or the transfer planner.
+- Live: [fpl-insights-jm.vercel.app](https://fpl-insights-jm.vercel.app/), built by GitHub Actions from origin/main. It does not yet have the redesign or the transfer planner.
 - Local main is 33 commits ahead of origin/main and 35 behind (scheduled bot commits). Not pushed. Before publishing: fetch, integrate the bot commits, run a fresh full build plus tests and browser checks, then push. Don't publish until Jonno says so.
-- Main holds: Codex's compact UI, Claude's transfer planner, plan moves as transfer cards (`b16cce6`), copy cuts (`d5c10b3`). Last verified: 112 tests, `node --check` on all `.js`, full build with 10 sources OK, headless Chromium at 1440/375/320.
+- Main holds the transfer planner and the full redesign (commits `0925aa2`..HEAD). Last verified 1 Nov: 112 tests, `node --check` on all `.js`, fresh `cli.py dashboard --out .cache/ui/final.html` with every source OK, headless Chromium at 1440/1024/375/320 with no page overflow or console errors, and scripted checks of the brief-to-plan jump, week tiles and arrow keys, deck buttons (real mouse clicks)/drag/list, fixture-run switch, player dialog and transfer preview.
 - Owners: Claude owns frontend and planner. Codex owns the data-research audit under `research/` (entry point `research/log.md`; production code untouched by it).
 
 ## Separate track: managed account experiment
@@ -18,19 +18,22 @@ An active local review heartbeat is configured; its first unattended execution
 is not yet verified. Dashboard entry/configuration, product code, alert project
 and publication are unchanged. Existing staged research remains separate.
 
-## Now: full redesign (direction agreed 1 November 2026)
+## Now: redesign built, awaiting Jonno's review (1 November 2026)
 
-Spec: [`docs/design.md`](design.md), written from the F-Kit board with Noto Sans in place of Archivo, plus the icon-set assessment. Boards copied to `docs/design-reference/` (F-Kit, F-Desktop, F-Phone; images are canvas blob ids and don't render locally). Canvas comments are all from 27-28 Oct and already folded into the rules below; none on the final draft.
+Spec: [`docs/design.md`](design.md) (F-Kit with Noto Sans; "Where it is implemented" maps each part to code). Boards in `docs/design-reference/`. Built in one session on main, all four tabs, commits `0925aa2`..HEAD:
 
-Icon set (`brand-handoff/transparent-suite/`, 40 generated icons, Codex delivery of 1 Nov): good fit, adopt it, with four pack-time fixes listed in design.md (Planning crop, faint strokes on corners/saves/free kicks/injured, yellow card's phone-like bar, 3.19MB of atlases packed to one 56KB sprite). Rejected `vector-suite/` and old `drafts/` stay unused. Logo geometry still a draft.
+- Shell: purple side rail with the goal-chart mark and icon tabs (selected = white tile, heavier label, green notch), night glass tab bar on phones, sticky chapter rail, paper ground. Icons: generated set packed by `scripts/pack_icons.py` into `assets/icons.png` (90 KB, embedded). Portraits now alpha WebP.
+- Squad: night score card, season and league tiles, green up-next panel, next move as transfer cards with cut-outs and opponent crests, captain card with ring behind, purple pitch, iconed findings without coloured edges.
+- Planning: eight week tiles over one stage (moves, roll coin, chip bench; squad pitch per week in a disclosure), purple plan summary, swipe deck of other options on the green panel (replaced the old single/pair card lists, now deleted), chip coins, Buy/Sell/Keep/Avoid on four fills, odds tiles by fill, knee-jerk with cut-out, night band of glass crest tiles for fixture runs.
+- League: place card plus gaps to leader and next place, grey rivals and named line ends on the position chart, purple "you" row, league-owns gaps beside the template, your starters tagged "You".
+- Scout: inherits tokens, ramps and type; fixture card retitled.
+- Ramps redrawn night-grey-paper-green-deep green (greyscale test passes); every hue-only signal found was given a shape, line style, word or fill change.
 
-Build order (one phase per session, commit at each gate, nothing pushed until Jonno says):
-
-0. Integrate origin first: local main was 33 ahead / 35 behind (bot commits). Fetch, merge, regenerate generated files, run tests. Then the icon packer: `assets/icons.png` + names, embedded by `dashboard.py` as a data URI; `.ico` classes. Unit test that every name resolves to a non-empty cell.
-1. Foundation: replace the CSS tokens with design.md's (drop lilac scale and every hue-coded state token), Noto 400-900, shape/shadow/motion variables; rail with logo and icon tabs plus distinct selected state; phone bottom tab bar. Check logo at 16/24/32px.
-2. Planning tab to F-Desktop/F-Phone: week stage, hero transfer card, captain card, green panel with swipe deck, night band with crest tiles, last-week card. Compare with `.cache/ui/moves-before-{1440,375}.png`. **Show Jonno the live build here before rolling out.**
-3. Squad tab, 4. Mini-league, 5. Scout: no boards exist; build from the kit components, absorb the "Seen, not fixed" layout items, show Jonno each.
-6. Clean-up: delete dead CSS (dashboard.css is 2,758 lines), regenerate `docs/og.png`, update README, full build, tests, browser checks at 1440/375/320.
+Next: Jonno reviews the local build (`python cli.py dashboard --open`, or the README screenshots, regenerated). Known gaps worth his eye:
+- Logo is still the draft geometry, used in the rail and favicon; 16/24/32px review not done.
+- Icons are as delivered (thin lines on a few; yellow card's bar). Jonno: "sort icons after".
+- Captaincy radar and the Scout heatmap were restyled through tokens only, not rebuilt.
+- F-Desktop's "Rising soon" aside and white last-week card were not carried over (squad tab already shows last week).
 
 Decisions needed from Jonno (recommendation first):
 - Faint icons: thicken corners, saves, free kicks and injured at pack time (dilation keeps the generated drawing) vs regenerate them.
@@ -57,17 +60,13 @@ Canvas mechanics:
 
 ## Awaiting Jonno
 
-1. Two icon decisions (see "Now: full redesign").
+1. Review the built redesign; two icon decisions (see "Now").
 2. Push/publish (see State).
 3. Build the Wildcard + Bench Boost comparison? (analysis below)
 4. Sanity check on Cherki, sold in GW9 for Palmer.
 
 ## Seen, not fixed
 
-- Scout: "Fixture runs" chapter band sits directly over a card of the same name.
-- Mini-league: "The league has these, you do not" sits alone in a row.
-- Goals-against-expected legend separates "owed goals" from "running hot" by green vs amber hue alone.
-- Three grids still use a bare 300px minimum (price watch `.pw-cols`, `.fxruns`, an `auto-fill` grid in `dashboard.css`); unchecked at 320px. The fix used on `.tflist` is `minmax(min(100%,300px),1fr)`.
 - Chip planner's Wildcard total (470.0 → 509.4 over GW9–16) disagrees with the transfer plan's 549 for the same window; likely a different scorer or no captain/bench. Check before showing both together.
 - Two scorers: Squad pitch uses match-history xP, the plan uses the season-based transfer scorer (66.1 vs 70.0 for the same XI on 21 Oct). The Starting XI disclosure says so. Consolidation not started.
 - Remaining copy issues: `docs/audits/2026-10-21-repetitive-copy.md` (the clear cuts are done in `d5c10b3`).
@@ -105,6 +104,9 @@ Default view: B usually wins, because the Wildcard leaves the template squad. A 
 
 ## Gotchas
 
+- Fast design loop: build once with `dashboard.build(...)` at `ttl=10**9` and `PRICE_HISTORY_PATH` pointed at a scratch copy, pickle the result, then re-run `dashboard.render(d)` after CSS/JS/render edits (card markup changes need the build again, about 50 s cached).
+- Long `python - <<'EOF'` heredocs in Git Bash break on f-strings here; write the script to a file.
+
 - Bot commits can land mid-work; fetch and integrate before pushing, never force-push. Generated-file conflicts resolve with verified regenerated output.
 - FFS team-news: parse only `<li class="team-news-item">` blocks; sidebar widgets once parsed as a club. A player read as "unknown" falls back to a 75% start, hiding benched players.
 - Some PL portraits return 403; existing fallbacks handle it, don't retry. Provider photos can lag transfers (Isak still shows a Newcastle shirt).
@@ -115,5 +117,5 @@ Default view: B usually wins, because the Wildcard leaves the template squad. A 
 ## Resume prompt
 
 ```text
-Read AGENTS.md, docs/HANDOFF.md and docs/design.md. Work on main in C:/Users/jonno/code/fpl-insights. Redesign direction is agreed; start the next phase in "Now: full redesign" (phase 0 first: integrate origin, then the icon packer). Commit by explicit path only (Codex has files staged; never git add -A, stash, reset or checkout). Do not push or publish until Jonno says so.
+Read AGENTS.md, docs/HANDOFF.md and docs/design.md. Work on main in C:/Users/jonno/code/fpl-insights. The full redesign is built and committed locally; ask Jonno for his review of it before changing direction, then act on his notes. Dev loop: a cached build plus pickled data lets CSS/JS changes re-render in seconds (see Gotchas). Commit by explicit path only (Codex has files staged; never git add -A, stash, reset or checkout). Do not push or publish until Jonno says so; before pushing, fetch and integrate the bot commits.
 ```

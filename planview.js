@@ -48,6 +48,9 @@
         c.style.zIndex = 50 - Math.abs(rel);
         c.style.transition = dragging && rel === 0 ? 'none' : '';
         c.setAttribute('aria-hidden', String(rel !== 0));
+        // A dismissed card is invisible but flung over the buttons; it must
+        // not catch their clicks. Only the top card takes the pointer.
+        c.style.pointerEvents = rel === 0 ? '' : 'none';
       });
       idx.forEach(function(b, k){ b.setAttribute('aria-current', String(k === i)); });
       if (pos) pos.textContent = i + 1;

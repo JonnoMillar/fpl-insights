@@ -7,37 +7,15 @@ wraps them in the shell. The cards live in one module per tab (cards_squad,
 cards_planning, cards_league, cards_scout), and the styles and page script in
 dashboard.css and dashboard.js.
 
-Colour is FPL's own - the deep purple and the bright green the game is
-actually recognised by - because a tool read alongside the site it draws from
-should look related to it. What changed is how that colour is spent.
+The look is specified in docs/design.md: purple, night, green, white and a
+paper ground; Noto Sans only, tabular figures everywhere; the generated icon
+set as one embedded sprite; player cut-outs standing on coloured cards. Two
+constraints worth keeping in mind when editing:
 
-The page used to open on a 135-degree three-stop gradient, purple bleeding
-through lilac into green. That is the default hero of every generated
-dashboard, and it was the thing that made this one look generated. It is
-gone. Purple is now structure and ink, green is one accent used flat, and
-the character comes from type and layout instead of from a colour wash:
-
-* Type is Noto Sans throughout - plain letters and numbers, plain zero, real
-  weights up to 800 - with tabular figures on the whole page, so columns of
-  stats align on the digit the way a results service does.
-* One delta chip carries every number that has a good or bad reading, rather
-  than each card inventing its own arrow.
-* Findings read as a mono subject tag beside ordinary prose, not as a bold
-  black line with grey underneath it, which is the pattern that made every
-  card on the page look like every other card.
-
-Two constraints worth keeping in mind when editing:
-
-* Green is a fill, never type. #01fc7a is 1.35:1 on white, so anything that
-  lands on text uses --accent-ink / --good-ink instead.
-* Difficulty pills always carry a visible opponent and number. Several steps
-  on the ramp are too close in luminance to carry meaning by fill alone, so
-  the label does the work and the colour only makes a run visible down a
-  column.
-
-Light only. There is no dark theme and no toggle - the page is read in
-daylight before a deadline, and carrying a second full palette meant every
-new colour had to be drawn twice and kept in step.
+* Nothing means something by hue alone. A gain carries its sign or arrow, a
+  state changes fill, weight or shape, and a fixture pill prints the opponent
+  and the number.
+* Green is a fill, never type on white: #00ff87 is about 1.3:1 there.
 """
 
 import base64

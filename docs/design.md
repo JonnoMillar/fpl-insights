@@ -83,11 +83,14 @@ Assessment, 1 November (measured from the atlases):
 - **Overlaps to avoid.** Use Defence for defensive contributions and Clean sheet only for
   clean sheets; Minutes (stopwatch) and Deadline (clock) are not interchangeable.
 
-Production pipeline: a one-off packer reads `catalog.json`, crops each source rectangle
-(with the fixes above), resizes to 64px alpha cells in an 8 x 5 grid and writes
-`assets/icons.png` plus a name-to-index list. Pillow is needed only to repack, not to
-build. `dashboard.py` base64-embeds the PNG with the standard library into one CSS
-custom property; `.ico` plus a modifier class selects a cell by `mask-position`.
+Production pipeline (built 1 November): `scripts/pack_icons.py` reads `catalog.json`,
+keeps each icon's own strokes (dropping spill from neighbouring cells, which fixes the
+Planning crop), squares it and writes 96px alpha cells in an 8 x 5 grid to
+`assets/icons.png` (90 KB) and `assets/icons.css`. Pillow and numpy are needed only to
+repack, not to build. `dashboard.py` base64-embeds the PNG into one CSS custom
+property; `cards_common.icon(name)` emits `<span class="ico ico-name">`, sized with
+`--ico`. Line weights are still as delivered: thickening and the yellow-card bar are
+open decisions.
 
 ## Logo
 
@@ -151,3 +154,18 @@ Show the opponent's crest, not the player's own club.
 Titles state the finding. One headline number per card. Low-key, no boasting. No small
 grey help or info lines; method notes sit behind a disclosure. Keep the
 published-squad, no-double-gameweek and data-unavailable caveats visible once each.
+
+## Where it is implemented
+
+- Shell, tokens, type, icons: top of `dashboard.css`, `render()` in `dashboard.py`.
+- Squad: `render()` (score card, tiles, up-next panel, move stage, captain card),
+  `cards_squad.py` (pitch, findings).
+- Planning: `cards_plan.py` (week tiles and stage), `components.transfer_deck` with
+  `planview.js` (swipe deck), `ticker.fixture_run_summary` (night band), chip coins and
+  Buy/Sell/Keep/Avoid in `cards_planning.py`.
+- League: `league_hero` in `dashboard.py`, `leaguechart.js` (grey rivals, named line
+  ends).
+- Portraits embed as alpha WebP (`fplapi.photo_data_uri`) so cut-outs stand on
+  coloured cards.
+- Ramps: fixture ratings and FPL difficulty run night, grey, paper, green, deep green;
+  `tests/test_scout.py` checks adjacent steps stay apart in greyscale.
