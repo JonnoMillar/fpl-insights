@@ -37,6 +37,7 @@ import next_action
 import next_squad
 import planner
 import scout
+import season
 import ticker
 import transfers
 from analysis import f
@@ -46,6 +47,7 @@ from cards_squad import (findings_section, pick_team_pitch, pitch,
 from cards_planning import (best_xi_card, captaincy_card, chip_planner_card,
     elite_card, kneejerk_card, leader_groups, price_watch_card, scatter,
     verdict_board_card)
+from cards_season import season_section
 from cards_league import (chips_table, differential_card,
     differential_watchlist, differential_watchlist_card, league_position_card,
     league_position_series, league_table, league_week_lede, ownership_cards,
@@ -556,6 +558,7 @@ def render(d, standalone=True):
       {d['league_table']}
     </section>
     {d['position_chart']}
+    {d.get('season', '')}
 
     <div class="chapter"><h2>What the league owns</h2></div>
     <div class="own-row">{d['template']}<div class="own-side">{d['ownership']}</div></div>
@@ -833,6 +836,15 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             elite_res = elite.compare(ctx, squad_ids, depth=elite_depth, ttl=ttl)
         except fplapi.FplError as ex:
             print(f"[elite] skipped: {ex}")
+
+    # Optional: a missing source drops the season chapter, never the page.
+    season_review = None
+    try:
+        season_review = season.review(entry_id, ctx, ttl=ttl)
+        fplapi.note("season review", True,
+                    "" if season_review else "no finished gameweek yet")
+    except (fplapi.FplError, KeyError, ValueError) as ex:
+        fplapi.note("season review", False, str(ex)[:120])
 
     # --- the week's verdict ------------------------------------------------
     ev_now = next((x for x in ctx.events if x["id"] == gw), None)
@@ -1251,6 +1263,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                               weeks=RIVALS_WINDOW_WEEKS),
         "elite": elite_card(elite_res, ctx),
         "chips": chips_table(histories) if histories else "",
+        "season": season_section(season_review),
         "scout": scout_section(scout_pools, scout_fixtures, set(squad_ids)),
         "next_gw": next_gw,
         "projections": projections_export(ctx, proj if advice_supported else {},
