@@ -73,7 +73,7 @@ Canvas mechanics:
 
 ## Transfer planner (current rules)
 
-- `planner.py`: beam search over 8 GWs, moves in the first 6. Per week roll or make 1–2 moves. Objective: best XI, captain doubled, weighted bench (0.21/0.06/0.02, reserve GK 0.03; whole bench on Bench Boost), 4 per hit, 3-point margin per move, 1.5 per banked FT at the end, 0.9 weekly discount.
+- `planner.py`: beam search over 8 GWs, moves allowed in any of them. Per week roll or make 1–2 moves. Objective: best XI, captain doubled, weighted bench (0.21/0.06/0.02, reserve GK 0.03; whole bench on Bench Boost), 4 per hit, 3-point margin per move, 1.5 per banked FT at the end, 0.9 weekly discount. Hits and margins are discounted with their week (the bar that week's own build will apply). The end squad is credited for the weeks after the plan that have projections (to 12 GWs out); without that the plan's back half rolled by construction (fixed 2026-11-02).
 - Hits: only in the coming week and only when urgent (starter-priced player ruled out or ≤25% chance, or a must-have signing: top-five xGI/90 at his position, 450+ minutes, MID/FWD, next fixture difficulty ≤3).
 - Enablers: cheap = position's cheapest starting price + 0.5. Never upgrade an enabler who stays on the bench, unless a Bench Boost follows in the plan. Enabler to a cheap starter is allowed.
 - Chips: judged undiscounted against their best later week; played only if 2 points better. Bench Boost and Triple Captain planned; Free Hit and Wildcard not.
