@@ -918,6 +918,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             (sw["out"].element["team"], sw["out"].pos == "GKP"))
         sw["in_shirt"] = shirts.get((el["team"], ctx.pos(el) == "GKP"))
         sw["opp"] = next_opponent(ctx, el["team"], next_gw, badges)
+        sw["figs"] = (player_figures(ctx, sw["out"].element, next_gw), player_figures(ctx, el, next_gw))
 
     pairings = transfers.pair_suggestions(
         ctx, xi + bench, proj, next_gw, market, baselines,
@@ -931,6 +932,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             leg["out_shirt"] = shirts.get(
                 (leg["out"].element["team"], leg["out"].pos == "GKP"))
             leg["in_shirt"] = shirts.get((el["team"], ctx.pos(el) == "GKP"))
+            leg["figs"] = (player_figures(ctx, leg["out"].element, next_gw), player_figures(ctx, el, next_gw))
 
     my_row = next((r for r in rows if r["entry"] == entry_id), None)
     my_name = my_row["entry_name"] if my_row else None
@@ -1091,16 +1093,6 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                 for pid in (move["out"], move["in"]):
                     if pid not in photos:
                         photos[pid] = fplapi.photo_data_uri(ctx.players[pid])
-        timing_priors = transfers.positional_priors(ctx)
-        for sw in swaps:
-            sw["timing"] = planner.timing_note(sw["in"], sw["out"].element, plan, ctx, proj,
-                                               market, baselines, timing_priors, next_gw,
-                                               live=scout_live)
-        for pr in pairings:
-            for leg in pr["legs"]:
-                leg["timing"] = planner.timing_note(leg["in"], leg["out"].element, plan, ctx,
-                                                    proj, market, baselines, timing_priors,
-                                                    next_gw, live=scout_live)
     # A genuinely different question from Free Hit's budget-capped "ideal" -
     # see chips.literal_best_xi for why reusing that number here was wrong.
     next_ideal = chips.literal_best_xi(ctx, xi, proj, market, baselines, next_gw)

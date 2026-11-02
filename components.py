@@ -535,16 +535,37 @@ def _opp_plate(opp):
             f'{"home" if opp["home"] else "away"}</span>')
 
 
+def _deck_figs(rows):
+    """The why, as figures: projected points, form, a chance rate and the
+    next three fixtures' mean FPL difficulty, one row per player."""
+    labels = {f["chance_label"] for _n, _xp, f, _was in rows}
+    chance = labels.pop() if len(labels) == 1 else "xGI·xGC/90"
+
+    def num(v, fmt="{:.1f}"):
+        return "&ndash;" if v is None else fmt.format(v)
+
+    body = "".join(
+        f'<tr{" class=was" if was else ""}><th scope="row">{e(name)}</th>'
+        f'<td>{num(xp)}</td><td>{num(f["form"])}</td><td>{num(f["chance"], "{:.2f}")}</td>'
+        f'<td>{num(f["fdr"])}</td></tr>'
+        for name, xp, f, was in rows)
+    return ('<table class="deck-figs tnum"><thead><tr><th></th><th scope="col">xP</th>'
+            f'<th scope="col">Form</th><th scope="col">{chance}</th>'
+            '<th scope="col" title="Mean FPL difficulty of the next three fixtures">FDR</th></tr></thead>'
+            f'<tbody>{body}</tbody></table>')
+
+
 def transfer_deck(singles, pairs, hit=4):
-    """Other transfer options as a swipe deck on the green panel.
+    """Other transfer options as a swipe deck.
 
     Each option is a purple card: the outgoing player greyed, the incoming one
     standing on the photo panel's edge, the opponent's crest on a glass
-    plate, then the name and one big gain. Ranked by gain, best first, pairs
-    and singles together; a pair is priced after whatever hit it costs. The
-    ranked list beside the deck (faces on a phone) jumps straight to any
-    card. The plan above has already weighed these and chosen the week, so
-    this is for browsing the alternatives, never for the headline move."""
+    plate, then the name, a few figures for why and one big gain. Ranked by
+    gain, best first, pairs and singles together; a pair is priced after
+    whatever hit it costs. The ranked list beside the deck (faces on a phone)
+    jumps straight to any card. The plan above has already weighed these and
+    chosen the week, so this is for browsing the alternatives, never for the
+    headline move."""
     options = []
     for r in singles or []:
         options.append(("single", r["gain"], r))
@@ -575,16 +596,12 @@ def transfer_deck(singles, pairs, hit=4):
             title = e(in_name)
             spend = -r["spend"]
             money = "free swap" if abs(spend) < 0.05 else f"bank {spend:+.1f}m"
-            meta = (f'{e(r["in_club"])} &middot; {r["price"]:.1f}m, for {e(out_name)}'
-                    f'<br>{money}')
-            words = (f'His <b class="tnum">{r["in_score"]["total"]:.1f}</b> against '
-                     f'{e(out_name)}\'s <span class="tnum">{r["out_score"]["total"]:.1f}</span>.')
+            meta = f'{e(r["in_club"])} &middot; {r["price"]:.1f}m &middot; {money}'
+            figs = _deck_figs([(in_name, r["in_score"]["total"], r["figs"][1], False),
+                               (out_name, r["out_score"]["total"], r["figs"][0], True)])
             unit = "to your XI, next<br>five weeks"
             faces = [r.get("in_photo")]
             short = in_name
-            notes = [r["timing"]] if r.get("timing") else []
-            if r.get("elite"):
-                notes.append(f'{r["elite"]["elite"]:.0f}% of the top 100 own him.')
         else:
             legs = r["legs"]
             photo_out = ""
@@ -599,22 +616,23 @@ def transfer_deck(singles, pairs, hit=4):
             label = f'<span class="lab">{e(r.get("tag") or "Pair")}</span>'
             title = " + ".join(e(leg["in"]["web_name"]) for leg in legs)
             meta = (f'for {" and ".join(e(leg["out"].name) for leg in legs)}'
-                    f'<br>{r["bank_after"]:.1f}m left in the bank')
-            words = ""
+                    f' &middot; {r["bank_after"]:.1f}m left')
+            figs = _deck_figs([(leg["in"]["web_name"], leg["in_score"]["total"], leg["figs"][1], False)
+                               for leg in legs])
             unit = ("together, next<br>five weeks" if hit == 0
                     else f"after the −{hit},<br>next five weeks")
             faces = [leg.get("in_photo") for leg in legs]
             short = " + ".join(leg["in"]["web_name"] for leg in legs)
-            notes = [leg["timing"] for leg in legs if leg.get("timing")]
-        note_html = "".join(f"<p>{e(n)}</p>" for n in notes[:1])
+        # The shimmer sits on the card and the photo panel's ground, never
+        # across the players standing in front of it.
         cards.append(
             f'<article class="deck-card deck-{kind}" data-k="{k}" aria-roledescription="slide" '
             f'aria-label="{k + 1} of {len(options)}: {e(short)}">'
-            f'<div class="deck-photo">{photo_out}{arrow}{photo_in}{plate}</div>'
             f'<div class="foil" aria-hidden="true"></div>'
+            f'<div class="deck-photo"><div class="foil" aria-hidden="true"></div>'
+            f'{photo_out}{arrow}{photo_in}{plate}</div>'
             f'<div class="deck-body">{label}<b class="disp deck-name">{title}</b>'
-            f'<span class="deck-meta">{meta}</span>'
-            f'<div class="deck-words">{words}{note_html}</div>'
+            f'<span class="deck-meta">{meta}</span>{figs}'
             f'<div class="deck-gain"><b class="big tnum">{gain:+.1f}</b><span>{unit}</span></div>'
             f'</div></article>')
         face_html = "".join(f'<img class="face" src="{ph}" alt="">' for ph in faces if ph)
@@ -630,8 +648,6 @@ def transfer_deck(singles, pairs, hit=4):
         '<section class="deck-panel" id="other-transfers" aria-labelledby="deck-title">'
         '<div class="deck-intro"><span class="lab">Other transfer options</span>'
         f'<h2 class="disp" id="deck-title">{count} MORE WORTH A LOOK.</h2>'
-        '<p class="deck-lede">Ranked on the next five gameweeks if made now. The plan '
-        'has already weighed them and picked its week.</p>'
         f'<span class="deck-pos tnum" aria-live="polite"><b>1</b> of {n}</span>'
         '<div class="deck-btns">'
         f'<button class="deck-btn" type="button" data-step="-1" aria-label="Previous option">{icon("previous")}</button>'
