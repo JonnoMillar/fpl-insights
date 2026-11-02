@@ -2610,3 +2610,82 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   .fxrun-chips{flex-wrap:wrap}
 }
 .stage-squad{border:0}
+
+/* --- League tab: your season -----------------------------------------------
+   Night band of season figures on glass, the best move on purple and the
+   worst on white (cut-outs standing on the bottom edge), then a table of the
+   other moves and the armband's costliest weeks. Gains and losses read from
+   the sign and the delta arrow, never from hue. */
+.sr-band{padding:26px 28px}
+.sr-tiles{list-style:none; margin:14px 0 0; padding:0; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px}
+.sr-tile{padding:20px; min-height:150px; display:flex; flex-direction:column; gap:8px}
+.sr-tile .big{position:relative; font-size:52px; margin-top:auto; color:var(--white)}
+.sr-note{position:relative; font-size:14px; font-weight:700; color:rgb(255 255 255 / 88%)}
+.sr-ico{position:absolute; right:14px; top:14px; --ico:30px; color:rgb(255 255 255 / 55%)}
+.sr-heroes{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-bottom:16px}
+.sr-hero{position:relative; min-height:300px; padding:24px; border-radius:var(--radius-m); overflow:hidden;
+  display:flex; flex-direction:column; align-items:flex-start; gap:8px; isolation:isolate}
+.sr-hero>*:not(.sr-cut){position:relative; z-index:1; max-width:60%}
+.sr-best{background:var(--purple); color:var(--white)}
+.sr-best .lab{color:var(--green)}
+.sr-best .big{color:var(--green)}
+.sr-worst{background:var(--white); box-shadow:var(--lift)}
+.sr-worst .big{color:var(--purple)}
+.sr-hero h3{font-size:30px; overflow-wrap:anywhere}
+.sr-cut{right:-6px; width:46%; height:94%; z-index:0}
+.sr-for{display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700}
+.sr-face{width:36px; height:36px}
+.sr-out{filter:grayscale(1); opacity:.55}
+.sr-net{display:flex; align-items:flex-end; gap:10px; margin-top:auto}
+.sr-net .big{font-size:64px}
+.sr-net span{font-size:14px; font-weight:700; padding-bottom:4px}
+.sr-figs{display:grid; grid-template-columns:repeat(2,minmax(0,auto)); gap:8px 22px; margin:6px 0 0}
+.sr-figs div{min-width:0}
+.sr-figs dt{font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; opacity:.75;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.sr-figs dd{margin:0; font-size:20px; font-weight:900; white-space:nowrap}
+.sr-list,.sr-caps{margin-bottom:16px}
+.sr-table td{vertical-align:middle; padding:10px 12px; font-size:15px}
+.sr-table th{padding:8px 12px}
+.sr-table td b{font-weight:900}
+.sr-pair{display:flex; align-items:center; gap:10px}
+.sr-pair .sr-face+.sr-face{margin-left:-20px; box-shadow:0 0 0 2px var(--white)}
+.sr-names{display:flex; flex-direction:column; line-height:1.25; min-width:0}
+.sr-names b{font-size:16px}
+.sr-names span{font-size:13px; font-weight:600; color:var(--muted)}
+.sr-hit{font-size:13px; font-weight:800}
+.sr-more{padding:0 22px 18px}
+.sr-more summary{cursor:pointer; font-weight:800; color:var(--purple); padding:12px 0}
+.sr-misses{list-style:none; margin:0; padding:6px 22px 18px}
+.sr-misses li{display:grid; grid-template-columns:52px minmax(0,240px) 24px minmax(0,240px) minmax(0,1fr); align-items:center; gap:12px;
+  padding:12px 0; border-top:1px solid var(--line)}
+.sr-misses li:first-child{border-top:0}
+.sr-gw{font-weight:900; color:var(--purple)}
+.sr-misses .delta{justify-self:end}
+.sr-vs{font-size:13px; font-weight:800; color:var(--muted)}
+.sr-pick{display:flex; align-items:center; gap:10px; min-width:0}
+.sr-pick>span{display:flex; flex-direction:column; line-height:1.25; min-width:0}
+.sr-pick b{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.sr-pick .tnum{font-size:13px; font-weight:700}
+@media (max-width:1100px){.sr-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:800px){.sr-heroes{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){
+  .sr-band{padding:20px 16px}
+  .sr-tiles{gap:10px}
+  .sr-tile{padding:16px; min-height:128px}
+  .sr-tile .big{font-size:40px}
+  .sr-ico{--ico:24px}
+  .sr-hero{min-height:280px; padding:20px}
+  .sr-hero h3{font-size:24px}
+  .sr-net .big{font-size:52px}
+  .sr-table td,.sr-table th{padding:8px 6px}
+  .sr-table td:first-child,.sr-table th:first-child{padding-left:14px}
+  .sr-pair .sr-out{display:none}
+  .sr-pair .sr-face+.sr-face{margin-left:0}
+  .sr-names span{white-space:normal}
+  .sr-misses{padding:4px 14px 14px}
+  .sr-misses li{grid-template-columns:minmax(0,1fr) auto; gap:8px}
+  .sr-misses .delta{grid-row:1; grid-column:2}
+  .sr-misses .sr-pick{grid-column:1 / -1}
+  .sr-misses .sr-vs{display:none}
+}
