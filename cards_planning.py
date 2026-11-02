@@ -838,7 +838,7 @@ def kneejerk_card(kj, gw):
 
     return (
         f'<section class="card kjcard kj-{tone}">'
-        + ('<svg class="ring" aria-hidden="true" viewBox="0 0 200 200"><circle cx="100" cy="100" r="78"/></svg>'
+        + (f'<span class="kj-pos" aria-hidden="true">{e(kj["pos"])}</span>'
            f'<img class="cut" src="{kj["photo"]}" alt="">' if kj.get("photo") else "")
         + '<div class="kj-tag">The knee-jerk</div>'
         '<div class="kj-body">'

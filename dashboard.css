@@ -1013,6 +1013,8 @@ table td.tick{border:2px solid var(--surface)}
 .oi{position:relative; padding:20px; border-radius:18px; background:var(--mist)}
 .oi-icon{--ico:30px}
 .oi-good{background:var(--green)}
+/* Two good tiles side by side: the second steps down to mint. */
+.oi-good + .oi-good{background:var(--mint)}
 .oi-bad{background:var(--night); color:var(--white)}
 .oi-bad .oi-label,.oi-bad .oi-detail,.oi-bad .oi-unit{color:rgb(255 255 255 / 85%)}
 .oi-label{margin:10px 0 0; font-size:12px; font-weight:800; text-transform:uppercase;
@@ -1246,7 +1248,9 @@ table td.tick{border:2px solid var(--surface)}
 /* --- the knee-jerk ------------------------------------------------------
    The one card arguing with the reader, so the one card on ink. */
 .kjcard{position:relative; background:var(--purple); color:var(--white); border:0; overflow:hidden; min-height:300px}
-.kjcard .ring{position:absolute; right:40px; bottom:30px; width:240px; height:240px; fill:none; stroke:var(--green); stroke-width:13}
+/* His position in outline letters behind the cut-out. */
+.kj-pos{position:absolute; right:-14px; bottom:128px; font-size:140px; font-weight:900; line-height:.8; letter-spacing:-.02em;
+  color:transparent; -webkit-text-stroke:3px var(--green); pointer-events:none}
 .kjcard .cut{right:20px; width:220px; height:280px; filter:drop-shadow(0 10px 18px rgb(0 0 0 / 35%))}
 .kj-tag{position:relative; padding:22px 24px 0; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.12em; color:var(--green)}
 .kj-body{position:relative; padding:6px 24px 24px; max-width:calc(100% - 260px)}
@@ -1263,7 +1267,7 @@ table td.tick{border:2px solid var(--surface)}
   background:rgb(255 255 255 / 14%); color:var(--white)}
 @media (max-width:700px){
   .kj-body{max-width:none; padding-bottom:250px}
-  .kjcard .ring{right:50%; margin-right:-120px; bottom:20px; width:220px; height:220px}
+  .kj-pos{right:50%; margin-right:-148px; bottom:150px; font-size:130px}
   .kjcard .cut{right:50%; margin-right:-105px; width:210px; height:267px}
 }
 
