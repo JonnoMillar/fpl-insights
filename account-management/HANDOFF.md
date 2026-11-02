@@ -1,6 +1,6 @@
 # Managed account — current handoff
 
-Last updated 31 October 2026. Keep this work separate from dashboard development
+Last updated 2 November 2026. Keep this work separate from dashboard development
 and the other research chat. Start here for this account; root `docs/HANDOFF.md`
 describes the dashboard product, not this experiment's current team.
 
@@ -10,10 +10,9 @@ describes the dashboard product, not this experiment's current team.
   saved XI, ordered bench, Haaland C/Van Hecke VC; no chip/hit/transfers. Windows
   catch-up arrived 11:34, after the 11:00 deadline; final-morning review was not
   completed. See `decisions/2026-10-31-gw9-locked.md`. No changes made.
-- **Next deadline GW10: Friday 6 November 18:30 UK/UTC.** Signed-in Transfers
-  shows 1 FT and 0-point cost, bank £0.4m; squad market value £99.9m. Header
-  still showed GW9, so confirm period before any future submission. Current
-  GW9 and future squad state are separate; do not try to change locked results.
+- **2 November early GW10 review complete:** authenticated entry/saved team, bank £0.4m, 1 FT and exact sale prices reconciled. Market squad £100.2m; Tavernier sells at £6.5m. Pick Team/Transfers now correctly show GW10. No changes; retain flexibility pending midweek news and matched GW10 projections. All owned FPL flags clear; not proof of starts.
+- **GW9 provisional 67**, average 44, fixed no-transfer baseline 67 (delta 0); bench 23. FPL finished/data_checked still false. Preserve frozen forecasts and revisit final scoring. See `decisions/2026-11-02-gw10-review.md`.
+- **Next deadline GW10: Friday 6 November 18:30 UK/UTC.** Current saved XI is carried over, not a final researched GW10 recommendation. Reassess Konsa versus Belloumi/Muharemović, goalkeeper and captain before deadline with fresh fixture-bound inputs.
 
 - **First unattended review completed 30 October:** recovered an FPL logout via
   the existing Google session, verified entry 11195024, actual squad and unlimited
@@ -135,9 +134,9 @@ Do not bypass that guard. In-app browser access has worked since Jonno logged in
 1. After GW9 score against the frozen initial baselines and plan GW10 with the
    actual authenticated FT/selling prices. Review first-half chips by GW12/GW15;
    get a single clear expansion of chip authority if Jonno wants hands-off chips.
-2. Recheck the Transfers/Pick Team period header against current bootstrap before
-   any GW10 write. Keep the FT while GW9 is still playing unless urgent fresh
-   evidence justifies early action. Deadline 6 November 18:30 UK.
+2. GW10 UI period now verified. Keep the FT pending midweek news unless a robust
+   affordable gain justifies action. Refresh matched GW10 projections and finalise
+   XI/bench/armbands before Friday 6 November 18:30 UK. No hits/chips.
 3. Password-helper setup is unfinished and outside routine review work. Resume
    only the authorised setup phase; no credentials were saved by the failed prompt.
 

@@ -1,0 +1,302 @@
+{
+  "reviewed_utc": "2026-11-02T23:46:39.463130+00:00",
+  "entry_id": 11195024,
+  "decision": "hold squad and FT; defer GW10 final XI/captain decision until fresh midweek/deadline inputs",
+  "public_read_utc": "2026-11-02T23:41:09.296773+00:00",
+  "next_deadline_utc": "2026-11-06T18:30:00Z",
+  "authenticated_state": {
+    "squad_ids": [
+      4,
+      31,
+      40,
+      68,
+      112,
+      154,
+      156,
+      249,
+      286,
+      334,
+      385,
+      411,
+      496,
+      504,
+      599
+    ],
+    "xi_ids": [
+      385,
+      4,
+      112,
+      334,
+      286,
+      40,
+      154,
+      156,
+      68,
+      411,
+      249
+    ],
+    "reserve_goalkeeper": 496,
+    "outfield_bench_order": [
+      31,
+      504,
+      599
+    ],
+    "captain": 411,
+    "vice_captain": 112,
+    "bank_tenths": 4,
+    "squad_market_value_tenths": 1002,
+    "free_transfers_observed": 1,
+    "active_chip": null,
+    "players": [
+      {
+        "id": 385,
+        "name": "Trafford",
+        "club": "LEE",
+        "position": "GKP",
+        "purchase_price_tenths": 50,
+        "selling_price_tenths": 50,
+        "market_price_tenths": 50
+      },
+      {
+        "id": 4,
+        "name": "Gabriel",
+        "club": "ARS",
+        "position": "DEF",
+        "purchase_price_tenths": 79,
+        "selling_price_tenths": 79,
+        "market_price_tenths": 80
+      },
+      {
+        "id": 112,
+        "name": "Van Hecke",
+        "club": "TOT",
+        "position": "DEF",
+        "purchase_price_tenths": 49,
+        "selling_price_tenths": 49,
+        "market_price_tenths": 50
+      },
+      {
+        "id": 334,
+        "name": "Muharemović",
+        "club": "LEE",
+        "position": "DEF",
+        "purchase_price_tenths": 51,
+        "selling_price_tenths": 51,
+        "market_price_tenths": 51
+      },
+      {
+        "id": 286,
+        "name": "Belloumi",
+        "club": "HUL",
+        "position": "MID",
+        "purchase_price_tenths": 52,
+        "selling_price_tenths": 52,
+        "market_price_tenths": 53
+      },
+      {
+        "id": 40,
+        "name": "Rogers",
+        "club": "CHE",
+        "position": "MID",
+        "purchase_price_tenths": 80,
+        "selling_price_tenths": 80,
+        "market_price_tenths": 81
+      },
+      {
+        "id": 154,
+        "name": "Palmer",
+        "club": "CHE",
+        "position": "MID",
+        "purchase_price_tenths": 98,
+        "selling_price_tenths": 98,
+        "market_price_tenths": 98
+      },
+      {
+        "id": 156,
+        "name": "Neto",
+        "club": "CHE",
+        "position": "MID",
+        "purchase_price_tenths": 66,
+        "selling_price_tenths": 66,
+        "market_price_tenths": 66
+      },
+      {
+        "id": 68,
+        "name": "Tavernier",
+        "club": "BOU",
+        "position": "MID",
+        "purchase_price_tenths": 64,
+        "selling_price_tenths": 65,
+        "market_price_tenths": 66
+      },
+      {
+        "id": 411,
+        "name": "Haaland",
+        "club": "MCI",
+        "position": "FWD",
+        "purchase_price_tenths": 158,
+        "selling_price_tenths": 158,
+        "market_price_tenths": 158
+      },
+      {
+        "id": 249,
+        "name": "Barry",
+        "club": "EVE",
+        "position": "FWD",
+        "purchase_price_tenths": 56,
+        "selling_price_tenths": 56,
+        "market_price_tenths": 56
+      },
+      {
+        "id": 496,
+        "name": "Kinsky",
+        "club": "TOT",
+        "position": "GKP",
+        "purchase_price_tenths": 44,
+        "selling_price_tenths": 44,
+        "market_price_tenths": 44
+      },
+      {
+        "id": 31,
+        "name": "Konsa",
+        "club": "ARS",
+        "position": "DEF",
+        "purchase_price_tenths": 47,
+        "selling_price_tenths": 47,
+        "market_price_tenths": 47
+      },
+      {
+        "id": 504,
+        "name": "Vuskovic",
+        "club": "BHA",
+        "position": "DEF",
+        "purchase_price_tenths": 52,
+        "selling_price_tenths": 52,
+        "market_price_tenths": 52
+      },
+      {
+        "id": 599,
+        "name": "Cherif",
+        "club": "COV",
+        "position": "FWD",
+        "purchase_price_tenths": 50,
+        "selling_price_tenths": 50,
+        "market_price_tenths": 50
+      }
+    ]
+  },
+  "results": {
+    "event": 9,
+    "points": 67,
+    "provisional": true,
+    "finished": false,
+    "data_checked": false,
+    "average": 44,
+    "bench_points": 23,
+    "no_transfer_baseline_points": 67,
+    "delta_vs_baseline": 0,
+    "frozen_history_forecast": 60.628724538275165,
+    "notes": "All XI played 79+ minutes; no autosubs. Retain frozen forecasts. Bench returns and one captain blank do not establish selection error.",
+    "players": [
+      {
+        "id": 4,
+        "name": "Gabriel",
+        "minutes": 90,
+        "points": 6
+      },
+      {
+        "id": 31,
+        "name": "Konsa",
+        "minutes": 90,
+        "points": 10
+      },
+      {
+        "id": 40,
+        "name": "Rogers",
+        "minutes": 90,
+        "points": 9
+      },
+      {
+        "id": 68,
+        "name": "Tavernier",
+        "minutes": 90,
+        "points": 3
+      },
+      {
+        "id": 112,
+        "name": "Van Hecke",
+        "minutes": 90,
+        "points": 15
+      },
+      {
+        "id": 154,
+        "name": "Palmer",
+        "minutes": 90,
+        "points": 8
+      },
+      {
+        "id": 156,
+        "name": "Neto",
+        "minutes": 86,
+        "points": 3
+      },
+      {
+        "id": 249,
+        "name": "Barry",
+        "minutes": 79,
+        "points": 9
+      },
+      {
+        "id": 286,
+        "name": "Belloumi",
+        "minutes": 90,
+        "points": 5
+      },
+      {
+        "id": 334,
+        "name": "Muharemović",
+        "minutes": 90,
+        "points": 3
+      },
+      {
+        "id": 385,
+        "name": "Trafford",
+        "minutes": 90,
+        "points": 2
+      },
+      {
+        "id": 411,
+        "name": "Haaland",
+        "minutes": 90,
+        "points": 2
+      },
+      {
+        "id": 496,
+        "name": "Kinsky",
+        "minutes": 90,
+        "points": 6
+      },
+      {
+        "id": 504,
+        "name": "Vuskovic",
+        "minutes": 90,
+        "points": 6
+      },
+      {
+        "id": 599,
+        "name": "Cherif",
+        "minutes": 18,
+        "points": 1
+      }
+    ],
+    "difference_vs_frozen_forecast": 6.371275461724835
+  },
+  "news": {
+    "fpl_owned_flags": "All 15 available with empty news; starting status not guaranteed. Actual GW9 minutes reconciled.",
+    "club_source": "https://www.afcb.co.uk/news/2026/october/29/rose-says-cherries-will-make-call-on-timing-of-scott-s-return/",
+    "club_read_utc": "2026-11-02T23:46:39.463130+00:00",
+    "club_summary": "Scott not yet in full team training in dated 29 October report; Ipswich inclusion undecided. Kroupi building minutes. No stated Tavernier absence. Recheck near deadline.",
+    "limitations": "No fresh complete GW10 forecast/predicted-XI set assembled; no model-led transfer or final lineup claim. Midweek workload and press conferences still pending."
+  },
+  "rationale": "More than 24h before GW10 deadline; no owned injury flag or immediate loss of XI minutes. Keep transfer flexibility; do not chase GW9 hauls. Re-evaluate Konsa versus Belloumi/Muharemovic and goalkeeper/captain options using matched GW10 inputs before deadline. No account write."
+}
