@@ -224,6 +224,18 @@ def next_opponent(ctx, team_id, gw, badges):
             "home": home, "crest": badges.get(opp)}
 
 
+def player_figures(ctx, el, gw):
+    """Form, one chance figure for the position and the next three
+    fixtures' mean FPL difficulty: the "why" behind a suggested signing."""
+    attack = ctx.pos(el) in ("MID", "FWD")
+    key = "expected_goal_involvements_per_90" if attack else "expected_goals_conceded_per_90"
+    fx = ctx.next_fixtures(el["team"], 3, from_event=gw)
+    return {"form": analysis.f(el.get("form")),
+            "chance_label": "xGI/90" if attack else "xGC/90",
+            "chance": analysis.f(el.get(key)) if el.get(key) is not None else None,
+            "fdr": sum(x[2] for x in fx) / len(fx) if fx else None}
+
+
 # --- page -----------------------------------------------------------------
 
 def source_notice(d):
@@ -365,16 +377,34 @@ def render(d, standalone=True):
                    if m.get("out_photo") else "")
         in_img = (f'<img class="cut move-new" src="{m["in_photo"]}" alt="">'
                   if m.get("in_photo") else "")
-        crest = (f'<img src="{m["opp"]["crest"]}" alt="">'
-                 if m.get("opp") and m["opp"].get("crest") else "")
+        out_figs, in_figs = m["figs"]
+
+        def num(v, fmt="{:.1f}"):
+            return "&ndash;" if v is None else fmt.format(v)
+
+        def crest(opp):
+            if not opp:
+                return '<span class="mf-none">&ndash;</span>'
+            where = "H" if opp["home"] else "A"
+            if opp.get("crest"):
+                return f'<img src="{opp["crest"]}" alt="{e(opp["short"])} ({where})" title="{e(opp["name"])} ({where})">'
+            return f'<span>{e(opp["short"])}</span>'
+
+        figs = [("Next", crest(m.get("out_opp")), crest(m.get("opp"))),
+                ("Form", num(out_figs["form"]), num(in_figs["form"])),
+                (in_figs["chance_label"], num(out_figs["chance"], "{:.2f}"),
+                 num(in_figs["chance"], "{:.2f}"))]
+        figs_html = "".join(f'<div><dt>{e(lab)}</dt><dd><span class="was">{a}</span><b>{b}</b></dd></div>'
+                            for lab, a, b in figs)
+        gain = (f'<span class="mf-gain"><b class="big tnum">{m["gain"]:+.1f}</b>'
+                f'<span>xP to GW{m["end_gw"]}</span></span>' if m.get("gain") is not None else "")
         slots.append(
             f'<li class="move-slot">{out_img}<span class="move-arrow">{icon("next")}</span>{in_img}'
             f'<div class="move-names"><span class="move-out">{e(m["out_name"])} out</span>'
             f'<button type="button" class="player-link disp" data-player="{m["in_id"]}">'
             f'{e(m["in_name"])}</button>'
             f'<span>{e(m["in_club"])} &middot; {m["in_price"]:.1f}m</span></div>'
-            f'<p class="move-caption">{crest}<span><b>v {e(opp_words(m["opp"]))}.</b> '
-            f'{e(m["reason"])}</span></p></li>')
+            f'<div class="move-figs">{gain}<dl class="tnum">{figs_html}</dl></div></li>')
     moves_html = (f'<ul class="move-slots" aria-label="Suggested transfers">{"".join(slots)}</ul>'
                   if slots else "")
     detail = ("" if slots else
@@ -408,7 +438,7 @@ def render(d, standalone=True):
         hidden = " hidden" if mode == "transfers" else ""
         captain_html += (
             f'<section class="captain-card" data-lineup="{mode}"{hidden} aria-label="Captain">'
-            f'<svg class="ring" aria-hidden="true" viewBox="0 0 200 200"><circle cx="100" cy="100" r="78"/></svg>'
+            f'<svg class="chevrons" aria-hidden="true" viewBox="0 0 200 200"><path d="M14 92 100 30l86 62M14 150l86-62 86 62"/></svg>'
             f'{photo}<span class="lab">{icon("captain")} Captain</span>'
             f'<button type="button" class="player-link disp" data-player="{c["id"]}">{e(c["name"])}</button>'
             f'<span class="cap-opp">{crest}v {e(opp_words(c["opp"]))}</span>'
@@ -1142,9 +1172,14 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     dialog_eps = eps + [(r, preview_eps.get(r.element["id"])) for r in preview_reports]
 
     # The faces and crests the Squad tab's move and captain cards stand on.
+    # Each move carries figures, not a sentence: the two players' own points
+    # over the plan, their next opponents, form and one chance figure.
+    plan_moves = {(m["out"], m["in"]): m for w in (plan or {}).get("weeks", []) for m in w["moves"]}
+    end_gw = plan["weeks"][-1]["gw"] if plan and plan.get("weeks") else None
     brief_moves = []
-    for move, reason in zip(moves, [next_action.explain_move(m, ctx, next_gw) for m in moves]):
+    for move in moves:
         out_el, in_el = move["out"].element, move["in"]
+        pm = plan_moves.get((out_el["id"], in_el["id"]))
         brief_moves.append({
             "out_id": out_el["id"], "out_name": out_el["web_name"],
             "out_photo": photos.get(out_el["id"]),
@@ -1152,7 +1187,9 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             "in_photo": photos.get(in_el["id"]) or fplapi.photo_data_uri(in_el),
             "in_club": ctx.team_name(in_el["team"]), "in_price": in_el["now_cost"] / 10,
             "opp": next_opponent(ctx, in_el["team"], next_gw, badges),
-            "reason": reason,
+            "out_opp": next_opponent(ctx, out_el["team"], next_gw, badges),
+            "gain": pm["in_pts"] - pm["out_pts"] if pm else None, "end_gw": end_gw,
+            "figs": (player_figures(ctx, out_el, next_gw), player_figures(ctx, in_el, next_gw)),
         })
     captains = {}
     for mode, team, scores in (("owned", owned_lineup, eps_by_id),
@@ -1200,7 +1237,6 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "owned_brief": team_brief(owned_lineup),
         "transfers_brief": team_brief(transfer_lineup),
         "week_projection": week_projection,
-        "transfer_reasons": [m["reason"] for m in brief_moves],
         "brief_moves": brief_moves,
         "captains": captains,
         "chip_note": chip_note,

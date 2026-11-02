@@ -2151,12 +2151,10 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 }
 
 /* The next move: each transfer on a mist photo panel, the old player greyed
-   on the left, the new one standing on the panel's bottom edge, and a night
-   caption strip with the opponent's crest. */
+   on the left, the new one standing on a night strip of figures, with a
+   penalty box drawn faintly behind him. */
 .move-row{display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; align-items:stretch}
 .move-stage{position:relative; background:var(--white); border-radius:var(--radius-l); box-shadow:var(--lift); padding:26px 28px; overflow:hidden}
-.move-stage::before{content:""; position:absolute; left:50%; bottom:-150px; width:300px; height:300px; margin-left:-150px;
-  border-radius:50%; border:2px solid rgb(55 0 60 / 7%); pointer-events:none}
 .move-head{position:relative; display:flex; align-items:flex-end; justify-content:space-between; gap:12px 24px; flex-wrap:wrap}
 .brief-action{margin-top:8px; font-size:34px; color:var(--purple)}
 .brief-action a{text-decoration:none}
@@ -2166,12 +2164,16 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .move-detail{position:relative; font-size:17px; font-weight:600; margin:14px 0 0}
 .move-slots{position:relative; list-style:none; margin:20px 0 0; padding:0; display:grid;
   grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:18px}
-.move-slot{position:relative; height:310px; border-radius:22px; background:var(--mist); overflow:hidden}
-.move-slot::before{content:""; position:absolute; right:-40px; top:30px; width:240px; height:240px; border-radius:50%;
-  border:2px solid rgb(55 0 60 / 8%)}
-.move-old{left:8px; bottom:66px; width:92px; height:117px; filter:grayscale(1); opacity:.5}
-.move-new{right:-4px; bottom:62px; width:190px; height:242px; filter:drop-shadow(0 10px 16px rgb(22 0 26 / 22%))}
-.move-arrow{position:absolute; left:96px; bottom:106px; color:var(--purple)}
+.move-slot{--new-w:190px; --strip:62px; position:relative; height:310px; border-radius:22px; background:var(--mist); overflow:hidden}
+.move-slot:has(.move-figs){--strip:78px; height:326px}
+.move-slot::before{content:""; position:absolute; right:-14px; bottom:calc(var(--strip) + 4px); width:250px; height:208px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 200' fill='none' stroke='%2337003C' stroke-width='2.5'%3E%3Cpath d='M10 200V62h220v138M70 200v-56h100v56M75.3 62a60 60 0 0 0 89.4 0'/%3E%3Ccircle cx='120' cy='104' r='3.5' fill='%2337003C'/%3E%3C/svg%3E") center/contain no-repeat;
+  opacity:.1}
+.move-old{left:8px; bottom:calc(var(--strip) - 4px); width:92px; height:117px; filter:grayscale(1); opacity:.5}
+.move-new{right:-4px; bottom:var(--strip); width:var(--new-w); height:calc(var(--new-w) * 1.274); filter:drop-shadow(0 10px 16px rgb(22 0 26 / 22%))}
+/* Centred in the gap between the two players: the old one ends 100px in,
+   the new one's figure starts about 12px inside its own box. */
+.move-arrow{position:absolute; left:calc((100% - var(--new-w) + 112px) / 2 - 15px); bottom:calc(var(--strip) + 44px); color:var(--purple)}
 .move-arrow .ico{--ico:30px}
 .move-names{position:absolute; left:18px; top:18px; right:150px; display:flex; flex-direction:column; gap:3px}
 .move-names .move-out{font-size:14px; font-weight:700; color:var(--muted)}
@@ -2183,6 +2185,18 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .move-caption img{width:30px; height:30px; object-fit:contain; flex:none}
 .move-caption b{font-weight:900}
 .move-caption > span{display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+.move-figs{position:absolute; left:12px; right:12px; bottom:12px; display:flex; align-items:center; gap:10px 18px;
+  background:var(--night); color:var(--white); border-radius:14px; padding:8px 14px; min-height:54px}
+.mf-gain{display:flex; align-items:baseline; gap:6px; flex:none}
+.mf-gain .big{font-size:30px; color:var(--green)}
+.mf-gain span{font-size:12px; font-weight:800; line-height:1.15; max-width:52px}
+.move-figs dl{flex:1; min-width:0; margin:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px}
+.move-figs dt{font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:rgb(255 255 255 / 70%)}
+.move-figs dd{margin:2px 0 0; display:flex; align-items:center; gap:6px; white-space:nowrap}
+.move-figs dd b{font-size:17px; font-weight:900}
+.move-figs dd .was{font-size:13px; font-weight:600; opacity:.6}
+.move-figs dd img{width:24px; height:24px; object-fit:contain}
+.move-figs dd .was img{width:20px; height:20px; filter:grayscale(1)}
 .brief-links{position:relative; display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; font-size:14px; font-weight:800}
 .brief-links a{display:inline-flex; align-items:center; min-height:40px; padding:0 14px; border-radius:12px;
   background:var(--mist); text-decoration:none; color:var(--purple)}
@@ -2190,13 +2204,14 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .brief-caveat{position:relative; font-size:14px; font-weight:600; line-height:1.5; margin:14px 0 0}
 .preview-on .move-old{opacity:.25}
 
-/* Captain: purple, a green ring behind the cut-out, never across it. */
+/* Captain: purple, two green chevrons behind the cut-out, never across it. */
 .captain-slot{display:grid; min-width:0}
 .captain-slot>*{grid-area:1/1}
 .captain-card{position:relative; min-height:330px; border-radius:var(--radius-l); background:var(--purple); color:var(--white);
   padding:22px; overflow:hidden; display:flex; flex-direction:column; align-items:flex-start; gap:8px; margin:0}
 .captain-card[hidden]{display:flex; visibility:hidden}
-.captain-card .ring{position:absolute; right:-56px; bottom:70px; width:270px; height:270px; fill:none; stroke:var(--green); stroke-width:13}
+.captain-card .chevrons{position:absolute; right:-40px; bottom:56px; width:250px; height:250px; fill:none; stroke:var(--green);
+  stroke-width:14; stroke-linejoin:round; stroke-linecap:round}
 .captain-card .cut{right:-30px; width:224px; height:285px; filter:drop-shadow(0 10px 18px rgb(0 0 0 / 35%))}
 .captain-card .lab{position:relative; color:var(--green); display:flex; align-items:center; gap:8px}
 .captain-card .lab .ico{--ico:26px}
@@ -2210,8 +2225,12 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 @media (max-width:560px){
   .move-stage{padding:20px 16px}
   .brief-action{font-size:28px}
-  .move-slot{height:270px}
-  .move-new{width:160px; height:204px}
+  .move-slot{height:270px; --new-w:160px}
+  .move-slot:has(.move-figs){--strip:112px; height:340px}
+  .move-figs{flex-wrap:wrap; padding:8px 12px 10px; gap:4px 12px}
+  .mf-gain{width:100%}
+  .mf-gain span{max-width:none}
+  .move-figs dl{gap:8px}
   .move-names{right:120px}
   .move-names .player-link{font-size:22px}
 }
@@ -2569,9 +2588,9 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 @media (max-width:400px){
   .move-names{right:92px}
   .move-names .player-link,.move-names .move-in{font-size:20px; overflow-wrap:break-word}
-  .move-new{width:150px; height:191px}
+  .move-slot{--new-w:150px}
   .captain-card .cut{width:180px; height:229px; right:-34px}
-  .captain-card .ring{width:210px; height:210px; right:-60px; bottom:60px}
+  .captain-card .chevrons{width:200px; height:200px; right:-44px; bottom:50px}
   .captain-card .player-link{font-size:24px; max-width:58%}
   .cap-opp{max-width:48%}
   .fxrun-chips{flex-wrap:wrap}

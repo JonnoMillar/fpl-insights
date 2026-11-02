@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import next_squad
 import cards_squad
-from next_action import choose, explain_move
+from next_action import choose
 from tests.test_cv_readiness import make_reports
 from tests.test_transfers import full_fifteen
 
@@ -128,31 +128,19 @@ class NextSquadTests(unittest.TestCase):
         self.assertIsNone(next_squad.projected_total(team,scores,chip='bboost'))
         self.assertIsNotNone(next_squad.projected_total(team,scores,blank_ids={missing_bench},chip='bboost'))
 
-    def test_transfer_explanation_uses_real_form_and_flags_tough_fixtures(self):
-        old=self.reports[2]
-        old.element.update(web_name='Old',form='2.0',minutes=600,expected_goal_involvements_per_90=.2)
-        new=dict(old.element,web_name='New',form='6.0')
-        ctx=SimpleNamespace(next_fixtures=lambda *a,**k:[('OPP',False,4,8)],
-                            teams={'OPP':{'name':'Liverpool'}},team_name=lambda tid:tid)
-        text=explain_move({'out':old,'in':new},ctx,8)
-        self.assertIn('form 6.0',text)
-        self.assertIn('Liverpool away is a tough start',text)
-        self.assertNotIn('kinder',text)
-
-    def test_transfer_explanation_qualifies_small_samples_and_injury_doubts(self):
-        old=self.reports[2]
-        old.element.update(web_name='Old',minutes=600,expected_goal_involvements_per_90=.1)
-        new=dict(old.element,web_name='New',minutes=180,expected_goal_involvements_per_90=.7,status='d')
-        ctx=SimpleNamespace(next_fixtures=lambda *a,**k:[('OPP',True,2,8)],
-                            teams={'OPP':{'name':'Everton'}},team_name=lambda tid:tid)
-        text=explain_move({'out':old,'in':new},ctx,8)
-        self.assertIn('0.70 expected goal involvements per 90',text)
-        self.assertIn('only 180 minutes',text)
-        self.assertIn('flagged as a doubt',text)
-        self.assertIn('kinder fixture against Everton at home',text)
-        new.update(minutes=600)
-        del old.element['expected_goal_involvements_per_90']
-        self.assertNotIn("against Old's 0.00",explain_move({'out':old,'in':new},ctx,8))
+    def test_move_figures_pick_the_chance_rate_for_the_position(self):
+        import dashboard
+        ctx=SimpleNamespace(pos=lambda el:el['pos'],
+                            next_fixtures=lambda *a,**k:[('A',True,2,8),('B',False,4,9),('C',True,3,10)])
+        fwd=dashboard.player_figures(ctx,{'pos':'FWD','team':1,'form':'6.0',
+            'expected_goal_involvements_per_90':.7,'expected_goals_conceded_per_90':1.2},8)
+        self.assertEqual((fwd['form'],fwd['chance_label'],fwd['chance'],fwd['fdr']),(6.0,'xGI/90',.7,3.0))
+        dfd=dashboard.player_figures(ctx,{'pos':'DEF','team':1,'form':'1.5',
+            'expected_goals_conceded_per_90':1.2},8)
+        self.assertEqual((dfd['chance_label'],dfd['chance']),('xGC/90',1.2))
+        none=dashboard.player_figures(SimpleNamespace(pos=lambda el:'MID',next_fixtures=lambda *a,**k:[]),
+                                      {'team':1,'form':None},8)
+        self.assertIsNone(none['chance']); self.assertIsNone(none['fdr'])
 
     def test_action_exposes_only_the_moves_it_actually_selects(self):
         from tests.test_next_action import week, plan
