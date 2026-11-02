@@ -727,11 +727,12 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         if uri:
             photos[r.element["id"]] = uri
 
-    badges = {}
+    badges, big_badges = {}, {}
     for tid, t in ctx.teams.items():
         uri = fplapi.badge_data_uri(t["code"])
         if uri:
             badges[tid] = uri
+            big_badges[tid] = fplapi.badge_data_uri(t["code"], size=200)
 
     rows, squads, by_name, histories = [], {}, {}, {}
     league_name = "Mini-league"
@@ -1220,7 +1221,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                                         market=market),
         "fixture_runs": ticker.fixture_run_summary(xi + bench, ctx, proj,
                                                     market, next_gw, weeks=6,
-                                                    badges=badges),
+                                                    badges=big_badges),
         "market": ticker.odds_insights(market_fixtures, xi, ctx, proj, next_gw),
         "leaders": components.stat_leaders(leader_groups(ctx, squad_ids), title="Season leaders"),
         "dialog": player_dialog([
