@@ -101,13 +101,11 @@ def ownership_carousel(own, by_name, ctx, my_name):
             f"{own_flag}"
             "</li>"
         )
-    tail = (f' Owned by only one manager: {hidden_n} more, not shown.'
-            if hidden_n else "")
+    tail = f" &middot; {hidden_n} single-owner not shown" if hidden_n else ""
     return (
         '<section class="card">'
         f'<div class="card-head"><h2>Who owns whom</h2>'
-        f'<span class="subvis">Share of the {n} managers in <b>this league</b> '
-        f'holding each player &mdash; not global FPL ownership.{tail}</span>'
+        f'<span class="subvis">{n} managers{tail}</span>'
         '<span class="carnav">'
         '<button class="arrow" data-dir="-1" aria-label="Scroll left">&#8249;</button>'
         '<button class="arrow" data-dir="1" aria-label="Scroll right">&#8250;</button>'
@@ -217,9 +215,7 @@ def template_pitch(tpl, ctx, shirts, my_name, known_ids=frozenset()):
     )
     return (
         f'<section class="card"><div class="card-head"><h2>League template{components.info_btn()}</h2>'
-        f'<span class="subvis">Only <b>{majority} of 11</b> are held by more '
-        f'than half the league. This is always a full eleven, so the thin '
-        f'slots are the top of a scattered position, not a consensus.</span>'
+        f'<span class="subvis"><b>{majority} of 11</b> held by over half</span>'
         f'<span class="sub" hidden>The most-started legal eleven across {n} managers, '
         f'in a {tpl["shape"]}. You have {owned_by_you} of them &mdash; the rest '
         "is where your rank moves.</span></div>"
@@ -228,10 +224,18 @@ def template_pitch(tpl, ctx, shirts, my_name, known_ids=frozenset()):
     )
 
 
+# A watchlist or differential is a player few FPL managers hold. The league
+# is eight people: "nobody here owns him" says more about who they happen to
+# have picked than about how rare he is.
+DIFFERENTIAL_COUNT = 3
+WATCH_MAX_OWNED_PCT = 10.0
+
+
 def differential_watchlist(own, ctx, proj, market, baselines, next_gw, squad_ids,
                            limit=6):
-    """Players performing well that nobody in this league owns - not you,
-    not any rival.
+    """Players performing well that few FPL managers own (under
+    WATCH_MAX_OWNED_PCT), and that are not already in your squad. Rivals may
+    hold them; that is shown, not filtered on.
 
     Scored with transfers.case_score, the same several-week, form-and-
     underlying-numbers logic the Planning tab's transfer suggestions use -
@@ -240,11 +244,11 @@ def differential_watchlist(own, ctx, proj, market, baselines, next_gw, squad_ids
     if not own:
         return []
     priors = transfers.positional_priors(ctx)
-    owned_ids = set(own.keys()) | set(squad_ids)
     rows = []
     for el in ctx.players.values():
         pid = el["id"]
-        if pid in owned_ids or not transfers._eligible(el, ctx):
+        if (pid in squad_ids or not transfers._eligible(el, ctx)
+                or f(el.get("selected_by_percent")) >= WATCH_MAX_OWNED_PCT):
             continue
         s = transfers.case_score(el, ctx, proj, next_gw, market, baselines, priors)
         if not s or s["total"] <= 0:
@@ -254,6 +258,7 @@ def differential_watchlist(own, ctx, proj, market, baselines, next_gw, squad_ids
             "club": ctx.team_name(el["team"]), "price": el["now_cost"] / 10.0,
             "ep": s["total"], "opponent": s["opponent"], "home": s["home"],
             "owned_pct": f(el.get("selected_by_percent")),
+            "league": len(own[pid]["owners"]) if pid in own else 0,
             "duties": components.duty_badges(el),
         })
     rows.sort(key=lambda r: -r["ep"])
@@ -272,7 +277,7 @@ def differential_watchlist(own, ctx, proj, market, baselines, next_gw, squad_ids
     return out
 
 
-def differential_watchlist_card(rows, photos, weeks):
+def differential_watchlist_card(rows, photos, weeks, managers=0):
     """The Your differentials card, run the other direction and forward-
     looking: not what you already hold that's rare, but what's rare and
     still worth going and getting."""
@@ -294,47 +299,53 @@ def differential_watchlist_card(rows, photos, weeks):
             f'<dl class="df-stats">'
             f'<div><dt>{weeks}-week</dt><dd>{r["ep"]:.1f}</dd></div>'
             f'<div><dt>Next</dt><dd>{fixture}</dd></div>'
-            f'<div><dt>Owned, all FPL</dt><dd>{r["owned_pct"]:.0f}%</dd></div>'
+            f'<div><dt>Owned, all FPL</dt><dd>{r["owned_pct"]:.1f}%</dd></div>'
+            f'<div><dt>League</dt><dd>{r["league"]}/{managers}</dd></div>'
             f"</dl></div></li>"
         )
     return (
         '<section class="card"><div class="card-head">'
         f'<h2>Differential watchlist{components.info_btn()}</h2>'
-        '<span class="subvis">Nobody in <b>your league</b> owns these.</span>'
-        '<span class="sub" hidden>Scored the '
-        f'same way as every transfer suggestion on the Planning tab, over the '
-        f'next {weeks} gameweeks. Capped at two per club so one kind fixture '
-        f'cannot fill the list with the same bet.</span></div>'
+        '<span class="sub" hidden>Under '
+        f'{WATCH_MAX_OWNED_PCT:.0f}% owned across FPL, scored the same way as '
+        f'every transfer suggestion on the Planning tab, over the next {weeks} '
+        f'gameweeks. At most two per club.</span></div>'
         f'<div class="card-body"><ul class="dflist">{"".join(cards)}</ul></div>'
         "</section>"
     )
 
 
-def differential_card(own, by_name, ctx, my_name, photos):
-    """Players only you own, given room and a face.
+def your_differentials(own, ctx, my_name, limit=DIFFERENTIAL_COUNT):
+    """The `limit` players in your squad the fewest FPL managers own.
 
-    A one-line list in a grid cell left most of the card empty and made the
-    single most interesting fact on the page look like an afterthought. With
-    few enough of them, each gets a portrait and its numbers."""
-    n = len(by_name)
+    Ranked by overall ownership (selected_by_percent), not by whether the rest
+    of the league holds him: a minimum-price enabler nobody else in an
+    eight-team league happens to carry is not a differential, so anyone priced
+    as one (transfers.is_cheap, the planner's definition) is skipped."""
     if not own or not my_name:
-        return ""
-    mine = [
-        (pid, rec) for pid, rec in own.items()
-        if my_name in rec["owners"] and len(rec["owners"]) == 1
-    ]
+        return []
+    caps = transfers.price_caps(ctx)
+    rows = []
+    for pid, rec in own.items():
+        el = ctx.players.get(pid)
+        if (my_name not in rec["owners"] or not el
+                or transfers.is_cheap(el["now_cost"] / 10.0, ctx.pos(el), caps)):
+            continue
+        rows.append((f(el.get("selected_by_percent")), -el["total_points"],
+                     pid, len(rec["owners"])))
+    rows.sort()
+    return [(pid, owners) for _pct, _pts, pid, owners in rows[:limit]]
+
+
+def differential_card(own, by_name, ctx, my_name, photos):
+    """Your three least-owned non-enablers, each with a portrait and its
+    numbers; league ownership is the secondary figure."""
+    n = len(by_name)
+    mine = your_differentials(own, ctx, my_name)
     if not mine:
-        return (
-            f'<section class="card"><div class="card-head"><h2>Your differentials{components.info_btn()}</h2>'
-            '<span class="sub" hidden>Players nobody else in the league owns.</span></div>'
-            '<div class="card-body"><p class="dfempty">Every player you own is '
-            "owned by somebody else in this league. You are running the template "
-            "&mdash; safe from falling behind, and with nothing that can pull you "
-            "clear.</p></div></section>"
-        )
-    mine.sort(key=lambda x: -f(ctx.players[x[0]]["expected_goal_involvements"]))
+        return ""
     cards = []
-    for pid, _rec in mine:
+    for pid, owners in mine:
         el = ctx.players[pid]
         photo = photos.get(pid)
         face = (
@@ -347,21 +358,15 @@ def differential_card(own, by_name, ctx, my_name, photos):
             f'<p class="df-meta">{e(ctx.pos(el))} &middot; '
             f'{e(ctx.team_name(el["team"]))} &middot; {el["now_cost"] / 10:.1f}m</p>'
             f'<dl class="df-stats">'
+            f'<div><dt>Owned, all FPL</dt>'
+            f'<dd>{f(el["selected_by_percent"]):.1f}%</dd></div>'
+            f'<div><dt>League</dt><dd>{owners}/{n}</dd></div>'
             f'<div><dt>Points</dt><dd>{el["total_points"]}</dd></div>'
             f'<div><dt>xGI</dt><dd>{f(el["expected_goal_involvements"]):.2f}</dd></div>'
-            f'<div><dt>Owned, all FPL</dt>'
-            f'<dd>{f(el["selected_by_percent"]):.0f}%</dd></div>'
             f"</dl></div></li>"
         )
     return (
-        f'<section class="card"><div class="card-head"><h2>Your differentials{components.info_btn()}</h2>'
-        f'<span class="subvis">Nobody else in <b>your league</b> owns '
-        f'{"them" if len(mine) > 1 else "him"}. The percentage is <b>all of '
-        f'FPL</b> &mdash; the two answer different questions, and a man 1/8 '
-        f'here can still be 20% everywhere.</span>'
-        f'<span class="sub" hidden>Every point '
-        f'{"they score" if len(mine) > 1 else "he scores"} is a point on the '
-        "whole league.</span></div>"
+        '<section class="card"><div class="card-head"><h2>Your differentials</h2></div>'
         f'<div class="card-body"><ul class="dflist">{"".join(cards)}</ul></div>'
         "</section>"
     )
@@ -525,8 +530,7 @@ def rivals_card(rows, window_rows, rivals, photos, weeks=3):
     return (
         '<section class="card"><div class="card-head">'
         f'<h2>Scoring against you</h2>'
-        '<span class="subvis">Players you did not own who returned for your '
-        'rivals.</span></div>'
+        '</div>'
         '<div class="card-body">'
         '<div class="rvtabs tabbar" role="tablist" aria-label="Time range">'
         '<button class="rvtab" role="tab" aria-selected="true" data-rv="now">'
@@ -590,19 +594,11 @@ def league_position_card(data):
     if not data or len(data["series"]) < 2:
         return ""
     if len(data["gws"]) < LP_MIN_GWS:
-        need = LP_MIN_GWS - len(data["gws"])
         return (
             '<section class="card"><div class="card-head">'
-            f'<h2>League position over time{components.info_btn()}</h2>'
-            '<span class="sub" hidden>Every manager&rsquo;s rank in this league, '
-            'gameweek by gameweek. Held back until there are enough gameweeks '
-            'for the lines to mean anything.</span></div>'
+            '<h2>League position over time</h2></div>'
             '<div class="card-body"><p class="dfempty">'
-            f'{len(data["series"])} managers across {len(data["gws"])} '
-            f'gameweek{"s" if len(data["gws"]) != 1 else ""} is a knot, not a '
-            f'trend &mdash; every line would cross every other. This chart '
-            f'appears after GW{data["gws"][0] + LP_MIN_GWS - 1} '
-            f'({need} more to go).'
+            f'Appears after GW{data["gws"][0] + LP_MIN_GWS - 1}.'
             "</p></div></section>"
         )
     legend = "".join(
@@ -613,9 +609,7 @@ def league_position_card(data):
     )
     return (
         '<section class="card"><div class="card-head">'
-        f'<h2>League position over time{components.info_btn()}</h2>'
-        '<span class="sub" hidden>Every manager\'s rank in this league, gameweek '
-        'by gameweek - 1st at the top.</span></div>'
+        '<h2>League position over time</h2></div>'
         '<div class="card-body">'
         '<div class="lptoggle tabbar" role="group" aria-label="Y axis">'
         '<button class="lpbtn" data-y="position" aria-pressed="true">Position</button>'
@@ -668,11 +662,7 @@ def league_week_lede(rows, squads, ctx, me, gw):
     if len(users) < 2:
         return ""
     mine_too = my_chip == top_chip
-    tail = (" You played it too."
-            if mine_too else
-            f" You did not, so your gameweek score is being compared against "
-            f"{'a field' if len(users) < n - 1 else 'a league'} that mostly "
-            f"scored theirs twice.")
+    tail = " You did too." if mine_too else " You did not."
     return (
         f'<p class="lglede"><b>{len(users)} of {n}</b> played '
         f'<b>{e(label)}</b> in GW{gw}.{e(tail)}</p>'
@@ -682,12 +672,6 @@ def league_week_lede(rows, squads, ctx, me, gw):
 def league_table(rows, squads, ctx, me):
     xgis = [analysis.squad_underlying(p, ctx)["xgi"] for p in squads.values()]
     maxx = max(xgis + [0.01])
-    # Whether this column separates anybody yet. Eight managers inside one
-    # xGI of each other is a column of near-identical bars, and a bar chart
-    # whose bars are all the same length still reads as a comparison - it just
-    # quietly says nothing. Said out loud instead of implied.
-    spread = (max(xgis) - min(xgis)) if len(xgis) > 1 else 0.0
-    flat_xgi = bool(xgis) and spread < 0.2 * maxx
     # This gameweek's high and low score, and each row's movement since last
     # week - nuggets the raw numbers already carry but the table never
     # pointed at. Skipped when everyone's level, which is common in GW1.
@@ -742,15 +726,8 @@ def league_table(rows, squads, ctx, me):
             f"{meter(xgi, maxx, f'{xgi:.1f} xGI')} {xgi:.1f}</td>"
             "</tr>"
         )
-    note = (
-        f'<p class="lgnote">XI xGI spans just {spread:.1f} across all '
-        f'{len(xgis)} squads &mdash; nobody is separated by it yet. Read it '
-        f'again once the season has a few more weeks in it.</p>'
-        if flat_xgi else ""
-    )
     return (
-        note
-        + '<div class="scroll"><table class="league-standings" data-sortable><thead><tr>'
+        '<div class="scroll"><table class="league-standings" data-sortable><thead><tr>'
         '<th class="num sortable">#</th><th class="sortable">Team</th>'
         '<th class="num sortable">Total</th><th class="num sortable">GW</th>'
         '<th class="sortable">Captain</th>'

@@ -50,7 +50,7 @@ from cards_league import (chips_table, differential_card,
     differential_watchlist, differential_watchlist_card, league_position_card,
     league_position_series, league_table, league_week_lede, ownership_cards,
     ownership_carousel, rival_returns, rival_returns_window, rivals_card,
-    template_pitch, template_xi)
+    template_pitch, template_xi, your_differentials)
 from cards_scout import scout_section
 from cards_plan import plan_card
 
@@ -918,10 +918,9 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     tpl = template_xi(own, by_name, ctx) if own else None
     league_photos = dict(photos)
     if own and my_name:
-        for pid, rec in own.items():
-            if my_name in rec["owners"] and len(rec["owners"]) == 1:
-                league_photos.setdefault(pid, fplapi.photo_data_uri(
-                    ctx.players[pid]))
+        for pid, _owners in your_differentials(own, ctx, my_name):
+            league_photos.setdefault(pid, fplapi.photo_data_uri(
+                ctx.players[pid]))
     # The handful of rival-owned scorers the card below actually shows, so
     # this is a few extra portrait requests rather than one per player in
     # the league.
@@ -1245,7 +1244,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "template": template_pitch(tpl, ctx, shirts, my_name, set(squad_ids)),
         "differentials": differential_card(own, by_name, ctx, my_name, league_photos),
         "watchlist": differential_watchlist_card(
-            watchlist_rows, league_photos, transfers.TRANSFER_HORIZON_WEEKS),
+            watchlist_rows, league_photos, transfers.TRANSFER_HORIZON_WEEKS,
+            len(by_name)),
         "rivals": rivals_card(rivals_rows, rivals_window_rows,
                               max(0, len(by_name) - 1), league_photos,
                               weeks=RIVALS_WINDOW_WEEKS),
