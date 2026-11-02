@@ -4,6 +4,7 @@
 :root{
   --purple:#37003c; --night:#16001a; --green:#00ff87; --white:#ffffff;
   --paper:#eeecef; --mist:#f4f2f5; --line:#e6e2e8; --muted:#5b4e60;
+  --mint:#b8ffdd; --mint-soft:#dcffee;
   --glow-1:#963cff; --glow-2:#04f5ff;
   --ease:cubic-bezier(.2,.8,.2,1);
   --lift:0 1px 2px rgb(22 0 26 / 6%), 0 20px 40px rgb(22 0 26 / 6%);
@@ -223,6 +224,12 @@ section{margin-bottom:16px}
   letter-spacing:-.01em; line-height:.95; color:var(--purple)}
 .chapter .sub{font-size:14px; font-weight:600; color:var(--muted)}
 .panel > .chapter:first-child{margin-top:10px}
+/* Planning is for the plan and this week's move, so the plan title leads;
+   the chapters step down to section markers and the cards below the stage
+   sit a size under it. */
+#p-market .chapter h2{font-size:15px; letter-spacing:.12em; line-height:1.2; color:var(--muted)}
+#p-market .chapter{margin:36px 0 12px}
+#p-market > .chapter:first-child{margin-top:6px}
 .lglede{margin:0 0 14px; padding:14px 16px; font-size:15px; font-weight:600; line-height:1.45;
   background:var(--night); color:var(--white); border-radius:16px}
 .lglede b{color:var(--green)}
@@ -650,21 +657,15 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .lpswatch{width:10px; height:10px; border-radius:50%; flex:none}
 
 /* --- captaincy radar ---
-   Three candidate colours, each a fill/stroke pair from the page's own
-   palette: full-strength purple, mine-magenta, and the amber "third
-   state" used for defensive thresholds - each fill uses the vivid
-   version for real hue separation, each stroke the darker text-safe
-   version so the outline stays legible on white. Green is dropped here on
-   purpose: green means "good" everywhere else on the page, and a green
-   radar shape read as the recommended one regardless of what the numbers
-   said. Capped at three candidates deliberately: a fourth colour pulled
-   from this palette (the mid-purple step) sat too close to the ink purple
-   to tell apart at a glance, and three is what the shape needs to be
-   usefully read. */
+   One solid colour per candidate: blue, orange, reddish purple (the
+   Okabe-Ito set, which stays apart under red-green colour blindness).
+   Jonno chose distinct hues over line styles here on 2 Nov 2026; the
+   legend still names each shape. Strokes are the darker step so the
+   outline and the pinned values stay legible on white. */
 :root{
-  --radar-c0-fill:var(--purple); --radar-c0-stroke:var(--purple);
-  --radar-c1-fill:var(--green); --radar-c1-stroke:var(--night);
-  --radar-c2-fill:var(--attention); --radar-c2-stroke:var(--attention-ink);
+  --radar-c0-fill:#0072B2; --radar-c0-stroke:#005A8C;
+  --radar-c1-fill:#E69F00; --radar-c1-stroke:#9A5B00;
+  --radar-c2-fill:#CC79A7; --radar-c2-stroke:#9C3F78;
 }
 .cap-layout{display:flex; align-items:center; gap:20px; flex-wrap:wrap}
 /* Fixed width (not max-width) and a fixed-height readout line below - both
@@ -708,9 +709,6 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .radar-c0 .radar-fill, .radar-c0 .radar-dot{fill:var(--radar-c0-fill); stroke:var(--radar-c0-stroke)}
 .radar-c1 .radar-fill, .radar-c1 .radar-dot{fill:var(--radar-c1-fill); stroke:var(--radar-c1-stroke)}
 .radar-c2 .radar-fill, .radar-c2 .radar-dot{fill:var(--radar-c2-fill); stroke:var(--radar-c2-stroke)}
-/* Each candidate also has its own line: solid, dashed, dotted. */
-.radar-c1 .radar-fill{stroke-dasharray:7 4}
-.radar-c2 .radar-fill{stroke-dasharray:2 3}
 .radar-legend{
   list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px;
 }
@@ -721,9 +719,9 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .radar-leg:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
 .radar-leg.dim{opacity:.4}
 .radar-leg.active .radar-leg-name{color:var(--ink)}
-.radar-swatch{width:22px; height:0; flex:none; margin-top:9px; border-top:4px solid var(--purple)}
-.radar-swatch.radar-c1{border-top:4px dashed var(--night)}
-.radar-swatch.radar-c2{border-top:4px dotted var(--attention-ink)}
+.radar-swatch{width:22px; height:0; flex:none; margin-top:9px; border-top:5px solid var(--radar-c0-fill)}
+.radar-swatch.radar-c1{border-top-color:var(--radar-c1-fill)}
+.radar-swatch.radar-c2{border-top-color:var(--radar-c2-fill)}
 .radar-leg-text{display:flex; flex-direction:column; gap:1px}
 .radar-leg-name{font-weight:600}
 .radar-leg-sub{color:var(--on-surface-variant); font-variant-numeric:tabular-nums; font-size:12px}
@@ -1015,6 +1013,8 @@ table td.tick{border:2px solid var(--surface)}
 .oi{position:relative; padding:20px; border-radius:18px; background:var(--mist)}
 .oi-icon{--ico:30px}
 .oi-good{background:var(--green)}
+/* Two good tiles side by side: the second steps down to mint. */
+.oi-good + .oi-good{background:var(--mint)}
 .oi-bad{background:var(--night); color:var(--white)}
 .oi-bad .oi-label,.oi-bad .oi-detail,.oi-bad .oi-unit{color:rgb(255 255 255 / 85%)}
 .oi-label{margin:10px 0 0; font-size:12px; font-weight:800; text-transform:uppercase;
@@ -1144,7 +1144,7 @@ table td.tick{border:2px solid var(--surface)}
 .frotabs button[aria-selected="true"]{background:var(--white); color:var(--purple); font-weight:900}
 .frotabs button:focus-visible{outline:3px solid var(--green); outline-offset:2px}
 .fro-panel[hidden]{display:none}
-.fronote{margin:10px 0 22px; font-size:15px; font-weight:600; max-width:70ch; color:rgb(255 255 255 / 90%)}
+.fronote{margin:10px 0 22px; font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:rgb(255 255 255 / 80%)}
 .glass{position:relative; border-radius:18px; background:var(--glass-bg);
   -webkit-backdrop-filter:blur(22px) saturate(170%); backdrop-filter:blur(22px) saturate(170%);
   border:1px solid rgb(255 255 255 / 20%); box-shadow:inset 0 1px 0 rgb(255 255 255 / 40%), 0 20px 40px rgb(8 0 10 / 35%);
@@ -1248,7 +1248,9 @@ table td.tick{border:2px solid var(--surface)}
 /* --- the knee-jerk ------------------------------------------------------
    The one card arguing with the reader, so the one card on ink. */
 .kjcard{position:relative; background:var(--purple); color:var(--white); border:0; overflow:hidden; min-height:300px}
-.kjcard .ring{position:absolute; right:40px; bottom:30px; width:240px; height:240px; fill:none; stroke:var(--green); stroke-width:13}
+/* His position in outline letters behind the cut-out. */
+.kj-pos{position:absolute; right:-14px; bottom:128px; font-size:140px; font-weight:900; line-height:.8; letter-spacing:-.02em;
+  color:transparent; -webkit-text-stroke:3px var(--green); pointer-events:none}
 .kjcard .cut{right:20px; width:220px; height:280px; filter:drop-shadow(0 10px 18px rgb(0 0 0 / 35%))}
 .kj-tag{position:relative; padding:22px 24px 0; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.12em; color:var(--green)}
 .kj-body{position:relative; padding:6px 24px 24px; max-width:calc(100% - 260px)}
@@ -1265,25 +1267,24 @@ table td.tick{border:2px solid var(--surface)}
   background:rgb(255 255 255 / 14%); color:var(--white)}
 @media (max-width:700px){
   .kj-body{max-width:none; padding-bottom:250px}
-  .kjcard .ring{right:50%; margin-right:-120px; bottom:20px; width:220px; height:220px}
+  .kj-pos{right:50%; margin-right:-148px; bottom:150px; font-size:130px}
   .kjcard .cut{right:50%; margin-right:-105px; width:210px; height:267px}
 }
 
 /* --- buy / sell / keep / avoid ------------------------------------------ */
-/* Four questions, four fills: buy on green, sell on night, keep on mist,
-   avoid on paper with the suspended mark. Each column is named and iconed. */
+/* Four questions, four fills: buy on mint, sell on night, keep on mist,
+   avoid on white with an outline. Each column is named and iconed. */
 .vb-grid{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
 .vb-col{padding:18px; border-radius:18px; background:var(--mist)}
-.vb-col h4{margin:0; display:flex; align-items:center; gap:8px; font-size:18px; font-weight:900; text-transform:uppercase}
+.vb-col h4{margin:0 0 12px; display:flex; align-items:center; gap:8px; font-size:18px; font-weight:900; text-transform:uppercase}
 .vb-col h4 .ico{--ico:26px}
-.vb-rule{margin:6px 0 12px; font-size:14px; font-weight:600; line-height:1.4}
 .vb-col ul{list-style:none; margin:0; padding:0; display:grid; gap:10px}
 .vb-top{display:flex; align-items:baseline; justify-content:space-between; gap:8px}
 .vb-top b{font-size:15px; font-weight:900}
 .vb-ep{font-size:16px; font-weight:900}
 .vb-sub{display:block; font-size:13px; font-weight:500; line-height:1.4}
 .vb-none{font-size:14px; font-weight:600}
-.vb-good{background:var(--green)}
+.vb-good{background:var(--mint)}
 .vb-bad{background:var(--night); color:var(--white)}
 .vb-accent{background:var(--mist)}
 .vb-accent h4,.vb-accent .vb-ep{color:var(--purple)}
@@ -1300,10 +1301,6 @@ table td.tick{border:2px solid var(--surface)}
   .prlist{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:560px){.slwrap{grid-template-columns:minmax(0,1fr)}}
-.sllede{
-  margin:0 0 14px; font-size:14px; font-weight:600; line-height:1.45;
-  color:var(--night); background:var(--mist); border-radius:14px; padding:10px 14px;
-}
 
 /* --- fixture difficulty --- */
 /* Twenty clubs, eight shown at a time - the table itself never scrolls
@@ -1528,7 +1525,6 @@ table td.tick{border:2px solid var(--surface)}
 }
 .slicon{color:var(--accent)}
 .slicon{width:17px; height:17px; flex:none}
-.slnote{margin:2px 0 8px; font-size:12px; color:var(--on-surface-variant)}
 .sllist{list-style:none; margin:0; padding:0; display:flex;
   flex-direction:column; gap:4px}
 .sllist li{display:flex; align-items:baseline; gap:6px; font-size:13px}
@@ -2151,12 +2147,10 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 }
 
 /* The next move: each transfer on a mist photo panel, the old player greyed
-   on the left, the new one standing on the panel's bottom edge, and a night
-   caption strip with the opponent's crest. */
+   on the left, the new one standing on a night strip of figures, with a
+   penalty box drawn faintly behind him. */
 .move-row{display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; align-items:stretch}
 .move-stage{position:relative; background:var(--white); border-radius:var(--radius-l); box-shadow:var(--lift); padding:26px 28px; overflow:hidden}
-.move-stage::before{content:""; position:absolute; left:50%; bottom:-150px; width:300px; height:300px; margin-left:-150px;
-  border-radius:50%; border:2px solid rgb(55 0 60 / 7%); pointer-events:none}
 .move-head{position:relative; display:flex; align-items:flex-end; justify-content:space-between; gap:12px 24px; flex-wrap:wrap}
 .brief-action{margin-top:8px; font-size:34px; color:var(--purple)}
 .brief-action a{text-decoration:none}
@@ -2166,12 +2160,16 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .move-detail{position:relative; font-size:17px; font-weight:600; margin:14px 0 0}
 .move-slots{position:relative; list-style:none; margin:20px 0 0; padding:0; display:grid;
   grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:18px}
-.move-slot{position:relative; height:310px; border-radius:22px; background:var(--mist); overflow:hidden}
-.move-slot::before{content:""; position:absolute; right:-40px; top:30px; width:240px; height:240px; border-radius:50%;
-  border:2px solid rgb(55 0 60 / 8%)}
-.move-old{left:8px; bottom:66px; width:92px; height:117px; filter:grayscale(1); opacity:.5}
-.move-new{right:-4px; bottom:62px; width:190px; height:242px; filter:drop-shadow(0 10px 16px rgb(22 0 26 / 22%))}
-.move-arrow{position:absolute; left:96px; bottom:106px; color:var(--purple)}
+.move-slot{--new-w:190px; --strip:62px; position:relative; height:310px; border-radius:22px; background:var(--mist); overflow:hidden}
+.move-slot:has(.move-figs){--strip:78px; height:326px}
+.move-slot::before{content:""; position:absolute; right:-14px; bottom:calc(var(--strip) + 4px); width:250px; height:208px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 200' fill='none' stroke='%2337003C' stroke-width='2.5'%3E%3Cpath d='M10 200V62h220v138M70 200v-56h100v56M75.3 62a60 60 0 0 0 89.4 0'/%3E%3Ccircle cx='120' cy='104' r='3.5' fill='%2337003C'/%3E%3C/svg%3E") center/contain no-repeat;
+  opacity:.1}
+.move-old{left:8px; bottom:calc(var(--strip) - 4px); width:92px; height:117px; filter:grayscale(1); opacity:.5}
+.move-new{right:-4px; bottom:var(--strip); width:var(--new-w); height:calc(var(--new-w) * 1.274); filter:drop-shadow(0 10px 16px rgb(22 0 26 / 22%))}
+/* Centred in the gap between the two players: the old one ends 100px in,
+   the new one's figure starts about 12px inside its own box. */
+.move-arrow{position:absolute; left:calc((100% - var(--new-w) + 112px) / 2 - 15px); bottom:calc(var(--strip) + 44px); color:var(--purple)}
 .move-arrow .ico{--ico:30px}
 .move-names{position:absolute; left:18px; top:18px; right:150px; display:flex; flex-direction:column; gap:3px}
 .move-names .move-out{font-size:14px; font-weight:700; color:var(--muted)}
@@ -2183,6 +2181,18 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .move-caption img{width:30px; height:30px; object-fit:contain; flex:none}
 .move-caption b{font-weight:900}
 .move-caption > span{display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+.move-figs{position:absolute; left:12px; right:12px; bottom:12px; display:flex; align-items:center; gap:10px 18px;
+  background:var(--night); color:var(--white); border-radius:14px; padding:8px 14px; min-height:54px}
+.mf-gain{display:flex; align-items:baseline; gap:6px; flex:none}
+.mf-gain .big{font-size:30px; color:var(--green)}
+.mf-gain span{font-size:12px; font-weight:800; line-height:1.15; max-width:52px}
+.move-figs dl{flex:1; min-width:0; margin:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px}
+.move-figs dt{font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:rgb(255 255 255 / 70%)}
+.move-figs dd{margin:2px 0 0; display:flex; align-items:center; gap:6px; white-space:nowrap}
+.move-figs dd b{font-size:17px; font-weight:900}
+.move-figs dd .was{font-size:13px; font-weight:600; opacity:.6}
+.move-figs dd img{width:24px; height:24px; object-fit:contain}
+.move-figs dd .was img{width:20px; height:20px; filter:grayscale(1)}
 .brief-links{position:relative; display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; font-size:14px; font-weight:800}
 .brief-links a{display:inline-flex; align-items:center; min-height:40px; padding:0 14px; border-radius:12px;
   background:var(--mist); text-decoration:none; color:var(--purple)}
@@ -2190,13 +2200,14 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .brief-caveat{position:relative; font-size:14px; font-weight:600; line-height:1.5; margin:14px 0 0}
 .preview-on .move-old{opacity:.25}
 
-/* Captain: purple, a green ring behind the cut-out, never across it. */
+/* Captain: purple, two green chevrons behind the cut-out, never across it. */
 .captain-slot{display:grid; min-width:0}
 .captain-slot>*{grid-area:1/1}
 .captain-card{position:relative; min-height:330px; border-radius:var(--radius-l); background:var(--purple); color:var(--white);
   padding:22px; overflow:hidden; display:flex; flex-direction:column; align-items:flex-start; gap:8px; margin:0}
 .captain-card[hidden]{display:flex; visibility:hidden}
-.captain-card .ring{position:absolute; right:-56px; bottom:70px; width:270px; height:270px; fill:none; stroke:var(--green); stroke-width:13}
+.captain-card .chevrons{position:absolute; right:-40px; bottom:56px; width:250px; height:250px; fill:none; stroke:var(--green);
+  stroke-width:14; stroke-linejoin:round; stroke-linecap:round}
 .captain-card .cut{right:-30px; width:224px; height:285px; filter:drop-shadow(0 10px 18px rgb(0 0 0 / 35%))}
 .captain-card .lab{position:relative; color:var(--green); display:flex; align-items:center; gap:8px}
 .captain-card .lab .ico{--ico:26px}
@@ -2210,8 +2221,12 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 @media (max-width:560px){
   .move-stage{padding:20px 16px}
   .brief-action{font-size:28px}
-  .move-slot{height:270px}
-  .move-new{width:160px; height:204px}
+  .move-slot{height:270px; --new-w:160px}
+  .move-slot:has(.move-figs){--strip:112px; height:340px}
+  .move-figs{flex-wrap:wrap; padding:8px 12px 10px; gap:4px 12px}
+  .mf-gain{width:100%}
+  .mf-gain span{max-width:none}
+  .move-figs dl{gap:8px}
   .move-names{right:120px}
   .move-names .player-link{font-size:22px}
 }
@@ -2340,7 +2355,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
    and shadow all change, so the state reads without colour. */
 .plan-card{margin-bottom:20px}
 .plan-top{padding:0 0 16px; align-items:flex-end; justify-content:space-between}
-.plan-top h2{font-size:clamp(28px,3.4vw,40px); color:var(--purple); margin-top:8px}
+.plan-top h2{font-size:clamp(34px,4.2vw,52px); color:var(--purple); margin-top:8px}
 .plan-top .infobtn{vertical-align:middle}
 .plan-top .sub{font-size:15px; max-width:90ch}
 .plan-ft{margin-left:auto; background:var(--white); border-radius:14px; padding:10px 16px; font-size:15px; font-weight:700;
@@ -2457,16 +2472,17 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .plan-kit[class*="plan-crest-"]{width:32px; height:32px}
 @media (max-width:560px){.plan-kit{width:34px; height:34px}}
 
-/* --- other transfer options: the swipe deck on the green panel ------------- */
-.deck-panel{position:relative; border-radius:var(--radius-l); background:var(--green); color:var(--night); padding:36px;
+/* --- other transfer options: the swipe deck on a mint panel --------------- */
+/* Mint rather than full green: the panel is the size of a screen, and solid
+   green that big drowned the page. Green stays for the gains. */
+.deck-panel{position:relative; border-radius:var(--radius-l); background:var(--mint); color:var(--night); padding:36px;
   display:grid; grid-template-columns:240px minmax(0,380px) minmax(0,1fr); gap:28px 96px; align-items:start; overflow:hidden; margin-bottom:20px}
 .deck-panel::before{content:""; position:absolute; inset:0; pointer-events:none; opacity:.08;
   background:radial-gradient(circle at 50% 100%,transparent 148px,var(--night) 149px,var(--night) 151px,transparent 152px),
     linear-gradient(var(--night),var(--night)) 50% 0/340px 2px no-repeat}
 .deck-intro{position:relative; display:flex; flex-direction:column; gap:12px}
 .deck-intro .lab{color:var(--night)}
-.deck-intro h2{font-size:40px; line-height:.92}
-.deck-lede{margin:0; font-size:15px; font-weight:600; line-height:1.45}
+.deck-intro h2{font-size:28px; line-height:.95}
 .deck-pos{margin-top:12px; font-size:22px; font-weight:800}
 .deck-btns{display:flex; gap:12px}
 .deck-btn{appearance:none; border:0; width:56px; height:56px; border-radius:50%; background:var(--night); color:var(--white);
@@ -2482,15 +2498,19 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   transition:transform .55s var(--ease), opacity .4s; will-change:transform; user-select:none}
 .deck-card::before{content:""; position:absolute; inset:0; pointer-events:none;
   background:repeating-linear-gradient(115deg,rgb(255 255 255 / 3%) 0 2px,transparent 2px 9px)}
-.deck-pair{background:var(--night)}
-.deck-photo{position:absolute; left:12px; right:12px; top:12px; height:290px; border-radius:20px; overflow:hidden;
-  background:radial-gradient(120% 90% at 72% 18%,#6a1f73 0%,#4a0a52 38%,#2a002e 100%)}
+.deck-card.deck-pair{background:var(--night)}
+/* A goal net behind the players. */
+.deck-photo{position:absolute; left:12px; right:12px; top:12px; height:266px; border-radius:20px; overflow:hidden;
+  background:repeating-linear-gradient(45deg,transparent 0 17px,rgb(255 255 255 / 7%) 17px 19px),
+    repeating-linear-gradient(-45deg,transparent 0 17px,rgb(255 255 255 / 7%) 17px 19px),
+    radial-gradient(120% 90% at 72% 18%,#6a1f73 0%,#4a0a52 38%,#2a002e 100%)}
 .deck-old{left:4px; width:100px; height:127px; filter:grayscale(1); opacity:.42}
 .deck-new{right:-6px; width:220px; height:280px}
 .deck-arrow{position:absolute; left:94px; bottom:42px; color:var(--white)}
 .deck-arrow .ico{--ico:26px}
-.deck-pair-0{left:-8px; width:200px; height:254px}
-.deck-pair-1{right:-10px; width:220px; height:280px}
+/* Sized to the panel so they overlap at the shoulders at any card width. */
+.deck-pair-0{left:-4px; width:54%; height:auto; aspect-ratio:11/14}
+.deck-pair-1{right:-6px; width:58%; height:auto; aspect-ratio:11/14}
 .opp-plate{position:absolute; left:12px; top:12px; display:flex; align-items:center; gap:8px; padding:7px 12px 7px 8px;
   border-radius:12px; background:rgb(22 0 26 / 42%); -webkit-backdrop-filter:blur(14px) saturate(160%); backdrop-filter:blur(14px) saturate(160%);
   border:1px solid rgb(255 255 255 / 20%); box-shadow:inset 0 1px 0 rgb(255 255 255 / 28%); font-size:14px; font-weight:800}
@@ -2506,12 +2526,21 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   background-size:300% 300%; animation:foil 8s ease-in-out infinite alternate}
 .deck-card:hover .foil{animation-duration:2.4s}
 @keyframes foil{from{background-position:100% 50%} to{background-position:0% 50%}}
-.deck-body{position:absolute; left:24px; right:24px; top:318px; bottom:22px; display:flex; flex-direction:column}
+.deck-body{position:absolute; left:24px; right:24px; top:292px; bottom:20px; display:flex; flex-direction:column}
 .deck-body .lab{color:var(--green); margin-bottom:6px}
 .deck-name{font-size:28px; overflow-wrap:anywhere}
-.deck-meta{margin-top:6px; font-size:14px; font-weight:700; line-height:1.35}
-.deck-words{margin-top:6px; font-size:13px; font-weight:600; line-height:1.35; color:rgb(255 255 255 / 90%)}
-.deck-words p{margin:2px 0 0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+.deck-meta{margin-top:4px; font-size:14px; font-weight:700; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.deck-figs{margin-top:10px; width:100%; border-collapse:collapse; table-layout:fixed}
+.deck-figs th,.deck-figs td{padding:2px 0 2px 6px; text-align:right; white-space:nowrap}
+.deck-figs thead th{font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:rgb(255 255 255 / 70%);
+  background:none; border:0}
+.deck-figs tbody tr{border:0}
+.deck-figs tbody tr:hover{background:none}
+.deck-figs th:first-child{width:32%; padding-left:0; text-align:left; overflow:hidden; text-overflow:ellipsis}
+.deck-figs tbody th{font-size:14px; font-weight:800}
+.deck-figs td{font-size:16px; font-weight:900}
+.deck-figs tr.was{opacity:.6}
+.deck-figs tr.was td,.deck-figs tr.was th{font-weight:600; font-size:13px}
 .deck-gain{margin-top:auto; display:flex; align-items:flex-end; gap:14px}
 .deck-gain .big{font-size:60px; color:var(--green)}
 .deck-gain span{font-size:14px; font-weight:700; line-height:1.25; padding-bottom:2px}
@@ -2526,19 +2555,23 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .deck-idx .tnum{font-weight:900; font-size:17px}
 @media (max-width:1180px){
   .deck-panel{grid-template-columns:minmax(0,1fr) minmax(0,380px); padding:28px}
-  .deck{margin-right:72px}
+  .deck{margin-right:72px; height:580px}
   .deck-list{grid-column:1 / -1; flex-direction:row; flex-wrap:wrap; max-height:none}
   .deck-list li{flex:1 1 220px}
 }
 @media (max-width:700px){
   .deck-panel{grid-template-columns:minmax(0,1fr); padding:22px 16px; gap:18px}
-  .deck-intro h2{font-size:30px}
+  .deck-intro h2{font-size:24px}
   .deck{height:560px; max-width:380px; width:calc(100% - 56px); justify-self:start; margin-right:0}
-  .deck-photo{height:230px}
-  .deck-body{top:254px; left:20px; right:20px}
+  .deck-photo{height:224px}
+  .deck-body{top:246px; left:18px; right:18px}
   .deck-name{font-size:24px}
   .deck-gain .big{font-size:50px}
-  .deck-new{width:190px; height:242px}
+  .deck-new{width:180px; height:229px}
+  .deck-single .opp-plate{top:auto; bottom:12px}
+  .deck-duties{top:12px}
+  .deck-figs thead th{letter-spacing:.02em}
+  .deck-figs td{font-size:15px}
   .deck-list{flex-wrap:nowrap; overflow-x:auto; gap:6px}
   .deck-list li{flex:none}
   .deck-idx{flex-direction:column; gap:4px; padding:8px; width:auto}
@@ -2569,9 +2602,9 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 @media (max-width:400px){
   .move-names{right:92px}
   .move-names .player-link,.move-names .move-in{font-size:20px; overflow-wrap:break-word}
-  .move-new{width:150px; height:191px}
+  .move-slot{--new-w:150px}
   .captain-card .cut{width:180px; height:229px; right:-34px}
-  .captain-card .ring{width:210px; height:210px; right:-60px; bottom:60px}
+  .captain-card .chevrons{width:200px; height:200px; right:-44px; bottom:50px}
   .captain-card .player-link{font-size:24px; max-width:58%}
   .cap-opp{max-width:48%}
   .fxrun-chips{flex-wrap:wrap}

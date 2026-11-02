@@ -264,7 +264,9 @@ def ffs_predicted_photo_ids(ttl=DEFAULT_TTL):
 
 # --- club badges ----------------------------------------------------------
 
-BADGE_URL = "https://resources.premierleague.com/premierleague/badges/50/t{code}.png"
+# The 200px source. The 50px one was upscaled into every crest bigger than
+# 25 CSS pixels on a 2x screen, which is why the fixture-run tiles looked soft.
+BADGE_URL = "https://resources.premierleague.com/premierleague/badges/100/t{code}@x2.png"
 BADGE_DIR = CACHE_DIR / "badges"
 
 
@@ -273,7 +275,7 @@ def badge_png(team_code):
     the dashboard falls back to a lettered chip, so a missing badge costs
     nothing."""
     BADGE_DIR.mkdir(parents=True, exist_ok=True)
-    path = BADGE_DIR / f"t{team_code}.png"
+    path = BADGE_DIR / f"t{team_code}@x2.png"
     if path.exists() and path.stat().st_size > 0:
         return path.read_bytes()
     url = BADGE_URL.format(code=team_code)
@@ -401,8 +403,27 @@ def photo_data_uri(photo_field, max_bytes=14000):
         return "data:image/png;base64," + base64.b64encode(raw).decode("ascii")
 
 
-def badge_data_uri(team_code):
+def badge_data_uri(team_code, size=96):
+    """Crest at `size` pixels, enough for twice its largest CSS size.
+
+    Most crests sit at 24-48 CSS pixels and appear dozens of times on the
+    page, so they get a small copy; only the big fixture-run tiles ask for
+    the full 200. WebP keeps the transparency; without Pillow the source PNG
+    is embedded as is."""
     data = badge_png(team_code)
     if not data:
         return None
+    try:
+        import io
+
+        from PIL import Image, features
+
+        if features.check("webp"):
+            img = Image.open(io.BytesIO(data)).convert("RGBA")
+            img.thumbnail((size, size), Image.LANCZOS)
+            buf = io.BytesIO()
+            img.save(buf, format="WEBP", quality=90, method=6)
+            return "data:image/webp;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+    except Exception as e:
+        print(f"[badge] could not resize {team_code} ({e}); embedding raw")
     return "data:image/png;base64," + base64.b64encode(data).decode("ascii")
