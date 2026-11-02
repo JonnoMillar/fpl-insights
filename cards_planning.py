@@ -73,12 +73,11 @@ def price_watch_card(pw):
     return (
         '<section class="card">'
         f'<div class="card-head"><h2>Price watch{components.info_btn()}</h2>'
-        '<span class="subvis">Both figures are progress towards a price '
+        '<span class="sub" hidden>Both figures are progress towards a price '
         'change, which fires at <b>100%</b>: the big number is where he is '
         'now, the small one is where FPL forecast him in two days. Net '
         'transfers are raw, so a widely-owned player needs far more of them '
-        'to move the same distance.</span>'
-        '<span class="sub" hidden>Prices update once a day, so this '
+        'to move the same distance. Prices update once a day, so this '
         "is only worth anything before it happens. Progress is relative to a "
         "player's own ownership, which is why a small net-transfer figure can "
         "sit above a large one.</span></div>"
@@ -148,7 +147,7 @@ def scatter(points):
         "</div></div>"
         '<div class="scroll"><svg class="scatter" viewBox="0 0 1040 520" '
         'role="img" aria-label="Scatter plot of player metrics"></svg></div>'
-        '<p class="readout" aria-live="polite">Hover or click any dot to identify the player.</p>'
+        '<p class="readout" aria-live="polite"></p>'
         '<p class="legend"><span class="key mkt"></span>Every player with 60+ minutes'
         '<span class="key mine"></span>Your squad'
         '<span class="key outlier"></span>Furthest from the norm</p>'
@@ -165,10 +164,8 @@ def elite_card(res, ctx):
         return (
             '<section class="card">'
             f'<div class="card-head"><h2>What proven managers own{components.info_btn()}</h2></div>'
-            '<div class="card-body"><p class="tnote">Elite ownership needs '
-            "~10 gameweeks before the top of the table means anything - too "
-            "few managers with a proven top-100k season are in the current "
-            "top ranks yet.</p></div></section>"
+            '<div class="card-body"><p class="tnote">Not enough proven managers '
+            "in the top ranks yet.</p></div></section>"
         )
     caveat = (
         f" Read from {res['managers']} proven managers, so each figure "
@@ -751,15 +748,8 @@ def best_xi_card(pt, ctx, squad_ids, next_gw):
     # a hidden note nobody opens.
     cost = sum((ctx.players[p["id"]]["now_cost"] / 10.0)
                for p in xi if p["id"] in ctx.players)
-    if gap < 0.5:
-        read = ("Your eleven is already within half a point of the best "
-                "possible one in the game. There is nothing to chase here.")
-    else:
-        read = (f"Your eleven projects {pt['ours_value']:.1f}, so this one is "
-                f"{gap:.1f} ahead across the "
-                f"{11 - owned_n} name{'s' if 11 - owned_n != 1 else ''} you "
-                f"do not own. Read it as where you are behind, not as a "
-                f"target.")
+    read = (f"<b>{pt['ours_value']:.1f}</b> yours &middot; "
+            + ("level" if gap < 0.5 else f"<b>+{gap:.1f}</b> ahead"))
 
     return (
         '<section class="card bxicard"><div class="card-head">'
@@ -773,10 +763,8 @@ def best_xi_card(pt, ctx, squad_ids, next_gw):
         f'<div class="bxi-big"><span class="num">{pt["ideal_value"]:.1f}</span>'
         f'<small>projected, best XI</small></div>'
         f'<p class="bxi-own">{TICK_SVG}<b>{owned_n} of 11</b> already yours</p>'
-        f'<p class="bxi-cost">Costs <b>{cost:.1f}m</b> for eleven players, '
-        f'against a 100.0m budget for fifteen &mdash; not a squad you can '
-        f'build</p>'
-        f'<p class="bxi-read">{e(read)}</p></div>'
+        f'<p class="bxi-cost"><b>{cost:.1f}m</b> for eleven &middot; 100.0m buys fifteen</p>'
+        f'<p class="bxi-read">{read}</p></div>'
         f'<div class="bxi-grid">{"".join(groups)}</div>'
         "</div></section>"
     )
@@ -903,7 +891,7 @@ def verdict_board_card(vb, next_gw):
             )
         cols.append(
             f'<div class="vb-col vb-{tone}"><h4>{icon(VERDICT_ICON[key])}{e(label)}</h4>'
-            f'<p class="vb-rule">{e(sub)}</p><ul>{items}</ul></div>'
+            f'<ul>{items}</ul></div>'
         )
     return (
         '<section class="card vbcard"><div class="card-head">'
@@ -914,7 +902,9 @@ def verdict_board_card(vb, next_gw):
         f'gameweek {next_gw} alone - plus a small nudge for recent form and '
         f'underlying numbers, which is why it reads much higher than a '
         f'single week\'s score. The opponent named in each note is still '
-        f'just the very next fixture, for context.</span></div>'
+        f'just the very next fixture, for context.<br>'
+        + "<br>".join(f"{e(label)}: {e(sub)}" for _k, label, _t, sub in VERDICT_COLS)
+        + '</span></div>'
         f'<div class="card-body vb-grid">{"".join(cols)}</div></section>'
     )
 
@@ -963,7 +953,7 @@ def captaincy_card(cm):
         f'the shape shows why. Click a name for the full breakdown.</span></div>'
         '<div class="card-body cap-layout">'
         f'<div class="cap-side"><ul class="radar-legend">{legend}</ul>'
-        '<p class="radar-readout" aria-live="polite">Hover a shape or a dot for its value.</p></div>'
+        '<p class="radar-readout" aria-live="polite"></p></div>'
         # Padded well past CX/CY/R/TEXT_R in captaincy.js (currently
         # 210/195/130/174) on every side - a long label like "Fixture (xG
         # mult)" or a pinned callout's value line grows outward from an

@@ -224,6 +224,12 @@ section{margin-bottom:16px}
   letter-spacing:-.01em; line-height:.95; color:var(--purple)}
 .chapter .sub{font-size:14px; font-weight:600; color:var(--muted)}
 .panel > .chapter:first-child{margin-top:10px}
+/* Planning is for the plan and this week's move, so the plan title leads;
+   the chapters step down to section markers and the cards below the stage
+   sit a size under it. */
+#p-market .chapter h2{font-size:15px; letter-spacing:.12em; line-height:1.2; color:var(--muted)}
+#p-market .chapter{margin:36px 0 12px}
+#p-market > .chapter:first-child{margin-top:6px}
 .lglede{margin:0 0 14px; padding:14px 16px; font-size:15px; font-weight:600; line-height:1.45;
   background:var(--night); color:var(--white); border-radius:16px}
 .lglede b{color:var(--green)}
@@ -651,21 +657,15 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .lpswatch{width:10px; height:10px; border-radius:50%; flex:none}
 
 /* --- captaincy radar ---
-   Three candidate colours, each a fill/stroke pair from the page's own
-   palette: full-strength purple, mine-magenta, and the amber "third
-   state" used for defensive thresholds - each fill uses the vivid
-   version for real hue separation, each stroke the darker text-safe
-   version so the outline stays legible on white. Green is dropped here on
-   purpose: green means "good" everywhere else on the page, and a green
-   radar shape read as the recommended one regardless of what the numbers
-   said. Capped at three candidates deliberately: a fourth colour pulled
-   from this palette (the mid-purple step) sat too close to the ink purple
-   to tell apart at a glance, and three is what the shape needs to be
-   usefully read. */
+   One solid colour per candidate: blue, orange, reddish purple (the
+   Okabe-Ito set, which stays apart under red-green colour blindness).
+   Jonno chose distinct hues over line styles here on 2 Nov 2026; the
+   legend still names each shape. Strokes are the darker step so the
+   outline and the pinned values stay legible on white. */
 :root{
-  --radar-c0-fill:var(--purple); --radar-c0-stroke:var(--purple);
-  --radar-c1-fill:var(--green); --radar-c1-stroke:var(--night);
-  --radar-c2-fill:var(--attention); --radar-c2-stroke:var(--attention-ink);
+  --radar-c0-fill:#0072B2; --radar-c0-stroke:#005A8C;
+  --radar-c1-fill:#E69F00; --radar-c1-stroke:#9A5B00;
+  --radar-c2-fill:#CC79A7; --radar-c2-stroke:#9C3F78;
 }
 .cap-layout{display:flex; align-items:center; gap:20px; flex-wrap:wrap}
 /* Fixed width (not max-width) and a fixed-height readout line below - both
@@ -709,9 +709,6 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .radar-c0 .radar-fill, .radar-c0 .radar-dot{fill:var(--radar-c0-fill); stroke:var(--radar-c0-stroke)}
 .radar-c1 .radar-fill, .radar-c1 .radar-dot{fill:var(--radar-c1-fill); stroke:var(--radar-c1-stroke)}
 .radar-c2 .radar-fill, .radar-c2 .radar-dot{fill:var(--radar-c2-fill); stroke:var(--radar-c2-stroke)}
-/* Each candidate also has its own line: solid, dashed, dotted. */
-.radar-c1 .radar-fill{stroke-dasharray:7 4}
-.radar-c2 .radar-fill{stroke-dasharray:2 3}
 .radar-legend{
   list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px;
 }
@@ -722,9 +719,9 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .radar-leg:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
 .radar-leg.dim{opacity:.4}
 .radar-leg.active .radar-leg-name{color:var(--ink)}
-.radar-swatch{width:22px; height:0; flex:none; margin-top:9px; border-top:4px solid var(--purple)}
-.radar-swatch.radar-c1{border-top:4px dashed var(--night)}
-.radar-swatch.radar-c2{border-top:4px dotted var(--attention-ink)}
+.radar-swatch{width:22px; height:0; flex:none; margin-top:9px; border-top:5px solid var(--radar-c0-fill)}
+.radar-swatch.radar-c1{border-top-color:var(--radar-c1-fill)}
+.radar-swatch.radar-c2{border-top-color:var(--radar-c2-fill)}
 .radar-leg-text{display:flex; flex-direction:column; gap:1px}
 .radar-leg-name{font-weight:600}
 .radar-leg-sub{color:var(--on-surface-variant); font-variant-numeric:tabular-nums; font-size:12px}
@@ -1145,7 +1142,7 @@ table td.tick{border:2px solid var(--surface)}
 .frotabs button[aria-selected="true"]{background:var(--white); color:var(--purple); font-weight:900}
 .frotabs button:focus-visible{outline:3px solid var(--green); outline-offset:2px}
 .fro-panel[hidden]{display:none}
-.fronote{margin:10px 0 22px; font-size:15px; font-weight:600; max-width:70ch; color:rgb(255 255 255 / 90%)}
+.fronote{margin:10px 0 22px; font-size:12px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:rgb(255 255 255 / 80%)}
 .glass{position:relative; border-radius:18px; background:var(--glass-bg);
   -webkit-backdrop-filter:blur(22px) saturate(170%); backdrop-filter:blur(22px) saturate(170%);
   border:1px solid rgb(255 255 255 / 20%); box-shadow:inset 0 1px 0 rgb(255 255 255 / 40%), 0 20px 40px rgb(8 0 10 / 35%);
@@ -1271,20 +1268,19 @@ table td.tick{border:2px solid var(--surface)}
 }
 
 /* --- buy / sell / keep / avoid ------------------------------------------ */
-/* Four questions, four fills: buy on green, sell on night, keep on mist,
-   avoid on paper with the suspended mark. Each column is named and iconed. */
+/* Four questions, four fills: buy on mint, sell on night, keep on mist,
+   avoid on white with an outline. Each column is named and iconed. */
 .vb-grid{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
 .vb-col{padding:18px; border-radius:18px; background:var(--mist)}
-.vb-col h4{margin:0; display:flex; align-items:center; gap:8px; font-size:18px; font-weight:900; text-transform:uppercase}
+.vb-col h4{margin:0 0 12px; display:flex; align-items:center; gap:8px; font-size:18px; font-weight:900; text-transform:uppercase}
 .vb-col h4 .ico{--ico:26px}
-.vb-rule{margin:6px 0 12px; font-size:14px; font-weight:600; line-height:1.4}
 .vb-col ul{list-style:none; margin:0; padding:0; display:grid; gap:10px}
 .vb-top{display:flex; align-items:baseline; justify-content:space-between; gap:8px}
 .vb-top b{font-size:15px; font-weight:900}
 .vb-ep{font-size:16px; font-weight:900}
 .vb-sub{display:block; font-size:13px; font-weight:500; line-height:1.4}
 .vb-none{font-size:14px; font-weight:600}
-.vb-good{background:var(--green)}
+.vb-good{background:var(--mint)}
 .vb-bad{background:var(--night); color:var(--white)}
 .vb-accent{background:var(--mist)}
 .vb-accent h4,.vb-accent .vb-ep{color:var(--purple)}
@@ -1301,10 +1297,6 @@ table td.tick{border:2px solid var(--surface)}
   .prlist{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:560px){.slwrap{grid-template-columns:minmax(0,1fr)}}
-.sllede{
-  margin:0 0 14px; font-size:14px; font-weight:600; line-height:1.45;
-  color:var(--night); background:var(--mist); border-radius:14px; padding:10px 14px;
-}
 
 /* --- fixture difficulty --- */
 /* Twenty clubs, eight shown at a time - the table itself never scrolls
@@ -1529,7 +1521,6 @@ table td.tick{border:2px solid var(--surface)}
 }
 .slicon{color:var(--accent)}
 .slicon{width:17px; height:17px; flex:none}
-.slnote{margin:2px 0 8px; font-size:12px; color:var(--on-surface-variant)}
 .sllist{list-style:none; margin:0; padding:0; display:flex;
   flex-direction:column; gap:4px}
 .sllist li{display:flex; align-items:baseline; gap:6px; font-size:13px}
@@ -2360,7 +2351,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
    and shadow all change, so the state reads without colour. */
 .plan-card{margin-bottom:20px}
 .plan-top{padding:0 0 16px; align-items:flex-end; justify-content:space-between}
-.plan-top h2{font-size:clamp(28px,3.4vw,40px); color:var(--purple); margin-top:8px}
+.plan-top h2{font-size:clamp(34px,4.2vw,52px); color:var(--purple); margin-top:8px}
 .plan-top .infobtn{vertical-align:middle}
 .plan-top .sub{font-size:15px; max-width:90ch}
 .plan-ft{margin-left:auto; background:var(--white); border-radius:14px; padding:10px 16px; font-size:15px; font-weight:700;

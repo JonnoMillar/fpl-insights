@@ -398,11 +398,10 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=FIXTURE_GAMES_MAX, market
     return (
         '<section class="card"><div class="card-head">'
         f'<h2>Fixture outlook{components.info_btn()}</h2>'
-        '<span class="subvis">Rated out of ten for how good a fixture is to '
+        '<span class="sub" hidden>Rated out of ten for how good a fixture is to '
         'own a player for &mdash; <b>higher is better</b>, the opposite way '
-        "round to FPL's own 1-5. <b>CAPITALS are home, lower case away.</b>"
-        "</span>"
-        '<span class="sub" hidden>Expected goals and clean-sheet odds combined, '
+        "round to FPL's own 1-5. <b>CAPITALS are home, lower case away.</b> "
+        'Expected goals and clean-sheet odds combined, '
         "weighted toward attack. A dot means the market priced it. Games sets how "
         "many of the next fixtures the Rating column averages; Target "
         f"fixtures dims everything below {TARGET_RATING:g} so the genuinely "
@@ -489,11 +488,10 @@ def fixture_run_summary(reports, ctx, proj, market, next_gw, weeks=6, n=3, badge
 
     groups = [g for g in (
         ("model", "Expected output", model_rows,
-         "Attack and defence combined, out of ten, in absolute terms: a strong "
-         "side reads as a good run even against tough opponents. Higher is better.",
+         "Out of 10 · higher is better",
          True, lambda v: f"{v:.1f}"),
         ("fdr", "FPL difficulty", fdr_rows,
-         "FPL's own 1-5 rating, from the opponent alone. Lower is easier.",
+         "FPL 1–5 · lower is easier",
          False, lambda v: f"{v:.1f}")) if g[2]]
     tabs = "".join(
         f'<button type="button" role="tab" aria-selected="{"true" if i == 0 else "false"}" '

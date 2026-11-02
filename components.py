@@ -466,21 +466,21 @@ def stat_leaders(groups, title="League leaders",
             for i, (name, team, val, mine) in enumerate(rows, 1)
         )
 
-    cards = []
+    cards, notes = [], []
     for g in groups:
         if not g["rows"]:
             continue
+        if g["note"]:
+            notes.append(f'{g["title"]}: {g["note"]}')
         body = '<ol class="sllist">{}</ol>'.format(
             _items(g["rows"], g.get("pair", False)))
         cards.append(
             '<li class="slcard" style="--accent:{tone}">'
             '<h4><svg viewBox="0 0 24 24" class="slicon" aria-hidden="true">{icon}</svg>'
             "{title}</h4>"
-            '{note}{body}</li>'.format(
+            '{body}</li>'.format(
                 tone=g["tone"], icon=STAT_ICONS.get(g["icon"], ""),
-                title=e(g["title"]),
-                note='<p class="slnote">{}</p>'.format(e(g["note"])) if g["note"] else "",
-                body=body,
+                title=e(g["title"]), body=body,
             )
         )
     if not cards:
@@ -488,15 +488,12 @@ def stat_leaders(groups, title="League leaders",
     return (
         '<section class="card"><div class="card-head"><h2>{}{}</h2>'
         '<span class="sub" hidden>{}</span></div>'.format(
-            e(title), info_btn(), e(sub))
+            e(title), info_btn(), "<br>".join(e(t) for t in [lede, sub, *notes] if t))
         # Four cards in a three-wide grid is 3 + 1, with the odd one beside a
         # hole; four questions belong in a 2x2. Six stay 3x2.
-        + ('<div class="card-body">{}<ul class="slwrap'
+        + ('<div class="card-body"><ul class="slwrap'
            + (' slwrap-4' if len(cards) == 4 else '')
-           + '">{}</ul></div></section>').format(
-            '<p class="sllede">{}</p>'.format(e(lede)) if lede else "",
-            "".join(cards)
-        )
+           + '">{}</ul></div></section>').format("".join(cards))
     )
 
 

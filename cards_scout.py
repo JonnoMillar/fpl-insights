@@ -161,9 +161,7 @@ def _scout_lab(pos, data, fixture_runs, owned_ids):
         )
         + '<div class="chapter"><h2>Fixture runs</h2></div>'
         + _scout_fixture_card(fixture_runs, cfg)
-        + '<div class="chapter"><h2>Explore the pool</h2>'
-        '<span class="sub">Click a name for his match log, or tick up to six '
-        'to compare.</span></div>'
+        + '<div class="chapter"><h2>Explore the pool</h2></div>'
         f'<div class="scoutlab" data-pos="{e(pos)}">'
         f'<script type="application/json" class="scout-data" '
         f'data-pos="{e(pos)}">{script_json(data)}</script>'
