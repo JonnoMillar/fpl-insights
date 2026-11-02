@@ -126,6 +126,18 @@ class TimingTests(unittest.TestCase):
         self.assertEqual(moves(plan), [])
         self.assertAlmostEqual(plan["gain"], 0.0, places=6)
 
+    def test_late_upgrade_is_planned_late(self):
+        # Out for six weeks, then far better than the midfielder he
+        # replaces until the projections end. The plan's last weeks once
+        # rolled by construction: no moves allowed in them, a full margin
+        # against discounted gains, and nothing credited past the plan.
+        rows, values = squad()
+        values = {p: v + [v[-1]] * 4 for p, v in values.items()}
+        rows[100] = {"pos": "MID", "club": "X", "price": 7.0}
+        values[100] = [0.0] * 6 + [7.0] * 6
+        _p, _best, plan = run(rows, values)
+        self.assertIn(16, [gw for gw, _o, i in moves(plan) if i == 100], moves(plan))
+
 
 class AccountingTests(unittest.TestCase):
     def test_bank_club_and_shape_stay_legal(self):

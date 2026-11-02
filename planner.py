@@ -32,7 +32,13 @@ How the search works, kept deliberately simple:
   Hits cost four, each move also pays a small margin (projections are
   noisy and a move that only just clears zero is a coin flip), and a free
   transfer still banked at the end is worth FT_VALUE. Later weeks are
-  discounted because the projections for them are less certain.
+  discounted because the projections for them are less certain, and the
+  margin and hits with them: each week's decision is held to the bar the
+  build in that week will apply, so the plan predicts its own reruns.
+* The squad left at the end is credited with its projected points for
+  the weeks after the plan that have projections. Without that a move in
+  the plan's last weeks had only those weeks to repay a full margin, so
+  the back half of every plan rolled by construction.
 
 None of this is a proof of the best plan: the move list is bounded, the
 beam is finite, and the plan never sells a player it bought itself. It
@@ -43,8 +49,7 @@ commitment - injuries and price changes will move it.
 import squadbuilder
 import transfers
 
-HORIZON = 8          # gameweeks scored
-ACT_WEEKS = 6        # weeks a move may be planned in; a later one cannot pay back
+HORIZON = 8          # gameweeks planned; moves may be made in any of them
 SHOW_WEEKS = 3       # weeks of moves shown before "later gameweeks"
 CHIP_LOOKAHEAD = 12  # weeks scanned for an unused chip's best remaining week
 DECAY = 0.9          # per-week discount: later projections are less certain
@@ -132,7 +137,7 @@ class Planner:
     """
 
     def __init__(self, rows, values, squad, sell, bank, ft, caps,
-                 chips=(), horizon=HORIZON, act_weeks=ACT_WEEKS,
+                 chips=(), horizon=HORIZON, act_weeks=HORIZON,
                  enabler_floor=None, urgent=()):
         self.rows, self.values = rows, values
         self.urgent = frozenset(urgent)
@@ -143,8 +148,11 @@ class Planner:
         self.chips = list(chips)
         self.h = horizon
         self.act = min(act_weeks, horizon)
-        self.w = weights(max(horizon, max((c["last"] + 1 for c in self.chips),
-                                          default=0)))
+        # Weeks scored: the plan, then the end squad over whatever further
+        # weeks have projections (the chip lookahead's).
+        self.end = max(horizon, min(map(len, values.values()), default=0))
+        self.w = weights(max(self.end, max((c["last"] + 1 for c in self.chips),
+                                           default=0)))
         self._cache = {}
         self.enablers = self._enablers()
         self.floor = (len(self.enablers) if enabler_floor is None
@@ -214,7 +222,7 @@ class Planner:
         return total
 
     def future(self, ids, after):
-        return sum(self.w[j] * self.score(ids, j) for j in range(after + 1, self.h))
+        return sum(self.w[j] * self.score(ids, j) for j in range(after + 1, self.end))
 
     # --- structure -------------------------------------------------------
 
@@ -251,10 +259,10 @@ class Planner:
         plus the best few cheap players in his position whatever their gain
         - those are the enabler swaps and the downgrades that fund an
         upgrade elsewhere, neither of which looks good on its own."""
-        w = self.w[:self.h]
+        w = self.w[:self.end]
 
         def horizon(p):
-            return sum(wt * v for wt, v in zip(w, self.values[p][:self.h]))
+            return sum(wt * v for wt, v in zip(w, self.values[p]))
 
         by_pos = {}
         for p, r in self.rows.items():
@@ -311,7 +319,7 @@ class Planner:
         hits = max(0, n - free)
         realized = (st["realized"] + self.w[i] * self.score(st["ids"], i)
                     + (self.chip_gain(st["ids"], i, chip) - CHIP_MARGIN if chip else 0.0)
-                    - HIT * hits - TRANSFER_MARGIN * n)
+                    - self.w[i] * (HIT * hits + TRANSFER_MARGIN * n))
         played = st["played"] | ({chip_index} if chip_index is not None else set())
         # An enabler swapped for another cheap player who still sits on the
         # bench is only worth it for a Bench Boost; until one is played in
