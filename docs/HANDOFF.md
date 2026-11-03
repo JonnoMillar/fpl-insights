@@ -1,6 +1,24 @@
 # HANDOFF — FPL Insights
 
-Last updated: 1 November 2026 (full redesign built on main, all four tabs; not pushed). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
+Last updated: 3 November 2026 (dedupe pass on branch `claude/dedupe-integration`, not merged to main). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
+
+## Now: dedupe pass, awaiting Jonno's review (2–3 November 2026)
+
+Branch `claude/dedupe-integration` (worktree `.claude/worktrees/dedupe-integration`) = local main + four merged branches (planner-roll-streak, visual-declutter, league-differentials, season-review) + the dedupe from [`docs/audits/2026-11-02-data-placement.md`](audits/2026-11-02-data-placement.md). Main is untouched: it has Codex's staged `research/**` index, so `git merge` refuses there; try `git merge --ff-only refs/heads/claude/dedupe-integration` once Jonno approves.
+
+Rule now: one home per stat. Squad = this week, Planning = the next weeks, League = rivals, Scout = finding players, the player profile = per-player detail. Figures, not sentences.
+
+- Squad: score card, Season tile, Up next; the next move (one +xP for the whole move, figures per player, no per-leg gain); captain card; pitch opens on Next gameweek; collapsed "Captain options" radar; team news (Predicted line-ups only); collapsed "Your 15" table (no Next 3 column).
+- Planning: plan (consecutive rolls share one tile, "BB prep" figure on moves made for the held Bench Boost, no weekly squad xP, plan rules in the "i"), deck (alternatives only; the plan's moves removed; knee-jerk pick tagged; gains to the plan's end week), chips (figures; Wildcard priced against the plan on the plan's scorer), fixture runs (tabs: model, clean sheets, goals, DefCon, FPL difficulty; 20-club grid collapsed under it), price watch.
+- League: place card (no own total), standings, position chart, season review, template + your differentials, scoring against you, watchlist, chips used.
+- Scout: position switch, leaders (3-start floor), explorer, shortlist; proven-managers card here, hidden until it has data.
+- Cut: Squad league tile, Attacking returns, Big chances created, Fixture swings, Goals v xG, Defensive contribution, Set pieces, Price movement, Availability, Rotation risk, Big chances missed, Last season; Planning odds, Highest XI, Buy/Sell/Keep/Avoid, knee-jerk card, Season leaders, Value scatter, method card, all chapter bars; League lede, Who owns whom, "league has these"; Scout fixture card and chapters.
+- One fixture scale (0–10, higher is better) everywhere except the band's FPL tab. `transfers.TRANSFER_HORIZON_WEEKS` = `planner.HORIZON` = 8 (test holds them equal).
+- Season 600 v 598 (2 Nov): picks and standings endpoints cached at different times during a live round; the own total now shows only on Squad.
+- Wildcard (3 Nov data): the rebuild is +22 over standing still on the plan's scorer, the plan +61, so the card reads "−35.5 xP v the plan" (it read "+70.1, Strong" against standing still on the chip model).
+- "BB prep" tag: logic in `planner.describe` (`week["chip_prep"]`); no move in the 3 Nov plan qualifies, so it has not yet shown on real data.
+- Verified 3 Nov on cached data: 130 tests, `node --check` on every `.js`, `git diff --check`, build `.cache/ui/build5.html` (every source OK), headless Chromium at 1440/1024/375/320: no page overflow, no console errors, player dialog opens, radar draws when expanded, fixture-band tabs and 20-club grid work, Scout shortlist strip renders. Screenshots in `.cache/ui/shots-dedupe/`.
+- `_update_price_history` still writes `price_history.json` every build, but no card reads it since Price movement was cut. Keep (CI commits it) or remove: Jonno's call.
 
 ## State
 
@@ -67,8 +85,7 @@ Canvas mechanics:
 
 ## Seen, not fixed
 
-- Chip planner's Wildcard total (470.0 → 509.4 over GW9–16) disagrees with the transfer plan's 549 for the same window; likely a different scorer or no captain/bench. Check before showing both together.
-- Two scorers: Squad pitch uses match-history xP, the plan uses the season-based transfer scorer (66.1 vs 70.0 for the same XI on 21 Oct). The Starting XI disclosure says so. Consolidation not started.
+- Two scorers: Squad pitch uses match-history xP, the plan uses the season-based transfer scorer (66.1 vs 70.0 for the same XI on 21 Oct). The Starting XI "i" says so. Consolidation not started. The Wildcard card no longer mixes them (fixed 3 Nov: `planner.build(compare=...)` scores the rebuild on the plan's scorer); the chip model still picks the rebuild squad and its week.
 - Remaining copy issues: `docs/audits/2026-10-21-repetitive-copy.md` (the clear cuts are done in `d5c10b3`).
 
 ## Transfer planner (current rules)

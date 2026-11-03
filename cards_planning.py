@@ -1,10 +1,9 @@
-"""Cards for the Planning tab: chips, transfers, captaincy, prices and elite ownership."""
+"""Cards for the Planning tab (chips, prices), plus the captain comparison
+shown on Squad and the proven-manager ownership shown on Scout."""
 
 
 import components
 import ticker
-import transfers
-from analysis import f
 from cards_common import e, icon, pos_fixture_pill, script_json
 
 
@@ -52,36 +51,13 @@ def price_watch_card(pw):
         return ""
     risers = "".join(price_row(r) for r in pw["risers"])
     fallers = "".join(price_row(r) for r in pw["fallers"])
-    urgent = []
-    if pw["your_fallers"]:
-        names = ", ".join(r["name"] for r in pw["your_fallers"][:4])
-        urgent.append(
-            f"<b>{e(names)}</b> in your squad {'are' if len(pw['your_fallers']) > 1 else 'is'} "
-            f"losing value. Selling after the drop costs you the difference."
-        )
-    if pw["rising_not_owned"]:
-        soon = [r for r in pw["rising_not_owned"] if r["imminent"]][:4]
-        if soon:
-            names = ", ".join(r["name"] for r in soon)
-            urgent.append(
-                f"<b>{e(names)}</b> {'are' if len(soon) > 1 else 'is'} due to rise and "
-                f"you do not own {'them' if len(soon) > 1 else 'him'}. Buying now saves the rise."
-            )
-    banner = (
-        f'<div class="pw-alert">{"<br>".join(urgent)}</div>' if urgent else ""
-    )
+    # No banner naming your fallers: each row already carries a "yours" tag.
     return (
         '<section class="card">'
         f'<div class="card-head"><h2>Price watch{components.info_btn()}</h2>'
-        '<span class="sub" hidden>Both figures are progress towards a price '
-        'change, which fires at <b>100%</b>: the big number is where he is '
-        'now, the small one is where FPL forecast him in two days. Net '
-        'transfers are raw, so a widely-owned player needs far more of them '
-        'to move the same distance. Prices update once a day, so this '
-        "is only worth anything before it happens. Progress is relative to a "
-        "player's own ownership, which is why a small net-transfer figure can "
-        "sit above a large one.</span></div>"
-        f'<div class="card-body">{banner}'
+        '<span class="sub" hidden>Progress to a price change, which fires at '
+        '100%; the small figure is the two-day forecast.</span></div>'
+        f'<div class="card-body">'
         '<div class="pw-cols">'
         f'<div><h3 class="pw-h">Rising</h3><ul class="pw-list pw-scroll">{risers}</ul></div>'
         f'<div><h3 class="pw-h">Falling</h3><ul class="pw-list pw-scroll">{fallers}</ul></div>'
@@ -89,84 +65,12 @@ def price_watch_card(pw):
     )
 
 
-def scatter(points):
-    """Value scatter with switchable axes.
-
-    Drawn in the browser rather than baked into the SVG here: the point of
-    swapping axes is to re-scale to whatever pair you choose, and that means
-    the ticks, the domain and every position have to be recomputed. Emitting
-    the data once and letting a few lines of JavaScript lay it out is far less
-    code than generating every combination server-side.
-
-    Your squad is separated from the market by size, a surface-coloured ring
-    and a label, not by hue alone - the two mark colours clear CVD separation
-    for protanopia but sit in the 6-8 band for tritanopia, where colour needs
-    a second channel behind it."""
-    if not points:
-        return ""
-    data = [
-        {
-            "n": p["name"], "t": p["team"], "p": p["pos"], "mine": p["mine"],
-            "price": round(p["price"], 1),
-            "xgi90": round(p["xgi90"], 3),
-            "points": p["points"],
-            "owned": round(p["owned"], 1),
-            "minutes": p["minutes"],
-            "ppm": round(p["points"] / p["price"], 2) if p["price"] else 0,
-        }
-        for p in points
-    ]
-    axes = (
-        ("xgi90", "xGI per 90"),
-        ("points", "Total points"),
-        ("price", "Price (£m)"),
-        ("owned", "Ownership %"),
-        ("ppm", "Points per £m"),
-        ("minutes", "Minutes"),
-    )
-    opts = lambda sel: "".join(
-        f'<option value="{k}"{" selected" if k == sel else ""}>{e(label)}</option>'
-        for k, label in axes
-    )
-    return (
-        '<section class="card">'
-        f'<div class="card-head"><h2>Value scatter{components.info_btn()}</h2>'
-        '<span class="sub" hidden>Pick any two measures.</span></div>'
-        '<div class="card-body">'
-        '<div class="chartfilter" role="group" aria-label="Chart controls">'
-        '<label class="axpick">Y <select class="axis" data-axis="y">'
-        f"{opts('xgi90')}</select></label>"
-        '<label class="axpick">X <select class="axis" data-axis="x">'
-        f"{opts('price')}</select></label>"
-        '<span class="spacer"></span>'
-        '<div class="tabbar" role="group" aria-label="Position">'
-        '<button class="chip" data-pos="ALL" aria-pressed="true">All</button>'
-        '<button class="chip" data-pos="DEF" aria-pressed="false">Defenders</button>'
-        '<button class="chip" data-pos="MID" aria-pressed="false">Midfielders</button>'
-        '<button class="chip" data-pos="FWD" aria-pressed="false">Forwards</button>'
-        "</div></div>"
-        '<div class="scroll"><svg class="scatter" viewBox="0 0 1040 520" '
-        'role="img" aria-label="Scatter plot of player metrics"></svg></div>'
-        '<p class="readout" aria-live="polite"></p>'
-        '<p class="legend"><span class="key mkt"></span>Every player with 60+ minutes'
-        '<span class="key mine"></span>Your squad'
-        '<span class="key outlier"></span>Furthest from the norm</p>'
-        f'<script type="application/json" class="scatter-data">{script_json(data)}</script>'
-        "</div></section>"
-    )
-
-
 def elite_card(res, ctx):
-    """What proven managers own, against what everyone owns."""
-    if not res:
+    """What proven managers own, against what everyone owns. Shown on the
+    Scout tab, and not at all until enough proven managers are in the top
+    ranks: a card that only says it has nothing to show is noise."""
+    if not res or res.get("insufficient"):
         return ""
-    if res.get("insufficient"):
-        return (
-            '<section class="card">'
-            f'<div class="card-head"><h2>What proven managers own{components.info_btn()}</h2></div>'
-            '<div class="card-body"><p class="tnote">Not enough proven managers '
-            "in the top ranks yet.</p></div></section>"
-        )
     caveat = (
         f" Read from {res['managers']} proven managers, so each figure "
         f"carries about &plusmn;{res['moe']:.1f} points at 95% confidence."
@@ -216,108 +120,6 @@ def elite_card(res, ctx):
         f"gameweek {res['event']}.{caveat}</span></div>"
         f'<div class="card-body">{"".join(parts)}</div></section>'
     )
-
-
-def leader_groups(ctx, squad_ids, depth=4, min_minutes=45):
-    """Top few players on each measure, mixing FPL's numbers with Opta's.
-
-    Expected goals conceded is the odd one out and is ranked ascending: for a
-    defence, less is the achievement."""
-    pool = [
-        el for el in ctx.players.values()
-        if el.get("minutes", 0) >= min_minutes
-    ]
-    mine = set(squad_ids)
-
-    def _rank(key, fmt, ascending, opta, positions):
-        rows = []
-        for el in pool:
-            if positions and ctx.pos(el) not in positions:
-                continue
-            raw = (el.get("_pulse") or {}).get(key) if opta else el.get(key)
-            value = f(raw)
-            if raw is None or (not opta and value == 0 and not ascending):
-                continue
-            if opta and not raw:
-                continue
-            rows.append((value, el))
-        rows.sort(key=lambda x: (x[0] if ascending else -x[0]))
-        return [
-            (el["web_name"], ctx.team_name(el["team"]), fmt.format(v),
-             el["id"] in mine)
-            for v, el in rows[:depth]
-        ]
-
-    def build(title, note, icon, tone, key, fmt="{:.2f}", ascending=False,
-              opta=False, positions=None):
-        return {
-            "title": title, "note": note, "icon": icon, "tone": tone,
-            "rows": _rank(key, fmt, ascending, opta, positions),
-        }
-
-    def build_pair(title, note, icon, tone, primary_key, secondary_key):
-        # One player per row, ranked on the primary measure, with a second
-        # measure of the same family shown alongside rather than as a card
-        # of its own - "how many big chances" and "how many chances overall"
-        # are the same question asked at two thresholds, and a big chance is
-        # a subset of a chance, so the pair is one player's answer, not two
-        # separate leaderboards that happen to share a topic.
-        # The secondary is the wider measure the primary is a subset of, so a
-        # secondary below the primary is not a small number - it is a missing
-        # one. Opta serves the two halves as separate paginated requests and
-        # one can come back short on its own, and "3 big chances of 0 created"
-        # is worse than saying nothing.
-        rows = []
-        for el in pool:
-            ps = el.get("_pulse") or {}
-            primary = ps.get(primary_key)
-            if not primary:
-                continue
-            secondary = ps.get(secondary_key) or 0
-            rows.append((primary, secondary if secondary >= primary else None, el))
-        rows.sort(key=lambda x: (-x[0], -(x[1] or 0)))
-        return {
-            "title": title, "note": note, "icon": icon, "tone": tone,
-            "pair": True,
-            "rows": [
-                (el["web_name"], ctx.team_name(el["team"]), primary, secondary,
-                 el["id"] in mine)
-                for primary, secondary, el in rows[:depth]
-            ],
-        }
-
-    # Six cards used to carry six unrelated hues, which meant colour never
-    # carried information across this row - a card's tone told you nothing
-    # you couldn't already get from its icon. One hue per role instead: ink
-    # for the four attacking measures, premium teal for the one defensive
-    # card that flips the ranking (xGC), attention amber for DefCon.
-    groups = [
-        build("Expected goals", "", "ball", "var(--ink)",
-              "expected_goals"),
-        build("Expected assists", "", "key", "var(--ink)",
-              "expected_assists"),
-        build("Goal involvement", "", "spark", "var(--ink)",
-              "expected_goal_involvements"),
-        build_pair(
-            "Big chances created",
-            "The big figure is big chances - a clear opening. Beside it, "
-            "every chance created, of which a big chance is a subset",
-            "run", "var(--ink)", "big_chance_created", "total_att_assist",
-        ),
-        # Named as a season total, because Scout ranks the same idea per 90
-        # and the two orders disagree. Unlabelled, a reader moving between
-        # the tabs gets two different "best defence" answers and no way to
-        # tell which question either was answering. A total here is the right
-        # one: this list is about who has actually banked a season's solidity.
-        build("Fewest goals expected against",
-              "xGC totalled this season - defenders and keepers. Scout ranks "
-              "the same idea per 90",
-              "shield", "var(--accent-ink)", "expected_goals_conceded", ascending=True,
-              positions=("GKP", "DEF")),
-        build("Defensive contributions", "Tackles, recoveries and blocks banked this season",
-              "shield", "var(--accent-ink)", "defensive_contribution", fmt="{:.0f}"),
-    ]
-    return [g for g in groups if g["rows"]]
 
 
 CONFIDENCE_LABEL = {"strong": "Strong", "watch": "Worth watching",
@@ -417,14 +219,19 @@ def mini_pitch(xi_rows, bench_rows, ctx, badges, shirts, incoming_ids=frozenset(
     return "".join(out)
 
 
-def wildcard_section(wc, xi_reports, bench_reports, ctx, badges, shirts):
+def wildcard_section(wc, xi_reports, bench_reports, ctx, badges, shirts, plan_xp=None):
     """The proposed full-squad rebuild as two small pitches, not a table of
     price deltas - "would I actually want this squad" is a look-at-the-
     shirts question. Now above, Proposed below, with a distinct outline
     and an IN tag on whichever names in the proposed squad are not already
     owned - the eye only needs to find the outlined shirts to see what a
     Wildcard here would actually change, rather than reading fifteen rows
-    of a table to work it out."""
+    of a table to work it out.
+
+    `plan_xp` is (now, proposed): both squads held unchanged over the plan's
+    window and scored by the plan's own scorer. When given it replaces the
+    chip model's xP row, so this card and the plan above it never price the
+    same window in two currencies."""
     if not wc or not wc.get("ideal_xi"):
         return ""
     before_xi = [_report_row(r) for r in xi_reports]
@@ -434,7 +241,10 @@ def wildcard_section(wc, xi_reports, bench_reports, ctx, badges, shirts):
     incoming_ids = wc.get("incoming_ids") or set()
     after_known_ids = {row[0] for row in after_xi + after_bench} - incoming_ids
     start, weeks = wc["gw_window"]
-    stats_html = components.wc_stats_block(wc.get("before"), wc.get("after"))
+    before, after = wc.get("before"), wc.get("after")
+    if plan_xp and before and after:
+        before, after = {**before, "xp": plan_xp[0]}, {**after, "xp": plan_xp[1]}
+    stats_html = components.wc_stats_block(before, after)
     return (
         '<details class="card collapsible swapcard"><summary class="card-head">'
         f'<h2>Wildcard rebuild{components.info_btn()}</h2>'
@@ -595,8 +405,8 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
         pt = fh["points_team"]
         body = (
             f'<p class="cp-gw">GW{fh["gw"]}</p>'
-            f'<p class="cp-reason">Suggested XI projects {pt["ideal_value"]:.1f} pts '
-            f'against your XI\'s {pt["ours_value"]:.1f} that week.</p>'
+            f'<p class="cp-reason tnum"><b>{pt["ideal_value"]:.1f}</b> v yours '
+            f'{pt["ours_value"]:.1f} xP</p>'
             f'{week_strip(fh.get("series"), fh["gw"], "pt gap")}'
             f'{conf_pill(fh["confidence"])}'
         )
@@ -606,9 +416,8 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
     if tc:
         body = (
             f'<p class="cp-gw">GW{tc["gw"]}</p>'
-            f'<p class="cp-reason">Captain {e(tc["player"].name)} for '
-            f'{tc["ep"]:.1f} pts ({tc["ep"] * 3:.1f} with Triple Captain, '
-            f'{tc["ep"]:.1f} more than a normal captaincy).</p>'
+            f'<p class="cp-reason tnum">{e(tc["player"].name)} &middot; '
+            f'<b>+{tc["ep"]:.1f}</b> xP</p>'
             f'{week_strip(tc.get("series"), tc["gw"], "pts")}'
             f'{conf_pill(tc["confidence"])}'
         )
@@ -619,39 +428,45 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
     if plan_bb and plan_bb["held"]:
         body = (
             f'<p class="cp-gw">Hold: GW{plan_bb["gw"]}</p>'
-            f'<p class="cp-reason">The transfer plan keeps it past GW{plan["end_gw"]}: its '
-            f'best projected week is GW{plan_bb["gw"]}, worth {plan_bb["ep"]:.1f} more '
-            f'than a normal week.</p>'
+            f'<p class="cp-reason tnum"><b>+{plan_bb["ep"]:.1f}</b> xP &middot; '
+            f'after the plan</p>'
         )
         cards.append(_cp_card("Bench Boost", used.get("bboost"), body, None))
     elif plan_bb:
         body = (
             f'<p class="cp-gw">GW{plan_bb["gw"]}</p>'
-            f'<p class="cp-reason">Timed in the transfer plan: after its moves, the '
-            f'bench projects {plan_bb["ep"]:.1f} pts that week.</p>'
+            f'<p class="cp-reason tnum">Bench <b>{plan_bb["ep"]:.1f}</b> xP &middot; in the plan</p>'
             f'{week_strip(plan_bb["series"], plan_bb["gw"], "pts")}'
         )
         cards.append(_cp_card("Bench Boost", used.get("bboost"), body, None))
     elif bb:
         body = (
             f'<p class="cp-gw">GW{bb["gw"]}</p>'
-            f'<p class="cp-reason">Your current bench projects {bb["ep"]:.1f} pts that week.</p>'
+            f'<p class="cp-reason tnum">Bench <b>{bb["ep"]:.1f}</b> xP</p>'
             f'{week_strip(bb.get("series"), bb["gw"], "pts")}'
             f'{conf_pill(bb["confidence"])}'
         )
         cards.append(_cp_card("Bench Boost", used.get("bboost"), body,
                               bb["confidence"]))
 
+    # The Wildcard is judged against the plan, on the plan's scorer: its own
+    # chip model scored the rebuild against standing still (+70 where the
+    # plan already found +45 for the same weeks), so a big-looking gap could
+    # be mostly what the plan's ordinary transfers were getting anyway.
+    wc_xp = (plan or {}).get("compare", {}).get("wildcard")
     if wc:
         start, weeks = wc["gw_window"]
-        body = (
-            f'<p class="cp-gw">GW{start}-{start + weeks - 1}</p>'
-            f'<p class="cp-reason">{wc["gap"]:.1f} pts of upside available '
-            f'over the window.</p>'
-            f'{conf_pill(wc["confidence"])}'
-        )
-        cards.append(_cp_card("Wildcard", used.get("wildcard"), body,
-                              wc["confidence"]))
+        if wc_xp is not None:
+            versus = wc_xp - plan["total"]
+            level = "strong" if versus >= plan["chip_margin"] else None
+            body = (f'<p class="cp-gw">GW{start}-{start + weeks - 1}</p>'
+                    f'<p class="cp-reason tnum"><b>{versus:+.1f}</b> xP v the plan</p>')
+        else:
+            level = wc["confidence"]
+            body = (f'<p class="cp-gw">GW{start}-{start + weeks - 1}</p>'
+                    f'<p class="cp-reason tnum"><b>+{wc["gap"]:.1f}</b> xP v no moves</p>'
+                    f'{conf_pill(wc["confidence"])}')
+        cards.append(_cp_card("Wildcard", used.get("wildcard"), body, level))
 
     # The grid above is the compact per-chip summary only; each chip's
     # actual squad change is its own collapsed card below it - a rebuild
@@ -664,7 +479,10 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
         extra.append(bench_boost_pitch(bb, bench, ctx, badges, shirts,
                                        proj, market, next_gw))
     if wc:
-        extra.append(wildcard_section(wc, xi, bench, ctx, badges, shirts))
+        extra.append(wildcard_section(wc, xi, bench, ctx, badges, shirts,
+                                      (plan["compare"].get("now"), wc_xp)
+                                      if wc_xp is not None and plan["compare"].get("now") is not None
+                                      else None))
 
     return (
         f'<section class="card" id="chip-planner" tabindex="-1"><div class="card-head"><h2>Chip planner{components.info_btn()}</h2>'
@@ -675,10 +493,6 @@ def chip_planner_card(fh, tc, bb, wc, used, xi, bench, ctx, badges, shirts,
     )
 
 
-TICK_SVG = ('<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">'
-            '<path d="M3 8.5 6.4 12 13 4.6" fill="none" stroke="currentColor" '
-            'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>')
-
 HOME_SVG = ('<svg class="venue-icon" viewBox="0 0 24 24" aria-hidden="true">'
             '<path d="M4 11.5 12 4l8 7.5V19a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1Z" '
             'fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>')
@@ -687,227 +501,6 @@ AWAY_SVG = ('<svg class="venue-icon" viewBox="0 0 24 24" aria-hidden="true">'
             'stroke="currentColor" stroke-width="1.7"/>'
             '<path d="M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" fill="none" '
             'stroke="currentColor" stroke-width="1.7"/></svg>')
-
-POS_LABEL = {"GKP": "Goalkeeper", "DEF": "Defenders",
-             "MID": "Midfielders", "FWD": "Forwards"}
-POS_SEQ = ("GKP", "DEF", "MID", "FWD")
-
-
-def best_xi_card(pt, ctx, squad_ids, next_gw):
-    """The highest-projecting eleven available in the whole game for the
-    coming week, against the eleven actually owned.
-
-    Sorted into positions rather than one ranked list, because the useful
-    question is not "who scores most" - it is "where is my team behind",
-    and that only reads position by position. Owned players are ticked
-    rather than pulled out into their own group, so the gap between the
-    two teams is a count you can see rather than a number to be trusted.
-
-    No budget cap, but the real 3-per-club squad limit still applies - the
-    literal highest-scoring valid formation in the game (see
-    chips.literal_best_xi), not the best one affordable at the manager's
-    own squad value."""
-    if not pt or not pt.get("ideal_xi"):
-        return ""
-    xi = pt["ideal_xi"]
-    owned_n = sum(1 for p in xi if p["id"] in squad_ids)
-    top = max(p["value"] for p in xi) or 1.0
-
-    groups = []
-    for pos in POS_SEQ:
-        men = sorted((p for p in xi if p["pos"] == pos),
-                     key=lambda p: -p["value"])
-        if not men:
-            continue
-        rows = []
-        for p in men:
-            el = ctx.players.get(p["id"])
-            name = el["web_name"] if el else "?"
-            mine = p["id"] in squad_ids
-            rows.append(
-                f'<li class="bxi-row{" is-mine" if mine else ""}">'
-                f'<span class="bxi-mark" aria-hidden="true">'
-                f'{TICK_SVG if mine else ""}</span>'
-                f'<span class="bxi-name">{e(name)}</span>'
-                f'<span class="bxi-club">{e(p["club"])}</span>'
-                f'<span class="bxi-bar"><i style="width:'
-                f'{p["value"] / top * 100:.0f}%"></i></span>'
-                f'<span class="bxi-ep num">{p["value"]:.1f}</span></li>'
-            )
-        groups.append(
-            f'<div class="bxi-group"><h4>{e(POS_LABEL[pos])}</h4>'
-            f'<ul>{"".join(rows)}</ul></div>'
-        )
-
-    gap = pt["gap"]
-    # What this eleven costs. The card is unbudgeted by design - it answers
-    # "where is my team behind", not "what should I buy" - but printing a
-    # "gap" with no price made an unreachable number read as a target, and
-    # eleven names at this quality routinely cost more than a fifteen-man
-    # squad is allowed. The price is the caveat, said in money rather than in
-    # a hidden note nobody opens.
-    cost = sum((ctx.players[p["id"]]["now_cost"] / 10.0)
-               for p in xi if p["id"] in ctx.players)
-    read = (f"<b>{pt['ours_value']:.1f}</b> yours &middot; "
-            + ("level" if gap < 0.5 else f"<b>+{gap:.1f}</b> ahead"))
-
-    return (
-        '<section class="card bxicard"><div class="card-head">'
-        f'<h2>Highest predicted points XI{components.info_btn()}</h2>'
-        f'<span class="sub" hidden>The literal highest-scoring valid eleven in the '
-        f'game for gameweek {next_gw} - no budget, but the real 3-per-club '
-        f'limit and formation rules still apply. The Free Hit card is the '
-        f'budgeted version of the same question.</span></div>'
-        '<div class="card-body">'
-        '<div class="bxi-head">'
-        f'<div class="bxi-big"><span class="num">{pt["ideal_value"]:.1f}</span>'
-        f'<small>projected, best XI</small></div>'
-        f'<p class="bxi-own">{TICK_SVG}<b>{owned_n} of 11</b> already yours</p>'
-        f'<p class="bxi-cost"><b>{cost:.1f}m</b> for eleven &middot; 100.0m buys fifteen</p>'
-        f'<p class="bxi-read">{read}</p></div>'
-        f'<div class="bxi-grid">{"".join(groups)}</div>'
-        "</div></section>"
-    )
-
-
-def kneejerk_card(kj, gw):
-    """The player who hauled last week and is not in the squad.
-
-    Deliberately named for the impulse rather than dressed up as a
-    recommendation, and deliberately loud - it is the one card on the page
-    arguing with the reader rather than informing them. Last week's points
-    are the single number here with no predictive weight whatsoever, so
-    they are printed at full size and then immediately answered by the
-    projection for the coming week and the best alternative at the same
-    money. If the case survives that, it was never a knee-jerk."""
-    if not kj:
-        return ""
-    ep = kj["ep"]
-    next_gw_ep = kj["next_gw_ep"]
-    rival = kj["rival"]
-    funder = kj["funder"]
-
-    funder_pair = kj.get("funder_pair")
-    if ep is None:
-        verdict, tone = "No fixture priced for him yet this week.", "warn"
-    elif rival and rival["ep"] > ep:
-        margin = rival["ep"] - ep
-        # The tone follows the size of the margin. A card styled as a warning
-        # to report a 0.95-point edge across five gameweeks is shouting about
-        # a coin flip, and a reader who notices that once stops reading the
-        # card when it has something real to say. SELL_MARGIN is the bar the
-        # Buy column already holds a raw-total comparison to, so "meaningfully
-        # more" means the same thing on both cards.
-        decisive = margin >= transfers.SELL_MARGIN
-        verdict = (f'{rival["name"]} at {rival["price"]:.1f}m projects '
-                   f'{margin:+.2f} more over the next '
-                   f'{transfers.TRANSFER_HORIZON_WEEKS} gameweeks for the '
-                   f'same slot.'
-                   + ("" if decisive else
-                      " That is close enough to be noise - this is a "
-                      "preference, not a case against him."))
-        tone = "bad" if decisive else "warn"
-    elif not funder and funder_pair:
-        verdict = (
-            f"One transfer will not reach him, but selling "
-            f"{e(funder_pair['primary'].name)} and "
-            f"{e(funder_pair['second'].name)} together would, backfilled "
-            f"by {e(funder_pair['replacement']['web_name'])} at "
-            f"{funder_pair['replacement']['now_cost'] / 10.0:.1f}m."
-        )
-        tone = "warn"
-    elif not funder:
-        verdict = (f"You cannot reach him: nobody you own at {kj['pos']} "
-                   f"frees up {kj['price']:.1f}m, even in a pair.")
-        tone = "warn"
-    else:
-        verdict = (f"He also holds up on the projection, and selling "
-                   f"{e(funder.name)} would pay for him.")
-        tone = "good"
-
-    # Named, because it is the knee-jerk target's fixture and it used to sit
-    # unattributed at the end of a sentence about a different player - it read
-    # as the alternative's fixture, which is the opposite of what it means.
-    fixture = ""
-    if kj["opponent"]:
-        fixture = (f'<span class="kj-fx">{e(kj["name"])} plays '
-                   f'{"vs" if kj["home"] else "at"} '
-                   f'{e(kj["opponent"])}</span>')
-    ep_txt = f"{next_gw_ep:.1f}" if next_gw_ep is not None else "&mdash;"
-    ep5_txt = f"{ep:.1f}" if ep is not None else "&mdash;"
-
-    return (
-        f'<section class="card kjcard kj-{tone}">'
-        + (f'<span class="kj-pos" aria-hidden="true">{e(kj["pos"])}</span>'
-           f'<img class="cut" src="{kj["photo"]}" alt="">' if kj.get("photo") else "")
-        + '<div class="kj-tag">The knee-jerk</div>'
-        '<div class="kj-body">'
-        f'<p class="kj-lead">You did not own <b>{e(kj["name"])}</b>, and he '
-        f'scored</p>'
-        f'<p class="kj-score"><span class="num">{kj["points"]}</span>'
-        f'<small>in gameweek {gw}</small></p>'
-        '<dl class="kj-facts">'
-        f'<div><dt>Price</dt><dd class="num">{kj["price"]:.1f}m</dd></div>'
-        f'<div><dt>Owned</dt><dd class="num">{kj["owned"]:.1f}%</dd></div>'
-        f'<div><dt>Bought this week</dt><dd class="num">{kj["bought"]:,}</dd></div>'
-        f'<div><dt>Next GW</dt><dd class="num">{ep_txt}</dd></div>'
-        f'<div><dt>Next {transfers.TRANSFER_HORIZON_WEEKS} GW</dt><dd class="num">{ep5_txt}</dd></div>'
-        "</dl>"
-        f'<p class="kj-verdict">{verdict} {fixture}</p>'
-        "</div></section>"
-    )
-
-
-VERDICT_ICON = {"buy": "price-rise", "sell": "transfers", "keep": "defence", "avoid": "suspended"}
-VERDICT_COLS = [
-    ("buy", "Buy", "good", "Not yours, reachable, projects highest."),
-    ("sell", "Sell", "bad", "A named replacement projects meaningfully more."),
-    ("keep", "Keep", "accent", "Nothing above wants to move him."),
-    ("avoid", "Avoid", "warn", "Being bought hard; a cheaper man projects more."),
-]
-
-
-def verdict_board_card(vb, next_gw):
-    """Buy, Sell, Keep, Avoid as four columns with four different rules.
-
-    See transfers.verdict_board for what each one actually means - the
-    important part is that they are four questions rather than one ranking
-    cut into quarters, and Avoid is the only column reading the transfer
-    market rather than the model."""
-    if not vb or not any(vb.get(k) for k, _l, _t, _s in VERDICT_COLS):
-        return ""
-    cols = []
-    for key, label, tone, sub in VERDICT_COLS:
-        rows = vb.get(key) or []
-        if not rows:
-            items = '<li class="vb-none">Nothing this week.</li>'
-        else:
-            items = "".join(
-                f'<li><span class="vb-top"><b>{e(r["name"])}</b>'
-                f'<span class="vb-ep num">{r["ep"]:.1f}</span></span>'
-                f'<span class="vb-sub">{e(r["club"])} &middot; '
-                f'{r["price"]:.1f}m{" &middot; " + e(r["note"]) if r["note"] else ""}</span></li>'
-                for r in rows
-            )
-        cols.append(
-            f'<div class="vb-col vb-{tone}"><h4>{icon(VERDICT_ICON[key])}{e(label)}</h4>'
-            f'<ul>{items}</ul></div>'
-        )
-    return (
-        '<section class="card vbcard"><div class="card-head">'
-        f'<h2>Buy, sell, keep, avoid{components.info_btn()}</h2>'
-        f'<span class="sub" hidden>Four different questions, not one ranking split '
-        f'four ways. The figure beside each name is total projected points '
-        f'across the next {transfers.TRANSFER_HORIZON_WEEKS} gameweeks - not '
-        f'gameweek {next_gw} alone - plus a small nudge for recent form and '
-        f'underlying numbers, which is why it reads much higher than a '
-        f'single week\'s score. The opponent named in each note is still '
-        f'just the very next fixture, for context.<br>'
-        + "<br>".join(f"{e(label)}: {e(sub)}" for _k, label, _t, sub in VERDICT_COLS)
-        + '</span></div>'
-        f'<div class="card-body vb-grid">{"".join(cols)}</div></section>'
-    )
-
 
 def captaincy_card(cm):
     """The Captaincy Decision Matrix - a radar chart overlaying this
@@ -921,7 +514,6 @@ def captaincy_card(cm):
         return ""
     # candidates are ranked by projected points, highest first - see
     # captaincy.matrix.
-    top = cm["candidates"][0]
     legend = "".join(
         f'<li class="radar-leg" data-i="{i}" tabindex="0" role="button" '
         f'aria-pressed="false">'
@@ -937,20 +529,13 @@ def captaincy_card(cm):
         "metrics": [{"key": k, "label": lbl, "unit": u} for k, lbl, u in cm["metrics"]],
         "candidates": cm["candidates"],
     }
+    # Shut under the captain card on the Squad tab: the card above already
+    # names the pick, so the comparison opens only when asked for.
     return (
-        '<section class="card"><div class="card-head">'
-        f'<h2 id="captaincy" tabindex="-1">Captaincy decision matrix{components.info_btn()}</h2>'
-        f'<span class="sub" hidden>This gameweek\'s top armband candidates from your XI, '
-        f'overlaid across five axes. Each axis is scaled to that metric\'s '
-        f'own real range (0.5x-2.0x for the fixture multiplier, 0-100% for '
-        f'start certainty, and so on - see captaincy.py) - not to whoever '
-        f'else is shown - so the edge of the chart means the same thing '
-        f'every week: genuinely one of the best fixtures or returns anyone '
-        f'gets, not just the best of this shortlist. Two candidates from the '
-        f'same club can also share an axis exactly (same team, same '
-        f'fixture), which is a genuine tie, not missing data. Ranked by '
-        f'projected points - <b>{e(top["player"])}</b> is on top this week - '
-        f'the shape shows why. Click a name for the full breakdown.</span></div>'
+        '<details class="card collapsible" id="captaincy"><summary class="card-head">'
+        f'<h2>Captain options &middot; {len(cm["candidates"])}{components.info_btn()}</h2>'
+        '<span class="sub" hidden>Each axis uses that metric\'s full range, '
+        'not this shortlist\'s.</span></summary>'
         '<div class="card-body cap-layout">'
         f'<div class="cap-side"><ul class="radar-legend">{legend}</ul>'
         '<p class="radar-readout" aria-live="polite"></p></div>'
@@ -966,5 +551,5 @@ def captaincy_card(cm):
         'role="img" aria-label="Captaincy decision matrix radar chart"></svg>'
         "</div>"
         f'<script type="application/json" class="captaincy-data">{script_json(data)}</script>'
-        "</div></section>"
+        "</div></details>"
     )

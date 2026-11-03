@@ -42,24 +42,21 @@ import ticker
 import transfers
 from analysis import f
 from cards_common import LOGO_SVG, e, icon
-from cards_squad import (findings_section, pick_team_pitch, pitch,
+from cards_squad import (team_news, pick_team_pitch, pitch,
     player_dialog, player_payload, squad_table)
-from cards_planning import (best_xi_card, captaincy_card, chip_planner_card,
-    elite_card, kneejerk_card, leader_groups, price_watch_card, scatter,
-    verdict_board_card)
+from cards_planning import (captaincy_card, chip_planner_card, elite_card,
+    price_watch_card)
 from cards_season import season_section
 from cards_league import (chips_table, differential_card,
     differential_watchlist, differential_watchlist_card, league_position_card,
-    league_position_series, league_table, league_week_lede, ownership_cards,
-    ownership_carousel, rival_returns, rival_returns_window, rivals_card,
-    template_pitch, template_xi, your_differentials)
+    league_position_series, league_table, rival_returns, rival_returns_window,
+    rivals_card, template_pitch, template_xi, your_differentials)
 from cards_scout import scout_section
 from cards_plan import plan_card
 
 
 CSS = (Path(__file__).with_name("dashboard.css")).read_text(encoding="utf-8")
 
-SCATTER_JS = (Path(__file__).with_name("scatter.js")).read_text(encoding="utf-8")
 PLAYERVIEW_JS = (Path(__file__).with_name("playerview.js")).read_text(encoding="utf-8")
 CAPTAINCY_JS = (Path(__file__).with_name("captaincy.js")).read_text(encoding="utf-8")
 LEAGUECHART_JS = (Path(__file__).with_name("leaguechart.js")).read_text(encoding="utf-8")
@@ -149,68 +146,42 @@ def next_week_line(ctx, xi, eps, next_gw):
 
 
 def week_verdict(ctx, gw, squad_ids, captain_id, points, average, pending):
-    """One line on where the week actually stands.
+    """The one figure that explains the week, under the score.
 
-    The tiles say what happened; none of them says whether it was good, and
-    a score is meaningless without the average beside it. This is the
-    sentence a manager would say out loud - the gap to the average, then the
-    single biggest reason for it.
-
-    Whether the round is still running changes the question entirely. With
-    players left it is "what needs to happen"; once they have all played it
-    is "what happened", and the most useful answer to that is nearly always
-    a heavily-owned player who hauled and who you did not have."""
+    The score card already shows the points, the average and the gap, so
+    this adds only what they cannot: who is still to play while the round
+    runs; once it is over, the heavily-owned haul you did not have, or the
+    armband against the crowd's."""
     ev = next((x for x in ctx.events if x["id"] == gw), None)
     if not ev or not points:
         return ""
 
     if pending:
-        n = len(pending)
-        who = ", ".join(pending[:3]) + ("&hellip;" if n > 3 else "")
-        if average and points < average:
-            need = average - points
-            return (f"<b>{n}</b> still to play &mdash; {who}. "
-                    f"You need <b>{need}</b> more to reach this week's "
-                    f"<b>{average}</b> average.")
-        return (f"<b>{n}</b> still to play &mdash; {who}. "
-                f"You are already past the <b>{average}</b> average."
-                if average else f"<b>{n}</b> still to play &mdash; {who}.")
+        who = ", ".join(e(n) for n in pending[:3]) + ("&hellip;" if len(pending) > 3 else "")
+        return f"<b>{len(pending)}</b> to play &middot; {who}"
 
     if not average:
         return ""
-    gap = points - average
-    frame = (f"<b>{points}</b> against a <b>{average}</b> average, "
-             f"{'up' if gap >= 0 else 'down'} <b>{abs(gap)}</b>.")
-
-    # The week's biggest miss: the top scorer, if enough managers owned him
-    # that not owning him is a real decision rather than bad luck.
+    # A miss counts only when enough managers owned him that not owning him
+    # was a decision rather than bad luck.
     top = (ev.get("top_element_info") or {})
     tid, tpts = top.get("id"), top.get("points")
     if tid and tid not in squad_ids and tpts:
         el = ctx.players.get(tid)
         owned = f(el.get("selected_by_percent")) if el else 0
         if el and owned >= 15:
-            # The same miss means different things either side of the
-            # average: below it, it is the explanation; above it, it is
-            # what the week could still have been.
-            tail = ("and not owning him is most of that gap"
-                    if gap < 0 else
-                    "and you got there without him")
-            return (f"{frame} {e(el['web_name'])} scored <b>{tpts}</b> for the "
-                    f"<b>{owned:.0f}%</b> who own him, {tail}.")
+            return (f"Missed {e(el['web_name'])} <b>{tpts}</b> &middot; "
+                    f"<b>{owned:.0f}%</b> own")
 
-    # Failing that, the armband is the next biggest single swing.
     cap = ctx.players.get(captain_id)
     if cap:
         cpts = cap.get("event_points") or 0
         most = ctx.players.get(ev.get("most_captained"))
         if most and most["id"] != captain_id and (most.get("event_points") or 0) > cpts:
-            return (f"{frame} {e(cap['web_name'])} returned <b>{cpts}</b> as "
-                    f"captain against {e(most['web_name'])}'s "
-                    f"<b>{most['event_points']}</b> for the crowd.")
-        return (f"{frame} {e(cap['web_name'])} brought "
-                f"<b>{cpts * 2}</b> back as captain.")
-    return frame
+            return (f"C {e(cap['web_name'])} <b>{cpts}</b> &middot; crowd's "
+                    f"{e(most['web_name'])} <b>{most['event_points']}</b>")
+        return f"C {e(cap['web_name'])} <b>{cpts * 2}</b>"
+    return ""
 
 
 def next_opponent(ctx, team_id, gw, badges):
@@ -226,16 +197,19 @@ def next_opponent(ctx, team_id, gw, badges):
             "home": home, "crest": badges.get(opp)}
 
 
-def player_figures(ctx, el, gw):
+def player_figures(ctx, el, gw, proj=None, market=None):
     """Form, one chance figure for the position and the next three
-    fixtures' mean FPL difficulty: the "why" behind a suggested signing."""
+    fixtures' mean rating (the page's 0-10 scale, higher is better): the
+    "why" behind a suggested signing."""
     attack = ctx.pos(el) in ("MID", "FWD")
     key = "expected_goal_involvements_per_90" if attack else "expected_goals_conceded_per_90"
-    fx = ctx.next_fixtures(el["team"], 3, from_event=gw)
+    fx = [row["score"] for row in ticker._rows_for(ctx.team_name(el["team"]), proj or {},
+                                                   market or {}, gw, 3)
+          if row.get("opp") is not None]
     return {"form": analysis.f(el.get("form")),
             "chance_label": "xGI/90" if attack else "xGC/90",
             "chance": analysis.f(el.get(key)) if el.get(key) is not None else None,
-            "fdr": sum(x[2] for x in fx) / len(fx) if fx else None}
+            "fix": sum(fx) / len(fx) if fx else None}
 
 
 # --- page -----------------------------------------------------------------
@@ -251,7 +225,12 @@ def source_notice(d):
 
 def league_hero(d):
     """Where you stand in the mini-league: the place, and the two gaps that
-    decide what next week can change - to the leader and to the next place."""
+    decide what next week can change - to the leader and to the next place.
+
+    Your own season total is on the Squad tab only. During a live round the
+    standings and picks endpoints refresh at different times (598 here, 600
+    there on 2 Nov), so printing it in both places showed two totals; the
+    gaps all come from the standings, so they stay consistent."""
     rows = d.get("standings") or []
     me = next((r for r in rows if r["mine"]), None)
     if not me:
@@ -276,8 +255,8 @@ def league_hero(d):
         f'<span class="stat-note">points {e(note)}</span></div>' for k, v, note in tiles[:2])
     return (f'<section class="league-top" aria-label="Your place in the league">'
             f'<div class="league-place"><span class="lab">{e(d["league_name"])}</span>'
-            f'<span class="big tnum">{place}</span><span class="stat-note">of {len(rows)}, '
-            f'{me["total"]} points</span>{icon("mini-league", "league-cup")}</div>{tile_html}</section>')
+            f'<span class="big tnum">{place}</span><span class="stat-note">of {len(rows)}</span>'
+            f'{icon("mini-league", "league-cup")}</div>{tile_html}</section>')
 
 
 def render(d, standalone=True):
@@ -303,28 +282,20 @@ def render(d, standalone=True):
     # Rank and league movement: positive means the rank number fell, a climb.
     rank_move = d.get("rank_move")
     rank_chip = chip(rank_move, compact_rank(rank_move) if rank_move else "")
-    lg_move = d.get("league_move")
-    lg_chip = chip(lg_move, (f"{abs(lg_move)} place{'s' if abs(lg_move) != 1 else ''}"
-                             if lg_move else ""))
     gap = ""
     if isinstance(gw_pts, (int, float)) and avg:
         diff = gw_pts - avg
         gap = (f'<span class="delta delta-{"up" if diff >= 0 else "down"}">'
                f'{abs(diff)} {"above" if diff >= 0 else "below"}</span>')
     verdict = f'<p class="score-line">{d["verdict"]}</p>' if d.get("verdict") else ""
-    my_rank, size = d.get("my_rank"), d.get("league_size")
-
-    def ordinal(n):
-        return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
-
     projected_html = e(f"{projected:.1f}") if projected else "&ndash;"
-    projected_note = f"{e(next_label)}, with captain"
+    projected_note = "with C"
     if projected and week.get("transfers") is not None:
         projected_html = (f'<span data-lineup="owned">{projected:.1f}</span>'
                           f'<span data-lineup="transfers" hidden>{week["transfers"]:.1f}</span>')
-        hit_words = f"after a {preview_hit}-point hit" if preview_hit else "with the transfers"
-        projected_note = (f'<span data-lineup="owned">{e(next_label)}, with captain</span>'
-                          f'<span data-lineup="transfers" hidden>{e(next_label)}, {hit_words}</span>')
+        hit_words = f"after &minus;{preview_hit}" if preview_hit else "with transfers"
+        projected_note = (f'<span data-lineup="owned">with C</span>'
+                          f'<span data-lineup="transfers" hidden>{hit_words}</span>')
     if attention:
         looks = "".join(f'<li>{icon("doubtful")}<span><b>{e(nm)}</b> {e(why)}</span></li>'
                         for nm, why in attention[:3])
@@ -332,8 +303,8 @@ def render(d, standalone=True):
                  f'<ul>{looks}</ul></div>')
     else:
         looks = (f'<div class="next-look"><span class="lab">Team news</span>'
-                 f'<ul><li>{icon("available")}<span>Nobody in the eleven is flagged.</span></li></ul></div>')
-    bank_note = (f"squad sells for {d['sell_value']:.1f}m" if d.get("sell_value")
+                 f'<ul><li>{icon("available")}<span><b>0</b> flagged</span></li></ul></div>')
+    bank_note = (f"sells {d['sell_value']:.1f}m" if d.get("sell_value")
                  else f"squad {eh.get('value', 0) / 10:.1f}m")
     rank_note = f"rank {d['overall_rank']:,}" if d.get("overall_rank") else "points"
     avg_note = f"<br>{avg} average" if avg else ""
@@ -349,16 +320,13 @@ def render(d, standalone=True):
       <div class="stat-tile"><span class="lab">Season</span>
         <span class="big tnum">{e(eh.get("total_points", "–"))}</span>
         <span class="stat-note">{rank_note} {rank_chip}</span></div>
-      <div class="stat-tile"><span class="lab">{e(d['league_name'])}</span>
-        <span class="big tnum">{ordinal(my_rank) if my_rank else "–"}</span>
-        <span class="stat-note">{f"of {size}" if size else ""} {lg_chip}</span></div>
       <div class="next-card">
         <div class="next-main"><span class="lab">Up next &middot; {e(next_label)}</span>
           <span class="big tnum">{projected_html}</span>
-          <span class="stat-note">projected points, {projected_note}</span></div>
+          <span class="stat-note">xP &middot; {projected_note}</span></div>
         {looks}
         <div class="next-bank"><span class="big tnum">{eh.get('bank', 0) / 10:.1f}m</span>
-          <span class="stat-note">in the bank, {e(bank_note)}</span></div>
+          <span class="stat-note">bank &middot; {e(bank_note)}</span></div>
       </div>
     </section>'''
 
@@ -398,22 +366,22 @@ def render(d, standalone=True):
                  num(in_figs["chance"], "{:.2f}"))]
         figs_html = "".join(f'<div><dt>{e(lab)}</dt><dd><span class="was">{a}</span><b>{b}</b></dd></div>'
                             for lab, a, b in figs)
-        gain = (f'<span class="mf-gain"><b class="big tnum">{m["gain"]:+.1f}</b>'
-                f'<span>xP to GW{m["end_gw"]}</span></span>' if m.get("gain") is not None else "")
+        # No per-leg gain: the move's one +xP is in the head above, because
+        # the legs of one move are evaluated together, not one by one.
         slots.append(
             f'<li class="move-slot">{out_img}<span class="move-arrow">{icon("next")}</span>{in_img}'
             f'<div class="move-names"><span class="move-out">{e(m["out_name"])} out</span>'
             f'<button type="button" class="player-link disp" data-player="{m["in_id"]}">'
             f'{e(m["in_name"])}</button>'
             f'<span>{e(m["in_club"])} &middot; {m["in_price"]:.1f}m</span></div>'
-            f'<div class="move-figs">{gain}<dl class="tnum">{figs_html}</dl></div></li>')
+            f'<div class="move-figs"><dl class="tnum">{figs_html}</dl></div></li>')
     moves_html = (f'<ul class="move-slots" aria-label="Suggested transfers">{"".join(slots)}</ul>'
                   if slots else "")
     detail = ("" if slots else
               f'<p class="move-detail">{e(action.get("detail", "Supported projections are required."))}</p>')
     gain = action.get("projected_gain")
     gain_html = (f'<span class="move-gain"><b class="big tnum">+{gain:.1f}</b>'
-                 f'<span>over {action["horizon"]} gameweeks, after hits</span></span>'
+                 f'<span>xP to GW{d["next_gw"] + action["horizon"] - 1}, after hits</span></span>'
                  if gain is not None else "")
     preview_note = d.get("transfer_preview_note", "Transfer preview unavailable.")
     caveat = "" if d.get("transfer_pick_pitch") else preview_note
@@ -422,8 +390,7 @@ def render(d, standalone=True):
       <div class="move-head"><div><span class="lab" id="decision-title">The next move &middot; {e(next_label)}</span>
         <h3 class="brief-action disp">{action_title}</h3></div>{gain_html}</div>
       {detail}{moves_html}
-      <div class="brief-links"><a data-dashboard-jump href="#action-method">How it's chosen</a>
-        <a data-dashboard-jump href="#transfer-plan">The full plan</a>
+      <div class="brief-links"><a data-dashboard-jump href="#transfer-plan">The full plan</a>
         <a data-dashboard-jump href="#chip-planner">Chips</a></div>
       {caveat_html}
     </section>'''
@@ -444,7 +411,7 @@ def render(d, standalone=True):
             f'{photo}<span class="lab">{icon("captain")} Captain</span>'
             f'<button type="button" class="player-link disp" data-player="{c["id"]}">{e(c["name"])}</button>'
             f'<span class="cap-opp">{crest}v {e(opp_words(c["opp"]))}</span>'
-            f'<span class="cap-xp"><b class="big tnum">{xp}</b><span>projected,<br>before doubling</span></span>'
+            f'<span class="cap-xp"><b class="big tnum">{xp}</b><span>xP</span></span>'
             f'</section>')
     weekly_gain = ""
     if preview_gain is not None:
@@ -501,113 +468,79 @@ def render(d, standalone=True):
     <div class="move-row">{brief_html}<div class="captain-slot">{captain_html}</div></div>
     <section class="card squad-pitch">
       <div class="team-sheet-head"><div class="card-head"><h2>Starting XI{components.info_btn()}</h2>
-        <span class="sub" hidden>Season and Last gameweek use your last published team. Next gameweek selects the best legal XI from your owned squad, then lets you preview the recommended transfers. Player xP is before captain or chip multipliers. Pitch xP uses match histories; the transfer plan uses its season-based scorer. Projected team totals include captain/chip multipliers and any transfer hit. A faded crest means no minutes in GW{d['gw']}.</span>
+        <span class="sub" hidden>Pitch xP uses match histories; the transfer plan uses its season-based scorer.</span>
       </div>
       <div class="pkview tabbar" role="tablist" aria-label="Pitch view">
-        <button class="pkbtn" role="tab" aria-selected="true" data-view="ov">Season</button>
-        <button class="pkbtn" role="tab" aria-selected="false" data-view="pk">Next gameweek</button>
+        <button class="pkbtn" role="tab" aria-selected="true" data-view="pk">Next gameweek</button>
+        <button class="pkbtn" role="tab" aria-selected="false" data-view="ov">Season</button>
         <button class="pkbtn" role="tab" aria-selected="false" data-view="gw">Last gameweek</button>
       </div>
       </div>
       <div class="pitch-controls">
-        <button type="button" data-pkview="pk" hidden class="lineup-toggle" role="switch" aria-checked="false" {'disabled' if not d.get('transfer_pick_pitch') else ''}><span class="lineup-switch" aria-hidden="true"><span class="lineup-thumb"></span></span><span class="toggle-label"><span>Preview transfers</span>{weekly_gain}</span></button>
-        <div class="statsel" role="group" aria-label="Figure shown on the pitch">
+        <button type="button" data-pkview="pk" class="lineup-toggle" role="switch" aria-checked="false" {'disabled' if not d.get('transfer_pick_pitch') else ''}><span class="lineup-switch" aria-hidden="true"><span class="lineup-thumb"></span></span><span class="toggle-label"><span>Preview transfers</span>{weekly_gain}</span></button>
+        <div class="statsel" role="group" aria-label="Figure shown on the pitch" hidden>
           <button class="stbtn" data-stat="p" aria-pressed="true">points</button>
           <button class="stbtn" data-stat="g" aria-pressed="false">per game</button>
           <button class="stbtn" data-stat="x" aria-pressed="false">xGI</button>
         </div>
-        <button class="epbtn" aria-label="Projected points breakdown" aria-pressed="false" hidden>Breakdown</button>
+        <button class="epbtn" aria-label="Projected points breakdown" aria-pressed="false"{'' if 'epside' in d['pick_pitch'] else ' hidden'}>Breakdown</button>
       </div>
       <div class="pitch-context" aria-live="polite">
-        <p data-pkview="ov">Published squad</p>
-        <p data-pkview="gw" hidden>Published squad</p>
-        <div data-pkview="pk" hidden>
+        <div data-pkview="pk">
           <div class="lineup-summaries">
             <p data-lineup="owned">{e(d.get('owned_lineup_note', 'Suggested XI unavailable: supported projections are required.'))}</p>
             <p data-lineup="transfers" hidden>{e(d.get('transfer_lineup_note', 'Transfer preview unavailable.'))}</p>
           </div>
-          <p class="mobile-exchanges">{e(" · ".join(move["out"].name + " → " + move["in"]["web_name"] for move in moves))}</p>
         </div>
       </div>
       <div class="pitch-panels">
-        <div class="pkpanel" data-view="ov">{d['pitch']}</div>
-        <div class="pkpanel" data-view="pk" hidden><div class="lineup-variants">
+        <div class="pkpanel" data-view="ov" hidden>{d['pitch']}</div>
+        <div class="pkpanel" data-view="pk"><div class="lineup-variants">
           <div data-lineup="owned">{d['pick_pitch']}</div>
           <div data-lineup="transfers" hidden>{d.get('transfer_pick_pitch', '')}</div>
         </div></div>
       </div>
     </section>
     </div>
+    {d['captaincy']}
+    {d['findings']}
     <details class="card collapsible">
-      <summary class="card-head"><h2>Squad detail{components.info_btn()}</h2>
-        <span class="sub" hidden>Click a column heading to sort. xP is projected points for {next_label} - the one forward-looking column, so you can sort the underlying numbers against what the model expects from them. Next 3 fixtures rated out of ten, higher is better; CAPITALS are home.</span>
-      </summary>
+      <summary class="card-head"><h2>Your 15</h2></summary>
       {d['squad_table']}
     </details>
-    <div class="chapter"><h2>What the numbers say</h2></div>
-    <section>{d['findings']}</section>
   </div>
 
   <div class="panel" id="p-market" role="tabpanel" hidden>
-    <div class="chapter"><h2>Your moves</h2></div>
     {d.get('plan', '')}
     {d.get('deck', '')}
-    {d['captaincy']}
-    {d['verdicts']}
-
-    <div class="chapter"><h2>Chips and the weeks ahead</h2></div>
-    {d['chip_planner'] or '<section class="card" id="chip-planner" tabindex="-1"><div class="card-head"><h2>Chip planner unavailable</h2><span class="subvis">Supported fixture projections and recovered selling prices are required. Check the source status above.</span></div></section>'}
+    {d['chip_planner'] or '<section class="card" id="chip-planner" tabindex="-1"><div class="card-head"><h2>Chip planner unavailable</h2><span class="subvis">Needs fixture projections and selling prices; see the source status above.</span></div></section>'}
     {d['fixture_runs']}
     {d['ticker']}
-
-    <div class="chapter"><h2>This week</h2></div>
-    {d['market']}
-    {d['best_xi']}
-    {d['kneejerk']}
-
-    <div class="chapter"><h2>The wider market</h2></div>
-    {d['leaders']}
     {d['price_watch']}
-    {d['scatter']}
-    {d['elite']}
-    <details class="card collapsible action-method" id="action-method"><summary class="card-head"><h2>How the suggested action is chosen</h2></summary>
-      <div class="card-body"><p>The action is the first week of the transfer plan. The plan searches the next eight gameweeks for which moves to make and when: one or two a week, or a roll. Each move must clear a three-point margin on top of any four-point hit; hits are allowed only for an urgent move this week (a starter ruled out, or a signing in the top five for his position on xGI per 90 with a fair next fixture), a free transfer banked at the end is worth 1.5 points, and later weeks count for less because their projections are less certain. It keeps the squad's cheap bench slots: an enabler leaves only for another cheap player, or in a two-move restructure. This is a conservative heuristic, not a calibrated guarantee.</p>
-      <p>Bench Boost and Triple Captain are timed inside the plan when their availability is verified, against their best later week this half, and played only when their week beats waiting by two points. Free Hit is highlighted only when its own planner has a strong next-gameweek case; Wildcard is a longer-window decision in the chip planner.</p></div>
-    </details>
   </div>
 
   <div class="panel" id="p-league" role="tabpanel" hidden>
     {league_hero(d)}
     <section class="card">
       <div class="card-head"><h2>{e(d['league_name'])}{components.info_btn()}</h2>
-        <span class="sub" hidden>XI xGI is each starter's expected goal involvement per 90, damped down
-        for anyone with still little football behind them, summed across the eleven that started - not a
-        season total, which measures minutes played more than quality. A big score beside a small xGI
-        came from somewhere that will not repeat.</span>
+        <span class="sub" hidden>XI xGI: each starter's expected goal involvement per 90, summed.</span>
       </div>
       {d['league_table']}
     </section>
     {d['position_chart']}
     {d.get('season', '')}
-
-    <div class="chapter"><h2>What the league owns</h2></div>
-    <div class="own-row">{d['template']}<div class="own-side">{d['ownership']}</div></div>
-    {d['carousel']}
-    {d['differentials']}
-    {d['watchlist']}
-
-    <div class="chapter"><h2>How they are playing it</h2></div>
+    <div class="own-row">{d['template']}<div class="own-side">{d['differentials']}</div></div>
     {d['rivals']}
+    {d['watchlist']}
     <section class="card">
-      <div class="card-head"><h2>Chips used{components.info_btn()}</h2>
-        <span class="sub" hidden>Two of each per season - one before GW20, one after.</span>
-      </div>
+      <div class="card-head"><h2>Chips used</h2></div>
       {d['chips']}
     </section>
   </div>
 
   <div class="panel" id="p-scout" role="tabpanel" hidden>
     {d['scout']}
+    {d['elite']}
   </div>
 
 
@@ -627,7 +560,7 @@ def render(d, standalone=True):
     )
     head = f"<title>FPL Insights · {e(title)}</title>{FAVICON}{SOCIAL_META}{fonts}<style>{CSS}{ICON_CSS}</style>"
     page = (
-        f"{head}{body}<script>{JS}</script><script>{SCATTER_JS}</script>"
+        f"{head}{body}<script>{JS}</script>"
         f"<script>{PLAYERVIEW_JS}</script><script>{CAPTAINCY_JS}</script>"
         f"<script>{LEAGUECHART_JS}</script><script>{TICKER_JS}</script>"
         f"<script>{SCOUT_JS}</script><script>{PLANVIEW_JS}</script>"
@@ -638,7 +571,6 @@ def render(d, standalone=True):
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         f"{head}</head><body>{body}<script>{JS}</script>"
-        f"<script>{SCATTER_JS}</script>"
         f"<script>{PLAYERVIEW_JS}</script>"
         f"<script>{CAPTAINCY_JS}</script>"
         f"<script>{LEAGUECHART_JS}</script>"
@@ -725,7 +657,9 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     """Gather everything the page needs."""
     ctx = analysis.Ctx.load(ttl=ttl)
     gw = gw or ctx.last_event_with_picks()
-    weekly_price = _update_price_history(ctx)
+    # Still recorded every build (CI commits the file), though no card reads
+    # the weekly change since the Price movement card was cut.
+    _update_price_history(ctx)
 
     picks = analysis.squad_for(entry_id, gw, ctx)
     meta = fplapi.entry(entry_id, ttl=ttl)
@@ -787,19 +721,17 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
 
     squad_ids = xi_ids + bench_ids
     pw = analysis.price_watch(ctx, squad_ids)
-    scatter_pts = analysis.market_scatter_points(ctx, squad_ids)
 
     proj = ffs.projections(ttl=ttl)
     try:
         odds.build_club_lookup(ctx)
-        market_fixtures = odds.league_fixtures(ttl=ttl)
         market = odds.by_club(ctx, ttl=ttl)
     except fplapi.FplError as ex:
         print(f"[odds] skipped: {ex}")
-        market, market_fixtures = {}, []
+        market = {}
     next_gw = ctx.next_event() or 39  # 39 is an ended season, never a scored fixture
     if next_gw == 39:
-        proj, market, market_fixtures = {}, {}, []
+        proj, market = {}, {}
     doubles = {}
     for fx in ctx.fixtures:
         if next_gw <= (fx.get("event") or 0) < min(39, next_gw + 8):
@@ -930,7 +862,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             (sw["out"].element["team"], sw["out"].pos == "GKP"))
         sw["in_shirt"] = shirts.get((el["team"], ctx.pos(el) == "GKP"))
         sw["opp"] = next_opponent(ctx, el["team"], next_gw, badges)
-        sw["figs"] = (player_figures(ctx, sw["out"].element, next_gw), player_figures(ctx, el, next_gw))
+        sw["figs"] = (player_figures(ctx, sw["out"].element, next_gw, proj, market),
+                      player_figures(ctx, el, next_gw, proj, market))
 
     pairings = transfers.pair_suggestions(
         ctx, xi + bench, proj, next_gw, market, baselines,
@@ -944,7 +877,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             leg["out_shirt"] = shirts.get(
                 (leg["out"].element["team"], leg["out"].pos == "GKP"))
             leg["in_shirt"] = shirts.get((el["team"], ctx.pos(el) == "GKP"))
-            leg["figs"] = (player_figures(ctx, leg["out"].element, next_gw), player_figures(ctx, el, next_gw))
+            leg["figs"] = (player_figures(ctx, leg["out"].element, next_gw, proj, market),
+                           player_figures(ctx, el, next_gw, proj, market))
 
     my_row = next((r for r in rows if r["entry"] == entry_id), None)
     my_name = my_row["entry_name"] if my_row else None
@@ -1019,18 +953,11 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         ctx, proj, next_gw, market, baselines,
         always={r.element["id"] for r in xi + bench})
     kj = transfers.kneejerk(ctx, xi + bench, lg_scores, bank=bank, sell_values=sell_values) if moves_available else None
-    if kj:
-        kj["photo"] = fplapi.photo_data_uri(ctx.players[kj["id"]])
-    vb = transfers.verdict_board(ctx, xi + bench, lg_scores, bank=bank, sell_values=sell_values) if moves_available else None
-
-    # The knee-jerk card states in prose that a pair reaches him, but
-    # "Suggested pairs" runs its own separate top-gain search and has no
-    # reason to have found this specific pairing on its own - the knee-jerk
-    # target is a one-week impulse buy, not necessarily one of the best
-    # multi-week upgrades in the pool. Built here, once the funder_pair
-    # search above has already done the actual sell/buy legwork, and
-    # dropped into the same list of cards so "how would I actually get
-    # him" has a real answer to look at rather than only a sentence.
+    # The knee-jerk pick has no card of its own: it rides on the deck, as a
+    # tagged card. "Suggested pairs" runs its own top-gain search and has no
+    # reason to have found the pairing that reaches him - he is a one-week
+    # impulse buy, not necessarily one of the best multi-week upgrades - so
+    # it is built here, once funder_pair has done the sell/buy legwork.
     fp = kj.get("funder_pair") if kj else None
     if fp and kj.get("ep") is not None:
         target_el = ctx.players[kj["id"]]
@@ -1096,7 +1023,10 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                               if r.name == top["player"] and r.team == top["team"]), None)
         plan = planner.build(ctx, xi + bench, proj, market, baselines, next_gw, bank,
                              sell_values, free_ts, used if chips_verified else None,
-                             captain_first=cap_first, live=scout_live)
+                             captain_first=cap_first, live=scout_live,
+                             compare=({"wildcard": {p["id"] for p in wc["ideal_xi"] + wc["ideal_bench"]},
+                                       "now": {r.element["id"] for r in xi + bench}}
+                                      if wc and wc.get("ideal_xi") else None))
         # Portraits for the plan's move cards: the owned side is already
         # loaded, the signings are a few requests, once each.
         for week in plan["weeks"] if plan else ():
@@ -1104,10 +1034,6 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                 for pid in (move["out"], move["in"]):
                     if pid not in photos:
                         photos[pid] = fplapi.photo_data_uri(ctx.players[pid])
-    # A genuinely different question from Free Hit's budget-capped "ideal" -
-    # see chips.literal_best_xi for why reusing that number here was wrong.
-    next_ideal = chips.literal_best_xi(ctx, xi, proj, market, baselines, next_gw)
-
     action = next_action.choose(plan, free_ts, moves_available, next_gw,
         (("freehit", "Free Hit", fh),), used if chips_verified else None)
     # The brief and preview repeat the plan's first-week moves.
@@ -1175,14 +1101,14 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     dialog_eps = eps + [(r, preview_eps.get(r.element["id"])) for r in preview_reports]
 
     # The faces and crests the Squad tab's move and captain cards stand on.
-    # Each move carries figures, not a sentence: the two players' own points
-    # over the plan, their next opponents, form and one chance figure.
-    plan_moves = {(m["out"], m["in"]): m for w in (plan or {}).get("weeks", []) for m in w["moves"]}
+    # Each move carries figures, not a sentence: the two players' next
+    # opponents, form and one chance figure. The move's gain is one figure
+    # for the whole move, in the brief's head.
+    plan_moves = {(m["out"], m["in"]) for w in (plan or {}).get("weeks", []) for m in w["moves"]}
     end_gw = plan["weeks"][-1]["gw"] if plan and plan.get("weeks") else None
     brief_moves = []
     for move in moves:
         out_el, in_el = move["out"].element, move["in"]
-        pm = plan_moves.get((out_el["id"], in_el["id"]))
         brief_moves.append({
             "out_id": out_el["id"], "out_name": out_el["web_name"],
             "out_photo": photos.get(out_el["id"]),
@@ -1191,8 +1117,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             "in_club": ctx.team_name(in_el["team"]), "in_price": in_el["now_cost"] / 10,
             "opp": next_opponent(ctx, in_el["team"], next_gw, badges),
             "out_opp": next_opponent(ctx, out_el["team"], next_gw, badges),
-            "gain": pm["in_pts"] - pm["out_pts"] if pm else None, "end_gw": end_gw,
-            "figs": (player_figures(ctx, out_el, next_gw), player_figures(ctx, in_el, next_gw)),
+            "figs": (player_figures(ctx, out_el, next_gw, proj, market),
+                     player_figures(ctx, in_el, next_gw, proj, market)),
         })
     captains = {}
     for mode, team, scores in (("owned", owned_lineup, eps_by_id),
@@ -1212,7 +1138,9 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "ctx": ctx,
         "next_action": action,
         "plan": plan_card(plan, ctx, shirts, badges, photos),
-        "deck": components.transfer_deck(swaps, pairings, pair_hit),
+        "deck": components.transfer_deck(
+            swaps, pairings, pair_hit, end_gw=end_gw, plan_moves=plan_moves,
+            kneejerk={"id": kj["id"], "points": kj["points"], "gw": gw} if kj else None),
         "plan_data": plan,
         "captain_summary": cap_matrix["candidates"][0] if cap_matrix and advice_supported else None,
         "gw": gw,
@@ -1221,17 +1149,8 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                    f"{meta.get('player_last_name', '')}".strip(),
         "entry_history": picks.get("entry_history", {}),
         "league_name": league_name,
-        "league_size": len(rows),
-        "my_rank": my_row["rank"] if my_row else None,
         "standings": [{"rank": r["rank"], "name": r["entry_name"], "total": r["total"],
                        "mine": r["entry"] == entry_id} for r in rows],
-        # Standings carry last week's position, so the mini-league gets the
-        # same movement arrow the overall rank has. Positive is a climb, to
-        # match rank_move - both are "places gained", not "rank delta".
-        "league_move": (
-            (my_row["last_rank"] - my_row["rank"])
-            if my_row and my_row.get("last_rank") else None
-        ),
         "my_xgi": my_xgi,
         "xgi_note": xgi_note,
         "pitch": pitch(xi, bench, ctx, badges, shirts, cap, vice, gw=gw),
@@ -1249,39 +1168,26 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         "chip_planner": chip_planner_card(fh, tc, bb, wc, used, xi, bench,
                                           ctx, badges, shirts, proj, market,
                                           next_gw, plan=plan),
-        "best_xi": best_xi_card(next_ideal, ctx, set(squad_ids), next_gw) if advice_supported else "",
-        "kneejerk": kneejerk_card(kj, gw),
-        "verdicts": verdict_board_card(vb, next_gw),
         "captaincy": captaincy_card(cap_matrix),
-        "squad_table": squad_table(xi + bench, ctx, cap, vice,
-                                   proj, market, next_gw,
-                                   eps_by_id=eps_by_id),
+        "squad_table": squad_table(xi + bench, ctx, cap, vice, eps_by_id=eps_by_id),
         "ticker": ticker.fixture_ticker(xi + bench, ctx, proj, next_gw,
                                         market=market),
         "fixture_runs": ticker.fixture_run_summary(xi + bench, ctx, proj,
                                                     market, next_gw, weeks=6,
-                                                    badges=big_badges),
-        "market": ticker.odds_insights(market_fixtures, xi, ctx, proj, next_gw),
-        "leaders": components.stat_leaders(leader_groups(ctx, squad_ids), title="Season leaders"),
+                                                    badges=big_badges,
+                                                    lenses=scout.fixture_lenses(scout_fixtures, 6)),
         "dialog": player_dialog([
             player_payload(r, ctx, proj, ep, next_gw, photos) for r, ep in dialog_eps
         ] + [
             player_payload(r, ctx, proj, None, next_gw, photos)
             for r in xi + bench if not any(r is q for q, _ in eps)
         ]),
-        "findings": findings_section(
-            analysis.build_findings(list(reports.values()), ctx),
-            list(reports.values()), ctx, proj, market, next_gw,
-            weekly_price=weekly_price,
-            xi_ids={r.element["id"] for r in xi}),
+        "findings": team_news(list(reports.values()), ctx,
+                              xi_ids={r.element["id"] for r in xi}),
         "price_watch": price_watch_card(pw),
-        "scatter": scatter(scatter_pts),
-        "league_table": (league_week_lede(rows, squads, ctx, entry_id, gw)
-                         + league_table(rows, squads, ctx, entry_id)) if rows else "",
+        "league_table": league_table(rows, squads, ctx, entry_id) if rows else "",
         "position_chart": league_position_card(
             league_position_series(histories, my_name)),
-        "ownership": ownership_cards(own, by_name, ctx, my_name) if own else "",
-        "carousel": ownership_carousel(own, by_name, ctx, my_name) if own else "",
         "template": template_pitch(tpl, ctx, shirts, my_name, set(squad_ids)),
         "differentials": differential_card(own, by_name, ctx, my_name, league_photos),
         "watchlist": differential_watchlist_card(

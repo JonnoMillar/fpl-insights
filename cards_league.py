@@ -7,34 +7,7 @@ import components
 import fplapi
 import transfers
 from analysis import f
-from cards_common import TONE_COLOR, e, meter, script_json
-
-
-def findings_cards(finds):
-    cards = []
-    for fnd in finds:
-        tone = TONE_COLOR.get(fnd["tone"], "var(--p60)")
-        items = []
-        for raw in fnd["items"]:
-            # Findings read "Player - what happened". Splitting on that first
-            # dash lets the name lead in bold and the evidence sit under it,
-            # which is the difference between a wall of prose and a list you
-            # can actually scan.
-            lead, sep, detail = raw.partition(" - ")
-            if sep and len(lead) < 40:
-                items.append(
-                    f'<li><span class="lead">{e(lead)}</span>'
-                    f'<span class="det">{e(detail)}</span></li>'
-                )
-            else:
-                items.append(f'<li><span class="det">{e(raw)}</span></li>')
-        items = "".join(items)
-        note = f'<p class="note">{e(fnd["note"])}</p>' if fnd["note"] else ""
-        cards.append(
-            f'<div class="find" style="--tone:{tone}">'
-            f"<h3>{e(fnd['title'])}</h3>{note}<ul>{items}</ul></div>"
-        )
-    return f'<div class="finds">{"".join(cards)}</div>'
+from cards_common import e, meter, script_json
 
 
 def donut(pct, label, center, sub, tone="var(--accent)"):
@@ -57,62 +30,6 @@ def donut(pct, label, center, sub, tone="var(--accent)"):
         f'<text class="dnum" x="45" y="{43 if sub else 49}" text-anchor="middle">{e(center)}</text>'
         f'<text class="dsub" x="45" y="57" text-anchor="middle">{e(sub)}</text>'
         "</svg>"
-    )
-
-
-def ownership_carousel(own, by_name, ctx, my_name):
-    """Mini-league ownership, one doughnut per player, arrows to move.
-
-    Deliberately not auto-advancing: a slideshow that moves on its own hides
-    most of the data behind waiting and takes the reading pace out of your
-    hands. The track scrolls, snaps, and answers to the arrow keys."""
-    n = len(by_name)
-    if not own or not n:
-        return ""
-    rows = sorted(own.items(), key=lambda kv: -len(kv[1]["owners"]))
-    # Two owners out of eight, or nothing. Below that the card stops being
-    # ownership analysis and becomes a dump of every squad in the league: at
-    # GW3 roughly thirty of the fifty cards were single-owner punts, each
-    # rendered at the same size and weight as the player all eight hold, and
-    # the shape you actually came here to read - who has converged on what -
-    # was buried under them. Whoever only one manager owns is his business.
-    floor = 2 if n > 4 else 1
-    shown = [(pid, rec) for pid, rec in rows if len(rec["owners"]) >= floor]
-    hidden_n = len(rows) - len(shown)
-    cards = []
-    for pid, rec in shown:
-        el = ctx.players.get(pid)
-        if not el:
-            continue
-        owners = len(rec["owners"])
-        pct = 100.0 * owners / n
-        mine = my_name in rec["owners"]
-        tone = "var(--accent)" if mine else "var(--p60)"
-        caps = len(rec["captains"])
-        note = f"{caps} captained him" if caps else "&nbsp;"
-        aria = f"{el['web_name']} owned by {owners} of {n} managers"
-        own_flag = '<p class="oyou">You own him</p>' if mine else ""
-        cards.append(
-            f'<li class="ocard{" mine" if mine else ""}">'
-            f"{donut(pct, aria, f'{owners}/{n}', '', tone)}"
-            f'<p class="oname">{e(el["web_name"])}</p>'
-            f'<p class="oteam">{e(ctx.team_name(el["team"]))} &middot; {el["total_points"]} pts</p>'
-            f'<p class="onote">{note}</p>'
-            f"{own_flag}"
-            "</li>"
-        )
-    tail = f" &middot; {hidden_n} single-owner not shown" if hidden_n else ""
-    return (
-        '<section class="card">'
-        f'<div class="card-head"><h2>Who owns whom</h2>'
-        f'<span class="subvis">{n} managers{tail}</span>'
-        '<span class="carnav">'
-        '<button class="arrow" data-dir="-1" aria-label="Scroll left">&#8249;</button>'
-        '<button class="arrow" data-dir="1" aria-label="Scroll right">&#8250;</button>'
-        "</span></div>"
-        f'<div class="card-body"><ul class="carousel" tabindex="0" '
-        f'aria-label="Ownership by player">{"".join(cards)}</ul></div>'
-        "</section>"
     )
 
 
@@ -630,45 +547,6 @@ CHIP_LABEL = {
 }
 
 
-def league_week_lede(rows, squads, ctx, me, gw):
-    """What actually decided this week in this league, in one sentence.
-
-    The standings hold it already - a Chip column, a Captain column - but
-    as eight independent cells, and the thing that moved the table is a
-    pattern across them. In GW3 five of eight managers triple-captained the
-    same player: every one of them banked his score twice over, the "51
-    average" the hero line measures you against is a global figure that knows
-    nothing about it, and a 67 that reads as a good week was in fact a week
-    you lost ground in. That is the single most useful sentence on the tab and
-    nothing was saying it."""
-    if not rows or not squads:
-        return ""
-    n = len(rows)
-    my_chip = None
-    chips_used = {}
-    for r in rows:
-        picks = squads.get(r["entry"])
-        if not picks:
-            continue
-        chip = picks.get("active_chip")
-        if me and r["entry"] == me:
-            my_chip = chip
-        if chip:
-            chips_used.setdefault(chip, []).append(r["entry_name"])
-    if not chips_used:
-        return ""
-    top_chip, users = max(chips_used.items(), key=lambda kv: len(kv[1]))
-    label = CHIP_LABEL.get(top_chip, top_chip)
-    if len(users) < 2:
-        return ""
-    mine_too = my_chip == top_chip
-    tail = " You did too." if mine_too else " You did not."
-    return (
-        f'<p class="lglede"><b>{len(users)} of {n}</b> played '
-        f'<b>{e(label)}</b> in GW{gw}.{e(tail)}</p>'
-    )
-
-
 def league_table(rows, squads, ctx, me):
     xgis = [analysis.squad_underlying(p, ctx)["xgi"] for p in squads.values()]
     maxx = max(xgis + [0.01])
@@ -735,62 +613,6 @@ def league_table(rows, squads, ctx, me):
         '<th class="num sortable">Hits</th><th class="num sortable">XI xGI</th>'
         f"</tr></thead><tbody>{''.join(body)}</tbody></table></div>"
     )
-
-
-def ownership_cards(own, by_name, ctx, my_name):
-    n = len(by_name)
-
-    def nm(pid):
-        el = ctx.players.get(pid)
-        return f"{el['web_name']} ({ctx.team_name(el['team'])})" if el else str(pid)
-
-    mine = {p for p, r in own.items() if my_name in r["owners"]}
-    blocks = []
-
-    template = sorted(
-        (p for p, r in own.items() if len(r["owners"]) >= max(2, n * 0.5)),
-        key=lambda p: -len(own[p]["owners"]),
-    )
-    if False and template:
-        items = [
-            f"{nm(p)} - {len(own[p]['owners'])}/{n} managers"
-            f"{'' if p in mine else '  (you do not own)'}"
-            for p in template
-        ]
-        blocks.append(analysis._finding("t", "League template", "neutral", items,
-                                        f"Owned by at least half of {n} managers."))
-
-    diffs = sorted(
-        (p for p in mine if len(own[p]["owners"]) == 1),
-        key=lambda p: -f(ctx.players[p]["expected_goal_involvements"]),
-    )
-    if False and diffs:
-        items = [
-            f"{nm(p)} - {ctx.players[p]['total_points']} pts, "
-            f"xGI {f(ctx.players[p]['expected_goal_involvements']):.2f}, "
-            f"{f(ctx.players[p]['selected_by_percent']):.0f}% owned overall"
-            for p in diffs
-        ]
-        blocks.append(analysis._finding("d", "Your differentials", "good", items,
-                                        "Nobody else in the league owns them."))
-
-    gaps = sorted(
-        (p for p, r in own.items() if p not in mine and len(r["owners"]) >= max(2, n * 0.4)),
-        key=lambda p: -ctx.players[p]["total_points"],
-    )
-    if gaps:
-        items = [
-            f"{nm(p)} - {len(own[p]['owners'])}/{n} own, "
-            f"{ctx.players[p]['total_points']} pts, "
-            f"xGI {f(ctx.players[p]['expected_goal_involvements']):.2f}"
-            for p in gaps
-        ]
-        blocks.append(analysis._finding("g", "The league has these, you do not", "warn", items))
-
-    # Captain picks and points left on the bench are the league table's own
-    # Captain and Bench columns, so they are not repeated here as cards.
-
-    return findings_cards(blocks)
 
 
 def chips_table(histories):

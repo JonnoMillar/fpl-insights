@@ -37,6 +37,9 @@ FINISHED_LIVE_TTL = 60 * 60 * 24 * 30
 # rather than re-invented, so "too little football behind this number"
 # means the same thing everywhere on the page.
 RATE_MIN_MINUTES = analysis.DEFCON_MIN_MINUTES
+# Leaderboards also need this many starts: a rate built on one start ranks
+# luck, not a player.
+LEADER_MIN_STARTS = 3
 
 # The hero scatter's x-axis swaps from a per-90 rate to the hit rate once
 # the pool has enough football behind it to make a hit rate resolve into
@@ -90,10 +93,6 @@ class PositionConfig:
     size_metric: str = "solidity_pct"
     size_label: str = "Bigger bubble concedes less"
     archetype_labels: dict = field(default_factory=dict)
-    # Fixture-runs card: which difficulty each ranked list reads. `fx` is a
-    # fixture_rows field; `hardest` reverses the order for a "who to
-    # avoid" list; `modelled` tags a list whose difficulty is a proxy.
-    fixture_lists: list = field(default_factory=list)
     # The shortlist's fixture strip: one row per (fixture_rows field, label).
     ticker_rows: list = field(default_factory=list)
     # Player card: the five tiles (METRICS keys), the three last-ten
@@ -130,14 +129,10 @@ METRICS = {
     "xp": ("xP", False),
 }
 
-# The two fixture lists the defender card has always shown, and the
-# attacking pair the midfield and forward labs use instead.
-_FX_CLEAN_SHEET = {"fx": "cleanSheetDifficulty", "title": "Kindest for clean sheets"}
-_FX_DEFCON = {"fx": "defconDifficulty", "title": "Most to defend against",
-              "modelled": True}
-_FX_GOALS = {"fx": "attackDifficulty", "title": "Kindest for goals"}
-_FX_GOALS_HARD = {"fx": "attackDifficulty", "title": "Toughest for goals",
-                  "hardest": True}
+# The position lenses on the Planning tab's fixture-run band: one
+# fixture_rows field each, ranked over the same weeks as the band.
+FIXTURE_LENSES = [("cleanSheetRating", "Clean sheets"), ("attackRating", "Goals"),
+                  ("defconRating", "DefCon")]
 
 POSITIONS = {
     "DEF": PositionConfig(
@@ -160,9 +155,8 @@ POSITIONS = {
         # without scout.js doing anything extra, only labelling it as such.
         zbars=["defcon_hit_rate", "xgi90", "xgc90", "start_rate",
                "minutes_per_start", "bps90", "cards90"],
-        fixture_lists=[_FX_CLEAN_SHEET, _FX_DEFCON],
-        ticker_rows=[("cleanSheetDifficulty", "Clean sheet"),
-                     ("defconDifficulty", "DefCon")],
+        ticker_rows=[("cleanSheetRating", "Clean sheet"),
+                     ("defconRating", "DefCon")],
         card_tiles=["defcon_hit_rate", "xgi90", "xgc90", "start_rate", "bonus90"],
         sparks=[("defcon", "DefCon count"), ("xgi", "xGI"), ("xgc", "xGC")],
         strip_marks=["defcon"],
@@ -188,9 +182,8 @@ POSITIONS = {
                  "minutes_per_start", "bps90", "xp"],
         zbars=["xg90", "xa90", "defcon90", "start_rate",
                "minutes_per_start", "bps90"],
-        fixture_lists=[_FX_GOALS, _FX_DEFCON],
-        ticker_rows=[("attackDifficulty", "Goals"),
-                     ("defconDifficulty", "DefCon")],
+        ticker_rows=[("attackRating", "Goals"),
+                     ("defconRating", "DefCon")],
         # DefCon per 90, not hit rate, to match the table, bubble and
         # archetype: the same player should not read strong in one place
         # and middling in the next.
@@ -216,8 +209,7 @@ POSITIONS = {
                  "bps90", "bonus90", "xp"],
         zbars=["xg90", "xa90", "start_rate", "minutes_per_start",
                "bps90", "bonus90"],
-        fixture_lists=[_FX_GOALS, _FX_GOALS_HARD],
-        ticker_rows=[("attackDifficulty", "Goals")],
+        ticker_rows=[("attackRating", "Goals")],
         card_tiles=["xg90", "xa90", "start_rate", "minutes_per_start", "bonus90"],
         sparks=[("xg", "xG"), ("xa", "xA"), ("points", "Points")],
         strip_marks=["ga"],
@@ -627,26 +619,24 @@ def apply_derivations(rows, archetypes):
 
 
 def fixture_rows(team_short, proj, start_gw, weeks=6):
-    """Clean-sheet difficulty and DEFCON difficulty, one row of each per
-    gameweek, 1..5, higher always meaning harder - spec §3.2's two-metric
-    fixture rule, never collapsed into one ticker.
+    """Clean-sheet, DEFCON and attack ratings, one of each per gameweek, on
+    the page's one fixture scale: 0 to 10, higher always better - spec
+    §3.2's separate fixture questions, never collapsed into one number.
 
-    Clean-sheet difficulty reuses ticker.py's own CS anchors, so a fixture
-    reads the same number here as it does in the existing ticker. DEFCON
-    difficulty has no real data source (plan §2.6): it is modelled from the
-    opponent's own expected goals in the same fixture, using the same XG
-    anchors ticker.py already uses for attack - a stronger attacking
-    opponent means more clearances, blocks and tackles for this club's
-    defence, which is why the two rows point in opposite directions exactly
-    as spec §3.2 requires. Every consumer must present this row as modelled,
-    not measured (see the GW10 revisit note in the plan).
+    The clean-sheet rating reuses ticker.py's own CS anchors, so a fixture
+    reads the same here as it does in the ticker. The DEFCON rating has no
+    real data source (plan §2.6): it is modelled from the opponent's own
+    expected goals in the same fixture, using the same XG anchors - a
+    stronger attacking opponent means more clearances, blocks and tackles
+    for this club's defence, which is why it and the clean-sheet rating
+    move in opposite directions. Every consumer must present it as
+    modelled, not measured.
 
-    Attack difficulty is the attacking half of the same ticker: this club's
-    own projected goals in the fixture, against ticker.py's XG anchors, so
-    a midfielder's or forward's fixture reads the same way the ticker's
-    attack rating does. Not a proxy - it is the projection itself."""
-    def difficulty(ease):
-        return max(1, min(5, int((1 - ease) * 5) + 1))
+    The attack rating is this club's own projected goals in the fixture,
+    against ticker.py's XG anchors. Not a proxy - it is the projection
+    itself."""
+    def rating(ease):
+        return round(ease * 10, 1)
 
     out = []
     for fx in ffs.ticker(proj, team_short, start_gw, weeks):
@@ -662,9 +652,9 @@ def fixture_rows(team_short, proj, start_gw, weeks=6):
             (fx.get("xg", 0.0) - ticker.XG_LOW) / (ticker.XG_HIGH - ticker.XG_LOW))
         out.append({
             "gw": fx["gw"], "opp": fx["opp"], "home": fx["home"],
-            "cleanSheetDifficulty": difficulty(cs_ease),
-            "defconDifficulty": difficulty(dc_ease),
-            "attackDifficulty": difficulty(at_ease),
+            "cleanSheetRating": rating(cs_ease),
+            "defconRating": rating(dc_ease),
+            "attackRating": rating(at_ease),
         })
     return out
 
@@ -761,7 +751,10 @@ def _eligible(rows, min_minutes=None):
     16-minute cameo against a 270-minute starter is how a leaderboard ends
     up being a list of people who happened to touch the ball once."""
     floor = RATE_MIN_MINUTES if min_minutes is None else min_minutes
-    return [r for r in rows if r["minutes"] >= floor]
+    # Minutes alone let a sub's cameos clear the floor with a single start,
+    # and a hit rate of 1/1 then topped the DefCon board.
+    return [r for r in rows
+            if r["minutes"] >= floor and r.get("starts", 0) >= LEADER_MIN_STARTS]
 
 
 def leader_groups(rows, owned_ids=frozenset(), depth=6, pos="DEF"):
@@ -866,6 +859,23 @@ def leader_groups(rows, owned_ids=frozenset(), depth=6, pos="DEF"):
         },
         nailed,
     ]
+
+
+def fixture_lenses(runs, weeks=6):
+    """FIXTURE_LENSES as ticker.fixture_run_summary's `lenses`: each club's
+    mean rating over its first `weeks` cells. A club with no fixture in that
+    span has no run to rank, so it is left out rather than given a score."""
+    out = []
+    for field_name, label in FIXTURE_LENSES:
+        rows = []
+        for run in runs or []:
+            real = [c[field_name] for c in run["cells"][:weeks] if not c.get("blank")]
+            if real:
+                rows.append((run["teamId"], run["club"], sum(real) / len(real)))
+        note = ("Modelled · out of 10" if field_name == "defconRating"
+                else "Out of 10 · higher is better")
+        out.append((field_name, label, rows, note))
+    return out
 
 
 def club_fixture_runs(ctx, proj, start_gw, weeks=MAX_FIXTURE_HORIZON):

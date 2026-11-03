@@ -312,10 +312,11 @@ class FixtureRowsTests(unittest.TestCase):
         rows = scout.fixture_rows("AAA", proj, start_gw=4, weeks=1)
         row = rows[0]
         # Hard to keep a clean sheet against a side expected to score 2.2...
-        self.assertGreaterEqual(row["cleanSheetDifficulty"], 4)
+        # (ratings run 0-10, higher is better)...
+        self.assertLessEqual(row["cleanSheetRating"], 4)
         # ...but that same high-xG opponent means plenty to defend against,
         # so hitting the DEFCON threshold should read as comparatively easy.
-        self.assertLessEqual(row["defconDifficulty"], 2)
+        self.assertGreaterEqual(row["defconRating"], 6)
 
 
 class SeasonLiveTests(unittest.TestCase):
@@ -464,7 +465,7 @@ class PositionConfigTests(unittest.TestCase):
     browser, not an exception, so it is caught here instead."""
 
     PERCENTILE_KEYS = set(scout.METRICS) | {"solidity_pct"}
-    FIXTURE_FIELDS = {"cleanSheetDifficulty", "defconDifficulty", "attackDifficulty"}
+    FIXTURE_FIELDS = {"cleanSheetRating", "defconRating", "attackRating"}
 
     def test_every_outfield_position_has_a_lab(self):
         self.assertEqual(set(scout.POSITIONS), {"DEF", "MID", "FWD"})
@@ -481,14 +482,23 @@ class PositionConfigTests(unittest.TestCase):
                 if cfg.hero_x != scout.HERO_X_DEFCON:
                     self.assertIn(cfg.hero_x, scout.METRICS)
 
-    def test_fixture_config_names_real_difficulty_fields(self):
+    def test_fixture_config_names_real_rating_fields(self):
+        for field_name, _ in scout.FIXTURE_LENSES:
+            self.assertIn(field_name, self.FIXTURE_FIELDS)
         for pos, cfg in scout.POSITIONS.items():
             with self.subTest(pos=pos):
-                self.assertEqual(len(cfg.fixture_lists), 2)
-                for fl in cfg.fixture_lists:
-                    self.assertIn(fl["fx"], self.FIXTURE_FIELDS)
                 for field_name, _ in cfg.ticker_rows:
                     self.assertIn(field_name, self.FIXTURE_FIELDS)
+
+    def test_fixture_lenses_skip_blanks_and_clubs_without_a_fixture(self):
+        runs = [{"teamId": 1, "club": "AAA", "cells": [
+                    {"cleanSheetRating": 6.0, "attackRating": 2.0, "defconRating": 4.0},
+                    {"blank": True},
+                    {"cleanSheetRating": 8.0, "attackRating": 4.0, "defconRating": 6.0}]},
+                {"teamId": 2, "club": "BBB", "cells": [{"blank": True}]}]
+        lenses = {key: rows for key, _label, rows, _note in scout.fixture_lenses(runs, 3)}
+        self.assertEqual(lenses["cleanSheetRating"], [(1, "AAA", 7.0)])
+        self.assertEqual(lenses["attackRating"], [(1, "AAA", 3.0)])
 
     def test_fixed_hero_axis_is_not_gated(self):
         # Only the DefCon axis swaps with sample size; an attacking lab's
@@ -523,8 +533,8 @@ class AttackingRowsTests(unittest.TestCase):
         self.assertEqual(len(data["rows"]), 1)
 
 
-class AttackDifficultyTests(unittest.TestCase):
-    def test_attack_difficulty_follows_the_clubs_own_xg(self):
+class AttackRatingTests(unittest.TestCase):
+    def test_attack_rating_follows_the_clubs_own_xg(self):
         proj = {
             ("AAA", 4): {"cs": 30.0, "g": 2.3, "opp": "BBB", "ven": "H"},
             ("AAA", 5): {"cs": 30.0, "g": 0.6, "opp": "CCC", "ven": "A"},
@@ -532,8 +542,8 @@ class AttackDifficultyTests(unittest.TestCase):
             ("CCC", 5): {"cs": 30.0, "g": 1.0, "opp": "AAA", "ven": "H"},
         }
         easy, hard = scout.fixture_rows("AAA", proj, start_gw=4, weeks=2)
-        self.assertEqual(easy["attackDifficulty"], 1)
-        self.assertEqual(hard["attackDifficulty"], 5)
+        self.assertGreaterEqual(easy["attackRating"], 8)
+        self.assertLessEqual(hard["attackRating"], 2)
 
 
 class LeaderGroupsTests(unittest.TestCase):
@@ -567,6 +577,13 @@ class LeaderGroupsTests(unittest.TestCase):
         self.assertEqual([r[0] for r in goals["rows"]], ["P2", "P1"])
         self.assertEqual(goals["rows"][0][2], "0.90 · 1G")
         self.assertTrue(goals["rows"][1][3])  # owned flag rides along
+
+    def test_one_start_cannot_top_a_board(self):
+        # Sub cameos can clear the minutes floor on a single start; a 1/1 hit
+        # rate then topped the DefCon board.
+        lucky = dict(self._row(1, xg90=3.0), starts=1)
+        goals = scout.leader_groups([lucky, self._row(2, xg90=0.5)], pos="FWD")[0]
+        self.assertEqual([r[0] for r in goals["rows"]], ["P2"])
 
 
 if __name__ == "__main__":

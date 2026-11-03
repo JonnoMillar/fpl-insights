@@ -19,11 +19,8 @@ def _scout_filter_bar(data):
     rate, minimum minutes per start (in place of role - see plan §2.3, cut
     for lacking any FPL data source), and team. Server-rendered like the
     rest of the page's controls; scout.js owns the listeners and every
-    recompute that follows a change.
-
-    The fixture horizon used to live here and did nothing visible, because
-    nothing on this view shows a fixture. It now sits on the fixture-runs
-    card, next to the thing it actually changes."""
+    recompute that follows a change. Fixture runs live on the Planning tab's
+    band, so there is no horizon control here."""
     teams = sorted(
         {(r["teamId"], r["teamShort"]) for r in data["rows"]}, key=lambda t: t[1]
     )
@@ -48,48 +45,6 @@ def _scout_filter_bar(data):
         f'<option value="">All</option>{team_opts}</select></label>'
         '<span class="sf-count tnum" aria-live="polite"></span>'
         "</div>"
-    )
-
-
-def _scout_fixture_card(runs, cfg):
-    """Two ranked club lists over a horizon the reader picks, each reading
-    one difficulty from the position's own `fixture_lists`.
-
-    Two lists rather than one blended column because the two questions
-    genuinely pull apart (spec §3.2) - the clubs whose defenders are
-    likeliest to keep a clean sheet are usually the clubs whose defenders
-    will have least to do. A club near the top of one list and the bottom
-    of the other is the useful thing to notice, and a single combined
-    number would erase it. Forwards have one question, not two, so their
-    second list is the same question upside down: the runs to avoid.
-
-    Ranked in the browser so the horizon selector re-ranks immediately,
-    the same shape as ticker.js's own games-count control. The runs
-    themselves are one data island shared by every position's card."""
-    if not runs:
-        return ""
-    horizon_opts = "".join(
-        f'<option value="{n}"{" selected" if n == 6 else ""}>next {n}</option>'
-        for n in range(1, scout.MAX_FIXTURE_HORIZON + 1)
-    )
-    cols = "".join(
-        f'<div class="fxrun-col"><h4>{e(fl["title"])}'
-        + (' <span class="fxrun-tag">modelled</span>' if fl.get("modelled") else "")
-        + f'</h4><ol class="fxrun-list" data-fx="{e(fl["fx"])}"'
-        + (' data-hardest="1"' if fl.get("hardest") else "")
-        + "></ol></div>"
-        for fl in cfg.fixture_lists
-    )
-    return (
-        '<section class="card scoutfx">'
-        f'<div class="card-head"><h2>Kindest and toughest runs{components.info_btn()}</h2>'
-        '<span class="sub" hidden>Capitals are home games. Difficulty is 1 to 5, '
-        'lower is kinder.</span>'
-        f'<label class="sf sf-inline">Horizon<select class="sf-horizon">'
-        f"{horizon_opts}</select></label>"
-        "</div>"
-        f'<div class="card-body"><div class="fxruns">{cols}</div>'
-        "</div></section>"
     )
 
 
@@ -137,32 +92,20 @@ def _scout_position_switch(scout_pools):
             f"{btns}</div>")
 
 
-def _scout_lab(pos, data, fixture_runs, owned_ids):
-    """Leaders, fixture runs and the pool explorer for one position."""
+def _scout_lab(pos, data, owned_ids):
+    """Leaders, then the pool explorer, for one position. Fixture runs
+    live on the Planning tab's band."""
     cfg = scout.POSITIONS[pos]
     label = data["label"]
     groups = scout.leader_groups(data["rows"], owned_ids=owned_ids, pos=pos)
-    played = max((r["teamMatches"] for r in data["rows"]), default=0)
     return (
-        '<div class="chapter"><h2>Worth a look</h2>'
-        f'<a class="scout-explore" data-dashboard-jump href="#scout-explorer-{e(pos)}">Explore &amp; compare</a></div>'
-        + components.stat_leaders(
+        components.stat_leaders(
             groups,
             title="Leaders",
-            sub=("Ranked over "
-                 f"{scout.RATE_MIN_MINUTES} minutes so a cameo cannot top "
-                 "a column. Players you already own are marked."),
-            # Said on the face of the card, not behind the info button.
-            # Every column here is a rate off a handful of matches this
-            # early, and a leaderboard reads as settled fact unless it
-            # says otherwise.
-            lede=(f"{played} matches in, at most. A shortlist to look "
-                  "into, not a ranking."),
+            sub=(f"Over {scout.RATE_MIN_MINUTES} minutes and "
+                 f"{scout.LEADER_MIN_STARTS} starts. Yours are marked."),
         )
-        + '<div class="chapter"><h2>Fixture runs</h2></div>'
-        + _scout_fixture_card(fixture_runs, cfg)
-        + '<div class="chapter"><h2>Explore the pool</h2></div>'
-        f'<div class="scoutlab" data-pos="{e(pos)}">'
+        + f'<div class="scoutlab" data-pos="{e(pos)}">'
         f'<script type="application/json" class="scout-data" '
         f'data-pos="{e(pos)}">{script_json(data)}</script>'
         # Open by default. Collapsed, the most capable thing on the tab
@@ -170,10 +113,7 @@ def _scout_lab(pos, data, fixture_runs, owned_ids):
         # scatter, filters or a six-way compare behind it, and nothing
         # to suggest opening it was worth doing.
         f'<details class="card collapsible scoutexplorer" id="scout-explorer-{e(pos)}" open>'
-        f'<summary class="card-head"><h2>All {e(label.lower())}'
-        f"{components.info_btn()}</h2>"
-        '<span class="sub" hidden>Everyone is also one row of the table below '
-        'the scatter, shaded by where he sits in the filtered pool.</span>'
+        f'<summary class="card-head"><h2>All {e(label.lower())}</h2>'
         "</summary>"
         '<div class="card-body">'
         + _scout_filter_bar(data)
@@ -209,19 +149,16 @@ def scout_section(scout_pools, fixture_runs=None, owned_ids=frozenset()):
     """One lab per position in `scout_pools` ({pos: scout.pool(...) dict}),
     one visible at a time behind a position switch.
 
-    Three chapters per lab rather than one wall. The leaderboards and the
-    fixture runs answer the questions someone opens this tab with and are
-    readable at a glance; the full pool - scatter, heatmap, shortlist
-    compare - comes after, for when the summary is not enough. The
-    leaderboards borrow the League leaders card outright, because these are
-    four separate questions rather than four columns of one."""
+    The leaderboards answer the question someone opens this tab with at a
+    glance; the full pool - scatter, heatmap, shortlist compare - comes
+    after, for when the summary is not enough."""
     if not scout_pools:
         return ""
     views = "".join(
         f'<div class="scoutview" data-pos="{e(pos)}" id="scoutview-{e(pos)}" '
         f'role="tabpanel" aria-labelledby="scoutpos-tab-{e(pos)}"'
         f'{"" if i == 0 else " hidden"}>'
-        + _scout_lab(pos, data, fixture_runs, owned_ids)
+        + _scout_lab(pos, data, owned_ids)
         + "</div>"
         for i, (pos, data) in enumerate(scout_pools.items())
     )
@@ -229,7 +166,7 @@ def scout_section(scout_pools, fixture_runs=None, owned_ids=frozenset()):
         _scout_position_switch(scout_pools)
         + views
         # Fixture runs are per club, not per position, so they are embedded
-        # once and every lab's card ranks the same runs its own way.
+        # once for every lab's shortlist strip to look a club up in.
         + (f'<script type="application/json" class="scout-fixtures">'
            f"{script_json(fixture_runs)}</script>" if fixture_runs else "")
         # One shared card for every position and every player in every pool -

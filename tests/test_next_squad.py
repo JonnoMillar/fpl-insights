@@ -130,17 +130,22 @@ class NextSquadTests(unittest.TestCase):
 
     def test_move_figures_pick_the_chance_rate_for_the_position(self):
         import dashboard
-        ctx=SimpleNamespace(pos=lambda el:el['pos'],
-                            next_fixtures=lambda *a,**k:[('A',True,2,8),('B',False,4,9),('C',True,3,10)])
-        fwd=dashboard.player_figures(ctx,{'pos':'FWD','team':1,'form':'6.0',
-            'expected_goal_involvements_per_90':.7,'expected_goals_conceded_per_90':1.2},8)
-        self.assertEqual((fwd['form'],fwd['chance_label'],fwd['chance'],fwd['fdr']),(6.0,'xGI/90',.7,3.0))
-        dfd=dashboard.player_figures(ctx,{'pos':'DEF','team':1,'form':'1.5',
-            'expected_goals_conceded_per_90':1.2},8)
+        import ticker
+        from unittest.mock import patch
+        ctx=SimpleNamespace(pos=lambda el:el['pos'],team_name=lambda t:'AAA')
+        # The fixture figure is the page's 0-10 rating; a blank week is skipped, not scored 0.
+        rows=[{'opp':'B','score':6.0},{'opp':None,'score':0.0},{'opp':'C','score':8.0}]
+        with patch.object(ticker,'_rows_for',return_value=rows):
+            fwd=dashboard.player_figures(ctx,{'pos':'FWD','team':1,'form':'6.0',
+                'expected_goal_involvements_per_90':.7,'expected_goals_conceded_per_90':1.2},8)
+            dfd=dashboard.player_figures(ctx,{'pos':'DEF','team':1,'form':'1.5',
+                'expected_goals_conceded_per_90':1.2},8)
+        self.assertEqual((fwd['form'],fwd['chance_label'],fwd['chance'],fwd['fix']),(6.0,'xGI/90',.7,7.0))
         self.assertEqual((dfd['chance_label'],dfd['chance']),('xGC/90',1.2))
-        none=dashboard.player_figures(SimpleNamespace(pos=lambda el:'MID',next_fixtures=lambda *a,**k:[]),
-                                      {'team':1,'form':None},8)
-        self.assertIsNone(none['chance']); self.assertIsNone(none['fdr'])
+        with patch.object(ticker,'_rows_for',return_value=[]):
+            none=dashboard.player_figures(SimpleNamespace(pos=lambda el:'MID',team_name=lambda t:'AAA'),
+                                          {'team':1,'form':None},8)
+        self.assertIsNone(none['chance']); self.assertIsNone(none['fix'])
 
     def test_action_exposes_only_the_moves_it_actually_selects(self):
         from tests.test_next_action import week, plan

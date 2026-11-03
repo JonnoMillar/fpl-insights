@@ -553,9 +553,15 @@ def _total(planner, state):
 
 
 def build(ctx, squad_reports, proj, market, baselines, next_gw, bank,
-          sell_values, free_ts, used=None, captain_first=None, live=None):
+          sell_values, free_ts, used=None, captain_first=None, live=None, compare=None):
     """The plan for the dashboard, or None when it cannot be trusted:
-    unknown selling prices or free transfers, or no gameweeks left."""
+    unknown selling prices or free transfers, or no gameweeks left.
+
+    `compare` is {name: set of 15 player ids}: other squads to score over the
+    same window with the plan's own week scorer, held unchanged, so a card
+    comparing one with the plan (the Wildcard rebuild) prices both alike.
+    The result is the plan's "compare" {name: total, or None when a player
+    is outside the scored pool}."""
     if sell_values is None or free_ts is None or next_gw > 38:
         return None
     h = min(HORIZON, 39 - next_gw)
@@ -582,13 +588,31 @@ def build(ctx, squad_reports, proj, market, baselines, next_gw, bank,
                       horizon=h, urgent=urgent_ids(ctx, squad, rows, caps, next_gw))
     best = planner.run()
     idle = baseline(planner)
-    return describe(planner, best, idle, gws, ctx, proj, captain_first)
+    out = describe(planner, best, idle, gws, ctx, proj, captain_first)
+    # Scored only after the plan is fixed: a compared squad's players join
+    # the scored pool here, so they can never become the plan's own signings.
+    out["compare"] = {}
+    for name, ids in (compare or {}).items():
+        for pid in set(ids) - set(rows):
+            el = ctx.players.get(pid)
+            if el:
+                rows[pid] = {"pos": ctx.pos(el), "club": ctx.team_name(el["team"]),
+                             "price": el["now_cost"] / 10.0}
+                values[pid] = player_weeks(el, ctx, proj, market, baselines, priors, gws, live)
+        ids = frozenset(ids)
+        out["compare"][name] = (sum(_display_points(planner, ids, i, None) for i in range(h))
+                                if ids <= set(rows) else None)
+    return out
 
 
 # A planned move's note says waiting avoided something only when the
 # incoming player would genuinely have scored less than the outgoing one in
 # the weeks skipped - otherwise the week is simply when a transfer is free.
 WAIT_NOTE_MIN = 1.0
+
+# How much a week's moves must add to a held chip's best later week before
+# the page tags them as preparation for it.
+CHIP_PREP_MIN = 1.0
 
 
 def describe(planner, best, idle, gws, ctx=None, proj=None, captain_first=None):
@@ -613,7 +637,7 @@ def describe(planner, best, idle, gws, ctx=None, proj=None, captain_first=None):
     chip_at = {w["i"]: w["chip"] for w in best["weeks"]}
     ids = planner.squad0
     bought_at = {}
-    weeks = []
+    weeks, squads = [], []
     for wk in best["weeks"]:
         i, before = wk["i"], ids
         for o, c in wk["moves"]:
@@ -668,7 +692,9 @@ def describe(planner, best, idle, gws, ctx=None, proj=None, captain_first=None):
             "fixtures": {p: fixture(p, gws[i]) for p in ids},
             "new": {p for p, at in bought_at.items() if at == i},
             "bought": set(bought_at),
+            "chip_prep": None,
         })
+        squads.append((before, ids))
 
     # Chips the plan holds past its last week: where they are projected to
     # be worth most, so "not in the plan" never reads as "never".
@@ -676,11 +702,23 @@ def describe(planner, best, idle, gws, ctx=None, proj=None, captain_first=None):
     for n, c in enumerate(planner.chips):
         if n in best["played"] or c["last"] < planner.h:
             continue
-        options = [(planner.chip_gain(ids, j, c["key"]), j)
-                   for j in range(max(c["first"], planner.h), c["last"] + 1)]
+        span = range(max(c["first"], planner.h), c["last"] + 1)
+        options = [(planner.chip_gain(ids, j, c["key"]), j) for j in span]
         if options:
             gain, j = max(options)
             held.append({"key": c["key"], "gw": gws[j], "gain": gain})
+            # A move made for that later chip - a bench that plays on Bench
+            # Boost week - gains little inside the plan and reads as
+            # pointless unless its worth to the chip is shown with it.
+            for week, (was, now) in zip(weeks, squads):
+                if not week["moves"] or week["chip_prep"]:
+                    continue
+                lift = (max(planner.chip_gain(now, k, c["key"]) for k in span)
+                        - max(planner.chip_gain(was, k, c["key"]) for k in span))
+                # Only where the chip is the main reason: a move that pays
+                # inside the plan anyway needs no tag.
+                if lift >= max(CHIP_PREP_MIN, week["gain"] or 0.0):
+                    week["chip_prep"] = {"key": c["key"], "gain": lift}
     total, base = _total(planner, best), _total(planner, idle)
     return {
         "start_gw": gws[0], "end_gw": gws[planner.h - 1],
@@ -695,37 +733,3 @@ def describe(planner, best, idle, gws, ctx=None, proj=None, captain_first=None):
         "show_weeks": SHOW_WEEKS,
         "margin": TRANSFER_MARGIN, "ft_value": FT_VALUE, "chip_margin": CHIP_MARGIN,
     }
-
-
-def timing_note(in_el, out_el, plan, ctx, proj, market, baselines, priors,
-                next_gw, weeks=transfers.TRANSFER_HORIZON_WEEKS, live=None):
-    """One line on when a listed move is best made: the week the plan makes
-    it, or the week it starts paying when the incoming player's next few
-    fixtures are clearly worse than the outgoing one's. "" when neither."""
-    moves = [(w["gw"], m) for w in (plan or {}).get("weeks", []) for m in w["moves"]]
-    for gw, m in moves:
-        if (m["out"], m["in"]) == (out_el["id"], in_el["id"]):
-            return f"In the transfer plan for GW{gw}."
-    # The plan spends the same player another way: say so, rather than
-    # leave two answers to one question side by side.
-    for gw, m in moves:
-        if m["out"] == out_el["id"]:
-            return (f"The transfer plan sells {out_el['web_name']} differently: "
-                    f"GW{gw}, for {m['in_name']}.")
-        if m["in"] == in_el["id"]:
-            return (f"The transfer plan signs {in_el['web_name']} for "
-                    f"{m['out_name']} in GW{gw} instead.")
-    gws = [g for g in range(next_gw, next_gw + weeks) if g <= 38]
-    a = player_weeks(in_el, ctx, proj, market, baselines, priors, gws, live)
-    b = player_weeks(out_el, ctx, proj, market, baselines, priors, gws, live)
-    deltas = [x - y for x, y in zip(a, b)]
-    t = max(range(min(3, len(deltas))), key=lambda k: (sum(deltas[k:]), -k))
-    loss = -sum(deltas[:t])
-    if t == 0 or loss < WAIT_NOTE_MIN:
-        return ""
-    fixtures = []
-    for g in gws[:t]:
-        row = proj.get((ctx.team_name(in_el["team"]), g))
-        fixtures.append(f"{row['opp']} ({(row.get('ven') or 'H').upper()})" if row else "blank")
-    return (f"Better from GW{gws[t]}: {in_el['web_name']} projects {loss:.1f} fewer than "
-            f"{out_el['web_name']} before then ({', '.join(fixtures)}).")

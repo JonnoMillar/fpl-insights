@@ -1221,44 +1221,7 @@ def price_watch(ctx, squad_ids=(), limit=10, min_owned=0.3):
         })
     risers = sorted((r for r in rows if r["pct"] > 0), key=lambda r: -r["pct"])[:limit]
     fallers = sorted((r for r in rows if r["pct"] < 0), key=lambda r: r["pct"])[:limit]
-    return {
-        "risers": risers,
-        "fallers": fallers,
-        # The two that actually demand a decision before the deadline.
-        "your_fallers": [r for r in fallers if r["owned_by_you"]],
-        "rising_not_owned": [r for r in risers if not r["owned_by_you"]],
-    }
-
-
-def market_scatter_points(ctx, squad_ids=(), min_minutes=60):
-    """Every player with enough minutes to have a meaningful rate, as
-    (price, xGI per 90) - the raw material for the value scatter.
-
-    Read off bootstrap totals rather than per-player history so this stays a
-    single request for the whole league of 600-odd players."""
-    squad = set(squad_ids)
-    pts = []
-    for el in ctx.players.values():
-        mins = el.get("minutes", 0)
-        if mins < min_minutes:
-            continue
-        pos = ctx.pos(el)
-        if pos == "GKP":
-            continue  # a keeper's xGI is structurally ~0; it would just skew the axis
-        xgi90 = per90(f(el.get("expected_goal_involvements")), mins)
-        pts.append({
-            "id": el["id"],
-            "name": el["web_name"],
-            "team": ctx.team_name(el["team"]),
-            "pos": pos,
-            "price": el["now_cost"] / 10.0,
-            "xgi90": xgi90,
-            "minutes": mins,
-            "points": el["total_points"],
-            "owned": f(el.get("selected_by_percent")),
-            "mine": el["id"] in squad,
-        })
-    return pts
+    return {"risers": risers, "fallers": fallers}
 
 
 def squad_underlying(picks, ctx):

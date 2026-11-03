@@ -11,6 +11,7 @@ from components import e
 
 CHIP_LABEL = {"bboost": "Bench Boost", "3xc": "Triple Captain"}
 CHIP_ICON = {"bboost": "bench-boost", "3xc": "triple-captain"}
+CHIP_SHORT = {"bboost": "BB", "3xc": "TC"}
 POS_ORDER = {"GKP": 1, "DEF": 2, "MID": 3, "FWD": 4}
 
 
@@ -28,9 +29,9 @@ def _week_summary(w):
     """"2 transfers · 1 free · 4-point hit" or "Roll"."""
     n = len(w["moves"])
     if not n:
-        return (f"Roll · {_plural(w['ft_after'], 'free transfer')} next week"
-                if w["ft_before"] < 5 else
-                "Roll · already at the five-transfer cap")
+        return (f"Roll · {w['ft_before']}→{w['ft_after']} FT"
+                if w["ft_before"] < w["ft_after"] else
+                f"Roll · {w['ft_before']} FT, at the cap")
     free = min(n, w["ft_before"])
     parts = [_plural(n, "transfer"), f"{free} free"]
     if w["hits"]:
@@ -101,38 +102,38 @@ def _pitch_html(w, ctx, shirts, badges):
     return "".join(out)
 
 
-def _move_notes(m, w, out_el, in_el):
-    """Why this move, in this week: a restructure, a hit worth taking, or a
-    signing who waits out a bad run first."""
-    week_moves = w["moves"]
-    notes = []
+def _move_tags(m, w):
+    """Why this move, in this week, as short tags: a restructure, a hit
+    worth taking, or a signing who waits out a bad run first."""
+    tags = []
     if m["out_cheap"] != m["in_cheap"]:
-        partner = next((x for x in week_moves if x is not m
+        partner = next((x for x in w["moves"] if x is not m
                         and x["out_cheap"] != x["in_cheap"]
                         and x["out_cheap"] != m["out_cheap"]), None)
         if partner and m["out_cheap"]:
-            notes.append(f"Restructure with {partner['out_name']} → "
-                         f"{partner['in_name']}: the cheap slot moves from "
-                         f"{POS_WORD[m['pos']]} to {POS_WORD[partner['pos']]}, "
-                         f"which pays for {m['in_name']}")
+            tags.append(f"cheap slot to {POS_WORD[partner['pos']]}")
         elif partner:
-            notes.append(f"{m['in_name']} takes the cheap slot, paying for "
-                         f"{partner['in_name']}")
+            tags.append("takes the cheap slot")
         elif m["in_cheap"]:
-            notes.append("A cheaper player who frees money")
+            tags.append("frees money")
     if m.get("urgent") == "out":
-        notes.append(f"Worth the hit: {out_el['web_name']} is ruled out")
+        tags.append("hit: ruled out")
     elif m.get("urgent") == "in":
-        notes.append(f"Worth the hit: {in_el['web_name']} is top five in his "
-                     f"position on xGI per 90 with a fair fixture next")
+        tags.append("hit: top-5 xGI/90")
     if m["waited"]:
         wt = m["waited"]
         weeks = (f"GW{wt['from_gw']}" if wt["from_gw"] == wt["to_gw"]
                  else f"GW{wt['from_gw']}–{wt['to_gw']}")
-        fixtures = ", ".join(_fx(fx) for fx in wt["fixtures"])
-        notes.append(f"Waits out {weeks} ({fixtures}), where he projects "
-                     f"{wt['loss']:.1f} fewer than {out_el['web_name']}")
-    return notes
+        tags.append(f"waits out {weeks}")
+    return tags
+
+
+def _figs(el, ctx):
+    """Form and one chance rate for the position: the figures behind a move."""
+    attack = ctx.pos(el) in ("MID", "FWD")
+    key = "expected_goal_involvements_per_90" if attack else "expected_goals_conceded_per_90"
+    rate = el.get(key)
+    return el.get("form"), ("xGI/90" if attack else "xGC/90"), rate
 
 
 def _crest_for(short, ctx, badges):
@@ -142,34 +143,48 @@ def _crest_for(short, ctx, badges):
     return badges.get(tid) if tid is not None else None
 
 
-def _move_html(m, w, end_gw, ctx, photos, badges):
+def _move_html(m, w, ctx, photos, badges):
     """One planned move on the transfer card: the old player greyed out on
-    the left, the new one standing on the panel's edge, and a night caption
-    with the opponent's crest, his own projection to the end of the plan and
-    the reason for the timing."""
+    the left, the new one standing on the panel's edge, and a night strip of
+    figures - his opponent's crest, form and chance rate against the man he
+    replaces. No per-player points: the week's one gain is in the stage head,
+    because two legs of one move are not worth their own separate gains."""
     out_el, in_el = ctx.players[m["out"]], ctx.players[m["in"]]
     out_img = (f'<img class="cut move-old" src="{photos[m["out"]]}" alt="">'
                if photos.get(m["out"]) else "")
     in_img = (f'<img class="cut move-new" src="{photos[m["in"]]}" alt="">'
               if photos.get(m["in"]) else "")
-    fx = w["fixtures"].get(m["in"])
-    crest = _crest_for(fx["opp"], ctx, badges) if fx else None
-    crest_html = f'<img src="{crest}" alt="">' if crest else ""
-    window = f"GW{w['gw']}" if w["gw"] == end_gw else f"GW{w['gw']}–{end_gw}"
-    notes = _move_notes(m, w, out_el, in_el)
-    lead = (f'<b>{e(_fx(fx))} in GW{w["gw"]}.</b> Projects '
-            f'<b class="tnum">{m["in_pts"]:.1f}</b> to {window}, '
-            f'{e(out_el["web_name"])} <span class="tnum">{m["out_pts"]:.1f}</span>.')
+    def crest(pid):
+        fx = w["fixtures"].get(pid)
+        uri = _crest_for(fx["opp"], ctx, badges) if fx else None
+        where = e(_fx(fx))
+        return (f'<img src="{uri}" alt="{where}" title="{where}">' if uri
+                else f'<span>{where}</span>')
+
+    (o_form, label, o_rate), (i_form, _l, i_rate) = _figs(out_el, ctx), _figs(in_el, ctx)
+
+    def num(v, fmt):
+        return "&ndash;" if v is None else fmt.format(float(v))
+
+    # The same strip of figures as the Squad tab's move cards.
+    figs = "".join(
+        f'<div><dt>{lab}</dt><dd><span class="was">{a}</span><b>{b}</b></dd></div>'
+        # The plan carries fixtures only for players in that week's squad, so
+        # the man sold has no "next" to show; the signing's opponent stands alone.
+        for lab, a, b in (("Next", "", crest(m["in"])),
+                          ("Form", num(o_form, "{:.1f}"), num(i_form, "{:.1f}")),
+                          (label, num(o_rate, "{:.2f}"), num(i_rate, "{:.2f}"))))
     money = m["sell"] - m["price"]
-    money_text = "free swap" if abs(money) < 0.05 else f"bank {money:+.1f}m"
-    extra = "".join(f" {e(n)}." for n in notes)
+    meta = [e(m["in_club"]), f'{m["price"]:.1f}m',
+            "free swap" if abs(money) < 0.05 else f"bank {money:+.1f}m"]
+    meta += [e(t) for t in _move_tags(m, w)]
     return (
         '<li class="move-slot plan-move">'
         f'{out_img}<span class="move-arrow">{icon("next")}</span>{in_img}'
         f'<div class="move-names"><span class="move-out">{e(out_el["web_name"])} out</span>'
         f'<span class="move-in disp">{e(in_el["web_name"])}</span>'
-        f'<span>{e(m["in_club"])} &middot; {m["price"]:.1f}m &middot; {money_text}</span></div>'
-        f'<p class="move-caption">{crest_html}<span>{lead}{extra}</span></p></li>'
+        f'<span>{" &middot; ".join(meta)}</span></div>'
+        f'<div class="move-figs"><dl class="tnum">{figs}</dl></div></li>'
     )
 
 
@@ -193,9 +208,10 @@ def _tile_html(w, n, photos):
         caption = "Roll"
     hit = f' <span class="wk-hit">−{w["hits"] * 4}</span>' if w["hits"] else ""
     selected = "true" if n == 0 else "false"
+    label = f"GW{w['gw']}" if w["gw"] == w.get("to_gw", w["gw"]) else f"GW{w['gw']}–{w['to_gw']}"
     return (
         f'<button class="wk" type="button" role="tab" aria-selected="{selected}" '
-        f'data-panel="plan-gw-{w["gw"]}"><span class="lab">GW{w["gw"]}</span>{visual}'
+        f'data-panel="plan-gw-{w["gw"]}"><span class="lab">{label}</span>{visual}'
         f'<b>{e(caption)}{hit}</b></button>'
     )
 
@@ -230,11 +246,17 @@ def _stage_html(w, n, end_gw, first_gw, ctx, photos, badges, shirts, show_bank):
     if moves and w["gain"] is not None:
         window = (f"xP to GW{end_gw}" if w["gw"] == first_gw else
                   f"xP, GW{w['gw']}" if w["gw"] == end_gw else f"xP, GW{w['gw']}–{end_gw}")
+        prep = w.get("chip_prep")
+        # A move made for a chip held past the plan gains little inside it;
+        # the chip's lift is its real figure, so it is shown beside the gain.
+        prep_html = (f'<span class="stage-prep"><b class="tnum">{prep["gain"]:+.1f}</b> '
+                     f'{e(CHIP_SHORT.get(prep["key"], prep["key"]))} prep</span>'
+                     if prep else "")
         gain = (f'<span class="stage-gain"><b class="big tnum">{w["gain"]:+.1f}</b> '
-                f'{window}{", after the hit" if w["hits"] else ""}</span>')
+                f'{window}{", after the hit" if w["hits"] else ""}</span>{prep_html}')
     if moves:
         body = ('<ul class="move-slots plan-moves">'
-                + "".join(_move_html(m, w, end_gw, ctx, photos, badges) for m in moves)
+                + "".join(_move_html(m, w, ctx, photos, badges) for m in moves)
                 + "</ul>")
     elif w["chip"] == "bboost":
         body = ('<ul class="bench-boost">'
@@ -243,23 +265,24 @@ def _stage_html(w, n, end_gw, first_gw, ctx, photos, badges, shirts, show_bank):
     elif w["chip"] == "3xc":
         body = f'<ul class="bench-boost">{_bench_slot(w["captain"], w, ctx, photos, badges, big=True)}</ul>'
     else:
-        nxt = (f"Save the free transfer: {_plural(w['ft_after'], 'free transfer')} next week."
-               if w["ft_before"] < 5 else "Already at the five-transfer cap.")
         body = (f'<div class="roll-stage"><span class="coin coin-roll coin-big">'
-                f'{icon("roll-transfer")}</span><p>No move clears the bar this week. {e(nxt)}</p></div>')
+                f'{icon("roll-transfer")}</span></div>')
     facts = [_week_summary(w)]
     if show_bank:
         facts.append(f"{w['bank']:.1f}m in the bank")
     d, m_, f_ = w["formation"]
+    # The plan shows moves and chips, not a weekly team total: the squad is
+    # here to look at, with its shape, not a second xP to compare.
     squad = (f'<details class="stage-squad"><summary>Squad for GW{w["gw"]} &middot; '
-             f'<span class="tnum">{w["points"]:.1f}</span> xP &middot; {d}-{m_}-{f_}</summary>'
+             f'{d}-{m_}-{f_}</summary>'
              f'{_pitch_html(w, ctx, shirts, badges)}</details>')
     hidden = "" if n == 0 else " hidden"
     green = " stage-chip" if w["chip"] else ""
+    label = f"GW{w['gw']}" if w["gw"] == w.get("to_gw", w["gw"]) else f"GW{w['gw']}–{w['to_gw']}"
     return (
         f'<div class="stage-panel{green}" id="plan-gw-{w["gw"]}" role="tabpanel" '
         f'tabindex="-1" data-plan-gw="{w["gw"]}"{hidden}>'
-        f'<div class="stage-head"><h3 class="disp">GW{w["gw"]} &middot; {e(title)}</h3>{gain}</div>'
+        f'<div class="stage-head"><h3 class="disp">{label} &middot; {e(title)}</h3>{gain}</div>'
         f'<p class="stage-facts">{" &middot; ".join(e(x) for x in facts)}</p>'
         f'{body}{squad}</div>'
     )
@@ -273,18 +296,28 @@ def plan_card(plan, ctx, shirts, badges, photos=None):
     span = f"GW{plan['start_gw']}–{plan['end_gw']}"
     end = plan["end_gw"]
     first_gw = weeks[0]["gw"]
-    # A roll week that leaves the bank where the week before did has nothing new to say about it.
-    quiet = {w["gw"] for prev, w in zip(weeks, weeks[1:])
+    # Consecutive roll weeks are one decision - bank the transfers - so they
+    # share one tile and one stage: "GW14–17 · Roll · 1→5 FT".
+    shown = []
+    for w in weeks:
+        prev = shown[-1] if shown else None
+        if (prev and not w["moves"] and not w["chip"]
+                and not prev["moves"] and not prev["chip"]):
+            shown[-1] = {**prev, "to_gw": w["gw"], "ft_after": w["ft_after"],
+                         "bank": w["bank"]}
+        else:
+            shown.append(w)
+    # A roll that leaves the bank where the week before did has nothing new to say about it.
+    quiet = {w["gw"] for prev, w in zip(shown, shown[1:])
              if not w["moves"] and w["bank"] == prev["bank"]}
-    tiles = "".join(_tile_html(w, n, photos) for n, w in enumerate(weeks))
+    tiles = "".join(_tile_html(w, n, photos) for n, w in enumerate(shown))
     stages = "".join(_stage_html(w, n, end, first_gw, ctx, photos, badges, shirts,
                                  w["gw"] not in quiet)
-                     for n, w in enumerate(weeks))
+                     for n, w in enumerate(shown))
 
     moved = abs(plan["gain"]) >= 0.05
     headline = f"{plan['gain']:+.1f}" if moved else f"{plan['total']:.0f}"
-    headline_note = ("points against making no transfers, after hits"
-                     if moved else "projected points; no move clears the margins")
+    headline_note = "xP v no moves, after hits" if moved else "xP; no move clears the bar"
     cheap = ""
     if plan["enablers"]:
         rows = []
@@ -299,8 +332,7 @@ def plan_card(plan, ctx, shirts, badges, photos=None):
     if plan["chips_modelled"]:
         chip_line = (f'<p class="plan-chips">{e("; ".join(chips))}.</p>' if chips else "")
     else:
-        chip_line = ('<p class="plan-chips">Chip history could not be verified, so no '
-                     'chip is planned.</p>')
+        chip_line = '<p class="plan-chips">Chip history unverified · no chip planned</p>'
 
     kits = {}
     for w in weeks:
@@ -310,21 +342,19 @@ def plan_card(plan, ctx, shirts, badges, photos=None):
                 kits[cls] = uri
     kit_css = "".join(f".{cls}{{background-image:url({uri})}}" for cls, uri in sorted(kits.items()))
 
-    note = (f"Each week scores the best eleven from your fifteen, the captain twice, and the "
-            f"bench by its chance of coming on (all of it on Bench Boost week). A plan may "
-            f"roll, or make one or two moves a week. "
-            f"Beyond next week's predicted line-up, a player's chance of starting follows "
-            f"his last three matches, drifting a quarter of the way back toward his "
-            f"season-long rate each week. Uses the transfer model's "
-            f"projections and current prices; the first week's captain follows the "
-            f"captaincy card. Re-planned at every update, so later weeks are a default, "
-            f"not a commitment.")
+    # The one home of the plan's rules: the page's other copies of them went.
+    note = (f"Each week: best XI from your 15, captain twice, bench by its chance of "
+            f"coming on (all of it on Bench Boost week). Roll, or one or two moves a week. "
+            f"Each move must clear {plan['margin']:g} points on top of any 4-point hit; hits "
+            f"only for an urgent move this week. A banked free transfer at the end is worth "
+            f"{plan['ft_value']:g}. Later weeks count for less. Cheap bench slots stay cheap "
+            f"unless a two-move restructure moves them. Chips play only when their week "
+            f"beats waiting by {plan['chip_margin']:g}. Re-planned at every update.")
     ft = weeks[0]["ft_before"]
     return (
         f'<style>{kit_css}</style>'
         f'<section class="plan-card" id="transfer-plan" tabindex="-1" aria-labelledby="plan-title">'
-        f'<div class="plan-top card-head"><div><span class="lab">The plan &middot; {span}, '
-        f'from the last published squad</span>'
+        f'<div class="plan-top card-head"><div><span class="lab">The plan &middot; {span}</span>'
         f'<h2 class="disp" id="plan-title">{_plural(len(weeks), "week").upper()}, MAPPED.'
         f'{components.info_btn()}</h2></div>'
         f'<span class="plan-ft"><b class="tnum">{ft}</b> free transfer{"" if ft == 1 else "s"}</span>'
@@ -334,6 +364,6 @@ def plan_card(plan, ctx, shirts, badges, photos=None):
         f'<div class="stage">{stages}</div></div>'
         f'<aside class="plan-sum"><span class="lab">{span}</span>'
         f'<b class="big tnum">{headline}</b><span class="plan-sum-note">{headline_note}</span>'
-        f'<span class="plan-total"><b class="tnum">{plan["total"]:.0f}</b> projected over the window</span>'
+        f'<span class="plan-total"><b class="tnum">{plan["total"]:.0f}</b> xP over the window</span>'
         f'{chip_line}{cheap}</aside></div></section>'
     )

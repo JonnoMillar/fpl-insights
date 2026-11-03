@@ -55,7 +55,7 @@ h1,h2,h3{margin:0; font-weight:800; text-wrap:balance; line-height:1.15}
 h2{font-size:17px}
 a{color:inherit}
 .tnum{font-variant-numeric:tabular-nums}
-.num,.tnum,.delta,.fxc-score,.fxavg,.oi-value{font-family:var(--num); font-variant-numeric:tabular-nums}
+.num,.tnum,.delta,.fxc-score,.fxavg{font-family:var(--num); font-variant-numeric:tabular-nums}
 /* Display: heavy capitals. Labels: small tracked capitals, one per card. */
 .disp{font-weight:900; text-transform:uppercase; letter-spacing:-.01em; line-height:.95}
 .lab{font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
@@ -85,13 +85,12 @@ a{color:inherit}
 .delta-key{background:var(--purple); color:var(--white)}
 .delta-key::before{display:none}
 /* Threshold marks: square-cornered, never pills. */
-.good-pill,.bad-pill,.warn-pill{
+.good-pill,.bad-pill{
   display:inline-flex; align-items:center; gap:4px; padding:1px 7px;
   border-radius:var(--radius-xs); font-size:12px; font-weight:800;
 }
 .good-pill{background:var(--green); color:var(--night)}
 .bad-pill{background:var(--line); color:var(--night)}
-.warn-pill{background:var(--attention-wash); color:var(--warn-ink)}
 
 /* --- shell: purple side rail on a laptop, night tab bar on a phone -------- */
 .side{
@@ -230,9 +229,7 @@ section{margin-bottom:16px}
 #p-market .chapter h2{font-size:15px; letter-spacing:.12em; line-height:1.2; color:var(--muted)}
 #p-market .chapter{margin:36px 0 12px}
 #p-market > .chapter:first-child{margin-top:6px}
-.lglede{margin:0 0 14px; padding:14px 16px; font-size:15px; font-weight:600; line-height:1.45;
-  background:var(--night); color:var(--white); border-radius:16px}
-.lglede b{color:var(--green)}
+
 .lgnote{margin:0 0 10px; font-size:14px; color:var(--night); line-height:1.45}
 /* The "i" beside a title reveals that card's explanation. */
 .infobtn{
@@ -483,9 +480,6 @@ details.collapsible > summary.card-head::-webkit-details-marker{display:none}
 details.collapsible > summary.card-head:hover{background:var(--surface-variant)}
 details.collapsible > summary.card-head:focus-visible{outline:3px solid var(--accent); outline-offset:-3px}
 details.collapsible:not([open]) > summary.card-head{border-bottom:none}
-/* Shut by default and quiet about it: reference material, not a headline. */
-.lastseason{margin-top:12px}
-.lastseason > summary.card-head h2{color:var(--on-surface-variant)}
 
 /* --- predicted line-ups (Fantasy Football Scout) --- */
 .pl .pip{
@@ -564,69 +558,16 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .tag{display:inline-block; margin-left:6px; padding:1px 7px; border-radius:var(--radius-xs); font-size:11px; font-weight:700}
 .tag-now{background:var(--error); color:#fff}
 .tag-mine{background:var(--accent); color:#fff}
-.pw-alert{
-  background:var(--night); color:var(--white);
-  border-radius:14px; padding:12px 16px; margin-bottom:16px; font-size:15px; font-weight:600;
-}
 
-/* --- scatter --- */
-:root{--mark-mkt:#c9c2cc; --mark-mine:var(--green); --mark-outlier:var(--purple)}
-.chartfilter{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px}
-/* The viewBox is the chart's own coordinate space, so a container wider
-   than it upscales every dot, stroke and label together - at the 1400px
-   shell a 760-wide box was being blown up 1.76x and the 11px tick labels
-   were landing at 19px. The box is 1040 wide now, and capped there, so
-   the chart fills the card at 1:1 and only ever scales down. */
-.scatter{width:100%; min-width:560px; max-width:1040px; height:auto;
-  display:block; margin:0 auto}
-.scatter .grid line{stroke:var(--outline-variant); stroke-width:1}
-.scatter .axlab text{fill:var(--on-surface-variant); font-size:12px; font-variant-numeric:tabular-nums}
-.scatter .axtitle{fill:var(--on-surface-variant); font-size:12px; font-weight:600}
-.scatter .mkt circle{fill:var(--mark-mkt); opacity:.55}
-.scatter .mine circle{fill:var(--mark-mine); stroke:var(--night); stroke-width:1.5}
-/* Furthest from the norm, on whichever two measures are picked right now -
-   a market dot (not yours) gets this hollow ring instead of the plain
-   market fill, so it reads as "flagged" rather than as a third colour. */
-.scatter .outlier circle:first-child{
-  fill:none; opacity:.9; stroke:var(--mark-outlier); stroke-width:2;
-}
-.scatter .pt{cursor:pointer}
-.scatter .pt:hover circle{opacity:1; stroke:var(--on-surface); stroke-width:2}
-.scatter .ptlabel{
-  fill:var(--on-surface); font-size:12px; font-weight:600; pointer-events:none;
-  paint-order:stroke; stroke:var(--surface); stroke-width:3px; stroke-linejoin:round;
-}
-.scatter .ptlabel.outlier-label{fill:var(--mark-outlier)}
-.scatter .hide{display:none}
-
-/* The enlarged hit target must out-specify the mark fill rules above,
-   or it paints as a second, much fatter dot. */
-.scatter .mkt circle.hit, .scatter .mine circle.hit{
-  fill:transparent; opacity:0; stroke:none;
-}
-.scatter .pt:focus{outline:none}
-.scatter .pt:focus-visible circle:first-child{stroke:var(--accent); stroke-width:3}
-.scatter .selring{fill:none; stroke:var(--on-surface); stroke-width:2}
-.scatter .selname{
-  fill:var(--on-surface); font-size:12px; font-weight:700;
-  paint-order:stroke; stroke:var(--surface); stroke-width:3.5px; stroke-linejoin:round;
-}
-.readout{
-  margin:12px 0 0; font-size:14px; min-height:1.4em;
-  color:var(--on-surface-variant); font-variant-numeric:tabular-nums;
-}
-.readout b{color:var(--on-surface)}
+/* --- chart legends (the Scout scatter) --- */
 .legend{display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:12px; color:var(--on-surface-variant); margin:10px 0 0}
 .key{width:10px; height:10px; border-radius:50%; display:inline-block; margin-left:10px}
-.key.mkt{background:var(--mark-mkt)}
-.key.mine{background:var(--mark-mine); box-shadow:inset 0 0 0 1.5px var(--night)}
-.key.outlier{background:var(--mark-outlier)}
 
 /* --- league position over time -------------------------------------------
    One line per manager, straight segments between gameweeks - there is
    nothing to smooth between two discrete, already-final scores. */
 .lptoggle{display:flex; gap:6px; margin-bottom:10px}
-/* Capped for the same reason as .scatter - see the note there. */
+/* Capped so a wide screen does not stretch the lines into a flat band. */
 .lpchart{width:100%; min-width:520px; max-width:1040px; height:auto;
   display:block; margin:0 auto}
 .lpgrid line{stroke:var(--outline-variant); stroke-width:1}
@@ -763,8 +704,6 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .radar-arrow-head.radar-c1{fill:var(--radar-c1-stroke)}
 .radar-arrow-head.radar-c2{fill:var(--radar-c2-stroke)}
 
-/* --- ownership doughnuts + carousel --- */
-.carnav{margin-left:auto; display:flex; gap:6px}
 .arrow{
   appearance:none; width:32px; height:32px; border-radius:50%;
   border:1px solid var(--outline); background:var(--surface); color:var(--on-surface);
@@ -777,20 +716,13 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
   overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth;
 }
 .carousel:focus-visible{outline:3px solid var(--accent); outline-offset:2px; border-radius:var(--radius-s)}
-.ocard{
-  flex:0 0 148px; scroll-snap-align:start; text-align:center;
-  background:var(--surface-variant); border-radius:var(--radius-m);
-  padding:12px 8px; border:2px solid transparent;
-}
-.ocard.mine{border-color:var(--green); background:var(--surface)}
+
 .donut{width:90px; height:90px; display:block; margin:0 auto}
 .dtrack{fill:none; stroke:var(--outline-variant); stroke-width:9}
 .dval{fill:none; stroke-width:9; stroke-linecap:round}
 .dnum{fill:var(--on-surface); font-size:19px; font-weight:700}
 .dsub{fill:var(--on-surface-variant); font-size:12px}
-.oname{margin:8px 0 0; font-weight:700; font-size:14px}
-.oteam,.onote{margin:1px 0 0; font-size:12px; color:var(--on-surface-variant)}
-.oyou{margin:4px 0 0; font-size:12px; font-weight:700; color:var(--good-ink)}
+
 .tnote{
   margin:18px 0 8px; font-size:13px; font-weight:600;
   color:var(--on-surface-variant);
@@ -807,15 +739,6 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 /* --- findings: lead line, then detail --- */
 .find li{margin-bottom:8px; line-height:1.35}
 .find .lead{font-weight:700; display:block}
-.find .det{color:var(--on-surface-variant); font-size:13px}
-
-.axpick{display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600}
-.axpick select{
-  font:inherit; font-size:13px; padding:5px 8px; border-radius:var(--radius-s);
-  border:1px solid var(--outline); background:var(--surface); color:var(--on-surface);
-}
-.axpick select:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
-.chartfilter .spacer{flex:1 1 12px}
 
 /* --- fixture ticker --- */
 .tk-controls{padding-bottom:0}
@@ -839,48 +762,12 @@ table td.tick{border:2px solid var(--surface)}
   width:66px; height:84px; border-radius:var(--radius-s); object-fit:cover;
   background:var(--surface-variant); flex:none;
 }
-.spwrap{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px;
-  padding:0 14px}
-.spgroup h4{
-  margin:0 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.05em;
-  color:var(--on-surface-variant); display:flex; align-items:center; gap:7px;
-}
+
 .spicon{width:17px; height:17px; flex:none; color:var(--accent)}
-/* --- price movement: risers against fallers ---
-   Same two-column grammar as the set-piece card, since the question has
-   the same shape - a short grouped list where the group is the point. */
-.pmwrap{
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-  gap:14px; padding:0 14px 14px;
-}
-.pmgroup h4{
-  display:flex; align-items:center; gap:6px; margin:0 0 8px;
-  font-size:12px; text-transform:uppercase; letter-spacing:0.06em;
-}
+
 .pm-up h4{color:var(--good-ink)}
 .pm-down h4{color:var(--bad-ink)}
-.pmicon{width:15px; height:15px; flex:none}
-.pmlist{list-style:none; margin:0; padding:0; display:flex;
-  flex-direction:column; gap:8px}
-.pmname{display:block; font-size:13px; font-weight:600}
-.pmprice{
-  display:block; font-family:var(--num); font-size:12px;
-  color:var(--on-surface-variant); letter-spacing:-0.02em;
-}
-.pmprice i{font-style:normal; padding:0 4px; opacity:.65}
-.pm-up .pmprice{color:var(--good-ink)}
-.pm-down .pmprice{color:var(--bad-ink)}
 
-.splist{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:5px}
-.splist li{display:flex; align-items:baseline; gap:8px; font-size:13px}
-.sprank{
-  flex:none; width:19px; height:19px; border-radius:50%; font-size:12px;
-  font-weight:700; display:grid; place-items:center;
-  background:var(--surface-variant); color:var(--on-surface-variant);
-}
-.splist li.first .sprank{background:var(--accent); color:#fff}
-.spname{font-weight:600}
-.spteam{margin-left:auto; color:var(--on-surface-variant); font-size:12px}
 .mkt-cs,.mkt-xg{color:var(--market); font-weight:700}
 
 /* --- pick team: the eleven fold into a column, the bars extend beside it ---
@@ -1006,25 +893,6 @@ table td.tick{border:2px solid var(--surface)}
 }
 .rpill b{font-weight:800; font-variant-numeric:tabular-nums; opacity:.85}
 
-/* --- odds tiles --- */
-.oilist{list-style:none; margin:0; padding:0; display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:14px}
-/* Good on green, bad on night, information on mist: the label says which. */
-.oi{position:relative; padding:20px; border-radius:18px; background:var(--mist)}
-.oi-icon{--ico:30px}
-.oi-good{background:var(--green)}
-/* Two good tiles side by side: the second steps down to mint. */
-.oi-good + .oi-good{background:var(--mint)}
-.oi-bad{background:var(--night); color:var(--white)}
-.oi-bad .oi-label,.oi-bad .oi-detail,.oi-bad .oi-unit{color:rgb(255 255 255 / 85%)}
-.oi-label{margin:10px 0 0; font-size:12px; font-weight:800; text-transform:uppercase;
-  letter-spacing:.12em}
-.oi-value{margin:6px 0 0; font-size:44px; font-weight:900; line-height:1;
-  font-variant-numeric:tabular-nums; display:flex; align-items:baseline; gap:6px}
-.oi-value small{font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em}
-.oi-who{margin:10px 0 0; font-size:16px; font-weight:900}
-.oi-detail{margin:2px 0 0; font-size:13px; font-weight:600}
-
 /* --- chip planner --- */
 .cplist{list-style:none; margin:0; padding:0; display:grid;
   grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr)); gap:14px; align-items:stretch}
@@ -1051,7 +919,7 @@ table td.tick{border:2px solid var(--surface)}
 .cpw-on em{color:var(--night); font-weight:900}
 .cp-strong .cpw i{background:rgb(22 0 26 / 22%)}
 .cp-strong .cpw-on i{background:var(--night)}
-.cpweeks-read{margin:0 0 2px; font-size:13px; font-weight:600}
+
 .cp-conf{display:inline-block; align-self:flex-start; margin-top:auto; padding:4px 10px; border-radius:var(--radius-xs); font-size:12px; font-weight:800}
 .cp-reason + .cp-conf,.cpweeks + .cp-conf{margin-top:12px}
 .cp-conf-strong{background:var(--night); color:var(--white)}
@@ -1112,19 +980,10 @@ table td.tick{border:2px solid var(--surface)}
 .lc-block ul{list-style:none; margin:0; padding:0; display:grid; gap:5px}
 .lc-block li{display:flex; align-items:center; gap:7px; flex-wrap:wrap}
 .lc-name{font-size:13px; font-weight:600}
+.lc-flag{font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase}
+.finds.finds-one{grid-template-columns:minmax(0,640px)}
 .lc-club{font-size:12px; text-transform:uppercase; letter-spacing:.04em;
   color:var(--p60)}
-.lc-fx{margin-left:auto; display:flex; gap:3px}
-
-/* --- fixture swings -------------------------------------------------------
-   "Kind"/"hard" comes from FPL's own FDR; the fixtures themselves are drawn
-   with our own rating pills so the claim is checkable, not just a number. */
-.fsw-kind h4{color:var(--good-ink)}
-.fsw-hard h4{color:var(--bad-ink)}
-.fsw-row{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
-.fsw-club{font-size:13px; font-weight:600}
-.fsw-fdr{font-size:10px; font-family:var(--num); color:var(--on-surface-variant)}
-.fsw-fx{margin-left:auto; display:flex; gap:3px; flex-wrap:wrap}
 
 /* --- the night band: best and worst fixture runs as glass crest tiles ------
    Glass only ever sits on night. Blurred glow behind, never carrying meaning. */
@@ -1197,98 +1056,6 @@ table td.tick{border:2px solid var(--surface)}
 .wcstat-d.wc-up{color:var(--good-ink)}
 .wcstat-d.wc-down{color:var(--bad-ink)}
 .wcstat-d.wc-flat{color:var(--on-surface-variant)}
-
-/* --- highest predicted points XI ----------------------------------------
-   Positions down, not one ranked eleven: the question this answers is
-   "where is my team behind", which only reads position by position. */
-.bxi-head{
-  display:flex; flex-wrap:wrap; align-items:baseline; gap:8px 18px;
-  padding-bottom:12px; margin-bottom:12px;
-  border-bottom:1px solid var(--outline-variant);
-}
-.bxi-big{display:flex; align-items:baseline; gap:7px}
-.bxi-big .num{font-size:34px; font-weight:700; line-height:1}
-.bxi-big small{font-size:12px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.06em; color:var(--on-surface-variant); max-width:6em}
-.bxi-own{margin:0; display:inline-flex; align-items:center; gap:5px;
-  font-size:13px; color:var(--on-surface-variant)}
-.bxi-own .ic{width:15px; height:15px; color:var(--good-ink)}
-.bxi-own b{color:var(--on-surface)}
-.bxi-cost{
-  margin:0; font-size:13px; color:var(--white); font-weight:700;
-  background:var(--night); border-radius:10px; padding:6px 10px;
-}
-.bxi-read{margin:0; flex:1 1 260px; font-size:14px;
-  color:var(--on-surface-variant); line-height:1.45}
-.bxi-grid{display:grid; gap:14px 22px;
-  grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
-.bxi-group h4{
-  margin:0 0 5px; font-size:12px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.07em; color:var(--on-surface-variant);
-}
-.bxi-group ul{list-style:none; margin:0; padding:0}
-.bxi-row{
-  display:grid; align-items:center; gap:0 7px; padding:3px 0 3px 2px;
-  grid-template-columns:15px minmax(0,1fr) auto 46px 30px;
-}
-.bxi-mark .ic{width:13px; height:13px; color:var(--good-ink)}
-.bxi-name{font-size:13px; font-weight:600; overflow:hidden;
-  text-overflow:ellipsis; white-space:nowrap}
-.bxi-club{font-size:12px; text-transform:uppercase; letter-spacing:.04em;
-  color:var(--p60)}
-.bxi-bar{display:block; height:5px; border-radius:3px; background:var(--p10)}
-.bxi-bar i{display:block; height:100%; border-radius:3px; background:var(--p30)}
-.bxi-ep{font-size:12px; text-align:right; color:var(--on-surface-variant)}
-/* Owned men are the reference, so they carry the colour; the ones you are
-   missing stay plain and let the tick count do the talking. */
-.bxi-row.is-mine .bxi-bar i{background:var(--accent)}
-.bxi-row.is-mine .bxi-name,.bxi-row.is-mine .bxi-ep{color:var(--on-surface)}
-.bxi-row.is-mine .bxi-ep{font-weight:700}
-
-/* --- the knee-jerk ------------------------------------------------------
-   The one card arguing with the reader, so the one card on ink. */
-.kjcard{position:relative; background:var(--purple); color:var(--white); border:0; overflow:hidden; min-height:300px}
-/* His position in outline letters behind the cut-out. */
-.kj-pos{position:absolute; right:-14px; bottom:128px; font-size:140px; font-weight:900; line-height:.8; letter-spacing:-.02em;
-  color:transparent; -webkit-text-stroke:3px var(--green); pointer-events:none}
-.kjcard .cut{right:20px; width:220px; height:280px; filter:drop-shadow(0 10px 18px rgb(0 0 0 / 35%))}
-.kj-tag{position:relative; padding:22px 24px 0; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.12em; color:var(--green)}
-.kj-body{position:relative; padding:6px 24px 24px; max-width:calc(100% - 260px)}
-.kj-lead{margin:6px 0 0; font-size:20px; font-weight:700}
-.kj-lead b{font-weight:900}
-.kj-score{margin:6px 0 0; display:flex; align-items:baseline; gap:12px}
-.kj-score .num{font-size:80px; font-weight:900; line-height:.85; color:var(--green)}
-.kj-score small{font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.1em}
-.kj-facts{display:flex; flex-wrap:wrap; gap:10px 28px; margin:18px 0 0}
-.kj-facts dt{font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:rgb(255 255 255 / 75%)}
-.kj-facts dd{margin:2px 0 0; font-size:22px; font-weight:900}
-.kj-verdict{margin:16px 0 0; font-size:15px; font-weight:600; line-height:1.5}
-.kj-fx{display:inline-block; margin-left:4px; padding:2px 8px; border-radius:var(--radius-xs); font-size:13px; font-weight:800;
-  background:rgb(255 255 255 / 14%); color:var(--white)}
-@media (max-width:700px){
-  .kj-body{max-width:none; padding-bottom:250px}
-  .kj-pos{right:50%; margin-right:-148px; bottom:150px; font-size:130px}
-  .kjcard .cut{right:50%; margin-right:-105px; width:210px; height:267px}
-}
-
-/* --- buy / sell / keep / avoid ------------------------------------------ */
-/* Four questions, four fills: buy on mint, sell on night, keep on mist,
-   avoid on white with an outline. Each column is named and iconed. */
-.vb-grid{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
-.vb-col{padding:18px; border-radius:18px; background:var(--mist)}
-.vb-col h4{margin:0 0 12px; display:flex; align-items:center; gap:8px; font-size:18px; font-weight:900; text-transform:uppercase}
-.vb-col h4 .ico{--ico:26px}
-.vb-col ul{list-style:none; margin:0; padding:0; display:grid; gap:10px}
-.vb-top{display:flex; align-items:baseline; justify-content:space-between; gap:8px}
-.vb-top b{font-size:15px; font-weight:900}
-.vb-ep{font-size:16px; font-weight:900}
-.vb-sub{display:block; font-size:13px; font-weight:500; line-height:1.4}
-.vb-none{font-size:14px; font-weight:600}
-.vb-good{background:var(--mint)}
-.vb-bad{background:var(--night); color:var(--white)}
-.vb-accent{background:var(--mist)}
-.vb-accent h4,.vb-accent .vb-ep{color:var(--purple)}
-.vb-warn{background:var(--white); box-shadow:inset 0 0 0 2px var(--line)}
 
 /* If the count does not fill the last row, the final card stretches across
    what is left rather than sitting beside a hole. */
@@ -1409,34 +1176,6 @@ table td.tick{border:2px solid var(--surface)}
    false highlight repeated down a column of mostly zeroes, so a club with
    none gets a plain muted number instead. */
 .fxown-0{background:none; color:var(--on-surface-variant); font-weight:500}
-
-/* --- priced round --- */
-.mlist{list-style:none; margin:0; padding:0; display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr)); gap:12px}
-.mcard{background:var(--surface-variant); border-radius:var(--radius-m); padding:13px}
-.mteams{display:flex; align-items:baseline; gap:7px; margin-bottom:9px}
-.mt{font-weight:700; font-size:15px}
-.mt.mine{color:var(--purple); text-decoration:underline; text-decoration-thickness:3px; text-decoration-color:var(--green)}
-.mvs{font-size:12px; color:var(--on-surface-variant)}
-.mtotal{margin-left:auto; font-size:17px; font-weight:700;
-  display:flex; flex-direction:column; align-items:flex-end; line-height:1}
-.mtotal small{font-size:9px; font-weight:600; text-transform:uppercase;
-  letter-spacing:.05em; color:var(--on-surface-variant)}
-.mbar{display:flex; height:9px; border-radius:9999px; overflow:hidden;
-  background:var(--outline-variant)}
-.mbar .mb-seg{display:block; height:100%; box-shadow:inset -2px 0 0 var(--surface-variant)}
-.mbar .mb-seg:last-child{box-shadow:none}
-.mkeys{display:flex; justify-content:space-between; margin-top:4px;
-  font-size:12px; color:var(--on-surface-variant);
-  font-variant-numeric:tabular-nums}
-.mstats{margin:11px 0 0; display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(78px,1fr)); gap:7px}
-.mstat{display:flex; flex-direction:column}
-.mstat dt{font-size:9px; text-transform:uppercase; letter-spacing:.04em;
-  color:var(--on-surface-variant)}
-.mstat dd{margin:0; font-size:15px; font-weight:700;
-  font-variant-numeric:tabular-nums}
-.mfoot{margin:10px 0 0; font-size:12px; color:var(--on-surface-variant)}
 
 /* --- league template pitch + differentials --- */
 .tplpitch .pl{width:86px}
@@ -1574,10 +1313,7 @@ table td.tick{border:2px solid var(--surface)}
 }
 .epkey{display:flex; align-items:center; gap:6px}
 .epkey i{width:10px; height:10px; border-radius:3px; display:inline-block}
-.epkey i.k-a{background:var(--on-surface)}
-.epkey i.k-x{background:var(--outline); border:2px solid var(--on-surface-variant)}
-.epkey i.k-under{background:var(--green); border-radius:2px; width:18px; height:6px}
-.epkey i.k-over{background:repeating-linear-gradient(90deg,var(--night) 0 3px,transparent 3px 5px); border-radius:0; width:18px; height:6px}
+
 .eprows{list-style:none; margin:10px 0 0; padding:0; display:grid;
   grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:4px 14px}
 .eprows li{display:flex; align-items:center; gap:7px; font-size:13px}
@@ -1591,42 +1327,9 @@ table td.tick{border:2px solid var(--surface)}
    Rows are taller too - these were drawn at 16px in a card that had hundreds
    of pixels going spare. */
 .gapcard{padding-bottom:14px}
-.gaplist,.dclist{list-style:none; margin:0; padding:0 18px; display:flex;
-  flex-direction:column; gap:11px}
-.gap,.dcr{display:grid; align-items:center; gap:9px}
-.gap{grid-template-columns:82px 1fr 74px}
-.dcr{grid-template-columns:78px 1fr 58px auto}
-.gapname,.dcname{font-size:14px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.gaptrack,.dctrack{position:relative; height:22px}
-.gaptrack::before,.dctrack::before{
-  content:""; position:absolute; left:0; right:0; top:10px; height:2px;
-  background:var(--outline-variant);
-}
-.gapline{position:absolute; top:8px; height:6px; border-radius:2px}
-.gap-under{background:var(--green)}
-.gap-over{background:repeating-linear-gradient(90deg,var(--night) 0 3px,transparent 3px 5px)}
-.gapdot{
-  position:absolute; top:5.5px; width:11px; height:11px; border-radius:50%;
-  box-shadow:0 0 0 2px var(--surface);
-}
-.gapdot.d-a{background:var(--on-surface)}
-.gapdot.d-x{background:var(--surface); border:2px solid var(--on-surface-variant)}
-.gapnum,.dcnum{
-  font-family:var(--num); font-variant-numeric:tabular-nums;
-  font-size:13px; font-weight:700; text-align:right; color:var(--night);
-  white-space:nowrap;
-}
-.dchits{
-  font-family:var(--num); font-size:12px; color:var(--on-surface-variant);
-  text-align:right; white-space:nowrap;
-}
-.dcr .good-pill,.dcr .bad-pill,.dcr .warn-pill{white-space:nowrap; justify-self:end}
-.good-pill,.bad-pill,.warn-pill{white-space:nowrap}
-.dcfill{position:absolute; top:8px; height:7px; border-radius:9999px}
-.dcmark{
-  position:absolute; top:3px; width:2px; height:17px;
-  background:var(--on-surface); opacity:.5;
-}
+
+.good-pill,.bad-pill{white-space:nowrap}
+
 .spark{vertical-align:middle}
 
 /* --- expanded player view --- */
@@ -1718,50 +1421,6 @@ dialog.pv::backdrop{background:rgb(30 0 33 / 62%)}
 .find h3 .infobtn{margin-left:auto}
 .find .note{padding:0 18px 12px; font-size:14px; font-weight:500; color:var(--night); margin-top:-4px; line-height:1.5}
 .find ul{margin:0; padding:0 18px 18px; font-size:14px; list-style:none}
-/* A findings row, borrowing the set-piece card's grammar outright: subject
-   left in semibold, evidence pushed right and quieter, no rules between
-   rows. The tag pill that used to hold the subject - grey chip, coloured
-   left tip - is gone. Repeated down a card it turned a short list into
-   something that looked like far more information than it was, which is
-   the opposite of what a findings card is for. */
-.filist{list-style:none; margin:0; padding:0; display:flex;
-  flex-direction:column; gap:7px}
-.fi{display:flex; align-items:baseline; gap:12px; font-size:14px}
-.fi-sub{font-weight:800; flex:none}
-.fi-det{
-  margin-left:auto; text-align:right; color:var(--night);
-  font-size:13px; font-weight:500; line-height:1.4;
-}
-/* A row with no subject is a plain sentence and should read as one. */
-.fi-det:only-child{margin-left:0; text-align:left}
-.fnum{font-family:var(--num); font-weight:800}
-
-/* --- attacking returns ---------------------------------------------------
-   Goals and assists as the one number FPL managers already mean by
-   "returns", not the two parts it's made of. A defender's row is marked
-   and picked out, since the same total is the rarer, more valuable one. */
-.arrlist{list-style:none; margin:0; padding:0; display:flex;
-  flex-direction:column; gap:7px}
-.arr{display:flex; align-items:center; gap:9px; font-size:13px}
-.arr-name{font-weight:600; display:flex; align-items:center; gap:6px}
-.arr-club{font-size:12px; text-transform:uppercase; letter-spacing:.04em;
-  color:var(--p60)}
-.arr-detail{
-  margin-left:auto; color:var(--on-surface-variant); font-size:12px;
-  font-family:var(--num);
-}
-.arr-total{font-size:16px; font-weight:700; min-width:1.4em; text-align:right}
-.arr-def{
-  font-size:9px; font-weight:800; letter-spacing:.05em; padding:1px 5px;
-  border-radius:var(--radius-xs); background:var(--accent-wash); color:var(--accent-ink);
-}
-.arr-isdef .arr-total{color:var(--accent-ink)}
-/* Rows with no .arr-detail column (e.g. big chances/chances) have nothing
-   else to carry the flex auto-margin that pushes the total flush right. */
-.arr-nodetail .arr-total{margin-left:auto}
-/* A paired stat (big chances, chances) reads as one bold headline number
-   with the second figure along for context, not two of equal weight. */
-.arr-total .pairsub{font-weight:400; font-size:13px; color:var(--on-surface-variant)}
 
 /* --- match logs --- */
 details{border-bottom:1px solid var(--outline-variant)}
@@ -1851,7 +1510,7 @@ details .scroll{padding:0 14px 14px}
 .sf input:focus-visible, .sf select:focus-visible{
   outline:2px solid var(--accent); outline-offset:1px;
 }
-.sf-inline{flex-direction:row; align-items:center; gap:7px; margin-left:auto}
+
 .sf-range{display:flex; align-items:center; gap:6px}
 .sf-price-min, .sf-price-max{width:58px}
 .sf-start-rate{width:104px}
@@ -1861,24 +1520,6 @@ details .scroll{padding:0 14px 14px}
 .sf-count{margin-left:auto; align-self:center; font-size:12px;
   color:var(--on-surface-variant); font-variant-numeric:tabular-nums}
 
-/* --- fixture runs --- */
-.fxruns{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:22px}
-.fxrun-col h4{
-  font-size:11px; text-transform:uppercase; letter-spacing:.06em;
-  color:var(--on-surface-variant); margin:0 0 8px;
-}
-.fxrun-tag{
-  text-transform:none; letter-spacing:normal; font-weight:400; font-size:10px;
-  background:var(--surface-variant); border-radius:var(--radius-xs); padding:1px 7px;
-  margin-left:4px; color:var(--on-surface-variant);
-}
-.fxrun-list{list-style:none; margin:0; padding:0; display:flex;
-  flex-direction:column; gap:8px}
-.fxrun-list li{display:flex; align-items:center; gap:9px; font-size:13px}
-.fxrun-club{font-weight:700; min-width:38px}
-.fxrun-avg{font-family:var(--num); font-size:11px; color:var(--on-surface-variant)}
-.fxrun-chips{display:flex; flex-wrap:wrap; gap:3px; margin-left:auto}
-.fxrun-chips .rpill{margin-right:0}
 .rpill.fxr-blank{background:var(--surface-variant); color:var(--on-surface-variant)}
 
 /* --- pool explorer --- */
@@ -1957,11 +1598,11 @@ details .scroll{padding:0 14px 14px}
 }
 .scoutcomparebar[hidden],.scb-compare[hidden]{display:none}
 .scoutcomparebar .scb-count{font-weight:600}
-.scb-compare,.scout-explore{display:inline-flex; align-items:center; min-height:44px; font-size:13px; font-weight:600; text-underline-offset:3px}
-.scout-explore{margin-left:auto}
+.scb-compare{display:inline-flex; align-items:center; min-height:44px; font-size:13px; font-weight:600; text-underline-offset:3px}
+
 .scb-compare{background:var(--accent); color:var(--ink); padding:8px 12px; border-radius:var(--radius-xs); text-decoration:none}
 .scb-compare:hover{box-shadow:inset 0 0 0 1px var(--ink)}
-.scb-compare:focus-visible,.scout-explore:focus-visible{outline:3px solid var(--accent-ink); outline-offset:2px}
+.scb-compare:focus-visible{outline:3px solid var(--accent-ink); outline-offset:2px}
 .scb-clear{
   font:inherit; font-size:12px; background:var(--surface);
   border:1px solid var(--outline); border-radius:var(--radius-xs);
@@ -2103,7 +1744,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
    white stage beside the purple captain card; then the purple pitch. */
 .squad-overview{display:flex; flex-direction:column; gap:16px; margin-bottom:16px}
 .squad-overview>*{min-width:0; margin:0}
-.squad-top{display:grid; grid-template-columns:minmax(0,1.35fr) repeat(2,minmax(0,.7fr)) minmax(0,1.6fr); gap:16px}
+.squad-top{display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,.8fr) minmax(0,1.85fr); gap:16px}
 .squad-top .big{font-size:56px}
 .stat-note{font-size:14px; font-weight:700; line-height:1.4; display:flex; flex-wrap:wrap; align-items:center; gap:6px}
 .score-card,.stat-tile,.next-card{position:relative; border-radius:var(--radius-m); padding:22px; min-width:0; overflow:hidden}
@@ -2136,7 +1777,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .next-look b{font-weight:900}
 @media (max-width:1180px){
   .squad-top{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .score-card,.next-card{grid-column:1 / -1}
+  .next-card{grid-column:1 / -1}
 }
 @media (max-width:560px){
   .squad-top{gap:12px}
@@ -2183,9 +1824,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .move-caption > span{display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
 .move-figs{position:absolute; left:12px; right:12px; bottom:12px; display:flex; align-items:center; gap:10px 18px;
   background:var(--night); color:var(--white); border-radius:14px; padding:8px 14px; min-height:54px}
-.mf-gain{display:flex; align-items:baseline; gap:6px; flex:none}
-.mf-gain .big{font-size:30px; color:var(--green)}
-.mf-gain span{font-size:12px; font-weight:800; line-height:1.15; max-width:52px}
+
 .move-figs dl{flex:1; min-width:0; margin:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px}
 .move-figs dt{font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:rgb(255 255 255 / 70%)}
 .move-figs dd{margin:2px 0 0; display:flex; align-items:center; gap:6px; white-space:nowrap}
@@ -2224,8 +1863,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   .move-slot{height:270px; --new-w:160px}
   .move-slot:has(.move-figs){--strip:112px; height:340px}
   .move-figs{flex-wrap:wrap; padding:8px 12px 10px; gap:4px 12px}
-  .mf-gain{width:100%}
-  .mf-gain span{max-width:none}
+
   .move-figs dl{gap:8px}
   .move-names{right:120px}
   .move-names .player-link{font-size:22px}
@@ -2248,7 +1886,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .pitch-context p{font-size:14px; font-weight:700; line-height:1.5; margin:0}
 .lineup-summaries,.lineup-variants{display:grid; min-width:0}
 .lineup-variants>*{grid-area:1/1; min-width:0}
-.mobile-exchanges{display:none}
+
 .lineup-toggle{display:inline-flex; align-items:center; min-height:44px; gap:10px; padding:0; border:0; background:transparent;
   color:var(--night); font:800 14px var(--sans); cursor:pointer}
 .lineup-toggle[hidden]{display:none}
@@ -2325,7 +1963,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   .squad-pitch .lineup-toggle{margin-right:auto}
 }
 @media(max-width:800px){
-  .mobile-exchanges{display:block; color:var(--green)}
+
   .squad-pitch .pitch-context{min-height:64px}
   .squad-pitch .lineup-summaries p{font-size:13px}
 }
@@ -2398,6 +2036,9 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .stage-chip .stage-head h3{color:var(--night)}
 .stage-gain{font-size:15px; font-weight:700}
 .stage-gain .big{font-size:30px; color:var(--purple)}
+/* A move made for a chip held past the plan: its lift to that chip, as a figure. */
+.stage-prep{font-size:15px; font-weight:700; padding:4px 10px; border-radius:8px; background:var(--green); color:var(--night)}
+.stage-prep b{font-size:20px; font-weight:900}
 .stage-facts{margin:0; font-size:14px; font-weight:700; color:var(--muted)}
 .stage-chip .stage-facts{color:var(--night)}
 .plan-moves{margin:0}
@@ -2584,7 +2225,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
 .own-side .finds{grid-template-columns:minmax(0,1fr)}
 .own-side .find{background:var(--night); color:var(--white)}
 .own-side .find h3{color:var(--green)}
-.own-side .find .det{color:rgb(255 255 255 / 85%); font-size:14px}
+
 .own-side .find .lead{font-size:16px; font-weight:900}
 .own-side .find li{margin-bottom:12px}
 @media (max-width:1100px){.own-row{grid-template-columns:minmax(0,1fr)}}
@@ -2607,7 +2248,7 @@ dialog.scoutpv::backdrop{background:rgb(30 0 33 / 62%)}
   .captain-card .chevrons{width:200px; height:200px; right:-44px; bottom:50px}
   .captain-card .player-link{font-size:24px; max-width:58%}
   .cap-opp{max-width:48%}
-  .fxrun-chips{flex-wrap:wrap}
+
 }
 .stage-squad{border:0}
 

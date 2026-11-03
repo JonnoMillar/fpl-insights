@@ -8,9 +8,6 @@ Each of these exists because a table was the wrong shape for the question:
   which is the one situation a stacked bar is right for. One row per man in
   the starting eleven, in the order they stand on the pitch, so each bar can
   be read level with its own card.
-* `gap_chart` - a dumbbell. Reading the distance between two dots beats
-  reading two numbers and subtracting them in your head.
-* `defcon_bars` - "how close to 10" is a bar with a line on it, not a decimal.
 * `sparkline` - shape of a run of gameweeks, at a glance.
 
 Kept apart from dashboard.py so the page assembly stays readable.
@@ -111,115 +108,6 @@ def info_btn():
             'aria-expanded="false">' + icon("information") + '</button>')
 
 
-def gap_chart(rows, title, note, left_label, right_label):
-    """A dumbbell chart: two dots joined by a line, one row per player.
-
-    `rows` is [(name, actual, expected)]. The line between the dots is the
-    thing being measured, so it carries the direction twice: a solid green
-    line where the player is under-performing his chances (they are arriving,
-    the finishing will come), a striped dark line where he is over-performing
-    them. The stripes are the part a colour-blind reader relies on."""
-    if not rows:
-        return ""
-    top = max(max(a, b) for _n, a, b in rows) or 1.0
-    items = []
-    for name, actual, expected in rows:
-        # A dot centred with `left:X%; margin-left:-5.5px` pushes past the
-        # track's own edge whenever X is near 0 or 100 - the CSS percentage
-        # is relative to the track's width, but the 5.5px pullback isn't, so
-        # at the extremes the dot's centre sits closer to the card's edge
-        # than half its own radius. calc() keeps the centre inset by the
-        # dot's radius on both ends regardless of the track's actual width.
-        fa, fx = actual / top, expected / top
-        lo, hi = min(fa, fx), max(fa, fx)
-        tone = "gap-under" if actual < expected else "gap-over"
-        items.append(
-            '<li class="gap"><span class="gapname">{}</span>'
-            '<span class="gaptrack">'
-            '<span class="gapline {}" style="left:calc(5.5px + (100% - 11px) * {:.4f});'
-            'width:calc((100% - 11px) * {:.4f})"></span>'
-            '<span class="gapdot d-a" style="left:calc(5.5px + (100% - 11px) * {:.4f})" '
-            'title="{} {:g}"></span>'
-            '<span class="gapdot d-x" style="left:calc(5.5px + (100% - 11px) * {:.4f})" '
-            'title="{} {:.2f}"></span>'
-            "</span>"
-            '<span class="gapnum tnum">{:g} v {:.2f}</span></li>'.format(
-                e(name), tone, lo, hi - lo,
-                fa, e(left_label), actual,
-                fx, e(right_label), expected,
-                actual, expected,
-            )
-        )
-    # The line's colour carries the direction, so the direction belongs in
-    # the visible legend rather than in a collapsed note - a single green
-    # key over a list that runs both ways explains half of it and quietly
-    # mislabels the rest.
-    both = (any(a < x for _n, a, x in rows) and any(a > x for _n, a, x in rows))
-    dirkey = (
-        '<span class="epkey"><i class="k-under"></i>owed goals</span>'
-        '<span class="epkey"><i class="k-over"></i>running hot</span>'
-        if both else "")
-    return (
-        '<div class="find gapcard"><h3>' + icon("goals") + '{}{}</h3><p class="note" hidden>{}</p>'
-        '<ul class="gaplist">{}</ul>'
-        '<p class="eplegend"><span class="epkey"><i class="k-a"></i>{}</span>'
-        '<span class="epkey"><i class="k-x"></i>{}</span>{}</p></div>'.format(
-            e(title), info_btn(), e(note), "".join(items),
-            e(left_label), e(right_label), dirkey
-        )
-    )
-
-
-def defcon_bars(rows):
-    """Progress toward the defensive-contribution threshold.
-
-    `rows` is [(name, rate_per_90, threshold, hits, appearances)]. The track
-    runs to 140% of the threshold so clearing it has somewhere to show."""
-    if not rows:
-        return ""
-    scale = 1.4
-    items = []
-    for name, rate, threshold, hits, apps in rows:
-        if not threshold:
-            continue
-        pct = min(100.0, rate / threshold * 100 / scale)
-        over = rate >= threshold
-        colour = "var(--good)" if over else "var(--warn)"
-        # Hit rate is the part that decides whether the rate is real, so it
-        # gets a three-way read rather than a binary one: a perfect record
-        # is the strongest thing this card can say, missing every game is
-        # the weakest, and a mixed record sits visibly between the two
-        # rather than reading the same as zero.
-        if not apps:
-            hit_cls = "dchits"
-        elif hits == apps:
-            hit_cls = "good-pill"
-        elif hits == 0:
-            hit_cls = "bad-pill"
-        else:
-            hit_cls = "warn-pill"
-        items.append(
-            '<li class="dcr"><span class="dcname">{}</span>'
-            '<span class="dctrack">'
-            '<span class="dcfill" style="width:{:.1f}%;background:{}"></span>'
-            '<span class="dcmark" style="left:{:.1f}%" title="Threshold {}"></span>'
-            "</span>"
-            '<span class="dcnum tnum">{:.1f} / {}</span>'
-            '<span class="{}">{} of {}</span></li>'.format(
-                e(name), pct, colour, 100 / scale, threshold, rate, threshold,
-                hit_cls, hits, apps,
-            )
-        )
-    if not items:
-        return ""
-    return (
-        '<div class="find gapcard"><h3>' + icon("defence") + 'Defensive contribution{}</h3>'
-        '<p class="note" hidden>Two points a match at the threshold. The notch is the '
-        "threshold; the bar is the rate per 90.</p>"
-        '<ul class="dclist">{}</ul></div>'.format(info_btn(), "".join(items))
-    )
-
-
 # Hand-drawn rather than fetched: an icon font or sprite sheet would be
 # another asset to embed, and these are three shapes.
 ICONS = {
@@ -250,98 +138,6 @@ ICONS = {
         "</svg>"
     ),
 }
-
-
-def set_piece_card(groups):
-    """Set-piece duties, grouped by the duty rather than by the player.
-
-    The question is "who takes our penalties", not "what does this player
-    take", so the duty is the heading and the takers sit under it in the order
-    the club has them."""
-    blocks = []
-    for key, title, rows in groups:
-        if not rows:
-            continue
-        takers = "".join(
-            '<li{cls}><span class="sprank">{order}</span>'
-            '<span class="spname">{name}</span>'
-            '<span class="spteam">{team}</span></li>'.format(
-                cls=' class="first"' if order == 1 else "",
-                order=order, name=e(name), team=e(team))
-            for order, name, team in rows
-        )
-        blocks.append(
-            '<div class="spgroup"><h4>{}{}</h4><ol class="splist">{}</ol></div>'.format(
-                ICONS.get(key, ""), e(title), takers
-            )
-        )
-    if not blocks:
-        return ""
-    return (
-        '<div class="find gapcard"><h3>' + icon("free-kicks") + 'Set pieces{}</h3>'
-        '<p class="note" hidden>Who takes them, in the order the club lists them.</p>'
-        '<div class="spwrap">{}</div></div>'.format(info_btn(), "".join(blocks))
-    )
-
-
-TREND = {
-    "up": (
-        '<svg viewBox="0 0 24 24" class="pmicon" aria-hidden="true">'
-        '<path d="M3 17.5l5.5-5.5 3.5 3.5L21 6.5" fill="none" '
-        'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
-        'stroke-linejoin="round"/>'
-        '<path d="M15 6.5h6v6" fill="none" stroke="currentColor" '
-        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-    ),
-    "down": (
-        '<svg viewBox="0 0 24 24" class="pmicon" aria-hidden="true">'
-        '<path d="M3 6.5l5.5 5.5 3.5-3.5L21 17.5" fill="none" '
-        'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
-        'stroke-linejoin="round"/>'
-        '<path d="M15 17.5h6v-6" fill="none" stroke="currentColor" '
-        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-    ),
-}
-
-
-def price_move_card(moves):
-    """Price changes since the season started, risers against fallers.
-
-    `moves` is [(name, old_price, new_price)]. Written as a split rather than
-    one list because the two directions mean opposite things - a rise you
-    missed costs you money, a fall in your own squad costs you money - and a
-    single column mixing them made you read every line to find out which
-    kind each one was. The prices are shown as the move itself, old to new,
-    since "risen 0.1m, now 5.6m" asked you to do the subtraction to find out
-    what you would have paid."""
-    ups = [m for m in moves if m[2] > m[1]]
-    downs = [m for m in moves if m[2] < m[1]]
-    if not ups and not downs:
-        return ""
-
-    def block(rows, key, title):
-        if not rows:
-            return ""
-        items = "".join(
-            '<li><span class="pmname">{name}</span>'
-            '<span class="pmprice">{old:.1f}<i>&rarr;</i>{new:.1f}</span></li>'
-            .format(name=e(n), old=o, new=w)
-            for n, o, w in rows
-        )
-        return (
-            '<div class="pmgroup pm-{key}"><h4>{icon}{title}</h4>'
-            '<ul class="pmlist">{items}</ul></div>'.format(
-                key=key, icon=TREND[key], title=e(title), items=items)
-        )
-
-    return (
-        '<div class="find gapcard"><h3>' + icon("price-rise") + 'Price movement{}</h3>'
-        '<p class="note" hidden>Over the last 7 days. The season-long change for '
-        "any one player is on their own card, in the squad view.</p>"
-        '<div class="pmwrap">{}{}</div></div>'.format(
-            info_btn(), block(ups, "up", "Rise"), block(downs, "down", "Fall")
-        )
-    )
 
 
 def duty_badges(el):
@@ -405,8 +201,6 @@ def wc_stats_block(before, after):
             )
         )
     return '<div class="wcstats">{}</div>'.format("".join(rows))
-
-
 
 
 STAT_ICONS = {
@@ -534,7 +328,8 @@ def _opp_plate(opp):
 
 def _deck_figs(rows):
     """The why, as figures: projected points, form, a chance rate and the
-    next three fixtures' mean FPL difficulty, one row per player."""
+    next three fixtures' mean rating (0-10, higher is better), one row per
+    player."""
     labels = {f["chance_label"] for _n, _xp, f, _was in rows}
     chance = labels.pop() if len(labels) == 1 else "xGI·xGC/90"
 
@@ -544,15 +339,15 @@ def _deck_figs(rows):
     body = "".join(
         f'<tr{" class=was" if was else ""}><th scope="row">{e(name)}</th>'
         f'<td>{num(xp)}</td><td>{num(f["form"])}</td><td>{num(f["chance"], "{:.2f}")}</td>'
-        f'<td>{num(f["fdr"])}</td></tr>'
+        f'<td>{num(f["fix"])}</td></tr>'
         for name, xp, f, was in rows)
     return ('<table class="deck-figs tnum"><thead><tr><th></th><th scope="col">xP</th>'
             f'<th scope="col">Form</th><th scope="col">{chance}</th>'
-            '<th scope="col" title="Mean FPL difficulty of the next three fixtures">FDR</th></tr></thead>'
+            '<th scope="col" title="Next three fixtures, out of 10, higher is better">Fix</th></tr></thead>'
             f'<tbody>{body}</tbody></table>')
 
 
-def transfer_deck(singles, pairs, hit=4):
+def transfer_deck(singles, pairs, hit=4, end_gw=None, plan_moves=(), kneejerk=None):
     """Other transfer options as a swipe deck.
 
     Each option is a purple card: the outgoing player greyed, the incoming one
@@ -560,14 +355,25 @@ def transfer_deck(singles, pairs, hit=4):
     plate, then the name, a few figures for why and one big gain. Ranked by
     gain, best first, pairs and singles together; a pair is priced after
     whatever hit it costs. The ranked list beside the deck (faces on a phone)
-    jumps straight to any card. The plan above has already weighed these and
-    chosen the week, so this is for browsing the alternatives, never for the
-    headline move."""
+    jumps straight to any card.
+
+    Alternatives only: a move the plan already makes (`plan_moves`, a set of
+    (out id, in id)) is the plan's card, not this deck's, and a pair made
+    entirely of such moves goes with it. `kneejerk` ({"id", "points", "gw"})
+    tags the card that signs last week's big haul you did not own."""
+    plan_moves = set(plan_moves)
+
+    def planned(out_el, in_el):
+        return (out_el.element["id"], in_el["id"]) in plan_moves
+
     options = []
     for r in singles or []:
-        options.append(("single", r["gain"], r))
+        if not planned(r["out"], r["in"]):
+            options.append(("single", r["gain"], r))
     for p in pairs or []:
-        options.append(("pair", p["gain"] - hit, p))
+        if not all(planned(leg["out"], leg["in"]) for leg in p["legs"]):
+            options.append(("pair", p["gain"] - hit, p))
+    window = f"xP to GW{end_gw}" if end_gw else "xP"
     if not options:
         return ""
     options.sort(key=lambda o: -o[1])
@@ -589,14 +395,16 @@ def transfer_deck(singles, pairs, hit=4):
                 if r["in"].get(field) == 1)
             if duties:
                 plate += f'<span class="deck-duties">{duties}</span>'
-            label = ""
+            label = (f'<span class="lab">Knee-jerk &middot; {kneejerk["points"]} in '
+                     f'GW{kneejerk["gw"]}</span>'
+                     if kneejerk and kneejerk["id"] == r["in"]["id"] else "")
             title = e(in_name)
             spend = -r["spend"]
             money = "free swap" if abs(spend) < 0.05 else f"bank {spend:+.1f}m"
             meta = f'{e(r["in_club"])} &middot; {r["price"]:.1f}m &middot; {money}'
             figs = _deck_figs([(in_name, r["in_score"]["total"], r["figs"][1], False),
                                (out_name, r["out_score"]["total"], r["figs"][0], True)])
-            unit = "to your XI, next<br>five weeks"
+            unit = f"to your XI,<br>{window}"
             faces = [r.get("in_photo")]
             short = in_name
         else:
@@ -616,8 +424,8 @@ def transfer_deck(singles, pairs, hit=4):
                     f' &middot; {r["bank_after"]:.1f}m left')
             figs = _deck_figs([(leg["in"]["web_name"], leg["in_score"]["total"], leg["figs"][1], False)
                                for leg in legs])
-            unit = ("together, next<br>five weeks" if hit == 0
-                    else f"after the −{hit},<br>next five weeks")
+            unit = (f"together,<br>{window}" if hit == 0
+                    else f"after the −{hit},<br>{window}")
             faces = [leg.get("in_photo") for leg in legs]
             short = " + ".join(leg["in"]["web_name"] for leg in legs)
         # The shimmer sits on the card and the photo panel's ground, never

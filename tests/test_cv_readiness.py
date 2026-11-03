@@ -14,6 +14,7 @@ import cards_squad
 import chips
 import dashboard
 import fplapi
+import planner
 import squadbuilder
 import transfers
 import ticker
@@ -51,15 +52,14 @@ class DocumentTests(unittest.TestCase):
 
     @staticmethod
     def _minimal_data(**extra):
-        fields = ["pitch", "pick_pitch", "squad_table", "findings", "market", "best_xi",
-                  "kneejerk", "verdicts", "transfers", "pairings", "captaincy", "chip_planner",
-                  "ticker", "fixture_runs", "leaders", "price_watch", "scatter", "elite",
-                  "league_table", "position_chart", "template", "carousel", "differentials",
-                  "watchlist", "rivals", "ownership", "chips", "scout", "dialog"]
+        fields = ["pitch", "pick_pitch", "squad_table", "findings", "captaincy", "chip_planner",
+                  "ticker", "fixture_runs", "price_watch", "elite", "league_table",
+                  "position_chart", "template", "differentials", "watchlist", "rivals",
+                  "chips", "scout", "dialog"]
         data = dict.fromkeys(fields, "")
         data.update(ctx=analysis.Ctx(boot={}), team_name="Test squad", manager="Manager",
                     league_name="League", entry_history={}, gw=6, next_gw=7,
-                    league_size=8, my_rank=4, generated="14 Oct 2026", source_health={})
+                    generated="14 Oct 2026", source_health={})
         data.update(extra)
         return data
 
@@ -134,16 +134,10 @@ class SelectionTests(unittest.TestCase):
             self.assertTrue(transfers.suggest(ctx, reports, {}, 7, {}, {}, bank=3.1))
             self.assertEqual(transfers.suggest(ctx, reports, {}, 7, {}, {}, bank=3.1, sell_values=sold), [])
 
-    def test_buy_and_avoid_do_not_overlap(self):
-        ctx, reports, scores = make_reports(full_fifteen())
-        for pid, value in ((98, 40), (99, 36)):
-            ctx.players[pid] = {"id": pid, "element_type": 3, "team": "NEW",
-                                "now_cost": 50, "web_name": str(pid), "transfers_in_event": 500000}
-            scores[pid] = {"total": value, "opponent": "OPP", "home": True}
-        ctx.teams["NEW"] = {"name": "New", "short_name": "NEW"}
-        board = transfers.verdict_board(ctx, reports, scores, bank=3)
-        self.assertTrue(board["avoid"])
-        self.assertFalse({r["id"] for r in board["buy"]} & {r["id"] for r in board["avoid"]})
+    def test_transfer_horizon_is_the_plans(self):
+        # The deck and watchlist price a player over the same window as the
+        # plan beside them, never over a second span.
+        self.assertEqual(transfers.TRANSFER_HORIZON_WEEKS, planner.HORIZON)
 
 
 class PredictedLineupParseTests(unittest.TestCase):
@@ -213,8 +207,8 @@ class ChipTests(unittest.TestCase):
         tc = {"player": SimpleNamespace(name="Captain"), "gw": 7, "ep": 8,
               "confidence": "flexible", "series": [(7, 8), (8, 7.9), (9, 2)]}
         html = cards_planning.chip_planner_card(None, tc, None, None, {}, [], [], None, {}, {}, {}, {}, 7)
-        self.assertIn('24.0 with Triple Captain', html)
-        self.assertIn('8.0 more than a normal captaincy', html)
+        # The chip's own figure: what the third multiple adds, one captain's xP.
+        self.assertIn('<b>+8.0</b> xP', html)
         self.assertIn('Timing flexible', html)
         self.assertNotIn('clearly ahead', html)
 

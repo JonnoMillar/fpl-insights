@@ -6,6 +6,7 @@ into his two hardest fixtures, burning a free transfer on a coin flip,
 boosting a bench whose keeper never plays.
 """
 
+import re
 import unittest
 
 import planner
@@ -343,6 +344,8 @@ class BenchBoostTests(unittest.TestCase):
                               chips=[{"key": "bboost", "first": 0, "last": long - 1}])
         self.assertFalse(any(w["chip"] for w in plan["weeks"]))
         self.assertEqual(plan["held_chips"][0]["gw"], 10 + H + 1)
+        # A roll prepares nothing: only weeks with moves can carry a chip-prep tag.
+        self.assertTrue(all(w["chip_prep"] is None for w in plan["weeks"] if not w["moves"]))
 
 
 if __name__ == "__main__":
@@ -380,5 +383,10 @@ class PlanCardRenderTests(unittest.TestCase):
         self.assertIn(f"P{move['out']}", html)
         self.assertIn(f"{week['gain']:+.1f}</b> xP", html)
         self.assertIn(f"{week['bank']:.1f}m in the bank", html)
-        self.assertIn(f"{move['in_pts']:.1f}", html)
-        self.assertIn("Waits out", html)
+        # One gain per move, in the stage head: no per-leg points in the caption.
+        caption = re.search(r'class="move-slot plan-move">(.*?)</li>', html).group(1)
+        self.assertNotIn(f"{move['in_pts']:.1f}", caption)
+        self.assertIn("waits out", caption)
+        # Consecutive rolls (here GW13-17) share one tile.
+        self.assertIn('<span class="lab">GW13–17</span>', html)
+        self.assertEqual(html.count('class="wk"'), 3)

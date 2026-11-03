@@ -46,20 +46,19 @@
   var MAX_SHORTLIST = 6;   // spec §5: "Max six players"
   var Z_CLAMP = 3;         // plan §2.7: bars clamp at +/-3, outliers labelled
 
-  // Fixture difficulty reuses the page's own rose-teal ramp (ticker.py's
-  // SCALE) rather than a second diverging scale (plan §2.5) - a fixture
-  // must read the same number and colour wherever it appears. Difficulty
-  // here is 1..5 with higher meaning harder, the reverse of ticker.py's
-  // 0..10 "higher is better" rating, so the five steps are ticker.SCALE's
-  // own five (bg, fg) pairs in reverse: 1 (easiest) is deep green, 5
-  // (hardest) is night. If ticker.SCALE ever changes, update this to match.
+  // Fixture ratings use the page's one scale, 0..10 higher is better, and
+  // ticker.py's own five-step ramp: night for the hardest, deep green for
+  // the kindest. If ticker.SCALE ever changes, update this to match.
   var FIXTURE_TONES = [
-    ['#2fbf7a', '#16001a'],
-    ['#00ff87', '#16001a'],
-    ['#eeecef', '#16001a'],
-    ['#6e6474', '#ffffff'],
     ['#16001a', '#ffffff'],
+    ['#6e6474', '#ffffff'],
+    ['#eeecef', '#16001a'],
+    ['#00ff87', '#16001a'],
+    ['#2fbf7a', '#16001a'],
   ];
+  function fixtureTone(rating) {
+    return FIXTURE_TONES[Math.max(0, Math.min(4, Math.floor(rating / 2)))];
+  }
 
   // The page's own purple ramp, matching scout.py's PERCENTILE_SCALE. A
   // percentile is sequential data with no midpoint to diverge around, so
@@ -836,7 +835,7 @@
         function cells(field) {
           return fx.map(function (f) {
             if (f.blank) { return '<td class="tick-blank">-</td>'; }
-            var tone = FIXTURE_TONES[f[field] - 1] || FIXTURE_TONES[2];
+            var tone = fixtureTone(f[field]);
             // Same grammar as the fixture-run pills: capitals at home.
             var opp = f.home ? f.opp.toUpperCase() : f.opp.toLowerCase();
             return '<td style="background:' + tone[0] + ';color:' + tone[1] + '" title="GW' + f.gw +
@@ -929,14 +928,6 @@
     }
     if (minsPerStart) { minsPerStart.addEventListener('change', function () { filters.minMinutesPerStart = this.value ? parseFloat(this.value) : null; draw(); }); }
     if (teamSel) { teamSel.addEventListener('change', function () { filters.team = this.value ? parseInt(this.value, 10) : null; draw(); }); }
-    // The horizon control lives on the fixture-runs card, not here, but
-    // the shortlist's own fixture strip has to follow it - one horizon per
-    // position, whichever card the reader changed it on.
-    var view = lab.closest('.scoutview') || panel;
-    view.addEventListener('scout:horizon', function (ev) {
-      filters.fixtureHorizon = ev.detail;
-      if (compareCard && !compareCard.hidden) { renderCompare(); }
-    });
     lab.querySelectorAll('.scoutheat th[data-sort]').forEach(function (th) {
       function doSort() {
         var key = th.dataset.sort;
@@ -953,73 +944,6 @@
     draw();
   }
 
-  // -- fixture runs ----------------------------------------------------
-  //
-  // Two ranked club lists over a horizon the reader picks. Ranked here
-  // rather than server-side because changing the horizon changes the
-  // ranking, and a control that reorders nothing is the reason the old
-  // horizon selector felt broken.
-
-  // Each list reads one difficulty field (data-fx) and ranks kindest
-  // first, or hardest first where the list is marked data-hardest.
-  function initFixtureRuns(view, runs) {
-    var card = view.querySelector('.scoutfx');
-    if (!card || !runs) { return; }
-    var sel = card.querySelector('.sf-horizon');
-    if (!sel) { return; }
-
-    var DEPTH = 6;
-
-    function chips(cells, field, horizon) {
-      return cells.slice(0, horizon).map(function (c) {
-        if (c.blank) { return '<span class="rpill fxr-blank">&mdash;</span>'; }
-        var tone = FIXTURE_TONES[c[field] - 1] || FIXTURE_TONES[2];
-        var label = c.home ? c.opp.toUpperCase() : c.opp.toLowerCase();
-        return '<span class="rpill" style="background:' + tone[0] + ';color:' + tone[1] +
-          '" title="GW' + c.gw + ', ' + (c.home ? 'at home to ' : 'away to ') + esc(c.opp) +
-          ' - difficulty ' + c[field] + ' of 5">' + esc(label) + '<b>' + c[field] + '</b></span>';
-      }).join('');
-    }
-
-    // null when the club has no fixture in the horizon at all.
-    function meanOver(run, field, horizon) {
-      var real = run.cells.slice(0, horizon).filter(function (c) { return !c.blank; });
-      if (!real.length) { return null; }
-      return real.reduce(function (s, c) { return s + c[field]; }, 0) / real.length;
-    }
-
-    function render() {
-      var horizon = parseInt(sel.value, 10) || 6;
-      card.querySelectorAll('.fxrun-list[data-fx]').forEach(function (list) {
-        var field = list.dataset.fx;
-        var dir = list.dataset.hardest ? -1 : 1;
-        // A club with no fixture has no run to rank, kind or tough. It is
-        // dropped rather than given a sentinel score: a sentinel sorted to
-        // the top of the "toughest" list whenever a blank week fell inside
-        // the horizon, and printed its fake average beside the club.
-        var ranked = runs.map(function (run) {
-          return { run: run, mean: meanOver(run, field, horizon) };
-        }).filter(function (x) { return x.mean !== null; }).sort(function (a, b) {
-          return dir * (a.mean - b.mean);
-        }).slice(0, DEPTH);
-        list.innerHTML = ranked.map(function (x, i) {
-          var run = x.run;
-          return '<li><span class="slrank">' + (i + 1) + '</span>' +
-            '<span class="fxrun-club">' + esc(run.club) + '</span>' +
-            '<span class="fxrun-avg tnum" title="Average difficulty over the run">' +
-            x.mean.toFixed(1) + '</span>' +
-            '<span class="fxrun-chips">' + chips(run.cells, field, horizon) + '</span></li>';
-        }).join('');
-      });
-      // One horizon per position: the shortlist's fixture strip listens for
-      // this rather than keeping its own copy.
-      view.dispatchEvent(new CustomEvent('scout:horizon', { detail: horizon }));
-    }
-
-    sel.addEventListener('change', render);
-    render();
-  }
-
   // -- position switch --------------------------------------------------
   //
   // One lab on screen at a time. Each is initialised the first time it is
@@ -1029,7 +953,6 @@
   function initView(view) {
     if (!view || view._scoutReady) { return; }
     view._scoutReady = true;
-    initFixtureRuns(view, fixtureRuns);
     view.querySelectorAll('.scoutlab').forEach(initLab);
   }
 

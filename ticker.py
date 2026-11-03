@@ -33,7 +33,6 @@ when you glance down a row.
 import html
 
 import components
-from cards_common import icon
 import ffs
 
 # Anchors for the two components. Roughly the 10th and 90th percentile of a
@@ -395,21 +394,14 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=FIXTURE_GAMES_MAX, market
         "Target fixtures</button>"
         "</div>"
     )
+    # Shut under the fixture-run band, which is its summary: the twenty-club
+    # grid opens only when the band's best and worst three are not enough.
     return (
-        '<section class="card"><div class="card-head">'
-        f'<h2>Fixture outlook{components.info_btn()}</h2>'
-        '<span class="sub" hidden>Rated out of ten for how good a fixture is to '
-        'own a player for &mdash; <b>higher is better</b>, the opposite way '
-        "round to FPL's own 1-5. <b>CAPITALS are home, lower case away.</b> "
-        'Expected goals and clean-sheet odds combined, '
-        "weighted toward attack. A dot means the market priced it. Games sets how "
-        "many of the next fixtures the Rating column averages; Target "
-        f"fixtures dims everything below {TARGET_RATING:g} so the genuinely "
-        f"good ones stand out. {FIXTURE_PAGE_SIZE} clubs at a time - cycle "
-        "through with the arrows, or sort a column to re-rank all twenty - "
-        "click Owned to bring your own squad's clubs to the top.</span>"
-        f'{controls}</div>'
-        f'{nav}'
+        '<details class="card collapsible fxcard"><summary class="card-head">'
+        f'<h2>All {len(rows)} clubs{components.info_btn()}</h2>'
+        '<span class="sub" hidden>Out of ten, higher is better. '
+        'CAPITALS are home. A dot means the market priced it.</span></summary>'
+        f'<div class="card-body">{controls}{nav}'
         f'<table data-sortable data-paged class="fxtable" '
         f'data-games="{FIXTURE_GAMES_DEFAULT}" data-target="{TARGET_RATING}">'
         '<thead><tr><th scope="col" class="sortable">Club</th>'
@@ -418,11 +410,12 @@ def fixture_ticker(reports, ctx, proj, start_gw, weeks=FIXTURE_GAMES_MAX, market
         '<th scope="col" class="num sortable" title="Mean rating over the '
         'games selected - higher is better">Rating</th>'
         f"{heads}</tr></thead><tbody>"
-        f"{''.join(r[2] for r in rows)}</tbody></table></section>"
+        f"{''.join(r[2] for r in rows)}</tbody></table></div></details>"
     )
 
 
-def fixture_run_summary(reports, ctx, proj, market, next_gw, weeks=6, n=3, badges=None):
+def fixture_run_summary(reports, ctx, proj, market, next_gw, weeks=6, n=3, badges=None,
+                        lenses=()):
     """The best and worst fixture runs in the whole league, not just yours.
 
     Two rankings, not one, because they answer different questions. Our own
@@ -437,7 +430,11 @@ def fixture_run_summary(reports, ctx, proj, market, next_gw, weeks=6, n=3, badge
 
     Drawn as the page's night band: the three kindest runs as glass tiles
     with the club crest breaking out of the corner, the three hardest as a
-    row beneath, and the two rankings behind a switch."""
+    row beneath, and the rankings behind a switch.
+
+    `lenses` adds position questions on the same 0-10 scale, as
+    (key, label, [(team id, short name, mean rating)], note) - the clean
+    sheet, goals and DefCon runs the Scout tab used to rank on its own."""
     badges = badges or {}
     owned = {}
     for r in reports:
@@ -486,13 +483,14 @@ def fixture_run_summary(reports, ctx, proj, market, next_gw, weeks=6, n=3, badge
             + "</ul></div></div>"
         )
 
+    def one_dp(v):
+        return f"{v:.1f}"
+
     groups = [g for g in (
-        ("model", "Expected output", model_rows,
-         "Out of 10 · higher is better",
-         True, lambda v: f"{v:.1f}"),
-        ("fdr", "FPL difficulty", fdr_rows,
-         "FPL 1–5 · lower is easier",
-         False, lambda v: f"{v:.1f}")) if g[2]]
+        ("model", "Expected output", model_rows, "Out of 10 · higher is better", True, one_dp),
+        *((key, label, rows, note, True, one_dp) for key, label, rows, note in lenses),
+        ("fdr", "FPL difficulty", fdr_rows, "FPL 1–5 · lower is easier", False, one_dp),
+    ) if g[2]]
     tabs = "".join(
         f'<button type="button" role="tab" aria-selected="{"true" if i == 0 else "false"}" '
         f'data-fro="{key}">{e(label)}</button>'
@@ -507,235 +505,4 @@ def fixture_run_summary(reports, ctx, proj, market, next_gw, weeks=6, n=3, badge
         '<h2 class="disp" id="fro-title">Best fixture runs</h2></div>'
         f'<div class="frotabs" role="tablist" aria-label="Fixture rating">{tabs}</div></div>'
         f'{parts}</section>'
-    )
-
-
-ODDS_ICON = {"shield": "clean-sheet", "key": "compare", "spark": "goals", "ball": "goals",
-             "flame": "goals", "target": "penalties"}
-
-
-def odds_insights(fixtures, reports, ctx, proj, next_gw):
-    """What the market means for this squad.
-
-    A grid of prices is the raw material, not the answer - reading it and
-    working out what it implies for your eleven is the job, so this does that
-    job instead of printing the prices. Every line names the players affected
-    and the number behind it."""
-    if not fixtures:
-        return ""
-    # Pinnacle price several rounds at once - three were live the day this
-    # guard was added - and this used to let each club's *last* listed
-    # fixture win, which is the furthest one away. That silently reported
-    # next-next-gameweek odds under this gameweek's heading: Chelsea's line
-    # came from a fixture nine days out.
-    #
-    # Taking the soonest instead is nearly right but not right: while a round
-    # is still finishing, a club's soonest match is last week's, so a heading
-    # naming this gameweek would carry a row from the previous one. Pin each
-    # club to the fixture FPL itself lists for `next_gw` and accept the
-    # priced match only when the opponent agrees.
-    want = {}
-    for fx in ctx.fixtures:
-        if fx.get("event") != next_gw:
-            continue
-        h, a = ctx.team_name(fx["team_h"]), ctx.team_name(fx["team_a"])
-        want[h] = (a, True)
-        want[a] = (h, False)
-
-    by_club = {}
-    for fx in sorted(fixtures, key=lambda f: f.get("kickoff") or ""):
-        for club, opp, home in ((fx["home"], fx["away"], True),
-                                (fx["away"], fx["home"], False)):
-            if club in by_club:
-                continue
-            expect = want.get(club)
-            if expect and (expect[0] != opp or expect[1] != home):
-                continue  # a different round's fixture for this club
-            by_club[club] = (fx, home)
-
-    def side(fx, home, key):
-        return fx[("home_" if home else "away_") + key]
-
-    rows = []
-    for r in reports:
-        entry = by_club.get(r.team)
-        if not entry:
-            continue
-        fx, home = entry
-        win = (fx.get("win") or {}).get("home" if home else "away", 0)
-        rows.append({
-            "r": r, "fx": fx, "home": home,
-            "xg": side(fx, home, "xg"), "cs": side(fx, home, "cs"),
-            "opp": fx["away"] if home else fx["home"],
-            "win": win, "total": fx["total"],
-        })
-    if not rows:
-        return ""
-
-    items = []
-
-    attackers = [x for x in rows if x["r"].pos in ("MID", "FWD")]
-    if attackers:
-        b = max(attackers, key=lambda x: x["xg"])
-        # Team-level market goals do not identify an individual goalscorer.
-        mates = sorted({x["r"].name for x in attackers if x["fx"] is b["fx"]})
-        items.append({
-            "tone": "good", "icon": "spark", "label": "Best attacking fixture",
-            "value": "{:.2f}".format(b["xg"]), "unit": "goals priced",
-            "who": ", ".join(mates[:3]),
-            "detail": "{} v {} &middot; {:.0f}% to win".format(
-                b["r"].team, b["opp"], b["win"]),
-        })
-
-    backs = [x for x in rows if x["r"].pos in ("GKP", "DEF")]
-    if backs:
-        b = max(backs, key=lambda x: x["cs"])
-        mates = [x["r"].name for x in backs if x["r"].team == b["r"].team]
-        items.append({
-            "tone": "good", "icon": "shield", "label": "Likeliest clean sheet",
-            "value": "{:.0f}%".format(b["cs"]), "unit": (
-                "quoted" if b["fx"].get("cs_source") == "quoted" else "derived"),
-            "who": ", ".join(sorted(mates)[:3]),
-            "detail": "{} v {}".format(b["r"].team, b["opp"]),
-        })
-        w = min(backs, key=lambda x: x["cs"])
-        if w["cs"] < 20:
-            items.append({
-                "tone": "bad", "icon": "shield", "label": "Least likely clean sheet",
-                "value": "{:.0f}%".format(w["cs"]), "unit": "clean sheet",
-                "who": w["r"].name,
-                "detail": "{} v {}".format(w["r"].team, w["opp"]),
-            })
-
-    gaps = []
-    for x in rows:
-        model = proj.get((x["r"].team, next_gw))
-        if model:
-            gaps.append((abs(x["cs"] - float(model.get("cs") or 0)), x, model))
-    if gaps:
-        mag, x, model = max(gaps, key=lambda g: g[0])
-        if mag >= 6:
-            items.append({
-                "tone": "info", "icon": "key", "label": "Market v model",
-                "value": "{:+.0f}".format(x["cs"] - float(model.get("cs") or 0)),
-                "unit": "points apart on CS",
-                "who": x["r"].team,
-                "detail": "market {:.0f}% &middot; model {:.0f}%".format(
-                    x["cs"], float(model.get("cs") or 0)),
-            })
-
-    if not items:
-        return ""
-    cards = "".join(
-        '<li class="oi oi-{tone}">'
-        '{icon}'
-        '<p class="oi-label">{label}</p>'
-        '<p class="oi-value">{value}<small>{unit}</small></p>'
-        '<p class="oi-who">{who}</p>'
-        '<p class="oi-detail">{detail}</p></li>'.format(
-            tone=it["tone"], icon=icon(ODDS_ICON.get(it["icon"], "information"), "oi-icon"),
-            label=e(it["label"]), value=e(it["value"]), unit=e(it["unit"]),
-            who=e(it["who"]), detail=it["detail"])
-        for it in items
-    )
-    return (
-        '<section class="card"><div class="card-head">'
-        f"<h2>What the odds mean for gameweek {next_gw}{components.info_btn()}</h2>"
-        '<span class="sub" hidden>Pinnacle, margin removed, applied to your squad. '
-        "Each club's next match only.</span></div>"
-        f'<div class="card-body"><ul class="oilist">{cards}</ul></div></section>'
-    )
-
-
-ICON_PATHS = {
-    "spark": '<path d="M4 17l5-6 4 3 6-8" fill="none" stroke="currentColor" '
-             'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>',
-    "shield": '<path d="M12 3 20 6v6c0 4-3.4 7.4-8 9-4.6-1.6-8-5-8-9V6Z" fill="none" '
-              'stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',
-    "ball": '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" '
-            'stroke-width="1.7"/><path d="M12 7.2l3.6 2.6-1.4 4.2H9.8L8.4 9.8Z" '
-            'fill="none" stroke="currentColor" stroke-width="1.5" '
-            'stroke-linejoin="round"/>',
-    "run": '<circle cx="14" cy="5" r="2" fill="currentColor"/>'
-           '<path d="M13 9l-4 3 2 4-3 4M13 9l4 2 2 4" fill="none" '
-           'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" '
-           'stroke-linejoin="round"/>',
-    "key": '<path d="M4 12h9M13 8l4 4-4 4" fill="none" stroke="currentColor" '
-           'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
-           '<circle cx="19" cy="12" r="2" fill="currentColor"/>',
-}
-
-
-def _bar(parts):
-    """A single stacked probability bar, used for win / draw / loss."""
-    segs = "".join(
-        '<span class="mb-seg" style="width:{:.1f}%;background:{}" title="{} {:.0f}%">'
-        "</span>".format(pct, colour, e(label), pct)
-        for label, pct, colour in parts if pct > 0.5
-    )
-    return '<span class="mbar">{}</span>'.format(segs)
-
-
-def market_card(market, ctx, reports, fixtures=None):
-    """The coming round, as the market sees it.
-
-    One card per fixture your players are involved in, rather than a table:
-    each fixture is a small story - who is favoured, how many goals, who is
-    likely to keep it out - and a row of numbers tells it badly."""
-    if not fixtures:
-        return ""
-    mine = {r.team for r in reports}
-    cards = []
-    for fx in fixtures:
-        if fx["home"] not in mine and fx["away"] not in mine:
-            continue
-        win = fx.get("win") or {}
-        bar = _bar([
-            ("Home win", win.get("home", 0), "#953bff"),
-            ("Draw", win.get("draw", 0), "#c3b2c4"),
-            ("Away win", win.get("away", 0), "#00b3d6"),
-        ]) if win else ""
-        btts = (
-            '<div class="mstat"><dt>Both score</dt><dd>{:.0f}%</dd></div>'.format(fx["btts"])
-            if fx.get("btts") else ""
-        )
-        quoted = fx.get("cs_source") == "quoted"
-        cards.append(
-            '<li class="mcard">'
-            '<div class="mteams"><span class="mt {hcls}">{home}</span>'
-            '<span class="mvs">v</span>'
-            '<span class="mt {acls}">{away}</span>'
-            '<span class="mtotal">{total:.2f}<small>goals</small></span></div>'
-            "{bar}"
-            '<div class="mkeys"><span>{hw:.0f}%</span><span>{dw:.0f}%</span>'
-            '<span>{aw:.0f}%</span></div>'
-            '<dl class="mstats">'
-            '<div class="mstat"><dt>{home} xG</dt><dd>{hxg:.2f}</dd></div>'
-            '<div class="mstat"><dt>{away} xG</dt><dd>{axg:.2f}</dd></div>'
-            '<div class="mstat"><dt>{home} CS</dt><dd>{hcs:.0f}%</dd></div>'
-            '<div class="mstat"><dt>{away} CS</dt><dd>{acs:.0f}%</dd></div>'
-            "{btts}</dl>"
-            '<p class="mfoot">{note}</p></li>'.format(
-                home=e(fx["home"]), away=e(fx["away"]),
-                hcls="mine" if fx["home"] in mine else "",
-                acls="mine" if fx["away"] in mine else "",
-                total=fx["total"], bar=bar,
-                hw=win.get("home", 0), dw=win.get("draw", 0), aw=win.get("away", 0),
-                hxg=fx["home_xg"], axg=fx["away_xg"],
-                hcs=fx["home_cs"], acs=fx["away_cs"], btts=btts,
-                note=("Clean sheets quoted directly by the market."
-                      if quoted else
-                      "Clean sheets derived from the goals line, not quoted."),
-            )
-        )
-    if not cards:
-        return ""
-    return (
-        '<section class="card"><div class="card-head">'
-        f'<h2>The coming round, priced{components.info_btn()}</h2>'
-        '<span class="sub" hidden>Pinnacle, with the bookmaker margin removed. Only the '
-        "fixtures your players are in.</span></div>"
-        '<div class="card-body"><ul class="mlist">{}</ul></div></section>'.format(
-            "".join(cards)
-        )
     )

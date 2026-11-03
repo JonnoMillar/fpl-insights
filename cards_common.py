@@ -4,16 +4,6 @@ import html
 import json
 
 
-
-TONE_COLOR = {
-    "good": "var(--good)",
-    "bad": "var(--bad)",
-    "warn": "var(--attention)",
-    "info": "var(--p60)",
-    "neutral": "var(--p60)",
-}
-
-
 def e(x):
     return html.escape(str(x), quote=True)
 
