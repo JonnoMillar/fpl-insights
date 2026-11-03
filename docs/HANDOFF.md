@@ -1,10 +1,10 @@
 # HANDOFF — FPL Insights
 
-Last updated: 3 November 2026 (dedupe pass on branch `claude/dedupe-integration`, not merged to main). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
+Last updated: 3 November 2026 (redesign + dedupe published to origin/main and live). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
 
-## Now: dedupe pass, awaiting Jonno's review (2–3 November 2026)
+## Now: dedupe pass, published 3 November 2026
 
-Branch `claude/dedupe-integration` (worktree `.claude/worktrees/dedupe-integration`) = local main + four merged branches (planner-roll-streak, visual-declutter, league-differentials, season-review) + the dedupe from [`docs/audits/2026-11-02-data-placement.md`](audits/2026-11-02-data-placement.md). Main is untouched: it has Codex's staged `research/**` index, so `git merge` refuses there; try `git merge --ff-only refs/heads/claude/dedupe-integration` once Jonno approves.
+Published as `6367a48` (merge of the four feature branches, the dedupe from [`docs/audits/2026-11-02-data-placement.md`](audits/2026-11-02-data-placement.md), and origin's bot/licence commits), followed by CI's rebuild `4497ea6`. Next: the unified player profile (one view for every player face).
 
 Rule now: one home per stat. Squad = this week, Planning = the next weeks, League = rivals, Scout = finding players, the player profile = per-player detail. Figures, not sentences.
 
@@ -22,9 +22,8 @@ Rule now: one home per stat. Squad = this week, Planning = the next weeks, Leagu
 
 ## State
 
-- Live: [fpl-insights-jm.vercel.app](https://fpl-insights-jm.vercel.app/), built by GitHub Actions from origin/main. It does not yet have the redesign or the transfer planner.
-- Local main is 33 commits ahead of origin/main and 35 behind (scheduled bot commits). Not pushed. Before publishing: fetch, integrate the bot commits, run a fresh full build plus tests and browser checks, then push. Don't publish until Jonno says so.
-- Main holds the transfer planner and the full redesign (commits `0925aa2`..HEAD). Last verified 1 Nov: 112 tests, `node --check` on all `.js`, fresh `cli.py dashboard --out .cache/ui/final.html` with every source OK, headless Chromium at 1440/1024/375/320 with no page overflow or console errors, and scripted checks of the brief-to-plan jump, week tiles and arrow keys, deck buttons (real mouse clicks)/drag/list, fixture-run switch, player dialog and transfer preview.
+- Live: [fpl-insights-jm.vercel.app](https://fpl-insights-jm.vercel.app/), built by GitHub Actions from origin/main; has the redesign, planner and dedupe since 3 Nov (CI push build passed).
+- Local main checkout (`C:/Users/jonno/code/fpl-insights`) is still at `222e37a`: Codex's staged `research/**` index and the build-rewritten `price_history.json` block a fast-forward there. Work from `claude/dedupe-integration` or a fresh worktree off origin/main. Before every push: fetch, integrate bot commits, fresh full build, tests, browser check.
 - Owners: Claude owns frontend and planner. Codex owns the data-research audit under `research/` (entry point `research/log.md`; production code untouched by it).
 
 ## Separate track: managed account experiment
