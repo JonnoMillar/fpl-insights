@@ -331,6 +331,7 @@ def candidate_score(el, ctx, proj, gw, market, baselines, priors=None,
         "opponent": fixture.get("opp") if fixture else mk["opp"],
         "home": (fixture.get("ven") or "H").upper() == "H" if fixture else mk["home"],
         "priced": bool(mk),
+        "team_xg": team_xg,
     }
 
 

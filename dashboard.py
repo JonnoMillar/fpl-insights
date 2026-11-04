@@ -36,14 +36,14 @@ import odds
 import next_action
 import next_squad
 import planner
+import playerprofile
 import scout
 import season
 import ticker
 import transfers
 from analysis import f
-from cards_common import LOGO_SVG, e, icon
-from cards_squad import (team_news, pick_team_pitch, pitch,
-    player_dialog, player_payload, squad_table)
+from cards_common import LOGO_SVG, e, hook, icon
+from cards_squad import team_news, pick_team_pitch, pitch, squad_table
 from cards_planning import (captaincy_card, chip_planner_card, elite_card,
     price_watch_card)
 from cards_season import season_section
@@ -57,7 +57,7 @@ from cards_plan import plan_card
 
 CSS = (Path(__file__).with_name("dashboard.css")).read_text(encoding="utf-8")
 
-PLAYERVIEW_JS = (Path(__file__).with_name("playerview.js")).read_text(encoding="utf-8")
+PROFILE_JS = (Path(__file__).with_name("profile.js")).read_text(encoding="utf-8")
 CAPTAINCY_JS = (Path(__file__).with_name("captaincy.js")).read_text(encoding="utf-8")
 LEAGUECHART_JS = (Path(__file__).with_name("leaguechart.js")).read_text(encoding="utf-8")
 TICKER_JS = (Path(__file__).with_name("ticker.js")).read_text(encoding="utf-8")
@@ -343,9 +343,9 @@ def render(d, standalone=True):
 
     slots = []
     for m in d.get("brief_moves") or []:
-        out_img = (f'<img class="cut move-old" src="{m["out_photo"]}" alt="">'
+        out_img = (f'<img class="cut move-old" src="{m["out_photo"]}" {hook(m["out_id"], m["out_name"])}>'
                    if m.get("out_photo") else "")
-        in_img = (f'<img class="cut move-new" src="{m["in_photo"]}" alt="">'
+        in_img = (f'<img class="cut move-new" src="{m["in_photo"]}" {hook(m["in_id"], m["in_name"])}>'
                   if m.get("in_photo") else "")
         out_figs, in_figs = m["figs"]
 
@@ -400,7 +400,8 @@ def render(d, standalone=True):
         c = (d.get("captains") or {}).get(mode)
         if not c:
             continue
-        photo = f'<img class="cut" src="{c["photo"]}" alt="">' if c.get("photo") else ""
+        photo = (f'<img class="cut" src="{c["photo"]}" {hook(c["id"], c["name"])}>'
+                 if c.get("photo") else "")
         crest = (f'<img src="{c["opp"]["crest"]}" alt="">'
                  if c.get("opp") and c["opp"].get("crest") else "")
         xp = f'{c["xp"]:.1f}' if c.get("xp") is not None else "&ndash;"
@@ -544,12 +545,17 @@ def render(d, standalone=True):
   </div>
 
 
-  {d['dialog']}
+  <dialog class="pf" aria-labelledby="pf-name">
+    <button class="pf-close" type="button" aria-label="Close player profile">{icon("close")}</button>
+    <div class="pf-body"></div></dialog>
   <p class="foot"><a href="https://github.com/JonnoMillar/fpl-insights">source and
   phone alerts</a></p>
 </div>
 </div>
 """
+    # Every face opens one profile; its data covers exactly the players the
+    # page shows, and the build stops if a face would open nothing.
+    body += playerprofile.island(body, d.get("profiles"))
     # Noto Sans is requested as a weight range: the CSS uses 400 to 900, and a
     # narrower request would silently synthesise the heavy weights.
     fonts = (
@@ -561,7 +567,7 @@ def render(d, standalone=True):
     head = f"<title>FPL Insights · {e(title)}</title>{FAVICON}{SOCIAL_META}{fonts}<style>{CSS}{ICON_CSS}</style>"
     page = (
         f"{head}{body}<script>{JS}</script>"
-        f"<script>{PLAYERVIEW_JS}</script><script>{CAPTAINCY_JS}</script>"
+        f"<script>{PROFILE_JS}</script><script>{CAPTAINCY_JS}</script>"
         f"<script>{LEAGUECHART_JS}</script><script>{TICKER_JS}</script>"
         f"<script>{SCOUT_JS}</script><script>{PLANVIEW_JS}</script>"
     )
@@ -571,7 +577,7 @@ def render(d, standalone=True):
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         f"{head}</head><body>{body}<script>{JS}</script>"
-        f"<script>{PLAYERVIEW_JS}</script>"
+        f"<script>{PROFILE_JS}</script>"
         f"<script>{CAPTAINCY_JS}</script>"
         f"<script>{LEAGUECHART_JS}</script>"
         f"<script>{TICKER_JS}</script>"
@@ -694,12 +700,14 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         if uri:
             photos[r.element["id"]] = uri
 
-    badges, big_badges = {}, {}
+    badges, big_badges, profile_badges = {}, {}, {}
     for tid, t in ctx.teams.items():
         uri = fplapi.badge_data_uri(t["code"])
         if uri:
             badges[tid] = uri
             big_badges[tid] = fplapi.badge_data_uri(t["code"], size=200)
+            # The profile ships each crest once and draws it at 40px at most.
+            profile_badges[tid] = fplapi.badge_data_uri(t["code"], size=64)
 
     rows, squads, by_name, histories = [], {}, {}, {}
     league_name = "Mini-league"
@@ -765,12 +773,12 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
     # transfers.candidate_score, the same bootstrap-only scorer chips.py
     # uses for market-wide candidate pools (see shared-scorer-architecture
     # memory) - priors computed once here, never inside the per-position loop.
+    scout_priors = transfers.positional_priors(ctx)
     try:
         scout_live = scout.season_live(ctx, ctx.current_event() or 1, ttl=ttl)
         if any(m.get("multipleFixtures") for matches in scout_live.values() for m in matches):
             fplapi.note("Scout defensive hit rates", False,
                         "Double-fixture weeks excluded; season totals still include them")
-        scout_priors = transfers.positional_priors(ctx)
         scout_pools = {
             pos: scout.pool(ctx, pos, scout_live, proj, next_gw=next_gw,
                             market=market, baselines=baselines, priors=scout_priors)
@@ -1098,8 +1106,6 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                        "gain": transfer_total - owned_total - hit if transfer_total is not None and owned_total is not None else None,
                        "hit": hit}
 
-    dialog_eps = eps + [(r, preview_eps.get(r.element["id"])) for r in preview_reports]
-
     # The faces and crests the Squad tab's move and captain cards stand on.
     # Each move carries figures, not a sentence: the two players' next
     # opponents, form and one chance figure. The move's gain is one figure
@@ -1176,19 +1182,18 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                                                     market, next_gw, weeks=6,
                                                     badges=big_badges,
                                                     lenses=scout.fixture_lenses(scout_fixtures, 6)),
-        "dialog": player_dialog([
-            player_payload(r, ctx, proj, ep, next_gw, photos) for r, ep in dialog_eps
-        ] + [
-            player_payload(r, ctx, proj, None, next_gw, photos)
-            for r in xi + bench if not any(r is q for q, _ in eps)
-        ]),
+        "profiles": playerprofile.build(
+            ctx, scout_live, proj, next_gw, market, baselines, scout_priors, profile_badges,
+            eps=preview_eps or eps_by_id,
+            reports={**reports, **{r.element["id"]: r for r in preview_reports}},
+            pools=scout_pools),
         "findings": team_news(list(reports.values()), ctx,
                               xi_ids={r.element["id"] for r in xi}),
         "price_watch": price_watch_card(pw),
         "league_table": league_table(rows, squads, ctx, entry_id) if rows else "",
         "position_chart": league_position_card(
             league_position_series(histories, my_name)),
-        "template": template_pitch(tpl, ctx, shirts, my_name, set(squad_ids)),
+        "template": template_pitch(tpl, ctx, shirts, my_name),
         "differentials": differential_card(own, by_name, ctx, my_name, league_photos),
         "watchlist": differential_watchlist_card(
             watchlist_rows, league_photos, transfers.TRANSFER_HORIZON_WEEKS,

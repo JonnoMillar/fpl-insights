@@ -14,6 +14,13 @@ def icon(name, cls=""):
     return f'<span class="ico ico-{name}{" " + cls if cls else ""}" aria-hidden="true"></span>'
 
 
+def hook(pid, name):
+    """Attributes that make a face open the player profile (profile.js): the
+    face itself is the control, so the layouts that place it are unchanged."""
+    return (f'data-player="{pid}" role="button" tabindex="0" aria-label="{e(name)}" '
+            'draggable="false"')
+
+
 # The goal-and-bars mark (docs/brand-handoff/logo, still a draft geometry).
 LOGO_SVG = ('<svg viewBox="0 0 100 62" fill="currentColor" aria-hidden="true">'
             '<path d="M0 62V0H100V62H90V10H10V62Z"/>'
@@ -22,11 +29,10 @@ LOGO_SVG = ('<svg viewBox="0 0 100 62" fill="currentColor" aria-hidden="true">'
 
 def script_json(value):
     """Escape the HTML boundary as well as JSON syntax."""
-    return json.dumps(value).replace("<", "\\u003c")
+    return json.dumps(value, separators=(",", ":")).replace("<", "\\u003c")
 
 
-# Same five-step purple ramp and the same split used in the player-detail
-# dialog's own fixture strip (playerview.js: csTone/xgTone) - a goalkeeper's
+# A five-step purple ramp - a goalkeeper's
 # or defender's points hinge on keeping the ball out, a midfielder's or
 # forward's on their side scoring, so each is shaded by the stat that
 # actually decides it. Kept as one scale in two places rather than derived,

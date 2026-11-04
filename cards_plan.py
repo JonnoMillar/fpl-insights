@@ -6,7 +6,7 @@ depends on telling two hues apart.
 """
 
 import components
-from cards_common import icon
+from cards_common import hook, icon
 from components import e
 
 CHIP_LABEL = {"bboost": "Bench Boost", "3xc": "Triple Captain"}
@@ -77,7 +77,7 @@ def _player_card(pid, w, ctx, shirts, badges):
              + (", signed this week" if new else ""))
     return (
         f'<div class="pl pk plan-pl{" plan-new" if new else ""}" title="{e(label)}" '
-        f'aria-label="{e(label)}">{arm}{tag}'
+        f'{hook(pid, label)}>{arm}{tag}'
         f'<div class="crest">{crest}</div>'
         f'<div class="nm">{e(el["web_name"])}</div>'
         f'<div class="plan-fx">{e(fx)}</div>'
@@ -150,10 +150,10 @@ def _move_html(m, w, ctx, photos, badges):
     replaces. No per-player points: the week's one gain is in the stage head,
     because two legs of one move are not worth their own separate gains."""
     out_el, in_el = ctx.players[m["out"]], ctx.players[m["in"]]
-    out_img = (f'<img class="cut move-old" src="{photos[m["out"]]}" alt="">'
-               if photos.get(m["out"]) else "")
-    in_img = (f'<img class="cut move-new" src="{photos[m["in"]]}" alt="">'
-              if photos.get(m["in"]) else "")
+    out_img = (f'<img class="cut move-old" src="{photos[m["out"]]}" '
+               f'{hook(m["out"], out_el["web_name"])}>' if photos.get(m["out"]) else "")
+    in_img = (f'<img class="cut move-new" src="{photos[m["in"]]}" '
+              f'{hook(m["in"], in_el["web_name"])}>' if photos.get(m["in"]) else "")
     def crest(pid):
         fx = w["fixtures"].get(pid)
         uri = _crest_for(fx["opp"], ctx, badges) if fx else None
@@ -223,7 +223,8 @@ def _bench_slot(pid, w, ctx, photos, badges, big=False):
     el = ctx.players[pid]
     fx = w["fixtures"].get(pid)
     crest = _crest_for(fx["opp"], ctx, badges) if fx else None
-    img = f'<img class="cut" src="{photos[pid]}" alt="">' if photos.get(pid) else ""
+    img = (f'<img class="cut" src="{photos[pid]}" {hook(pid, el["web_name"])}>'
+           if photos.get(pid) else "")
     where = e(_fx(fx))
     crest_html = f'<img src="{crest}" alt="{where}" title="{where}">' if crest else f'<span>{where}</span>'
     pts = w["player_points"].get(pid, 0.0)
@@ -322,7 +323,7 @@ def plan_card(plan, ctx, shirts, badges, photos=None):
     if plan["enablers"]:
         rows = []
         for x in plan["enablers"]:
-            face = (f'<img class="face" src="{photos[x["id"]]}" alt="">'
+            face = (f'<img class="face" src="{photos[x["id"]]}" {hook(x["id"], x["name"])}>'
                     if photos.get(x["id"]) else "")
             rows.append(f'<li>{face}<span><b>{e(x["name"])}</b> '
                         f'{e(x["pos"])} &middot; {x["price"]:.1f}m</span></li>')

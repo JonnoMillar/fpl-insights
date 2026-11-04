@@ -4,11 +4,9 @@ import math
 
 import analysis
 import components
-import ffs
-import pulse
 import ticker
 from analysis import f
-from cards_common import e, icon, meter, script_json
+from cards_common import e, icon, meter
 
 
 SPARK_ICON = (
@@ -469,74 +467,9 @@ def team_news(reports, ctx, xi_ids=None):
     return f'<div class="finds finds-one">{lu}</div>' if lu else ""
 
 
-def player_payload(r, ctx, proj, ep, next_gw, photos):
-    """Everything the expanded view shows for one player, as plain data.
-
-    Emitted once as JSON and rendered in the browser. Fifteen copies of the
-    same markup would be a lot of page weight for a panel you look at one
-    player at a time."""
-    el = r.element
-    flag, news = r.availability
-    fixtures = []
-    if next_gw is not None:
-        for row in ffs.ticker(proj, r.team, next_gw, 6):
-            actual = [fx for fx in ctx.fixtures if fx.get("event") == row["gw"]
-                      and el["team"] in (fx["team_h"], fx["team_a"])]
-            if row.get("blank") or len(actual) != 1:
-                state = "blank" if not actual else "unavailable"
-                fixtures.append({"gw": row["gw"], state: True})
-            else:
-                fixtures.append({"gw": row["gw"], "opp": row["opp"], "home": row["home"],
-                                 "cs": round(row["cs"]), "xg": round(row["xg"], 2)})
-    log = [
-        {"gw": h["round"], "opp": ctx.team_name(h["opponent_team"]),
-         "home": h["was_home"], "min": h["minutes"],
-         "g": h["goals_scored"], "a": h["assists"],
-         "xg": round(f(h["expected_goals"]), 2),
-         "xa": round(f(h["expected_assists"]), 2),
-         "dc": h.get("defensive_contribution", 0),
-         "bps": h["bps"], "pts": h["total_points"]}
-        for h in sorted(r.history, key=lambda x: x["round"])
-    ]
-    return {
-        "id": el["id"], "name": r.name, "team": r.team, "pos": r.pos,
-        "photo": photos.get(el["id"]),
-        "price": r.price, "owned": r.owned,
-        "priceChange": round(el.get("cost_change_start", 0) / 10.0, 1),
-        "flag": flag or "", "news": news,
-        "predicted": ctx.is_predicted(el),
-        "minutes": r.minutes, "starts": r.starts, "apps": r.appearances,
-        "goals": r.goals, "assists": r.assists, "points": r.points,
-        "bonus": r.bonus,
-        "xg": round(r.xg, 2), "xa": round(r.xa, 2), "xgi": round(r.xgi, 2),
-        "xgi90": round(r.xgi90, 2), "defcon90": round(r.defcon90, 1),
-        "defconHits": r.defcon_hits, "defcon": r.defcon,
-        "threshold": analysis.DEFCON_THRESHOLD.get(r.pos, 0),
-        # The drawer needs the same floor the cards use, so a cameo is not
-        # quoted as a per-90 rate in one place and withheld in another.
-        "defconMin": analysis.DEFCON_MIN_MINUTES,
-        "setpieces": r.set_pieces(),
-        "opta": el.get("_pulse") or {},
-        "ep": ep,
-        "fixtures": fixtures,
-        "log": log,
-        "last": r.last_season(),
-    }
 WARN_SVG = ('<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">'
             '<path d="M8 2.6 15 14H1Z" fill="none" stroke="currentColor" '
             'stroke-width="1.7" stroke-linejoin="round"/>'
             '<path d="M8 6.6v3.2" stroke="currentColor" stroke-width="1.7" '
             'stroke-linecap="round"/><circle cx="8" cy="11.9" r="1" '
             'fill="currentColor"/></svg>')
-
-
-def player_dialog(payloads):
-    """One dialog for every player, filled on demand from the JSON below it."""
-    labels = {k: v[0] for k, v in pulse.STATS.items()}
-    return (
-        '<dialog class="pv" aria-label="Player detail">'
-        '<button class="pv-close" aria-label="Close player detail">&times;</button>'
-        '<div class="pv-body"></div></dialog>'
-        f'<script type="application/json" id="player-data">'
-        f"{script_json({'players': payloads, 'optaLabels': labels})}</script>"
-    )

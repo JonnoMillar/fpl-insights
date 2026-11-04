@@ -10,7 +10,6 @@ import analysis
 import cards_common
 import cards_league
 import cards_planning
-import cards_squad
 import chips
 import dashboard
 import fplapi
@@ -55,7 +54,7 @@ class DocumentTests(unittest.TestCase):
         fields = ["pitch", "pick_pitch", "squad_table", "findings", "captaincy", "chip_planner",
                   "ticker", "fixture_runs", "price_watch", "elite", "league_table",
                   "position_chart", "template", "differentials", "watchlist", "rivals",
-                  "chips", "scout", "dialog"]
+                  "chips", "scout"]
         data = dict.fromkeys(fields, "")
         data.update(ctx=analysis.Ctx(boot={}), team_name="Test squad", manager="Manager",
                     league_name="League", entry_history={}, gw=6, next_gw=7,
@@ -177,11 +176,6 @@ class FixtureTests(unittest.TestCase):
             with self.subTest(changed=changed):
                 market = {"ARS": {**self.market["ARS"], **changed}}
                 self.assertEqual(self.ctx.scoring_fixture(self.el, {}, 7, market), (None, None))
-
-    def test_missing_projection_and_confirmed_blank_have_distinct_dialog_states(self):
-        payload = cards_squad.player_payload(self.report, self.ctx, {}, None, 7, {})
-        self.assertTrue(payload["fixtures"][0]["unavailable"])
-        self.assertTrue(payload["fixtures"][1]["blank"])
 
     def test_pick_team_can_render_without_fixture_projections(self):
         self.assertIn('Unavailable', cards_common.pos_fixture_pill('DEF', None, None, 0, 0))

@@ -95,15 +95,6 @@ class PositionConfig:
     archetype_labels: dict = field(default_factory=dict)
     # The shortlist's fixture strip: one row per (fixture_rows field, label).
     ticker_rows: list = field(default_factory=list)
-    # Player card: the five tiles (METRICS keys), the three last-ten
-    # sparklines ((match field, label)), and which markers the match strip
-    # draws under each column ('defcon' hit/miss, 'ga' goals and assists).
-    card_tiles: list = field(default_factory=list)
-    sparks: list = field(default_factory=list)
-    strip_marks: list = field(default_factory=list)
-    # Clean-sheet outline on the match strip - a forward earns nothing for
-    # one, so there it would be decoration.
-    cs_outline: bool = True
 
 
 HERO_X_DEFCON = "defcon"
@@ -157,9 +148,6 @@ POSITIONS = {
                "minutes_per_start", "bps90", "cards90"],
         ticker_rows=[("cleanSheetRating", "Clean sheet"),
                      ("defconRating", "DefCon")],
-        card_tiles=["defcon_hit_rate", "xgi90", "xgc90", "start_rate", "bonus90"],
-        sparks=[("defcon", "DefCon count"), ("xgi", "xGI"), ("xgc", "xGC")],
-        strip_marks=["defcon"],
     ),
     # Midfielders and forwards are bought for goals and assists first, so
     # their scatter is the attacking plane itself - xG against xA - which
@@ -184,12 +172,6 @@ POSITIONS = {
                "minutes_per_start", "bps90"],
         ticker_rows=[("attackRating", "Goals"),
                      ("defconRating", "DefCon")],
-        # DefCon per 90, not hit rate, to match the table, bubble and
-        # archetype: the same player should not read strong in one place
-        # and middling in the next.
-        card_tiles=["xg90", "xa90", "defcon90", "start_rate", "bonus90"],
-        sparks=[("xg", "xG"), ("xa", "xA"), ("defcon", "DefCon count")],
-        strip_marks=["ga", "defcon"],
     ),
     # A forward's DefCon threshold exists but almost nobody clears it, so
     # the third channel is the bonus system instead - the other place a
@@ -210,10 +192,6 @@ POSITIONS = {
         zbars=["xg90", "xa90", "start_rate", "minutes_per_start",
                "bps90", "bonus90"],
         ticker_rows=[("attackRating", "Goals")],
-        card_tiles=["xg90", "xa90", "start_rate", "minutes_per_start", "bonus90"],
-        sparks=[("xg", "xG"), ("xa", "xA"), ("points", "Points")],
-        strip_marks=["ga"],
-        cs_outline=False,
     ),
 }
 
@@ -663,8 +641,8 @@ def pool(ctx, pos, live, proj, min_minutes=1, next_gw=None, market=None,
          baselines=None, priors=None):
     """Everything scout.js needs for one position: the full raw pool (only
     gated on `min_minutes`, never on the *adjustable* filters - see
-    DEFAULT_FILTERS) and the config the client-side filter bar, scatter,
-    player card and archetype badges need. Fixtures are not here - see
+    DEFAULT_FILTERS) and the config the client-side filter bar, scatter
+    and archetype badges need. Fixtures are not here - see
     club_fixture_runs.
 
     Deliberately un-filtered and un-derived beyond that gate: percentiles,
@@ -684,7 +662,10 @@ def pool(ctx, pos, live, proj, min_minutes=1, next_gw=None, market=None,
                     priors=priors)
     # No per-row fixtures: a player's fixtures are his club's, and those
     # ship once for every club in club_fixture_runs. Repeating them on each
-    # of 400 rows was a third of the section's payload.
+    # of 400 rows was a third of the section's payload. No match history
+    # either: only the player profile draws it, from its own compact copy.
+    for r in rows:
+        del r["matches"]
     return {
         "pos": pos,
         "label": cfg.label,
@@ -697,10 +678,6 @@ def pool(ctx, pos, live, proj, min_minutes=1, next_gw=None, market=None,
         "archetypes": cfg.archetypes,
         "archetypeLabels": cfg.archetype_labels,
         "tickerRows": cfg.ticker_rows,
-        "cardTiles": cfg.card_tiles,
-        "sparks": cfg.sparks,
-        "stripMarks": cfg.strip_marks,
-        "csOutline": cfg.cs_outline,
         "defaultFilters": DEFAULT_FILTERS,
         "rows": rows,
     }
@@ -779,7 +756,7 @@ def leader_groups(rows, owned_ids=frozenset(), depth=6, pos="DEF"):
         return sorted(pool, key=key, reverse=reverse)[:depth]
 
     def row(r, val):
-        return (r["webName"], r["teamShort"], val, r["id"] in owned_ids)
+        return (r["id"], r["webName"], r["teamShort"], val, r["id"] in owned_ids)
 
     # components.stat_leaders escapes the value, so separators here are
     # plain characters rather than HTML entities - an &middot; would come

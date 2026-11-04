@@ -1,8 +1,21 @@
 # HANDOFF — FPL Insights
 
-Last updated: 3 November 2026 (redesign + dedupe published to origin/main and live). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
+Last updated: 4 November 2026 (player profile built on branch claude/player-profile-d02b3c, not pushed). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
 
-## Now: dedupe pass, published 3 November 2026
+## Now: one player profile, built 4 November 2026 (branch `claude/player-profile-d02b3c`, not pushed)
+
+Every face opens one view: `profile.js` + `playerprofile.py` (data) + `.pf-*` CSS. It replaced the Squad dialog (`playerview.js`, `cards_squad.player_payload/player_dialog`) and the Scout card (`scout.js` renderCard, `scout.PositionConfig` card_tiles/sparks/strip_marks/cs_outline); all deleted with their CSS.
+
+- Hook: `cards_common.hook(pid, name)` puts `data-player` + `role="button"` + `tabindex` on the face itself (layouts unchanged; hooked `.cut` gets `pointer-events:auto`). Names use `<button data-player>`. One delegated listener: click, Enter/Space on non-buttons, Esc closes (native), focus returns to the face. Phone: bottom sheet under 700px.
+- Hooked: Squad move cards (both), captain, pitch, Your 15, team news; Planning plan moves, chip bench, cheap slots, plan pitch shirts, deck (in, out, pair faces), chip planner shirts; League template, your differentials, watchlist, scoring against you, season best/worst and table; Scout leaders, explorer table and scatter, shortlist bars and fixtures. Not hooked on purpose: faces inside a week tile (`button.wk`) and the deck index (`button.deck-idx`), which are navigation buttons. Captain-options radar names are not hooked (no faces).
+- Data: `playerprofile.build` makes a compact record for all players (1.1 s); `playerprofile.island(body, ...)` in `render()` keeps only ids hooked on the page plus the Scout pools (435 on 3 Nov data) and raises if a portrait image has no hook or a hook has no record, so a broken page never publishes. Scout pool rows no longer carry match history; the profile ships it once as short arrays. `script_json` now writes compact JSON. Profile crests are 64 px, once each.
+- Page: 4,746,818 → 3,793,742 bytes (−953 KB). Scout islands 1,434 KB → 252 KB, old player-data 257 KB gone, profile-data 478 KB.
+- xP: owned squad and previewed signings use the match-history scorer (same as the pitch); everyone else `transfers.candidate_score` (same as the Scout xP column, which now also returns team_xg). The "i" in Extended stats says which.
+- Photo: the face already on the page; otherwise the PL CDN URL at view time (crest stays if it fails).
+- Verified 4 Nov on cached data: 140 tests, `node --check` every `.js`, `git diff --check`, build `.cache/ui/profile.html`, Python Playwright at 1440 and 375: 122 checks pass (each listed face opens the right player, both expanders fill, Esc returns focus, keyboard Enter on a scatter point, deck drag still swipes without opening, no page or profile overflow, no console errors). Screenshots `.cache/ui/profile-*.png`.
+- Seen, not fixed (pre-existing, also in the 3 Nov build): at 375 px the deck cards sit above the bottom tab bar mid-scroll and swallow taps on it.
+
+## Then: dedupe pass, published 3 November 2026
 
 Published as `6367a48` (merge of the four feature branches, the dedupe from [`docs/audits/2026-11-02-data-placement.md`](audits/2026-11-02-data-placement.md), and origin's bot/licence commits), followed by CI's rebuild `4497ea6`. Next: the unified player profile (one view for every player face).
 

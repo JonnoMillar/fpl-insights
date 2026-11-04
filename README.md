@@ -267,7 +267,7 @@ rebuilds show at most one affordable upgrade, checked against the full squad.
 The model currently supports single-fixture gameweeks. Chip and transfer advice
 is withheld if its eight-week planning window contains a double gameweek, and
 missing projections are reported rather than replaced by repeated market odds.
-Blank weeks are distinguished from unavailable fixture data in player dialogs.
+Blank weeks are distinguished from unavailable fixture data in the player profile.
 The budget-based Free Hit and Wildcard search is approximate; owned-XI selection
 is exact for a legal fifteen. Projections are estimates, not backtested forecasts.
 

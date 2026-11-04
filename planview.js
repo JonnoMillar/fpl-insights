@@ -32,7 +32,7 @@
     var pos = panel.querySelector('.deck-pos b');
     var prev = panel.querySelector('[data-step="-1"]');
     var next = panel.querySelector('[data-step="1"]');
-    var n = cards.length, i = 0, dx = 0, sx = 0, dragging = false;
+    var n = cards.length, i = 0, dx = 0, sx = 0, down = false, dragging = false;
     function lay(){
       cards.forEach(function(c, k){
         var rel = k - i, tf, op = 1;
@@ -65,17 +65,24 @@
       if (ev.key === 'ArrowRight') { ev.preventDefault(); go(i + 1); }
       if (ev.key === 'ArrowLeft') { ev.preventDefault(); go(i - 1); }
     });
+    // The drag only takes the pointer once it has moved: a press that stays
+    // put is a click, and on a face that opens the player profile.
     deck.addEventListener('pointerdown', function(ev){
       if (ev.button !== 0) return;
-      sx = ev.clientX; dragging = true; dx = 0;
-      deck.classList.add('dragging');
-      deck.setPointerCapture(ev.pointerId);
+      sx = ev.clientX; dx = 0; down = true;
     });
     deck.addEventListener('pointermove', function(ev){
-      if (!dragging) return;
+      if (!down) return;
+      if (!dragging) {
+        if (Math.abs(ev.clientX - sx) < 6) return;
+        dragging = true;
+        deck.classList.add('dragging');
+        deck.setPointerCapture(ev.pointerId);
+      }
       dx = ev.clientX - sx; lay();
     });
     function end(){
+      down = false;
       if (!dragging) return;
       deck.classList.remove('dragging');
       var limit = window.matchMedia('(max-width:700px)').matches ? 60 : 70;

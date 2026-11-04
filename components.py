@@ -15,7 +15,7 @@ Kept apart from dashboard.py so the page assembly stays readable.
 
 import html
 
-from cards_common import icon
+from cards_common import hook, icon
 
 
 def e(x):
@@ -237,27 +237,15 @@ def stat_leaders(groups, title="League leaders",
     `title`/`sub` are parameters so the Scout section can borrow the same
     grammar for its own questions rather than growing a second, nearly
     identical list component."""
-    def _items(rows, pair):
-        if pair:
-            return "".join(
-                '<li{cls}><span class="slrank">{i}</span>'
-                '<span class="slname">{name}</span>'
-                '<span class="slteam">{team}</span>'
-                '<span class="slval"><b>{p:g}</b>{sub}</span></li>'.format(
-                    cls=' class="mine"' if mine else "",
-                    i=i, name=e(name), team=e(team), p=p,
-                    sub=('<span class="pairsub">, {:g}</span>'.format(s)
-                         if s is not None else ""))
-                for i, (name, team, p, s, mine) in enumerate(rows, 1)
-            )
+    def _items(rows):
         return "".join(
             '<li{cls}><span class="slrank">{i}</span>'
-            '<span class="slname">{name}</span>'
+            '<button type="button" class="slname rowlink" data-player="{pid}">{name}</button>'
             '<span class="slteam">{team}</span>'
             '<span class="slval">{val}</span></li>'.format(
                 cls=' class="mine"' if mine else "",
-                i=i, name=e(name), team=e(team), val=e(val))
-            for i, (name, team, val, mine) in enumerate(rows, 1)
+                i=i, pid=pid, name=e(name), team=e(team), val=e(val))
+            for i, (pid, name, team, val, mine) in enumerate(rows, 1)
         )
 
     cards, notes = [], []
@@ -266,8 +254,7 @@ def stat_leaders(groups, title="League leaders",
             continue
         if g["note"]:
             notes.append(f'{g["title"]}: {g["note"]}')
-        body = '<ol class="sllist">{}</ol>'.format(
-            _items(g["rows"], g.get("pair", False)))
+        body = '<ol class="sllist">{}</ol>'.format(_items(g["rows"]))
         cards.append(
             '<li class="slcard" style="--accent:{tone}">'
             '<h4><svg viewBox="0 0 24 24" class="slicon" aria-hidden="true">{icon}</svg>'
@@ -381,10 +368,10 @@ def transfer_deck(singles, pairs, hit=4, end_gw=None, plan_moves=(), kneejerk=No
     for k, (kind, gain, r) in enumerate(options):
         if kind == "single":
             out_name, in_name = r["out"].name, r["in"]["web_name"]
-            photo_out = (f'<img class="cut deck-old" src="{r["out_photo"]}" alt="">'
-                         if r.get("out_photo") else "")
-            photo_in = (f'<img class="cut deck-new" src="{r["in_photo"]}" alt="">'
-                        if r.get("in_photo") else "")
+            photo_out = (f'<img class="cut deck-old" src="{r["out_photo"]}" '
+                         f'{hook(r["out"].element["id"], out_name)}>' if r.get("out_photo") else "")
+            photo_in = (f'<img class="cut deck-new" src="{r["in_photo"]}" '
+                        f'{hook(r["in"]["id"], in_name)}>' if r.get("in_photo") else "")
             arrow = f'<span class="deck-arrow">{icon("next")}</span>'
             plate = _opp_plate(r.get("opp"))
             duties = "".join(
@@ -411,10 +398,12 @@ def transfer_deck(singles, pairs, hit=4, end_gw=None, plan_moves=(), kneejerk=No
             legs = r["legs"]
             photo_out = ""
             photo_in = "".join(
-                f'<img class="cut deck-pair deck-pair-{n}" src="{leg["in_photo"]}" alt="">'
+                f'<img class="cut deck-pair deck-pair-{n}" src="{leg["in_photo"]}" '
+                f'{hook(leg["in"]["id"], leg["in"]["web_name"])}>'
                 for n, leg in enumerate(legs[:2]) if leg.get("in_photo"))
             arrow = ""
-            old = "".join(f'<img class="face" src="{leg["out_photo"]}" alt="">'
+            old = "".join(f'<img class="face" src="{leg["out_photo"]}" '
+                          f'{hook(leg["out"].element["id"], leg["out"].name)}>'
                           for leg in legs if leg.get("out_photo"))
             plate = (f'<span class="opp-plate"><span class="faces">{old}</span>'
                      f'{"Both free" if hit == 0 else f"−{hit} hit"}</span>')

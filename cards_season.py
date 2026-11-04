@@ -4,7 +4,7 @@ best and worst transfer as cut-out cards, the other moves as a table, and the
 weeks the armband cost most. Input is season.review(); nothing is fetched.
 """
 
-from cards_common import e, icon
+from cards_common import e, hook, icon
 import components
 from season import FORM_WEEKS
 
@@ -26,12 +26,12 @@ def _form(v):
 def _face(p, cls=""):
     if not p.get("photo"):
         return f'<span class="face sr-face {cls}" aria-hidden="true"></span>'
-    return f'<img class="face sr-face {cls}" src="{p["photo"]}" alt="" loading="lazy">'
+    return f'<img class="face sr-face {cls}" src="{p["photo"]}" {hook(p["id"], p["name"])} loading="lazy">'
 
 
 def _hero(row, players, best):
     pin, pout = players[row["in"]], players[row["out"]]
-    cut = (f'<img class="cut sr-cut" src="{pin["photo"]}" alt="" loading="lazy">'
+    cut = (f'<img class="cut sr-cut" src="{pin["photo"]}" {hook(pin["id"], pin["name"])} loading="lazy">'
            if pin.get("photo") else "")
     hit = f'<div><dt>Hit</dt><dd>−{row["hit"]}</dd></div>' if row["hit"] else ""
     return (

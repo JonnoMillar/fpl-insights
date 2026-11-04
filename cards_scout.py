@@ -169,18 +169,4 @@ def scout_section(scout_pools, fixture_runs=None, owned_ids=frozenset()):
         # once for every lab's shortlist strip to look a club up in.
         + (f'<script type="application/json" class="scout-fixtures">'
            f"{script_json(fixture_runs)}</script>" if fixture_runs else "")
-        # One shared card for every position and every player in every pool -
-        # filled on demand from whichever row was clicked, the same "one
-        # dialog, many payloads" shape as dialog.pv (dashboard.py:
-        # player_dialog), but a separate element and a separate JSON path
-        # rather than an extension of it. Reusing that dialog verbatim would
-        # mean giving it match-history data for the whole pool - 400 players,
-        # not just the owned fifteen - which only exists today via one
-        # element_summary call per player. scout.py's season_live already
-        # covers the same ground in one call per gameweek for the entire
-        # league (see plan §1), so this card is built entirely from data
-        # already sitting in each pool row.
-        + '<dialog class="scoutpv" aria-label="Player detail">'
-        '<button class="scpv-close" aria-label="Close player detail">&times;</button>'
-        '<div class="scpv-body"></div></dialog>'
     )

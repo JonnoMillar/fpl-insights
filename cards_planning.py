@@ -127,17 +127,13 @@ CONFIDENCE_LABEL = {"strong": "Strong", "watch": "Worth watching",
 
 
 def _mini_shirt_card(pid, pos, team_id, team_name, name, price, ctx, badges,
-                     shirts, fx_html="", incoming=False, known=True):
+                     shirts, fx_html="", incoming=False):
     """One shirt card for a compact pitch/bench view - the same `.pl`
     component the Squad tab pitch uses, but built from whatever identifies
     a player rather than requiring a full PlayerReport, since a proposed
     incoming man has no match history to build one from. `incoming` adds a
     distinct outline and an IN tag, for a squad view that mixes players
-    actually owned with ones only being suggested. `known` is False when
-    the player dialog has no payload for this id (a suggested player who
-    is not in the manager's own squad) - those cards render without the
-    clickable attributes rather than opening a dialog that silently does
-    nothing."""
+    actually owned with ones only being suggested."""
     shirt = shirts.get((team_id, pos == "GKP"))
     uri = shirt or badges.get(team_id)
     crest = (
@@ -150,9 +146,8 @@ def _mini_shirt_card(pid, pos, team_id, team_name, name, price, ctx, badges,
     cls = "pl pk pl-incoming" if incoming else "pl pk"
     title = f"{name} - {pos}, {team_name}, {price:.1f}m"
     fx = f'<div class="pk-fx">{fx_html}</div>' if fx_html else ""
-    clickable = f'data-player="{pid}" role="button" tabindex="0" ' if known else ""
     return (
-        f'<div class="{cls}" {clickable}title="{e(title)}">'
+        f'<div class="{cls}" data-player="{pid}" role="button" tabindex="0" title="{e(title)}">'
         f'{tag}<div class="crest">{crest}</div>'
         f'<div class="nm">{e(name)}</div>{fx}</div>'
     )
@@ -175,8 +170,7 @@ def _pool_row(p, ctx):
     return (p["id"], p["pos"], el["team"], p["club"], el["web_name"], p["price"])
 
 
-def mini_pitch(xi_rows, bench_rows, ctx, badges, shirts, incoming_ids=frozenset(),
-               known_ids=None):
+def mini_pitch(xi_rows, bench_rows, ctx, badges, shirts, incoming_ids=frozenset()):
     """A much smaller version of the Squad tab pitch - shirts and names
     only, no stats footer - for a before/after comparison where two full
     squads need to sit side by side without either one dominating the
@@ -199,16 +193,14 @@ def mini_pitch(xi_rows, bench_rows, ctx, badges, shirts, incoming_ids=frozenset(
             continue
         cards = "".join(
             _mini_shirt_card(pid, pos, team_id, team_name, name, price,
-                             ctx, badges, shirts, incoming=pid in incoming_ids,
-                             known=known_ids is None or pid in known_ids)
+                             ctx, badges, shirts, incoming=pid in incoming_ids)
             for pid, pos, team_id, team_name, name, price in by_pos[k]
         )
         out.append(f'<div class="row">{cards}</div>')
     out.append("</div>")
     bench_cards = "".join(
         _mini_shirt_card(pid, pos, team_id, team_name, name, price,
-                         ctx, badges, shirts, incoming=pid in incoming_ids,
-                         known=known_ids is None or pid in known_ids)
+                         ctx, badges, shirts, incoming=pid in incoming_ids)
         for pid, pos, team_id, team_name, name, price
         in sorted(bench_rows, key=lambda row: row[5])
     )
@@ -239,7 +231,6 @@ def wildcard_section(wc, xi_reports, bench_reports, ctx, badges, shirts, plan_xp
     after_xi = [_pool_row(p, ctx) for p in wc["ideal_xi"]]
     after_bench = [_pool_row(p, ctx) for p in wc["ideal_bench"]]
     incoming_ids = wc.get("incoming_ids") or set()
-    after_known_ids = {row[0] for row in after_xi + after_bench} - incoming_ids
     start, weeks = wc["gw_window"]
     before, after = wc.get("before"), wc.get("after")
     if plan_xp and before and after:
@@ -256,7 +247,7 @@ def wildcard_section(wc, xi_reports, bench_reports, ctx, badges, shirts, plan_xp
         f'<div class="wcpitch"><h4>Now</h4>'
         f'{mini_pitch(before_xi, before_bench, ctx, badges, shirts)}</div>'
         f'<div class="wcpitch"><h4>Proposed</h4>'
-        f'{mini_pitch(after_xi, after_bench, ctx, badges, shirts, incoming_ids, after_known_ids)}</div>'
+        f'{mini_pitch(after_xi, after_bench, ctx, badges, shirts, incoming_ids)}</div>'
         "</div></div></details>"
     )
 
@@ -286,7 +277,7 @@ def bench_boost_pitch(bb, bench_reports, ctx, badges, shirts, proj, market,
                 el["web_name"], el["now_cost"] / 10.0, ctx, badges, shirts,
                 fx_html=_fixture_pill_for(team_name, ctx.pos(el), proj,
                                           market, bb["gw"]),
-                incoming=True, known=False))
+                incoming=True))
         else:
             cards.append(_mini_shirt_card(
                 r.element["id"], r.pos, r.element["team"], r.team, r.name,
@@ -356,7 +347,7 @@ def _plan_bench_pitch(week, ctx, badges, shirts):
         cards.append(_mini_shirt_card(
             pid, ctx.pos(el), el["team"], ctx.team_name(el["team"]), el["web_name"],
             el["now_cost"] / 10.0, ctx, badges, shirts, fx_html=fx_html,
-            incoming=pid in week["bought"], known=pid not in week["bought"]))
+            incoming=pid in week["bought"]))
     return (
         '<details class="card collapsible swapcard"><summary class="card-head">'
         f'<h2>Bench Boost bench, GW{week["gw"]}{components.info_btn()}</h2>'

@@ -142,7 +142,8 @@ def review(entry_id, ctx, ttl=fplapi.DEFAULT_TTL):
     players = {}
     for pid in ids:
         el = ctx.players.get(pid)
-        players[pid] = {"name": el["web_name"] if el else "Unknown",
+        players[pid] = {"id": pid if el else None,
+                        "name": el["web_name"] if el else "Unknown",
                         "photo": fplapi.photo_data_uri(el) if el else None}
     return {
         "upto": max(points),

@@ -7,7 +7,7 @@ import components
 import fplapi
 import transfers
 from analysis import f
-from cards_common import e, meter, script_json
+from cards_common import e, hook, meter, script_json
 
 
 def donut(pct, label, center, sub, tone="var(--accent)"):
@@ -81,12 +81,8 @@ def template_xi(own, by_name, ctx):
     return {"picks": picks, "shape": shape, "managers": n}
 
 
-def template_pitch(tpl, ctx, shirts, my_name, known_ids=frozenset()):
-    """The template eleven, laid out on a pitch.
-
-    `known_ids` are the ids the player dialog has a payload for (the
-    manager's own squad) - most of a league template is other managers'
-    picks, so only those cards get the clickable attributes."""
+def template_pitch(tpl, ctx, shirts, my_name):
+    """The template eleven, laid out on a pitch."""
     if not tpl:
         return ""
     n = tpl["managers"]
@@ -101,13 +97,9 @@ def template_pitch(tpl, ctx, shirts, my_name, known_ids=frozenset()):
             )
             mine = my_name in rec["starters"]
             pct = 100.0 * count / n
-            clickable = (
-                f'data-player="{el["id"]}" role="button" tabindex="0" '
-                if el["id"] in known_ids else ""
-            )
             cards.append(
                 f'<div class="pl{" tpl-mine" if mine else ""}" '
-                f'{clickable}'
+                f'data-player="{el["id"]}" role="button" tabindex="0" '
                 f'title="{e(el["web_name"])} - started by {count} of {n}'
                 f'{" including you" if mine else ", not by you"}">'
                 f'<div class="crest">{crest}</div>'
@@ -204,8 +196,9 @@ def differential_watchlist_card(rows, photos, weeks, managers=0):
     for r in rows:
         el_photo = photos.get(r["id"])
         face = (
-            f'<img class="df-photo" src="{el_photo}" alt="" width="84" height="106">'
-            if el_photo else f'<div class="df-photo df-blank">{e(r["name"][:1])}</div>'
+            f'<img class="df-photo" src="{el_photo}" {hook(r["id"], r["name"])} width="84" height="106">'
+            if el_photo else
+            f'<div class="df-photo df-blank" {hook(r["id"], r["name"])}>{e(r["name"][:1])}</div>'
         )
         fixture = f'{"vs" if r["home"] else "at"} {e(r["opponent"])}'
         cards.append(
@@ -266,8 +259,9 @@ def differential_card(own, by_name, ctx, my_name, photos):
         el = ctx.players[pid]
         photo = photos.get(pid)
         face = (
-            f'<img class="df-photo" src="{photo}" alt="" width="84" height="106">'
-            if photo else f'<div class="df-photo df-blank">{e(el["web_name"][:1])}</div>'
+            f'<img class="df-photo" src="{photo}" {hook(pid, el["web_name"])} width="84" height="106">'
+            if photo else
+            f'<div class="df-photo df-blank" {hook(pid, el["web_name"])}>{e(el["web_name"][:1])}</div>'
         )
         cards.append(
             f'<li class="df-card">{face}'
@@ -405,9 +399,9 @@ def _rivals_list(rows, rivals, photos, weeks_note=False):
     for r in rows:
         photo = photos.get(r["id"])
         face = (
-            f'<img class="rv-photo" src="{photo}" alt="" width="44" height="56">'
+            f'<img class="rv-photo" src="{photo}" {hook(r["id"], r["name"])} width="44" height="56">'
             if photo
-            else f'<span class="rv-photo rv-blank">{e(r["name"][:1])}</span>'
+            else f'<span class="rv-photo rv-blank" {hook(r["id"], r["name"])}>{e(r["name"][:1])}</span>'
         )
         bits = [e(f'started by {r["starters"]} of {rivals}')]
         if r["captains"]:

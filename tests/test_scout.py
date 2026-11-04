@@ -473,7 +473,7 @@ class PositionConfigTests(unittest.TestCase):
     def test_config_keys_are_real_metrics(self):
         for pos, cfg in scout.POSITIONS.items():
             with self.subTest(pos=pos):
-                for key in cfg.metrics + cfg.zbars + cfg.card_tiles + [cfg.hero_y]:
+                for key in cfg.metrics + cfg.zbars + [cfg.hero_y]:
                     self.assertIn(key, scout.METRICS)
                 self.assertIn(cfg.size_metric, self.PERCENTILE_KEYS)
                 for metric in cfg.archetypes.values():
@@ -574,16 +574,16 @@ class LeaderGroupsTests(unittest.TestCase):
         rows = [self._row(1, xg90=0.3), self._row(2, xg90=0.9),
                 self._row(3, xg90=2.0, minutes=40)]
         goals = scout.leader_groups(rows, pos="FWD", owned_ids={1})[0]
-        self.assertEqual([r[0] for r in goals["rows"]], ["P2", "P1"])
-        self.assertEqual(goals["rows"][0][2], "0.90 · 1G")
-        self.assertTrue(goals["rows"][1][3])  # owned flag rides along
+        self.assertEqual([r[1] for r in goals["rows"]], ["P2", "P1"])
+        self.assertEqual(goals["rows"][0][3], "0.90 · 1G")
+        self.assertTrue(goals["rows"][1][4])  # owned flag rides along
 
     def test_one_start_cannot_top_a_board(self):
         # Sub cameos can clear the minutes floor on a single start; a 1/1 hit
         # rate then topped the DefCon board.
         lucky = dict(self._row(1, xg90=3.0), starts=1)
         goals = scout.leader_groups([lucky, self._row(2, xg90=0.5)], pos="FWD")[0]
-        self.assertEqual([r[0] for r in goals["rows"]], ["P2"])
+        self.assertEqual([r[1] for r in goals["rows"]], ["P2"])
 
 
 if __name__ == "__main__":

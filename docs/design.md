@@ -165,6 +165,8 @@ published-squad, no-double-gameweek and data-unavailable caveats visible once ea
   Buy/Sell/Keep/Avoid in `cards_planning.py`.
 - League: `league_hero` in `dashboard.py`, `leaguechart.js` (grey rivals, named line
   ends).
+- Player profile: one dialog for every face (`profile.js`, data from `playerprofile.py`).
+  Any face or name with `cards_common.hook(...)` or `data-player` opens it.
 - Portraits embed as alpha WebP (`fplapi.photo_data_uri`) so cut-outs stand on
   coloured cards.
 - Ramps: fixture ratings and FPL difficulty run night, grey, paper, green, deep green;
