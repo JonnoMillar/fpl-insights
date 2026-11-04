@@ -1,8 +1,8 @@
 # HANDOFF — FPL Insights
 
-Last updated: 4 November 2026 (player profile built on branch claude/player-profile-d02b3c, not pushed). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
+Last updated: 4 November 2026 (player profile published to origin/main and live). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
 
-## Now: one player profile, built 4 November 2026 (branch `claude/player-profile-d02b3c`, not pushed)
+## Now: one player profile, published 4 November 2026 (`1a87345`, CI rebuild `6e8d17b`, live)
 
 Every face opens one view: `profile.js` + `playerprofile.py` (data) + `.pf-*` CSS. It replaced the Squad dialog (`playerview.js`, `cards_squad.player_payload/player_dialog`) and the Scout card (`scout.js` renderCard, `scout.PositionConfig` card_tiles/sparks/strip_marks/cs_outline); all deleted with their CSS.
 
@@ -13,6 +13,7 @@ Every face opens one view: `profile.js` + `playerprofile.py` (data) + `.pf-*` CS
 - xP: owned squad and previewed signings use the match-history scorer (same as the pitch); everyone else `transfers.candidate_score` (same as the Scout xP column, which now also returns team_xg). The "i" in Extended stats says which.
 - Photo: the face already on the page; otherwise the PL CDN URL at view time (crest stays if it fails).
 - Verified 4 Nov on cached data: 140 tests, `node --check` every `.js`, `git diff --check`, build `.cache/ui/profile.html`, Python Playwright at 1440 and 375: 122 checks pass (each listed face opens the right player, both expanders fill, Esc returns focus, keyboard Enter on a scatter point, deck drag still swipes without opening, no page or profile overflow, no console errors). Screenshots `.cache/ui/profile-*.png`.
+- Publish 4 Nov: fresh build all sources ok, 140 tests, Playwright on it passed except move cards (plan rolls 3 FTs, so none exist); CI push run passed; live page opens the profile from the captain card at 1440 and 375, focus returns, no console errors.
 - Seen, not fixed (pre-existing, also in the 3 Nov build): at 375 px the deck cards sit above the bottom tab bar mid-scroll and swallow taps on it.
 
 ## Then: dedupe pass, published 3 November 2026
