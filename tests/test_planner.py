@@ -347,6 +347,23 @@ class BenchBoostTests(unittest.TestCase):
         # A roll prepares nothing: only weeks with moves can carry a chip-prep tag.
         self.assertTrue(all(w["chip_prep"] is None for w in plan["weeks"] if not w["moves"]))
 
+    def test_pending_states_do_not_crowd_out_a_finished_plan(self):
+        # 4 Nov: states waiting on a Bench Boost outscored everything and
+        # filled the beam; "do nothing" was the only finished plan kept
+        # beside them, so the plan rolled every week.
+        rows, values = squad()
+        p = planner.Planner(rows, values, range(1, 16), {i: rows[i]["price"] for i in range(1, 16)},
+                            0.5, 1, CAPS, horizon=H)
+
+        def st(n, ev, moved, pending):
+            return {"ids": frozenset({n}), "ft": 1, "bank": 0.0, "played": frozenset(),
+                    "eval": ev, "moved": moved, "pending": pending}
+        states = ([st(n, 100.0 + n, 2, 1) for n in range(planner.BEAM_WIDTH + 5)]
+                  + [st(-1, 50.0, 0, 0), st(-2, 60.0, 1, 0)])
+        keep = p._select(states)
+        self.assertIn(-2, {next(iter(s["ids"])) for s in keep})
+        self.assertIn(-1, {next(iter(s["ids"])) for s in keep})
+
 
 if __name__ == "__main__":
     unittest.main()

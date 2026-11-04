@@ -322,7 +322,12 @@
 
       var xs = rows.map(function (r) { return r[xField]; });
       var ys = rows.map(function (r) { return r[yField]; });
-      var rawX0 = heroX === 'defcon_hit_rate' ? 0 : Math.min(0, Math.min.apply(null, xs));
+      // A lower-is-better metric (xGC) runs reversed, so right is better on
+      // every scatter and "this corner" stays top-right. Its axis starts at
+      // the pool's lowest value: from zero, xGC's 0.8-1.6 spread is a sliver.
+      var invX = METRICS[heroX].invert;
+      var rawX0 = heroX === 'defcon_hit_rate' ? 0
+        : invX ? Math.min.apply(null, xs) : Math.min(0, Math.min.apply(null, xs));
       var rawX1 = heroX === 'defcon_hit_rate' ? 1 : Math.max.apply(null, xs);
       var rawY0 = Math.min(0, Math.min.apply(null, ys));
       var rawY1 = Math.max.apply(null, ys);
@@ -334,7 +339,10 @@
       if (x1 === x0) { x1 = x0 + 1; }
       if (y1 === y0) { y1 = y0 + 1; }
 
-      function sx(v) { return ML + PAD + (v - x0) / (x1 - x0) * (W - ML - MR - 2 * PAD); }
+      function sx(v) {
+        var t = (v - x0) / (x1 - x0);
+        return ML + PAD + (invX ? 1 - t : t) * (W - ML - MR - 2 * PAD);
+      }
       function sy(v) { return H - MB - PAD - (v - y0) / (y1 - y0) * (H - MT - MB - 2 * PAD); }
 
       var grid = node('g', { 'class': 'grid' });
@@ -377,7 +385,7 @@
       }
       svg.appendChild(node('text', {
         'class': 'axtitle', x: (ML + W - MR) / 2, y: H - 8, 'text-anchor': 'middle',
-      }, METRICS[heroX].label));
+      }, METRICS[heroX].label + (invX ? ', lower to the right' : '')));
       svg.appendChild(node('text', {
         'class': 'axtitle', 'text-anchor': 'middle',
         transform: 'translate(16,' + ((MT + H - MB) / 2) + ') rotate(-90)',
@@ -449,7 +457,7 @@
       // than no label, because it also hides the dot underneath it.
       var LABEL_MAX = 8;
       var topQuadrant = pts
-        .filter(function (p) { return p.r[xField] >= medX && p.r[yField] >= medY; })
+        .filter(function (p) { return p.cx >= mx && p.r[yField] >= medY; })
         .sort(function (a, b) {
           return Math.hypot(b.cx - mx, my - b.cy) - Math.hypot(a.cx - mx, my - a.cy);
         })

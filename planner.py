@@ -83,6 +83,7 @@ BENCH_WEIGHTS = (0.21, 0.06, 0.02)
 BENCH_GK_WEIGHT = 0.03
 
 BEAM_WIDTH = 30
+PENDING_KEEP = 10    # beam slots for states waiting on a Bench Boost
 LAYER_KEEP = 60
 SINGLES_PER_OUT = 8
 CHEAP_PER_OUT = 3
@@ -390,20 +391,24 @@ class Planner:
         return i == 0 and any(o in self.urgent or c in self.urgent for o, c in moves)
 
     def _select(self, states):
-        """Best BEAM_WIDTH distinct states, always keeping the best one that
-        has made no move yet so "do nothing" can still win at the end."""
+        """Best BEAM_WIDTH distinct states with nothing pending, plus the
+        best PENDING_KEEP that wait on a Bench Boost, always keeping the
+        best one that has made no move yet so "do nothing" can still win.
+
+        Pending states get their own quota: their eval counts a Bench Boost
+        the plan may never play inside its weeks, so ranked together they
+        filled the beam, only "do nothing" was kept beside them, and the
+        plan rolled every week on 4 Nov with free moves worth +12 waiting."""
         uniq = {}
         for st in states:
             key = (st["ids"], st["ft"], round(st["bank"], 1), st["played"])
             if key not in uniq or st["eval"] > uniq[key]["eval"]:
                 uniq[key] = st
         ranked = sorted(uniq.values(), key=lambda s: -s["eval"])
-        keep = ranked[:BEAM_WIDTH]
-        # Always keep a "do nothing" plan and one with nothing pending, so
-        # either can still win at the end.
-        for ok in (lambda s: s["moved"] == 0, lambda s: not s["pending"]):
-            if not any(ok(s) for s in keep):
-                keep.extend([s for s in ranked if ok(s)][:1])
+        keep = ([s for s in ranked if not s["pending"]][:BEAM_WIDTH]
+                + [s for s in ranked if s["pending"]][:PENDING_KEEP])
+        if not any(s["moved"] == 0 for s in keep):
+            keep.extend([s for s in ranked if s["moved"] == 0][:1])
         return keep
 
 

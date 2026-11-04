@@ -2,7 +2,14 @@
 
 Last updated: 4 November 2026 (player profile published to origin/main and live). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
 
-## Now: one player profile, published 4 November 2026 (`1a87345`, CI rebuild `6e8d17b`, live)
+## Fixes on `claude/plan-deck-fixes`, 4 November 2026 (not pushed)
+
+- Planner rolled GW10–17 on the live 4 Nov data while the deck listed free moves worth +20 to +51. Cause: `Planner._select` ranked states waiting on a Bench Boost ("pending") with the rest; they filled the beam, and the "keep one non-pending" guard was met by the do-nothing state, so every finished plan with moves was dropped. Pending states now get their own `PENDING_KEEP` = 10 slots beside 30 finished ones. Same data: +61.4 xP over rolling (551.1 v 489.7), moves in GW10–12 and GW15 (Bench Boost). Regression test in `tests/test_planner.py`.
+- Deck arrows opened a player profile from the second click at desktop width: the flung card sits over the buttons, and `.cut[data-player]{pointer-events:auto}` beat the card's inline `none`. Off-top cards are now `inert`.
+- Scout DEF scatter: x = xGC per 90 (reversed, lower to the right, axis from the pool's lowest value), bubble = DefCon per 90. The DefCon hit-rate gate (`hero_x_key`) still drives the leaders board.
+- Verified on fresh 4 Nov data: 141 tests, `node --check`, `git diff --check`, Python Playwright at 1440 and 375 (arrows step 1→2→3→4 and back, no profile opens; DEF scatter reversed, sizes follow DefCon/90; no console errors or page overflow).
+
+## Then: one player profile, published 4 November 2026 (`1a87345`, CI rebuild `6e8d17b`, live)
 
 Every face opens one view: `profile.js` + `playerprofile.py` (data) + `.pf-*` CSS. It replaced the Squad dialog (`playerview.js`, `cards_squad.player_payload/player_dialog`) and the Scout card (`scout.js` renderCard, `scout.PositionConfig` card_tiles/sparks/strip_marks/cs_outline); all deleted with their CSS.
 

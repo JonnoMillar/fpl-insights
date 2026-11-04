@@ -130,7 +130,12 @@ POSITIONS = {
         key="DEF",
         label="Defenders",
         defcon_threshold=analysis.DEFCON_THRESHOLD["DEF"],
+        # Goals conceded across (reversed: fewer on the right), attacking
+        # threat up, DefCon as the bubble - the three ways a defender scores.
+        hero_x="xgc90",
         hero_y="xgi90",
+        size_metric="defcon90",
+        size_label="Bigger bubble does more defensive work",
         archetypes={
             "volume": "defcon_hit_rate",
             "cleanSheet": "solidity_pct",
