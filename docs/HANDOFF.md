@@ -2,6 +2,10 @@
 
 Last updated: 4 November 2026 (player profile published to origin/main and live). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
 
+## Hover hint on player pictures, published 5 November 2026
+
+One CSS block at the end of `dashboard.css` ("Click for the profile"), on top of the `data-player` hooks and `profile.js`: pointer devices only; the person lifts from their feet, the disc or chevrons behind swell, the name underlines (picture and name linked with `:has`), pitch cards lift and the kit scales. Checked at 1440 and 375 px: hover, click-through to the profile, no clipping. Local `main` in the working checkout is a stale parallel line (its own click-through payload work is superseded by `profile.js`); reconcile it to `origin/main` rather than merging it.
+
 ## Fixes on `claude/plan-deck-fixes`, 4 November 2026 (not pushed)
 
 - Planner rolled GW10–17 on the live 4 Nov data while the deck listed free moves worth +20 to +51. Cause: `Planner._select` ranked states waiting on a Bench Boost ("pending") with the rest; they filled the beam, and the "keep one non-pending" guard was met by the do-nothing state, so every finished plan with moves was dropped. Pending states now get their own `PENDING_KEEP` = 10 slots beside 30 finished ones. Same data: +61.4 xP over rolling (551.1 v 489.7), moves in GW10–12 and GW15 (Bench Boost). Regression test in `tests/test_planner.py`.
