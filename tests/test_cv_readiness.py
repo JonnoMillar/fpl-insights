@@ -100,6 +100,8 @@ class DocumentTests(unittest.TestCase):
             captains={"owned": captain}), standalone=True)
         self.assertIn('<h2 class="hero-title disp">Roll 1 free transfer</h2>', roll)
         self.assertIn('class="cast cast-cap" data-lineup="owned"', roll)
+        self.assertIn('class="hero-cap" data-lineup="owned"', roll)   # named beside his figure
+        self.assertNotIn('class="face board-face"', roll)              # and not repeated on the board
 
 
 class SelectionTests(unittest.TestCase):

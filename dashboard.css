@@ -1799,6 +1799,16 @@ dialog.pf::backdrop{background:rgb(22 0 26 / 62%)}
   transition:background .25s var(--ease)}
 .hero-links a:hover{background:rgb(255 255 255 / 18%)}
 .hero-links a:focus-visible{outline:3px solid var(--green); outline-offset:2px}
+.hero-cap{display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"lab xp" "name xp" "opp xp";
+  align-items:end; gap:6px 20px; width:100%; max-width:620px; padding-top:16px; border-top:1px solid rgb(255 255 255 / 14%)}
+.hero-cap .lab{grid-area:lab; display:flex; align-items:center; gap:8px; color:var(--green)}
+.hero-cap .lab .ico{--ico:22px}
+.hero-cap .player-link{grid-area:name; justify-self:start; font-size:clamp(28px,3vw,40px); color:var(--white); overflow-wrap:anywhere}
+.hero-cap-opp{grid-area:opp; display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; color:rgb(255 255 255 / 82%)}
+.hero-cap-opp img{width:28px; height:28px; object-fit:contain}
+.hero-cap-xp{grid-area:xp; display:flex; align-items:baseline; gap:6px}
+.hero-cap-xp b{font-size:clamp(44px,4.6vw,64px); font-weight:900; line-height:.85; letter-spacing:-.02em; color:var(--green)}
+.hero-cap-xp small{font-size:14px; font-weight:800; color:rgb(255 255 255 / 70%)}
 .hero-caveat{margin:0; font-size:13px; font-weight:600; line-height:1.45; color:rgb(255 255 255 / 78%)}
 
 /* The cast stands on the board: each cut-out's lower edge sinks behind the
@@ -1834,7 +1844,7 @@ dialog.pf::backdrop{background:rgb(22 0 26 / 62%)}
 .board-note{display:flex; flex-wrap:wrap; align-items:center; gap:4px 6px; font-size:13px; font-weight:600; line-height:1.35;
   color:rgb(255 255 255 / 80%)}
 .board-note b,.board-note .player-link{color:var(--white); font-weight:900}
-.hero-board [hidden]{display:none !important}
+.hero [hidden]{display:none !important}
 .hero-board dt .ico{--ico:18px; vertical-align:-4px; margin-right:2px}
 .board-face{width:44px; height:44px; flex:none; align-self:center; border-radius:50%; object-fit:cover; object-position:50% 8%;
   background:rgb(255 255 255 / 14%); box-shadow:0 0 0 2px var(--green); margin-right:4px}
@@ -1862,6 +1872,7 @@ dialog.pf::backdrop{background:rgb(22 0 26 / 62%)}
         .hero-board{grid-template-columns:repeat(2,minmax(0,1fr)); padding:14px 0}
   .hero-board>div{padding:2px 14px}
   .hero-board>div:nth-child(odd){box-shadow:none}
+  .hero-board>div:last-child:nth-child(odd){grid-column:1 / -1}
   .board-big b{font-size:32px}
 }
 

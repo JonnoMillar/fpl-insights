@@ -374,6 +374,22 @@ def render(d, standalone=True):
                     f'<img class="cut" src="{c["photo"]}" {hook(c["id"], c["name"])}></figure>')
     cast_html = f'<div class="hero-cast" data-count="{len(signings) or 1}">{"".join(cast)}</div>' if cast else ""
 
+    # A week without a transfer: the captain is the week's decision, so he is
+    # named in the copy beside his figure and leaves the board (one home).
+    cap_block = ""
+    if not signings:
+        for mode, c in captains:
+            hidden = " hidden" if mode == "transfers" else ""
+            opp = c.get("opp")
+            where = (f'{crest(opp)}<span>v {e(opp["name"])}, {"home" if opp["home"] else "away"}</span>'
+                     if opp else "<span>no fixture</span>")
+            xp = f'{c["xp"]:.1f}' if c.get("xp") is not None else "&ndash;"
+            cap_block += (f'<div class="hero-cap" data-lineup="{mode}"{hidden}>'
+                          f'<span class="lab">{icon("captain")} Captain</span>'
+                          f'<button type="button" class="player-link disp" data-player="{c["id"]}">{e(c["name"])}</button>'
+                          f'<span class="hero-cap-opp">{where}</span>'
+                          f'<span class="hero-cap-xp"><b class="tnum">{xp}</b><small>xP</small></span></div>')
+
     def cell(big, unit, note):
         return (f'<dd class="board-big"><b class="tnum">{big}</b><small>{unit}</small></dd>'
                 f'<dd class="board-note">{note}</dd>')
@@ -404,7 +420,7 @@ def render(d, standalone=True):
         ("Season", cell(e(eh.get("total_points", "–")), "pts", f"{rank_note} {rank_chip}")),
         (f"{e(next_label)} projected", cell(projected_html, "xP", projected_note)),
     ]
-    if cap_cells:
+    if cap_cells and not cap_block:
         board.append((f'{icon("captain")} Captain', cap_cells))
     board += [
         ("Bank", cell(f"{eh.get('bank', 0) / 10:.1f}", "m", e(bank_note))),
@@ -420,7 +436,7 @@ def render(d, standalone=True):
         <div class="hero-act">{gain_html}
           <div class="hero-links"><a data-dashboard-jump href="#transfer-plan">The full plan</a>
             <a data-dashboard-jump href="#chip-planner">Chips</a></div></div>
-        {table}{caveat_html}
+        {table}{cap_block}{caveat_html}
       </div>
       {cast_html}
       <dl class="hero-board">{board_html}</dl>
