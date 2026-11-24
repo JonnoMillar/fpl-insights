@@ -141,6 +141,7 @@ a{color:inherit}
   display:flex; align-items:center; gap:12px; min-height:56px}
 .topbar .wordmark{display:none}
 .stamp{margin-left:auto; font-size:13px; font-weight:700; color:var(--muted); white-space:nowrap}
+.stamp.stale .data-age{color:var(--night); font-weight:900; text-decoration:underline; text-underline-offset:3px}
 .railwrap{flex:1; min-width:0}
 .railwrap[hidden]{display:block; visibility:hidden}
 .rail{display:flex; gap:6px; overflow-x:auto; scrollbar-width:none}
@@ -1738,66 +1739,135 @@ dialog.pf::backdrop{background:rgb(22 0 26 / 62%)}
 .preview-gain{font-size:12px; line-height:14px; font-weight:800}
 .gain-negative,.gain-positive{color:var(--purple)}
 
-/* --- Squad tab: the week at a glance ---------------------------------------
-   Night score card, two white tiles, one green panel; then the next move on a
-   white stage beside the purple captain card; then the purple pitch. */
+/* --- Squad tab: the opening stage ------------------------------------------
+   One night stage, not five cards. The decision reads first as a poster
+   headline (the players coming in, by name), the signings and the captain
+   stand on a glass scoreboard with their heads over the stage's top edge,
+   and last week, the season, next week, the bank and team news sit on that
+   board as one row of figures. */
 .squad-overview{display:flex; flex-direction:column; gap:16px; margin-bottom:16px}
 .squad-overview>*{min-width:0; margin:0}
-.squad-top{display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,.8fr) minmax(0,1.85fr); gap:16px}
-.squad-top .big{font-size:56px}
 .stat-note{font-size:14px; font-weight:700; line-height:1.4; display:flex; flex-wrap:wrap; align-items:center; gap:6px}
-.score-card,.stat-tile,.next-card{position:relative; border-radius:var(--radius-m); padding:22px; min-width:0; overflow:hidden}
-.score-card{background:var(--night); color:var(--white); display:flex; flex-direction:column}
-.score-card .lab{color:var(--green); position:relative}
-.score-card .glow i{position:absolute; border-radius:50%; filter:blur(48px); pointer-events:none}
-.score-card .glow i:first-child{left:-40px; top:-60px; width:220px; height:200px; background:var(--glow-1); opacity:.55}
-.score-card .glow i:last-child{right:-60px; bottom:-80px; width:220px; height:200px; background:var(--green); opacity:.22}
-.score-big{position:relative; display:flex; align-items:flex-end; gap:10px 14px; flex-wrap:wrap; margin-top:14px}
-.score-big .big{font-size:80px}
-.score-of{font-size:15px; font-weight:700; line-height:1.25; padding-bottom:4px}
-.score-big .delta{margin-bottom:6px}
-.score-line{position:relative; margin:16px 0 0; font-size:15px; font-weight:600; line-height:1.45; color:rgb(255 255 255 / 92%)}
-.score-line b{color:var(--green); font-weight:900}
-.stat-tile{background:var(--white); box-shadow:var(--lift); display:flex; flex-direction:column; gap:10px}
+.stat-tile{position:relative; border-radius:var(--radius-m); padding:22px; min-width:0; overflow:hidden;
+  background:var(--white); box-shadow:var(--lift); display:flex; flex-direction:column; gap:10px}
 .stat-tile .lab{overflow-wrap:anywhere}
 .stat-tile .big{color:var(--purple); margin-top:auto}
-.next-card{background:var(--green); color:var(--night); display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px 18px;
-  grid-template-areas:"main look" "bank look"}
-.next-card::before{content:""; position:absolute; right:-70px; bottom:-120px; width:260px; height:260px; border-radius:50%;
-  border:2px solid rgb(22 0 26 / 8%); pointer-events:none}
-.next-card .lab{color:var(--night)}
-.next-main{grid-area:main; display:flex; flex-direction:column; gap:8px}
-.next-bank{grid-area:bank; display:flex; flex-direction:column; gap:6px; align-self:end}
-.next-bank .big{font-size:34px}
-.next-look{grid-area:look; display:flex; flex-direction:column; gap:10px; min-width:0}
-.next-look ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
-.next-look li{display:flex; gap:8px; align-items:flex-start; font-size:14px; font-weight:600; line-height:1.35}
-.next-look li .ico{--ico:20px; margin-top:-1px}
-.next-look b{font-weight:900}
+
+.hero{--pad:clamp(20px,2.6vw,36px); --break:56px; position:relative; isolation:isolate; display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,min(620px,50%)); grid-template-areas:"copy cast" "board board";
+  column-gap:clamp(20px,3vw,44px); padding:var(--pad); margin-top:calc(var(--break) - 8px) !important;
+  color:var(--white); border-radius:var(--radius-l); box-shadow:0 30px 60px rgb(22 0 26 / 18%)}
+.hero-bg{position:absolute; inset:0; z-index:-1; border-radius:inherit; overflow:hidden; background:var(--night)}
+.hero-bg i{position:absolute; border-radius:50%; pointer-events:none}
+.hero-bg i:nth-child(1){left:-120px; top:-200px; width:620px; height:480px; background:var(--glow-1); opacity:.42; filter:blur(120px)}
+.hero-bg i:nth-child(2){right:4%; top:-60px; width:520px; height:440px; background:var(--green); opacity:.13; filter:blur(120px)}
+.hero-bg i:nth-child(3){right:-140px; bottom:-160px; width:480px; height:380px; background:var(--glow-2); opacity:.12; filter:blur(110px)}
+/* Faint half-pitch markings, the brand's one texture, behind the cast. */
+.hero-bg::after{content:""; position:absolute; right:-30px; top:-10px; width:640px; height:420px; opacity:.07;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 420' fill='none' stroke='white' stroke-width='3'%3E%3Cpath d='M4 4h632v412H4zM150 4v150h340V4M240 4v58h160V4M262 154a90 90 0 0 0 116 0'/%3E%3Ccircle cx='320' cy='112' r='5' fill='white'/%3E%3Cpath d='M210 416a110 110 0 0 1 220 0'/%3E%3C/svg%3E") center/contain no-repeat}
+
+.hero-copy{grid-area:copy; position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:14px;
+  min-width:0; padding:4px 0 28px}
+.hero-copy>.lab{color:var(--green)}
+.hero-title{margin:0; font-size:clamp(40px,5.2vw,78px); line-height:.9; color:var(--white); overflow-wrap:anywhere; text-wrap:balance}
+.hero-title a{color:inherit; text-decoration:none}
+.hero-title a:hover{text-decoration:underline; text-decoration-thickness:4px; text-underline-offset:8px}
+.hero-title a:focus-visible{outline:3px solid var(--green); outline-offset:4px; border-radius:4px}
+.hero-title i{font-style:normal; color:var(--green)}
+.hero-gain{margin:0; display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px; font-size:15px; font-weight:700; color:rgb(255 255 255 / 82%)}
+.hero-gain b{font-size:44px; font-weight:900; color:var(--green); letter-spacing:-.02em; line-height:1}
+.hero-detail{margin:0; font-size:17px; font-weight:600; line-height:1.45; max-width:52ch}
+
+.hero-moves{width:100%; max-width:620px; border-collapse:collapse; font-size:14px}
+.hero-moves th,.hero-moves td{padding:9px 14px 9px 0; text-align:left; vertical-align:middle; white-space:nowrap;
+  border-top:1px solid rgb(255 255 255 / 14%)}
+.hero-moves thead th{border-top:0; background:none; padding-bottom:6px; font-size:11px; font-weight:800; letter-spacing:.1em;
+  text-transform:uppercase; color:rgb(255 255 255 / 64%)}
+.hero-moves tbody th{font-weight:700; white-space:normal}
+.hero-moves tbody th .ico{--ico:16px; margin:0 6px 0 0; vertical-align:-3px; color:var(--green)}
+.hero-moves .player-link{font-size:17px; font-weight:900; color:var(--white)}
+.hero-moves small{white-space:nowrap; margin-left:8px; font-size:12px; font-weight:700; color:rgb(255 255 255 / 64%)}
+.hero-moves td small{display:block; margin:2px 0 0}
+.hero-moves .was{opacity:.55; font-weight:600; margin-right:8px}
+.hero-moves td b{font-size:17px; font-weight:900}
+.hero-moves td img{width:28px; height:28px; object-fit:contain; vertical-align:middle}
+.hero-moves td .was img{width:20px; height:20px; filter:grayscale(1)}
+.hero-act{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px 20px; width:100%; max-width:620px}
+.hero-links{display:flex; gap:8px; flex-wrap:wrap; font-size:14px; font-weight:800}
+.hero-links a{min-height:40px; display:inline-flex; align-items:center; padding:0 14px; border-radius:12px; color:var(--white);
+  text-decoration:none; background:rgb(255 255 255 / 9%); box-shadow:inset 0 0 0 1px rgb(255 255 255 / 16%);
+  transition:background .25s var(--ease)}
+.hero-links a:hover{background:rgb(255 255 255 / 18%)}
+.hero-links a:focus-visible{outline:3px solid var(--green); outline-offset:2px}
+.hero-caveat{margin:0; font-size:13px; font-weight:600; line-height:1.45; color:rgb(255 255 255 / 78%)}
+
+/* The cast stands on the board: each cut-out's lower edge sinks behind the
+   glass, so no hard waist line shows, and the heads rise toward the top. */
+.hero-cast{--sink:64px; grid-area:cast; position:relative; z-index:0; align-self:end; display:flex; align-items:flex-end;
+  justify-content:flex-end; margin:calc(var(--break) * -1 - var(--pad)) 0 calc(var(--sink) * -1); min-width:0}
+.cast{position:relative; flex:0 1 330px; min-width:0; margin:0; aspect-ratio:22/28}
+.cast+.cast{margin-left:-48px}
+.cast:first-child{z-index:1}
+.cast .cut{left:0; width:100%; height:100%; filter:drop-shadow(0 18px 28px rgb(0 0 0 / 50%));
+  /* Portraits are cropped at the arms and waist: fade those edges out. */
+  -webkit-mask:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent),linear-gradient(#000 72%,transparent 96%);
+  -webkit-mask-composite:source-in; mask:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent),linear-gradient(#000 72%,transparent 96%);
+  mask-composite:intersect}
+.cast::before{content:""; position:absolute; left:6%; right:6%; top:8%; aspect-ratio:1; border-radius:50%;
+  background:radial-gradient(closest-side,rgb(255 255 255 / 13%),rgb(255 255 255 / 0))}
+.cast-cap{flex-basis:380px}
+.cast-cap::before{display:none}
+.cast-cap .ring{position:absolute; left:4%; top:4%; width:92%; height:auto; fill:none; stroke:var(--green); stroke-width:11;
+  transform-origin:50% 50%; transition:transform .6s var(--ease)}
+
+.hero-board{grid-area:board; position:relative; z-index:1; margin:0; display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr);
+  padding:18px 0; border-radius:var(--radius-m); background:var(--glass-bg), rgb(22 0 26 / 52%);
+  -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px);
+  box-shadow:inset 0 1px 0 rgb(255 255 255 / 22%), inset 0 0 0 1px rgb(255 255 255 / 12%)}
+.hero-board>div{display:flex; flex-direction:column; gap:8px; min-width:0; padding:2px clamp(14px,1.8vw,24px)}
+.hero-board>div+div{box-shadow:inset 1px 0 0 rgb(255 255 255 / 14%)}
+.hero-board dt{color:rgb(255 255 255 / 70%)}
+.hero-board dd{margin:0}
+.board-big{display:flex; align-items:baseline; gap:6px}
+.board-big b{font-size:clamp(34px,3.4vw,46px); font-weight:900; line-height:.9; letter-spacing:-.02em}
+.board-big small{font-size:14px; font-weight:800; color:rgb(255 255 255 / 70%)}
+.board-note{display:flex; flex-wrap:wrap; align-items:center; gap:4px 6px; font-size:13px; font-weight:600; line-height:1.35;
+  color:rgb(255 255 255 / 80%)}
+.board-note b,.board-note .player-link{color:var(--white); font-weight:900}
+.hero-board [hidden]{display:none !important}
+.hero-board dt .ico{--ico:18px; vertical-align:-4px; margin-right:2px}
+.board-face{width:44px; height:44px; flex:none; align-self:center; border-radius:50%; object-fit:cover; object-position:50% 8%;
+  background:rgb(255 255 255 / 14%); box-shadow:0 0 0 2px var(--green); margin-right:4px}
+
 @media (max-width:1180px){
-  .squad-top{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .next-card{grid-column:1 / -1}
+  .hero{grid-template-columns:minmax(0,1fr) minmax(0,420px)}
+  .hero-board{grid-auto-flow:row; grid-template-columns:repeat(3,minmax(0,1fr)); row-gap:18px}
+  .hero-board>div:nth-child(3n+1){box-shadow:none}
+}
+@media (max-width:860px){
+  .hero{--break:40px; grid-template-columns:minmax(0,1fr); grid-template-areas:"copy" "cast" "board"}
+  .hero-copy{padding-bottom:20px}
+  .hero-cast{margin-top:0; max-width:520px; width:100%; justify-self:center}
+  .hero-cast[data-count="1"]{max-width:300px}
 }
 @media (max-width:560px){
-  .squad-top{gap:12px}
-  .squad-top .big{font-size:44px}
-  .score-big .big{font-size:68px}
-  .score-card,.stat-tile,.next-card{padding:18px}
-  .next-card{grid-template-columns:minmax(0,1fr); grid-template-areas:"main" "look" "bank"}
+  .hero{--pad:16px; border-radius:var(--radius-m)}
+  .hero-title{font-size:clamp(34px,10.5vw,46px)}
+  .hero-gain b{font-size:36px}
+  .hero-moves{font-size:13px}
+  .hero-moves th,.hero-moves td{padding-right:8px}
+  .hero-moves .player-link,.hero-moves td b{font-size:15px}
+  .hero-moves .was{margin-right:4px}
+  .hero-moves td .was img{display:none}
+        .hero-board{grid-template-columns:repeat(2,minmax(0,1fr)); padding:14px 0}
+  .hero-board>div{padding:2px 14px}
+  .hero-board>div:nth-child(odd){box-shadow:none}
+  .board-big b{font-size:32px}
 }
 
 /* The next move: each transfer on a mist photo panel, the old player greyed
    on the left, the new one standing on a night strip of figures, with a
    penalty box drawn faintly behind him. */
-.move-row{display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; align-items:stretch}
-.move-stage{position:relative; background:var(--white); border-radius:var(--radius-l); box-shadow:var(--lift); padding:26px 28px; overflow:hidden}
-.move-head{position:relative; display:flex; align-items:flex-end; justify-content:space-between; gap:12px 24px; flex-wrap:wrap}
-.brief-action{margin-top:8px; font-size:34px; color:var(--purple)}
-.brief-action a{text-decoration:none}
-.brief-action a:hover{text-decoration:underline; text-underline-offset:5px; text-decoration-thickness:3px}
-.move-gain{display:flex; align-items:baseline; gap:10px; font-size:15px; font-weight:700}
-.move-gain .big{font-size:34px; color:var(--purple)}
-.move-detail{position:relative; font-size:17px; font-weight:600; margin:14px 0 0}
 .move-slots{position:relative; list-style:none; margin:20px 0 0; padding:0; display:grid;
   grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:18px}
 .move-slot{--new-w:190px; --strip:62px; position:relative; height:310px; border-radius:22px; background:var(--mist); overflow:hidden}
@@ -1831,34 +1901,9 @@ dialog.pf::backdrop{background:rgb(22 0 26 / 62%)}
 .move-figs dd .was{font-size:13px; font-weight:600; opacity:.6}
 .move-figs dd img{width:24px; height:24px; object-fit:contain}
 .move-figs dd .was img{width:20px; height:20px; filter:grayscale(1)}
-.brief-links{position:relative; display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; font-size:14px; font-weight:800}
-.brief-links a{display:inline-flex; align-items:center; min-height:40px; padding:0 14px; border-radius:12px;
-  background:var(--mist); text-decoration:none; color:var(--purple)}
-.brief-links a:hover{background:var(--line)}
-.brief-caveat{position:relative; font-size:14px; font-weight:600; line-height:1.5; margin:14px 0 0}
 .preview-on .move-old{opacity:.25}
 
-/* Captain: purple, two green chevrons behind the cut-out, never across it. */
-.captain-slot{display:grid; min-width:0}
-.captain-slot>*{grid-area:1/1}
-.captain-card{position:relative; min-height:330px; border-radius:var(--radius-l); background:var(--purple); color:var(--white);
-  padding:22px; overflow:hidden; display:flex; flex-direction:column; align-items:flex-start; gap:8px; margin:0}
-.captain-card[hidden]{display:flex; visibility:hidden}
-.captain-card .chevrons{transform-origin:50% 50%; transition:transform .6s var(--ease); position:absolute; right:-40px; bottom:56px; width:250px; height:250px; fill:none; stroke:var(--green);
-  stroke-width:14; stroke-linejoin:round; stroke-linecap:round}
-.captain-card .cut{right:-30px; width:224px; height:285px; filter:drop-shadow(0 10px 18px rgb(0 0 0 / 35%))}
-.captain-card .lab{position:relative; color:var(--green); display:flex; align-items:center; gap:8px}
-.captain-card .lab .ico{--ico:26px}
-.captain-card .player-link{position:relative; font-size:26px; max-width:64%; overflow-wrap:break-word; hyphens:auto}
-.cap-opp{position:relative; display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; max-width:52%}
-.cap-opp img{width:28px; height:28px; object-fit:contain}
-.cap-xp{position:relative; margin-top:auto; display:flex; align-items:flex-end; gap:10px}
-.cap-xp .big{font-size:64px}
-.cap-xp span{font-size:13px; font-weight:700; line-height:1.25; padding-bottom:4px; max-width:84px}
-@media (max-width:1180px){.move-row{grid-template-columns:minmax(0,1fr)}.captain-card{min-height:300px}}
 @media (max-width:560px){
-  .move-stage{padding:20px 16px}
-  .brief-action{font-size:28px}
   .move-slot{height:270px; --new-w:160px}
   .move-slot:has(.move-figs){--strip:112px; height:340px}
   .move-figs{flex-wrap:wrap; padding:8px 12px 10px; gap:4px 12px}
@@ -2243,10 +2288,6 @@ dialog.pf::backdrop{background:rgb(22 0 26 / 62%)}
   .move-names{right:92px}
   .move-names .player-link,.move-names .move-in{font-size:20px; overflow-wrap:break-word}
   .move-slot{--new-w:150px}
-  .captain-card .cut{width:180px; height:229px; right:-34px}
-  .captain-card .chevrons{width:200px; height:200px; right:-44px; bottom:50px}
-  .captain-card .player-link{font-size:24px; max-width:58%}
-  .cap-opp{max-width:48%}
 
 }
 .stage-squad{border:0}
@@ -2349,13 +2390,13 @@ dialog.pf::backdrop{background:rgb(22 0 26 / 62%)}
 .move-slot:has(.move-new:is(:hover,:focus-visible)) .player-link,
 .move-slot:has(.player-link:is(:hover,:focus-visible)) .player-link,
 .move-slot:has(.move-new:is(:hover,:focus-visible)) .move-in,
-.captain-card:has(.cut:is(:hover,:focus-visible)) .player-link,
+.cast-cap:has(.cut:is(:hover,:focus-visible)) .player-link,
 .deck-card:has(.cut:is(:hover,:focus-visible)) .deck-name,
 .df-card:has(.df-photo:is(:hover,:focus-visible)) .df-name,
 .rv-row:has(.rv-photo:is(:hover,:focus-visible)) .rv-who b,
 .plan-cheap li:has(.face:is(:hover,:focus-visible)) b{text-decoration-color:currentColor}
 .move-slot:has(.player-link:focus-visible) .move-new,
-.captain-card:has(.player-link:focus-visible) .cut{transform:scale(1.04)}
+.cast-cap:has(.player-link:focus-visible) .cut{transform:scale(1.04)}
 .bench-slot .cut[data-player]:hover{transform:translateX(-50%) scale(1.04)}
 @media (hover:hover){
   .pl[data-player]:hover{transform:translateY(-3px); box-shadow:0 12px 24px rgb(8 0 10 / 45%)}
@@ -2366,13 +2407,13 @@ dialog.pf::backdrop{background:rgb(22 0 26 / 62%)}
   .pkstage.ep-on .pl[data-player]:hover{transform:none; box-shadow:0 6px 16px rgb(8 0 10 / 35%)}
   .cut[data-player]:hover,
   .move-slot:has(.player-link:hover) .move-new,
-  .captain-card:has(.player-link:hover) .cut{transform:scale(1.04)}
+  .cast-cap:has(.player-link:hover) .cut{transform:scale(1.04)}
   .move-new[data-player]:hover{filter:drop-shadow(0 14px 20px rgb(22 0 26 / 30%))}
   .move-old[data-player]:hover{opacity:.9}
   .deck-old[data-player]:hover{opacity:.8}
-  .captain-card .cut[data-player]:hover{filter:drop-shadow(0 14px 22px rgb(0 0 0 / 45%))}
-  .captain-card:has(.cut:hover) .chevrons,
-  .captain-card:has(.player-link:hover) .chevrons{transform:scale(1.06)}
+  .cast .cut[data-player]:hover{filter:drop-shadow(0 20px 28px rgb(0 0 0 / 55%))}
+  .cast-cap:has(.cut:hover) .ring,
+  .cast-cap:has(.player-link:hover) .ring{transform:scale(1.06)}
   .face[data-player]:hover,.df-photo[data-player]:hover,.rv-photo[data-player]:hover{
     transform:scale(1.08); position:relative; z-index:1}
   .df-photo[data-player]:hover,.rv-photo[data-player]:hover{box-shadow:0 6px 14px rgb(22 0 26 / 28%)}

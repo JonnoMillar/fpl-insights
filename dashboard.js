@@ -6,12 +6,16 @@
     var generated = Date.parse(snapshot.dataset.generated);
     if (!Number.isFinite(generated)) return;
     var age = Math.max(0, Math.floor((Date.now() - generated) / 60000));
-    var stale = age >= 360;
-    snapshot.classList.toggle('data-warning', stale);
+    // GitHub's scheduler runs the "every three hours" build three or four
+    // times a day, so a gap of six to nine hours is normal. Only a full day
+    // without a run means the build is actually broken.
+    var stale = age >= 1440;
+    snapshot.classList.toggle('stale', stale);
     var ageLabel = snapshot.querySelector('.data-age') || snapshot;
-    ageLabel.textContent = (stale ? 'Update overdue. ' : 'Snapshot: ') +
-      (age < 60 ? age + ' minutes' : Math.floor(age / 60) + ' hours') +
-      ' old.';
+    var h = Math.floor(age / 60);
+    ageLabel.textContent = stale ? 'not updated for ' + Math.floor(h / 24) + (h < 48 ? ' day' : ' days') :
+      'updated ' + (age < 60 ? age + 'm' : h + 'h') + ' ago';
+    snapshot.title = new Date(generated).toUTCString();
   }
   markFreshness();
   window.setInterval(markFreshness, 60000);

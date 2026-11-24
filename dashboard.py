@@ -285,9 +285,8 @@ def render(d, standalone=True):
     gap = ""
     if isinstance(gw_pts, (int, float)) and avg:
         diff = gw_pts - avg
-        gap = (f'<span class="delta delta-{"up" if diff >= 0 else "down"}">'
-               f'{abs(diff)} {"above" if diff >= 0 else "below"}</span>')
-    verdict = f'<p class="score-line">{d["verdict"]}</p>' if d.get("verdict") else ""
+        gap = (f'<span class="delta delta-{"up" if diff >= 0 else "down"}" '
+               f'title="{abs(diff)} {"above" if diff >= 0 else "below"} average">{abs(diff)}</span>')
     projected_html = e(f"{projected:.1f}") if projected else "&ndash;"
     projected_note = "with C"
     if projected and week.get("transfers") is not None:
@@ -296,124 +295,137 @@ def render(d, standalone=True):
         hit_words = f"after &minus;{preview_hit}" if preview_hit else "with transfers"
         projected_note = (f'<span data-lineup="owned">with C</span>'
                           f'<span data-lineup="transfers" hidden>{hit_words}</span>')
-    if attention:
-        looks = "".join(f'<li>{icon("doubtful")}<span><b>{e(nm)}</b> {e(why)}</span></li>'
-                        for nm, why in attention[:3])
-        looks = (f'<div class="next-look"><span class="lab">{len(attention)} to check</span>'
-                 f'<ul>{looks}</ul></div>')
-    else:
-        looks = (f'<div class="next-look"><span class="lab">Team news</span>'
-                 f'<ul><li>{icon("available")}<span><b>0</b> flagged</span></li></ul></div>')
     bank_note = (f"sells {d['sell_value']:.1f}m" if d.get("sell_value")
                  else f"squad {eh.get('value', 0) / 10:.1f}m")
-    rank_note = f"rank {d['overall_rank']:,}" if d.get("overall_rank") else "points"
-    avg_note = f"<br>{avg} average" if avg else ""
-
-    hero_html = f'''<section class="squad-top" aria-label="Weekly scorecard">
-      <div class="score-card">
-        <div class="glow" aria-hidden="true"><i></i><i></i></div>
-        <span class="lab">Gameweek {d['gw']}</span>
-        <div class="score-big"><span class="big tnum">{e(gw_pts if gw_pts is not None else "–")}</span>
-          <span class="score-of">points{avg_note}</span>{gap}</div>
-        {verdict}
-      </div>
-      <div class="stat-tile"><span class="lab">Season</span>
-        <span class="big tnum">{e(eh.get("total_points", "–"))}</span>
-        <span class="stat-note">{rank_note} {rank_chip}</span></div>
-      <div class="next-card">
-        <div class="next-main"><span class="lab">Up next &middot; {e(next_label)}</span>
-          <span class="big tnum">{projected_html}</span>
-          <span class="stat-note">xP &middot; {projected_note}</span></div>
-        {looks}
-        <div class="next-bank"><span class="big tnum">{eh.get('bank', 0) / 10:.1f}m</span>
-          <span class="stat-note">bank &middot; {e(bank_note)}</span></div>
-      </div>
-    </section>'''
+    rank_note = f"rank {d['overall_rank']:,}" if d.get("overall_rank") else ""
 
     action = d.get("next_action") or {}
     moves = action.get("moves", [])
     target = action.get("target")
-    action_title = (f'<a data-dashboard-jump href="#{e(target)}">{e(action["label"])}</a>'
-                    if target else e(action.get("label", "Advice unavailable")))
+    brief = d.get("brief_moves") or []
 
-    def opp_words(opp):
+    def num(v, fmt="{:.1f}"):
+        return "&ndash;" if v is None else fmt.format(v)
+
+    def crest(opp):
         if not opp:
-            return "no fixture"
-        return f"{opp['name']}, {'home' if opp['home'] else 'away'}"
+            return '<span class="mf-none">&ndash;</span>'
+        where = "H" if opp["home"] else "A"
+        if opp.get("crest"):
+            return (f'<img src="{opp["crest"]}" alt="{e(opp["short"])} ({where})" '
+                    f'title="{e(opp["name"])} ({where})">')
+        return f'<span>{e(opp["short"])}</span>'
 
-    slots = []
-    for m in d.get("brief_moves") or []:
-        out_img = (f'<img class="cut move-old" src="{m["out_photo"]}" {hook(m["out_id"], m["out_name"])}>'
-                   if m.get("out_photo") else "")
-        in_img = (f'<img class="cut move-new" src="{m["in_photo"]}" {hook(m["in_id"], m["in_name"])}>'
-                  if m.get("in_photo") else "")
-        out_figs, in_figs = m["figs"]
-
-        def num(v, fmt="{:.1f}"):
-            return "&ndash;" if v is None else fmt.format(v)
-
-        def crest(opp):
-            if not opp:
-                return '<span class="mf-none">&ndash;</span>'
-            where = "H" if opp["home"] else "A"
-            if opp.get("crest"):
-                return f'<img src="{opp["crest"]}" alt="{e(opp["short"])} ({where})" title="{e(opp["name"])} ({where})">'
-            return f'<span>{e(opp["short"])}</span>'
-
-        figs = [("Next", crest(m.get("out_opp")), crest(m.get("opp"))),
-                ("Form", num(out_figs["form"]), num(in_figs["form"])),
-                (in_figs["chance_label"], num(out_figs["chance"], "{:.2f}"),
-                 num(in_figs["chance"], "{:.2f}"))]
-        figs_html = "".join(f'<div><dt>{e(lab)}</dt><dd><span class="was">{a}</span><b>{b}</b></dd></div>'
-                            for lab, a, b in figs)
-        # No per-leg gain: the move's one +xP is in the head above, because
-        # the legs of one move are evaluated together, not one by one.
-        slots.append(
-            f'<li class="move-slot">{out_img}<span class="move-arrow">{icon("next")}</span>{in_img}'
-            f'<div class="move-names"><span class="move-out">{e(m["out_name"])} out</span>'
-            f'<button type="button" class="player-link disp" data-player="{m["in_id"]}">'
-            f'{e(m["in_name"])}</button>'
-            f'<span>{e(m["in_club"])} &middot; {m["in_price"]:.1f}m</span></div>'
-            f'<div class="move-figs"><dl class="tnum">{figs_html}</dl></div></li>')
-    moves_html = (f'<ul class="move-slots" aria-label="Suggested transfers">{"".join(slots)}</ul>'
-                  if slots else "")
-    detail = ("" if slots else
-              f'<p class="move-detail">{e(action.get("detail", "Supported projections are required."))}</p>')
+    # The headline is the decision itself: the players coming in, by name.
+    # Without a transfer it is the action ("Roll 1 free transfer").
+    if brief:
+        headline = " <i>&amp;</i> ".join(e(m["in_name"]) for m in brief) + " in"
+        kicker = f'{e(next_label)} &middot; {e(action.get("label", "The next move"))}'
+    else:
+        headline = e(action.get("label", "Advice unavailable"))
+        kicker = f"{e(next_label)} &middot; The next move"
+    if target:
+        headline = f'<a data-dashboard-jump href="#{e(target)}">{headline}</a>'
     gain = action.get("projected_gain")
-    gain_html = (f'<span class="move-gain"><b class="big tnum">+{gain:.1f}</b>'
-                 f'<span>xP to GW{d["next_gw"] + action["horizon"] - 1}, after hits</span></span>'
-                 if gain is not None else "")
+    gain_html = (f'<p class="hero-gain"><b class="tnum">+{gain:.1f}</b>'
+                 f'<span>xP to GW{d["next_gw"] + action["horizon"] - 1}, after hits</span></p>'
+                 if gain is not None else
+                 f'<p class="hero-detail">{e(action.get("detail", "Supported projections are required."))}</p>')
+
+    # One row per transfer: who goes, who comes, and the three figures that
+    # decided it, the old value faded beside the new. No per-leg gain: the
+    # legs of one move are evaluated together, so the one +xP sits above.
+    labels = {m["figs"][1]["chance_label"] for m in brief}
+    shared = labels.pop() if len(labels) == 1 else None
+    rows = []
+    for m in brief:
+        out_figs, in_figs = m["figs"]
+        tag = "" if shared else f'<small>{e(in_figs["chance_label"])}</small>'
+        rows.append(
+            f'<tr><th scope="row"><span class="was">{e(m["out_name"])}</span>{icon("next")}'
+            f'<button type="button" class="player-link" data-player="{m["in_id"]}">{e(m["in_name"])}</button>'
+            f'<small>{e(m["in_club"])} &middot; {m["in_price"]:.1f}m</small></th>'
+            f'<td><span class="was">{crest(m.get("out_opp"))}</span>{crest(m.get("opp"))}</td>'
+            f'<td><span class="was">{num(out_figs["form"])}</span><b>{num(in_figs["form"])}</b></td>'
+            f'<td><span class="was">{num(out_figs["chance"], "{:.2f}")}</span>'
+            f'<b>{num(in_figs["chance"], "{:.2f}")}</b>{tag}</td></tr>')
+    table = (f'<table class="hero-moves tnum"><thead><tr><th scope="col">Out, in</th>'
+             f'<th scope="col">Next</th><th scope="col">Form</th>'
+             f'<th scope="col">{e(shared or "Chance")}</th></tr></thead>'
+             f'<tbody>{"".join(rows)}</tbody></table>' if rows else "")
     preview_note = d.get("transfer_preview_note", "Transfer preview unavailable.")
     caveat = "" if d.get("transfer_pick_pitch") else preview_note
-    caveat_html = f'<p class="brief-caveat">{e(caveat)}</p>' if caveat else ""
-    brief_html = f'''<section class="move-stage" aria-labelledby="decision-title">
-      <div class="move-head"><div><span class="lab" id="decision-title">The next move &middot; {e(next_label)}</span>
-        <h3 class="brief-action disp">{action_title}</h3></div>{gain_html}</div>
-      {detail}{moves_html}
-      <div class="brief-links"><a data-dashboard-jump href="#transfer-plan">The full plan</a>
-        <a data-dashboard-jump href="#chip-planner">Chips</a></div>
-      {caveat_html}
+    caveat_html = f'<p class="hero-caveat">{e(caveat)}</p>' if caveat else ""
+
+    # The cast: the signings, large, standing on the scoreboard. With no
+    # transfer to show, the captain takes the stage instead, ring behind him.
+    captains = [(mode, c) for mode, c in ((m, (d.get("captains") or {}).get(m))
+                                          for m in ("owned", "transfers")) if c]
+    signings = [m for m in brief if m.get("in_photo")]
+    cast = [f'<figure class="cast"><img class="cut" src="{m["in_photo"]}" {hook(m["in_id"], m["in_name"])}></figure>'
+            for m in signings]
+    if not cast:
+        for mode, c in captains:
+            if c.get("photo"):
+                hidden = " hidden" if mode == "transfers" else ""
+                cast.append(
+                    f'<figure class="cast cast-cap" data-lineup="{mode}"{hidden}>'
+                    f'<svg class="ring" aria-hidden="true" viewBox="0 0 200 200"><circle cx="100" cy="100" r="86"/></svg>'
+                    f'<img class="cut" src="{c["photo"]}" {hook(c["id"], c["name"])}></figure>')
+    cast_html = f'<div class="hero-cast" data-count="{len(signings) or 1}">{"".join(cast)}</div>' if cast else ""
+
+    def cell(big, unit, note):
+        return (f'<dd class="board-big"><b class="tnum">{big}</b><small>{unit}</small></dd>'
+                f'<dd class="board-note">{note}</dd>')
+
+    # The captain's cell carries a face, so the board says who as well as how many.
+    cap_cells = ""
+    for mode, c in captains:
+        attrs = f' data-lineup="{mode}"' + (" hidden" if mode == "transfers" else "")
+        face = (f'<img class="face board-face" src="{c["photo"]}" {hook(c["id"], c["name"])}>'
+                if c.get("photo") else "")
+        opp = c.get("opp")
+        where = f'v {e(opp["short"])} ({"H" if opp["home"] else "A"})' if opp else "no fixture"
+        xp = f'{c["xp"]:.1f}' if c.get("xp") is not None else "&ndash;"
+        cap_cells += (f'<dd class="board-big"{attrs}>{face}<b class="tnum">{xp}</b><small>xP</small></dd>'
+                      f'<dd class="board-note"{attrs}><button type="button" class="player-link" '
+                      f'data-player="{c["id"]}">{e(c["name"])}</button> {where}</dd>')
+
+    if attention:
+        news_big = len(attention)
+        news_note = "".join(f"<span><b>{e(nm)}</b> {e(why)}</span>" for nm, why in attention[:2])
+    else:
+        news_big, news_note = 0, "in the eleven"
+    gw_note = (f"avg {avg} " if avg else "") + gap
+    if d.get("verdict"):
+        gw_note += f'<span>{d["verdict"]}</span>'
+    board = [
+        (f"GW{d['gw']}", cell(e(gw_pts if gw_pts is not None else "–"), "pts", gw_note)),
+        ("Season", cell(e(eh.get("total_points", "–")), "pts", f"{rank_note} {rank_chip}")),
+        (f"{e(next_label)} projected", cell(projected_html, "xP", projected_note)),
+    ]
+    if cap_cells:
+        board.append((f'{icon("captain")} Captain', cap_cells))
+    board += [
+        ("Bank", cell(f"{eh.get('bank', 0) / 10:.1f}", "m", e(bank_note))),
+        ("Team news", cell(news_big, "flagged", news_note)),
+    ]
+    board_html = "".join(f'<div><dt class="lab">{lab}</dt>{body}</div>' for lab, body in board)
+
+    hero_html = f'''<section class="hero" aria-labelledby="decision-title">
+      <div class="hero-bg" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="hero-copy">
+        <span class="lab" id="decision-title">{kicker}</span>
+        <h2 class="hero-title disp">{headline}</h2>
+        <div class="hero-act">{gain_html}
+          <div class="hero-links"><a data-dashboard-jump href="#transfer-plan">The full plan</a>
+            <a data-dashboard-jump href="#chip-planner">Chips</a></div></div>
+        {table}{caveat_html}
+      </div>
+      {cast_html}
+      <dl class="hero-board">{board_html}</dl>
     </section>'''
 
-    captain_html = ""
-    for mode in ("owned", "transfers"):
-        c = (d.get("captains") or {}).get(mode)
-        if not c:
-            continue
-        photo = (f'<img class="cut" src="{c["photo"]}" {hook(c["id"], c["name"])}>'
-                 if c.get("photo") else "")
-        crest = (f'<img src="{c["opp"]["crest"]}" alt="">'
-                 if c.get("opp") and c["opp"].get("crest") else "")
-        xp = f'{c["xp"]:.1f}' if c.get("xp") is not None else "&ndash;"
-        hidden = " hidden" if mode == "transfers" else ""
-        captain_html += (
-            f'<section class="captain-card" data-lineup="{mode}"{hidden} aria-label="Captain">'
-            f'<svg class="chevrons" aria-hidden="true" viewBox="0 0 200 200"><path d="M14 92 100 30l86 62M14 150l86-62 86 62"/></svg>'
-            f'{photo}<span class="lab">{icon("captain")} Captain</span>'
-            f'<button type="button" class="player-link disp" data-player="{c["id"]}">{e(c["name"])}</button>'
-            f'<span class="cap-opp">{crest}v {e(opp_words(c["opp"]))}</span>'
-            f'<span class="cap-xp"><b class="big tnum">{xp}</b><span>xP</span></span>'
-            f'</section>')
     weekly_gain = ""
     if preview_gain is not None:
         gain_text = f"{preview_gain:+.1f}".replace("-", "−")
@@ -436,7 +448,7 @@ def render(d, standalone=True):
 <header class="topbar"><div class="topbar-in">
   <span class="wordmark">{LOGO_SVG}FPL Insights</span>
   <div class="railwrap" hidden><nav class="rail" aria-label="Sections on this tab"></nav></div>
-  <span class="stamp">Gameweek {d['gw']} &middot; {e(d['generated'])}</span>
+  <span class="stamp" role="status" data-generated="{e(d.get('generated_iso', ''))}">Gameweek {d['gw']} &middot; <span class="data-age">{e(d['generated'])}</span></span>
 </div></header>
 
 <div class="wrap">
@@ -452,21 +464,17 @@ def render(d, standalone=True):
         <div class="about-copy">
           <p>Built by Jonno Millar to turn the numbers behind the points into captain, transfer and chip decisions. Explore the published squad, compare mini-league results, or use Scout to find and compare players.</p>
           <p>Player statistics come from the public Fantasy Premier League API, including Opta's expected goals and expected assists. Their sum, expected goal involvement (xGI), describes the quality of chances a player takes and creates. Fixtures, market odds and predicted line-ups inform the analysis.</p>
-          <p>Projections are estimates. Snapshots refresh on a best-effort schedule.</p>
+          <p>Projections are estimates. Snapshots refresh on a best-effort schedule. Advice uses your last published squad and bank, not changes made since. Double gameweeks are not planned.</p>
           <a href="https://github.com/JonnoMillar/fpl-insights#how-it-works">Read about the data and approach <span aria-hidden="true">↗</span></a>
         </div>
       </details>
     </div>
   </section>
 
-  <p class="data-status" role="status" data-generated="{e(d.get('generated_iso', ''))}">{icon("information")}
-    <span><span class="data-age">Snapshot: {e(d['generated'])}.</span>
-    Advice uses your last published squad and bank, not changes made since. Double gameweeks are not planned.</span></p>
 {source_notice(d)}
   <div class="panel" id="p-squad" role="tabpanel">
     <div class="squad-overview">
     {hero_html}
-    <div class="move-row">{brief_html}<div class="captain-slot">{captain_html}</div></div>
     <section class="card squad-pitch">
       <div class="team-sheet-head"><div class="card-head"><h2>Starting XI{components.info_btn()}</h2>
         <span class="sub" hidden>Pitch xP uses match histories; the transfer plan uses its season-based scorer.</span>

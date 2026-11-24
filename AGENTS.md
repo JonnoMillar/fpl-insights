@@ -50,6 +50,6 @@ config.json selects the manager and league. API responses and image assets are c
 - Double-gameweek prediction support is deliberately absent. Withhold affected planning advice and label historical multi-fixture aggregates rather than pretending they describe one match.
 - Optional-source failures must preserve core squad/league rendering and be visible on the page. Fatal failures and regression failures must prevent generated publication. Keep the last valid artifact.
 - HTTP 403/404 portrait failures use existing fallbacks; retries cannot repair these answers. Use urllib for FPL; curl has historically failed its TLS handshake on this machine.
-- GitHub scheduling is best-effort. Do not promise guaranteed three-hour freshness; the browser flags overdue snapshots.
+- GitHub scheduling is best-effort. Do not promise guaranteed three-hour freshness; the header stamp shows snapshot age and flags only a full day without a build.
 - Scheduled builds commit generated HTML, projections and price history to main. Fetch before publishing and integrate concurrent bot commits without force-pushing or overwriting source changes. Generated conflicts can be resolved with verified regenerated output.
 - Browser screenshots can capture a tab-indicator animation mid-transition. Check actual selected state and settled geometry before reporting an indicator bug.

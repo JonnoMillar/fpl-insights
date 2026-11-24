@@ -1,6 +1,18 @@
 # HANDOFF — FPL Insights
 
-Last updated: 4 November 2026 (player profile published to origin/main and live). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
+Last updated: 24 November 2026 (Squad opening stage on `claude/hero-redesign`, not pushed). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
+
+## Squad opening stage, 24 November 2026 (branch `claude/hero-redesign`, not pushed)
+
+Jonno: the first five cards (score, Season, Up next, next move, captain) were "a jumbled mess of colours", flat uniform fills, no hierarchy. Replaced by one night stage in `render()` (`hero_html`; CSS block "Squad tab: the opening stage"):
+
+- Headline = the decision as poster type: the signings by name ("ISAK & RUDONI IN", link to the plan week); kicker carries the action label. No transfer: the action label is the headline.
+- Gain (+xP, green) with the plan/chips links; one compact table of out → in, next crest, form, xGI/90 (old value faded).
+- Cast: the signings as large cut-outs on the right, lower edges sunk behind the glass board, arm/waist crops faded by a mask. No transfer: the captain takes the stage with the green ring and breaks out over the top edge.
+- Glass board, one row: GW points (avg, delta, captain return), Season (rank), next GW projected, Captain (face + xP, both preview modes), Bank, Team news (count + names). Old score card, Up next panel, white move stage and purple captain card are gone (CSS removed; `.move-slot`, `.stat-tile`, `.move-figs` kept for Planning/League).
+- The "Snapshot / Update overdue" banner is gone: age sits in the header stamp ("updated 7h ago"), flagged only after 24 h; the published-squad and no-doubles caveats moved into About & methods (still printed once; test updated).
+- Verified on fresh 24 Nov data: 142 tests, `node --check` every `.js`, `git diff --check`, fresh `cli.py dashboard --out .cache/ui/final.html` with every source OK, Python Playwright at 1440/1280/1180/1024/768/375/320 with no page overflow or console errors, preview switch flips the board projection and captain, cast opens the profile. Roll variant (no transfer, two flagged) checked at 1440 and 375.
+- Local `main` in the working checkout is stale (143 behind origin) and carries an uncommitted copy of the banner removal; this branch supersedes it.
 
 ## Hover hint on player pictures, published 5 November 2026
 
@@ -139,7 +151,7 @@ Default view: B usually wins, because the Wildcard leaves the template squad. A 
 - Recover real selling prices before affordability advice; withhold advice if recovery fails.
 - Evaluate paired transfers together on the resulting squad; no per-leg standalone gains.
 - No double-gameweek model: withhold planning advice when the window has doubles or mismatched fixtures.
-- Snapshot age shown; overdue warning after six hours. Scheduling is best-effort.
+- Snapshot age shown in the header stamp; flagged only after 24 hours without a build (GitHub fires the three-hourly cron three or four times a day). Scheduling is best-effort.
 - Keep `projections.json`'s public interface stable for the phone-alert project.
 - Home/away is already priced into fixtures (FFS per-fixture xG, clean-sheet odds); a separate venue factor would double-count.
 

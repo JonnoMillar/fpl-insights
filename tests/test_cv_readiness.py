@@ -77,8 +77,29 @@ class DocumentTests(unittest.TestCase):
         self.assertEqual(html.count("last published squad"), 1)
         self.assertEqual(html.count("Double gameweeks are not planned"), 1)
         self.assertEqual(html.count("Some data is unavailable"), 1)
-        # The freshness script rewrites only the age, never the caveat beside it.
+        # The age lives in the header stamp; the old banner beside it is gone.
         self.assertIn('<span class="data-age">', html)
+        self.assertNotIn('class="data-status" role="status" data-generated', html)
+
+    def test_hero_headlines_the_signings_else_the_captain_takes_the_stage(self):
+        captain = {"id": 8, "name": "Calafiori", "photo": "cap.webp", "xp": 6.6,
+                   "opp": {"name": "Hull City", "short": "HUL", "home": True}}
+        figs = {"form": 5.0, "chance": 0.6, "chance_label": "xGI/90"}
+        move = {"out_id": 1, "out_name": "Pedro", "out_photo": "", "in_id": 2, "in_name": "Isak",
+                "in_photo": "isak.webp", "in_club": "LIV", "in_price": 9.2, "opp": None,
+                "out_opp": None, "figs": (figs, figs)}
+        action = {"label": "Make 1 transfer", "target": "plan-gw-7", "projected_gain": 4.2, "horizon": 8}
+        html = dashboard.render(self._minimal_data(
+            brief_moves=[move], next_action=action, captains={"owned": captain}), standalone=True)
+        self.assertIn(">Isak in</a></h2>", html)
+        self.assertIn('src="isak.webp"', html)
+        self.assertNotIn('class="cast cast-cap"', html)  # captain sits on the board instead
+        self.assertIn('class="face board-face" src="cap.webp"', html)
+        roll = dashboard.render(self._minimal_data(
+            next_action={"label": "Roll 1 free transfer", "target": None},
+            captains={"owned": captain}), standalone=True)
+        self.assertIn('<h2 class="hero-title disp">Roll 1 free transfer</h2>', roll)
+        self.assertIn('class="cast cast-cap" data-lineup="owned"', roll)
 
 
 class SelectionTests(unittest.TestCase):

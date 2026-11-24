@@ -117,8 +117,10 @@ before producing favicon, app icon or og image exports.
 - **Transfer card**: mist photo panel, outgoing player grey at 55% opacity on the left,
   arrow, incoming player standing on the bottom edge, name in display caps, night caption
   strip with the opponent's crest and one line of reasoning.
-- **Captain card**: purple, green ring behind the cut-out (never across the body),
-  opponent crest, one big xP number.
+- **Opening stage** (Squad): one night stage replaces the first-view cards. Headline names
+  the signings; the signings stand large on a glass scoreboard (lower edges sunk behind
+  it, side crops faded); the captain is a face cell on the board, and takes the stage with
+  the green ring behind him when there is no transfer.
 - **Glass crest tile**: night band, blurred glow behind, glass plate, crest breaking the
   top-right corner, run score in big numbers.
 - **Swipe deck** (other transfer options only, never the hero or captain): purple cards
@@ -158,7 +160,7 @@ published-squad, no-double-gameweek and data-unavailable caveats visible once ea
 ## Where it is implemented
 
 - Shell, tokens, type, icons: top of `dashboard.css`, `render()` in `dashboard.py`.
-- Squad: `render()` (score card, tiles, up-next panel, move stage, captain card),
+- Squad: `render()` (the opening stage: poster headline, cast, glass scoreboard),
   `cards_squad.py` (pitch, findings).
 - Planning: `cards_plan.py` (week tiles and stage), `components.transfer_deck` with
   `planview.js` (swipe deck), `ticker.fixture_run_summary` (night band), chip coins and
