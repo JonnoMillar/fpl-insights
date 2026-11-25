@@ -301,7 +301,7 @@ def badge_png(team_code):
 SHIRT_URL = "https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_{code}{gk}-66.png"
 # Current official FPL ElementPhoto source; uses element.code, without a p
 # prefix. Do not fall back to the legacy path's potentially old-club photo.
-PHOTO_URL = "https://resources.premierleague.com/premierleague25/photos/players/110x140/{pid}.png"
+PHOTO_URL = "https://resources.premierleague.com/premierleague25/photos/players/500x500/{pid}.png"
 ASSET_DIR = CACHE_DIR / "assets"
 
 
@@ -353,7 +353,7 @@ def shirt_data_uri(team_code, keeper=False):
     return "data:image/png;base64," + base64.b64encode(data).decode("ascii")
 
 
-def photo_data_uri(photo_field, max_bytes=14000):
+def photo_data_uri(photo_field, max_bytes=26000, big=False):
     """Player portrait, squeezed down before embedding.
 
     The Premier League serve these as 96 KB PNGs, which across a squad would
@@ -372,9 +372,9 @@ def photo_data_uri(photo_field, max_bytes=14000):
         club = ""
     if not pid:
         return None
-    raw = _asset(PHOTO_URL.format(pid=pid), f"portrait25_{pid}_{club}.png", ttl=7 * 86400)
+    raw = _asset(PHOTO_URL.format(pid=pid), f"portrait500_{pid}_{club}.png", ttl=7 * 86400)
     if not raw and pid != "placeholder":
-        raw = _asset(PHOTO_URL.format(pid="placeholder"), "portrait25_placeholder.png", ttl=7 * 86400)
+        raw = _asset(PHOTO_URL.format(pid="placeholder"), "portrait500_placeholder.png", ttl=7 * 86400)
     if not raw:
         return None
     try:
@@ -383,8 +383,20 @@ def photo_data_uri(photo_field, max_bytes=14000):
         from PIL import Image, features
 
         img = Image.open(io.BytesIO(raw)).convert("RGBA")
+        # 500x500 source: crop to the 4:5 portrait the page slots use. Small
+        # slots get 320x400; big=True keeps the full crop for the hero stage,
+        # which shows at ~330 css px and needs ~2.5x pixels on phones.
+        w, h = img.size
+        cw = round(h * 0.8)
+        if cw < w:
+            left = (w - cw) // 2
+            img = img.crop((left, 0, left + cw, h))
+        if big:
+            max_bytes = max(max_bytes, 52000)
+        elif img.height > 400:
+            img = img.resize((320, 400), Image.LANCZOS)
         if features.check("webp"):
-            for quality in (72, 60, 48):
+            for quality in (82, 72, 60, 48):
                 buf = io.BytesIO()
                 img.save(buf, format="WEBP", quality=quality, method=6)
                 if buf.tell() <= max_bytes:

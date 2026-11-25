@@ -68,7 +68,7 @@ class PortraitTests(unittest.TestCase):
         with patch.object(fplapi, "_asset", return_value=None) as asset:
             fplapi.photo_data_uri({"code": 123, "photo": "wrong.jpg", "team_code": 7})
         self.assertEqual(asset.call_args_list[0].args,
-                         (fplapi.PHOTO_URL.format(pid="123"), "portrait25_123_7.png"))
+                         (fplapi.PHOTO_URL.format(pid="123"), "portrait500_123_7.png"))
         self.assertIn("placeholder", asset.call_args_list[1].args[0])
 
     def test_temporary_code_uses_placeholder(self):

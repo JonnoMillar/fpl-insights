@@ -889,7 +889,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         el = sw["in"]
         sw["in_club"] = ctx.team_name(el["team"])
         sw["out_photo"] = photos.get(sw["out"].element["id"])
-        sw["in_photo"] = fplapi.photo_data_uri(el)
+        sw["in_photo"] = fplapi.photo_data_uri(el, big=True)
         sw["out_shirt"] = shirts.get(
             (sw["out"].element["team"], sw["out"].pos == "GKP"))
         sw["in_shirt"] = shirts.get((el["team"], ctx.pos(el) == "GKP"))
@@ -905,7 +905,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         for leg in pr["legs"]:
             el = leg["in"]
             leg["out_photo"] = photos.get(leg["out"].element["id"])
-            leg["in_photo"] = fplapi.photo_data_uri(el)
+            leg["in_photo"] = fplapi.photo_data_uri(el, big=True)
             leg["out_shirt"] = shirts.get(
                 (leg["out"].element["team"], leg["out"].pos == "GKP"))
             leg["in_shirt"] = shirts.get((el["team"], ctx.pos(el) == "GKP"))
@@ -1025,14 +1025,14 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
                 "legs": [
                     {"out": primary, "in": target_el, "gain": primary_gain,
                      "out_photo": photos.get(primary.element["id"]),
-                     "in_photo": fplapi.photo_data_uri(target_el),
+                     "in_photo": fplapi.photo_data_uri(target_el, big=True),
                      "out_shirt": shirts.get(
                          (primary.element["team"], primary.pos == "GKP")),
                      "in_shirt": shirts.get(
                          (target_el["team"], ctx.pos(target_el) == "GKP"))},
                     {"out": second, "in": repl_el, "gain": second_gain,
                      "out_photo": photos.get(second.element["id"]),
-                     "in_photo": fplapi.photo_data_uri(repl_el),
+                     "in_photo": fplapi.photo_data_uri(repl_el, big=True),
                      "out_shirt": shirts.get(
                          (second.element["team"], second.pos == "GKP")),
                      "in_shirt": shirts.get(
@@ -1143,7 +1143,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
             "out_id": out_el["id"], "out_name": out_el["web_name"],
             "out_photo": photos.get(out_el["id"]),
             "in_id": in_el["id"], "in_name": in_el["web_name"],
-            "in_photo": photos.get(in_el["id"]) or fplapi.photo_data_uri(in_el),
+            "in_photo": fplapi.photo_data_uri(in_el, big=True),
             "in_club": ctx.team_name(in_el["team"]), "in_price": in_el["now_cost"] / 10,
             "opp": next_opponent(ctx, in_el["team"], next_gw, badges),
             "out_opp": next_opponent(ctx, out_el["team"], next_gw, badges),
@@ -1159,7 +1159,7 @@ def build(entry_id, league_id, ttl=fplapi.DEFAULT_TTL, gw=None, limit=25,
         ep = scores.get(player.element["id"]) or {}
         captains[mode] = {
             "id": player.element["id"], "name": player.name,
-            "photo": photos.get(player.element["id"]),
+            "photo": fplapi.photo_data_uri(player.element, big=True),
             "opp": next_opponent(ctx, player.element["team"], next_gw, badges),
             "xp": ep.get("total"),
         }
