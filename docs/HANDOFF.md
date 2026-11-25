@@ -1,8 +1,8 @@
 # HANDOFF — FPL Insights
 
-Last updated: 24 November 2026 (Squad opening stage on `claude/hero-redesign`, not pushed). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
+Last updated: 25 November 2026 (Squad opening stage published to origin/main and live). Older checkpoint detail lives in git history (`git log -p docs/HANDOFF.md`).
 
-## Squad opening stage, 24 November 2026 (branch `claude/hero-redesign`, not pushed)
+## Squad opening stage, published 25 November 2026 (`1a78d90`, CI rebuild `9338ea5`, live)
 
 Jonno: the first five cards (score, Season, Up next, next move, captain) were "a jumbled mess of colours", flat uniform fills, no hierarchy. Replaced by one night stage in `render()` (`hero_html`; CSS block "Squad tab: the opening stage"):
 
@@ -12,6 +12,7 @@ Jonno: the first five cards (score, Season, Up next, next move, captain) were "a
 - Glass board, one row: GW points (avg, delta, captain return), Season (rank), next GW projected, Captain (face + xP, both preview modes), Bank, Team news (count + names). Old score card, Up next panel, white move stage and purple captain card are gone (CSS removed; `.move-slot`, `.stat-tile`, `.move-figs` kept for Planning/League).
 - The "Snapshot / Update overdue" banner is gone: age sits in the header stamp ("updated 7h ago"), flagged only after 24 h; the published-squad and no-doubles caveats moved into About & methods (still printed once; test updated).
 - Verified on fresh 24 Nov data: 142 tests, `node --check` every `.js`, `git diff --check`, fresh `cli.py dashboard --out .cache/ui/final.html` with every source OK, Python Playwright at 1440/1280/1180/1024/768/375/320 with no page overflow or console errors, preview switch flips the board projection and captain, cast opens the profile. Roll variant (no transfer, two flagged) checked at 1440 and 375.
+- Live check 25 Nov (GW11 data, a roll week so the captain is on stage): hero present, banner gone, header stamp shows age, no page overflow or page errors at 1440 and 375.
 - Local `main` in the working checkout is stale (143 behind origin) and carries an uncommitted copy of the banner removal; this branch supersedes it.
 
 ## Hover hint on player pictures, published 5 November 2026
